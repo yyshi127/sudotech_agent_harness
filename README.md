@@ -1,57 +1,76 @@
-# DeepSeek Harness
+# Xiaojing Accounting
 
 English | [中文](README.zh.md)
 
-DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+<p align="center"><img src="apps/desktop/assets/app-icon.png" alt="Xiaojing Accounting app icon" width="112"></p>
 
-It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).
+**Xiaojing Accounting — your AI office partner** is a Windows desktop agent for everyday office and finance workflows. It combines a desktop interface, a local workspace, and configurable AI model access in one installable application.
 
-## Developer preview
+## What it provides
 
-DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+- **Install-and-run Windows application:** the installer includes its own Node.js runtime, so end users do not need to install Node.js separately.
+- **Local workspace:** the application creates `小兢会计工作区` under the user's Documents folder and lets the agent work with files and commands within the permissions granted by the user.
+- **Editable model settings:** users configure a DeepSeek API key after launch and can replace it later from the same settings page.
+- **Sudotech product experience:** the interface, product name, visual system, first-use guide, installer, and deployment defaults are customized for Xiaojing Accounting.
 
-## Run
+![Xiaojing Accounting desktop interface](apps/xiaojing-download/assets/app-preview.png)
 
-### Run from `npm`
+<a id="run"></a>
 
-Install `Node.js`, then run:
+## Install and start
+
+The distributed installer supports 64-bit Windows 10 and Windows 11.
+
+1. Download the Windows installer from the company distribution page.
+2. Run the installer and choose a parent folder. The installer appends the fixed `xiaojing-agent-desktop` application directory.
+3. Start Xiaojing Accounting from the desktop or Start menu. The bundled runtime starts automatically.
+
+## Configure the API key
+
+1. Sign in to the [DeepSeek Platform](https://platform.deepseek.com/) and create an API key.
+2. In Xiaojing Accounting, open **Settings → Models**, find DeepSeek, and select **Edit**.
+3. Paste the key into **API key**, then save the settings. Return to the same page whenever the key needs to be replaced.
+4. Treat the API key as sensitive information. Do not share it in chats, screenshots, or files.
+
+<a id="run-from-source"></a>
+
+## Develop from source
+
+Source development requires Node.js `^22.19.0` or `>=24.0.0` and pnpm `11.7.0`.
 
 ```sh
-npx @deepseek-ai/dsh web
-```
-
-The command starts the Web UI, served at `http://127.0.0.1:3080` by default. See [Web UI guide](docs/user/guide/index.md).
-
-### Run from source
-
-To run from a repository checkout:
-
-```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone git@github.com:yyshi127/sudotech_agent_harness.git
+cd sudotech_agent_harness
+corepack enable
 pnpm install
-pnpm run build
-pnpm dsh web
+pnpm desktop:dev
 ```
 
-## Community and support
+Build the Windows installer with:
 
-- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+```sh
+pnpm desktop:dist
+```
 
-## Contributing
+The generated installer is written under `apps/desktop/dist/installer/`. Build output and bundled runtime binaries are intentionally excluded from Git.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+## Repository layout
 
-## Development
+- `apps/desktop/` contains the Electron shell, loading page, installer configuration, and desktop assets.
+- `apps/web/` contains the Web interface assembled into the desktop application.
+- `apps/xiaojing-download/` contains the static Windows download page.
+- `packages/` contains the DeepSeek Harness packages and the product-facing UI customizations.
 
-Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+## Upstream and attribution
 
-For agents, follow [AGENTS.md](AGENTS.md).
+This repository is built directly on the open-source [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), which is developed by [DeepSeek AI](https://deepseek.com). Ruihua Cloud Sudotech customizes the interface, branding, default configuration, and Windows packaging for its internal and authorized product use.
+
+Xiaojing Accounting is not an independent reimplementation of the underlying agent harness and is not an official DeepSeek desktop release. DeepSeek Harness attribution and third-party notices remain part of the source tree and installer.
+
+## Project status
+
+Xiaojing Accounting is currently an internal beta intended for authorized users. Interfaces, configuration, and installer behavior may change between releases.
 
 ## License
 
-[MIT](LICENSE)
-
-Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The DeepSeek Harness source remains available under the [MIT License](LICENSE). Third-party dependencies and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
