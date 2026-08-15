@@ -7,6 +7,7 @@ import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WelcomeNoticeState, WelcomeNoticeStore } from './welcome-store.ts'
 import type { en } from './locales.ts'
+import { DEEPSEEK_PLATFORM_URL } from '../onboarding-copy.ts'
 import { OnboardingModal } from './OnboardingModal.tsx'
 import css from './WelcomeNotice.module.css'
 
@@ -59,7 +60,24 @@ export function WelcomeNotice(props: WelcomeNoticeProps): ReactNode {
   return (
     <OnboardingModal title={t('welcomeTitle')} focusTitle>
       <div className={css.copy}>
-        {paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+        {paragraphs.map((paragraph, index) => (
+          <p key={paragraph}>
+            {paragraph}
+            {index === 0 && (
+              <>
+                {' '}
+                <a
+                  className={css.platformLink}
+                  href={DEEPSEEK_PLATFORM_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('welcomePlatform')}
+                </a>
+              </>
+            )}
+          </p>
+        ))}
       </div>
       {state.error === null ? null : <p className={css.error} role="alert">{t('welcomeError')}</p>}
       <div className={css.actions}>

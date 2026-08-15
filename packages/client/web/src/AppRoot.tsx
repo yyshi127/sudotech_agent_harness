@@ -39,7 +39,7 @@ export function AppRoot(props: AppRootProps) {
   return (
     <div className={css.boot}>
       <div className={css.card}>
-        <div className={css.wordmark}>HARNESS</div>
+        <img className={css.wordmark} src="/sudo-logo-gray.png" alt="SUDO 数豆科技" />
         {!loud
           ? (
             <>
@@ -49,7 +49,7 @@ export function AppRoot(props: AppRootProps) {
           )
           : (
             <div className={css.failed}>
-              <div className={css.failedTitle}>Failed to load plugins</div>
+              <div className={css.failedTitle}>数豆 AI Agent 启动失败</div>
               {failed.map(([id]) => <div key={id} className={css.failedItem}>{id}</div>)}
               {error !== undefined && <div className={css.failedItem}>{error}</div>}
             </div>

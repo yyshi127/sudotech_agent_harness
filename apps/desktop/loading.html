@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小兢会计-您的AI办公搭子</title>
+    <style>
+      :root {
+        color: #10243a;
+        font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+        background: #f8fbfa;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        background:
+          radial-gradient(circle at 50% 48%, rgb(18 164 137 / 10%), transparent 34%),
+          #f8fbfa;
+      }
+
+      main {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+      }
+
+      img {
+        width: 82px;
+        height: 82px;
+        object-fit: contain;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0;
+        color: #688078;
+        font-size: 14px;
+      }
+
+      .loader {
+        width: 144px;
+        height: 3px;
+        margin-top: 10px;
+        overflow: hidden;
+        background: #dff3ed;
+        border-radius: 2px;
+      }
+
+      .loader::after {
+        display: block;
+        width: 46%;
+        height: 100%;
+        content: "";
+        background: #12a489;
+        animation: loading 1.1s ease-in-out infinite alternate;
+      }
+
+      @keyframes loading {
+        from { transform: translateX(-20%); }
+        to { transform: translateX(145%); }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="assets/sdoobot-avatar.png" alt="" />
+      <h1>小兢会计-您的AI办公搭子</h1>
+      <p>正在启动，请稍候…</p>
+      <div class="loader" aria-hidden="true"></div>
+    </main>
+  </body>
+</html>

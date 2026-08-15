@@ -1,15 +1,15 @@
 {
   "id": "/",
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "SUDO 数豆 AI Agent",
+  "short_name": "数豆 AI",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/sudo-logo-gray.png",
+      "sizes": "767x216",
+      "type": "image/png",
       "purpose": "any"
     }
   ]
