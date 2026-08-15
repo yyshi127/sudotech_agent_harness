@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import { app, BrowserWindow, dialog, session, shell } from 'electron'
 
 const PRODUCT_NAME = '小兢会计-您的AI办公搭子'
+const WINDOW_TITLE = '小兢会计'
 const COMPANY_NAME = '瑞华云数豆科技'
 const BACKEND_READY_TIMEOUT_MS = 60_000
 
@@ -42,14 +43,14 @@ async function startDesktop() {
 }
 
 function createMainWindow() {
-  const icon = join(import.meta.dirname, 'assets', 'app-icon.png')
+  const icon = join(import.meta.dirname, 'assets', 'taskbar-icon.png')
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
     minWidth: 1024,
     minHeight: 680,
     show: false,
-    title: PRODUCT_NAME,
+    title: WINDOW_TITLE,
     icon,
     autoHideMenuBar: true,
     backgroundColor: '#f8fbfa',
@@ -67,6 +68,10 @@ function createMainWindow() {
   })
 
   window.setMenuBarVisibility(false)
+  window.on('page-title-updated', (event) => {
+    event.preventDefault()
+    window.setTitle(WINDOW_TITLE)
+  })
   window.webContents.setWindowOpenHandler(({ url }) => {
     openExternalUrl(url)
     return { action: 'deny' }
@@ -180,7 +185,7 @@ async function openApplication(url) {
       margin-right: 138px;
     }
   `)
-  mainWindow.setTitle(PRODUCT_NAME)
+  mainWindow.setTitle(WINDOW_TITLE)
 }
 
 function failBackend(error) {
