@@ -70,6 +70,8 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin-win32-ia32-msvc@0.1.4
   - node-addon-require-builtin-win32-x64-msvc@0.1.4
   - node-addon-require-builtin@0.1.4
+  - '@liustack/modlens@3.16.6'
 
 patchedDependencies:
+  dsh-file-uploads@1.0.0: patches/dsh-file-uploads@1.0.0.patch
   node-pty@1.1.0: patches/node-pty@1.1.0.patch

@@ -38,6 +38,8 @@ The tree composes over an empty root:
 
 Bundles named in `dsh.profile.bundles` resolve from the dsh installation first (`@deepseek-ai/dsh-base`, `@deepseek-ai/dsh-web-app`, `@deepseek-ai/dsh-headless`), then from the profile's own `node_modules`, where pnpm installs out-of-tree plugins.
 
+Plugin changes that introduce profile-local copies of app-owned DSH or Cordis runtime packages are rejected and rolled back; profile startup also rejects such copies when the dependency directory was changed outside `dsh plugin`. External plugins consume the app runtime through `peerDependencies`; the [plugin-management reference](reference/README.md#plugin-management) owns the exact failure and recovery behavior.
+
 Use `--dump-default-config` and `--dump-config` to inspect the composed tree without booting it.
 
 The [CLI behavior reference](reference/README.md) owns exact layer precedence, flags, shutdown behavior, deployment defaults, and source execution.

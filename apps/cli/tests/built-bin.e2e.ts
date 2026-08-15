@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { startMockLlmServer } from '@deepseek-ai/dsh-llm-mock-server'
 import { execa } from 'execa'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { stageRuntimeShadowPlugin } from './plugin-runtime-shadow-fixture.ts'
 
 /** Published-entry acceptance for argument errors, profile lifecycle, and boot-free config dumps. */
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
@@ -656,6 +657,37 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     }
   }, 90_000)
 
+  it('rejects and rolls back a plugin that installs an app-owned runtime package', async () => {
+    const fixture = stageRuntimeShadowPlugin()
+    try {
+      const result = await execa(process.execPath, [
+        dshBin, 'plugin', '--profile', 'guard', 'add', fixture.pluginSpec,
+      ], {
+        input: '',
+        timeout: 60_000,
+        killSignal: 'SIGKILL',
+        reject: false,
+        env: { ...process.env, DSH_HOME: fixture.harnessHome },
+      })
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr).toContain('refused incompatible plugin change')
+      expect(result.stderr).toContain('@deepseek-ai/dsh-app-boot')
+      expect(result.stderr).toContain('restored the profile to its pre-install dependency state')
+
+      const profileDir = join(fixture.harnessHome, 'profiles', 'guard')
+      const manifest = JSON.parse(readFileSync(join(profileDir, 'package.json'), 'utf8')) as {
+        dependencies: Record<string, string>
+        dsh: { profile: { bundles: string[] } }
+      }
+      expect(manifest.dependencies).toEqual({})
+      expect(manifest.dsh.profile.bundles).toEqual(['@deepseek-ai/dsh-base'])
+      expect(existsSync(join(profileDir, 'node_modules', '@deepseek-ai', 'dsh-app-boot', 'package.json'))).toBe(false)
+      expect(existsSync(join(profileDir, 'pnpm-lock.yaml'))).toBe(false)
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true })
+    }
+  }, 90_000)
+
   it('activates a dependency that gained dsh.bundle in a later update', async () => {
     // Reconcile runs against the INSTALLED state on every successful pnpm
     // run, so `update` (not only `add`) activates a package whose newer
@@ -703,9 +735,27 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       expect(code).toBe(0)
       expect(stderr).toBe('')
       expect(stdout).toContain("name: '@deepseek-ai/dsh-agent-loop'")
+      expect(stdout).toContain("name: '@liustack/modlens'")
+      expect(stdout).toContain('name: dsh-file-uploads')
       expect(stdout).toContain('agents: []')
       expect(stdout).toContain('# == @deepseek-ai/dsh-base')
       expect(stdout).toContain("name: '@deepseek-ai/dsh-host-webserver'")
+    }, 30_000)
+
+    it('blocks profile startup when a local package shadows the app runtime', async () => {
+      const init = await runBuiltBin(['--profile', 'web', '--dump-default-config'], { DSH_HOME: home })
+      expect(init.code).toBe(0)
+      const shadow = join(home, 'profiles', 'web', 'node_modules', '@deepseek-ai', 'dsh-app-boot')
+      mkdirSync(shadow, { recursive: true })
+      writeFileSync(join(shadow, 'package.json'), JSON.stringify({
+        name: '@deepseek-ai/dsh-app-boot',
+        version: '99.0.0',
+      }))
+
+      const result = await runBuiltBin(['--profile', 'web', '--dump-default-config'], { DSH_HOME: home })
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('profile-local copies of app runtime packages')
+      expect(result.stderr).toContain('@deepseek-ai/dsh-app-boot')
     }, 30_000)
 
     it('prints the headless profile without Host or browser layers', async () => {

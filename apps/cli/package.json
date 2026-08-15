@@ -77,7 +77,9 @@
     "@deepseek-ai/dsh-web-app": "workspace:^",
     "@deepseek-ai/dsh-workflow-worker-thread": "workspace:^",
     "@deepseek-ai/dsh-agent-instructions": "workspace:^",
+    "@liustack/modlens": "3.16.6",
     "commander": "^15.0.0",
+    "dsh-file-uploads": "https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz",
     "@deepseek-ai/cordis": "workspace:^",
     "js-yaml": "^4.2.0",
     "node-addon-require-builtin": "^0.1.4"

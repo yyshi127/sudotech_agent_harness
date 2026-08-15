@@ -42,6 +42,10 @@ dsh --profile web --patch ./extra.yml --dump-config
 
 `dsh plugin --profile <name> <args...>` 在 profile 缺失时先初始化它（有随附模板的用模板，其他名称只装 `@deepseek-ai/dsh-base`），然后以 profile 目录为工作目录，把 `<args...>` 转发给 `pnpm`：`add`、`remove`、`why`、`update` 及其他所有 pnpm 子命令都照常可用；pnpm 必须在 PATH 上。相对路径 spec（`.`、`../plugin` 及其 `file:`/`link:` 形式）会先锚定到调用目录，因此在插件 checkout 中执行 `add .` 安装的是该 checkout，而不是 profile。每次成功运行后，系统都会根据当前安装状态更新 `dsh.profile.bundles`：如果某项依赖解析到的包在 manifest 中声明了 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }`，该依赖就会加入配置层栈；如果某项依赖在 `update` 后获得该声明，也会随即激活。没有组合包声明的依赖仍作为普通依赖保留，并显示一次性警告；已移除的依赖则从配置层栈中删除。
 
+应用的 DSH 与 Cordis 包必须来自当前安装。pnpm 运行前，命令会记录 profile 的依赖文件和已经存在的运行时包副本；pnpm 操作成功后，只要新引入了应用自有运行时包的 profile 本地副本，命令就会失败。命令会恢复已记录的文件，要求 pnpm 在不运行生命周期脚本的情况下重新物化原依赖图，并在报告回滚成功前确认新增副本已清除。若回滚无法恢复依赖图，诊断会给出 profile 目录，并阻止该 profile 启动；每次 profile 启动还会独立拒绝任何残留的运行时包副本。因此，插件包应把 DSH 与 Cordis 包声明为 `peerDependencies`，通过安装目录的回退机制使用它们，而不是捆绑另一套 Harness 运行时。
+
+该检查防止依赖遮蔽，但不会让第三方代码自动变得可信。已启用的插件可以有意添加或替换 UI 行为；经 pnpm 明确允许的生命周期脚本也会以用户权限执行。
+
 ```sh
 dsh plugin --profile tui add github:deepseek-harness/turtle-ui
 dsh plugin --profile tui remove turtle-ui

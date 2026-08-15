@@ -11,10 +11,11 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
   DEFAULT_PROFILE_BUNDLES,
+  findProfileRuntimeShadows,
   initProfile,
   PROFILE_TEMPLATES,
   readProfileManifest,
@@ -26,6 +27,58 @@ import {
 import { INSTALL_ANCHOR } from './profile-boot.ts'
 
 const NAME = 'dsh'
+
+/** Profile files pnpm may rewrite while changing the dependency graph. */
+const PROFILE_TRANSACTION_FILES = ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml'] as const
+
+/** One dependency-file value before a pnpm operation. */
+interface ProfileFileSnapshot {
+  path: string
+  content: Buffer | undefined
+}
+
+/** Capture the profile dependency files needed to roll back an incompatible graph. */
+function snapshotProfileFiles(profileDir: string): ProfileFileSnapshot[] {
+  return PROFILE_TRANSACTION_FILES.map((filename) => {
+    const path = join(profileDir, filename)
+    return { path, content: existsSync(path) ? readFileSync(path) : undefined }
+  })
+}
+
+/** Restore dependency files exactly, including removing files pnpm created. */
+function restoreProfileFiles(snapshots: readonly ProfileFileSnapshot[]): void {
+  for (const snapshot of snapshots) {
+    if (snapshot.content === undefined) {
+      rmSync(snapshot.path, { force: true })
+    } else {
+      writeFileSync(snapshot.path, snapshot.content)
+    }
+  }
+}
+
+/** Run pnpm with the profile's Windows shim handling. */
+function spawnPnpm(profileDir: string, args: readonly string[]) {
+  return spawnSync('pnpm', [...args], {
+    cwd: profileDir,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  })
+}
+
+/**
+ * Restore the old dependency graph after pnpm introduced app-runtime copies.
+ * @param profileDir - profile directory pnpm changed.
+ * @param snapshots - dependency files captured before the operation.
+ * @returns true when pnpm materialized the restored graph successfully.
+ */
+function rollbackPluginChange(profileDir: string, snapshots: readonly ProfileFileSnapshot[]): boolean {
+  restoreProfileFiles(snapshots)
+  const result = spawnPnpm(profileDir, ['install', '--ignore-scripts'])
+  // pnpm may create a lockfile when the prior profile had none. The rollback
+  // promises the exact dependency-file state that preceded the rejected run.
+  restoreProfileFiles(snapshots)
+  return result.error === undefined && result.status === 0
+}
 
 /**
  * Whether a resolved dependency exports a profile patch, i.e. is a bundle.
@@ -124,13 +177,11 @@ export function runPlugin(profile: string, args: readonly string[]): number {
     process.stderr.write(`${NAME}: initialized profile ${profile} at ${dir}\n`)
   }
   const before = readProfileManifest(NAME, dir)
+  const snapshots = snapshotProfileFiles(dir)
+  const shadowsBefore = new Set(findProfileRuntimeShadows(INSTALL_ANCHOR, dir))
   // Windows resolves pnpm through its .cmd shim, which spawn() refuses
   // without a shell since the CVE-2024-27980 hardening.
-  const result = spawnSync('pnpm', args.map(argument => anchorPathSpec(argument, process.cwd())), {
-    cwd: dir,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  })
+  const result = spawnPnpm(dir, args.map(argument => anchorPathSpec(argument, process.cwd())))
   if (result.error !== undefined) {
     const code = (result.error as NodeJS.ErrnoException).code
     if (code === 'ENOENT') {
@@ -141,6 +192,33 @@ export function runPlugin(profile: string, args: readonly string[]): number {
   }
   const exitCode = result.status ?? 1
   if (exitCode === 0) {
+    const introducedShadows = findProfileRuntimeShadows(INSTALL_ANCHOR, dir)
+      .filter(packageName => !shadowsBefore.has(packageName))
+    if (introducedShadows.length > 0) {
+      process.stderr.write(
+        `${NAME}: refused incompatible plugin change because it installed app runtime package(s): `
+        + `${introducedShadows.join(', ')}\n`,
+      )
+      process.stderr.write(
+        `${NAME}: plugins must use the app's DSH/Cordis runtime through peerDependencies instead of dependencies\n`,
+      )
+      let rolledBack = false
+      try {
+        rolledBack = rollbackPluginChange(dir, snapshots)
+      } catch (error) {
+        process.stderr.write(`${NAME}: automatic plugin rollback failed: ${String(error)}\n`)
+      }
+      const remaining = findProfileRuntimeShadows(INSTALL_ANCHOR, dir)
+        .filter(packageName => !shadowsBefore.has(packageName))
+      if (rolledBack && remaining.length === 0) {
+        process.stderr.write(`${NAME}: restored the profile to its pre-install dependency state\n`)
+      } else {
+        process.stderr.write(
+          `${NAME}: the profile remains blocked from startup; repair its dependencies in ${dir} before retrying\n`,
+        )
+      }
+      return 1
+    }
     reconcilePlugins(before, dir)
   } else {
     // pnpm's own diagnostics name pnpm-workspace.yaml without saying WHICH

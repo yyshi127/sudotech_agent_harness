@@ -29,8 +29,10 @@ declare module '@deepseek-ai/cordis' {
 }
 
 export {
+  assertNoProfileRuntimeShadows,
   composeEntries,
   DEFAULT_PROFILE_BUNDLES,
+  findProfileRuntimeShadows,
   healProfilesModuleFallback,
   initProfile,
   loadProfile,

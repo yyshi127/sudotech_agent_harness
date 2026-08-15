@@ -38,6 +38,8 @@ profile 目录包含一个 `package.json`，其中记录树外插件依赖，以
 
 `dsh.profile.bundles` 中列出的组合包先从 dsh 安装目录解析（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-web-app`、`@deepseek-ai/dsh-headless`），再从 profile 自身的 `node_modules` 解析；pnpm 会将树外插件安装到该目录。
 
+如果插件变更在 profile 中引入应用自有 DSH 或 Cordis 运行时包的本地副本，安装会被拒绝并回滚；如果绕过 `dsh plugin` 直接改动依赖目录，profile 启动也会拒绝这些副本。外部插件通过 `peerDependencies` 使用应用运行时；确切的失败与恢复行为由[插件管理参考](reference/README.md#plugin-management)说明。
+
 使用 `--dump-default-config` 和 `--dump-config` 可在不启动的情况下检查组合后的配置树。
 
 层的确切优先级、flag、关闭行为、部署默认值和源码执行方式，以 [CLI（命令行界面）行为参考](reference/README.md)为准。

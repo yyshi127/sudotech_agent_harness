@@ -6,10 +6,12 @@
 
 import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  assertNoProfileRuntimeShadows,
   composeEntries,
+  findProfileRuntimeShadows,
   healProfilesModuleFallback,
   initProfile,
   loadProfile,
@@ -117,6 +119,46 @@ describe('resolveBundleDir', () => {
   })
 })
 
+describe('profile runtime shadows', () => {
+  it('reports only differing profile-local copies of installation-owned DSH and Cordis packages', () => {
+    const anchor = stageInstallation({
+      '@deepseek-ai/dsh-client-ui-shell': {},
+      '@deepseek-ai/cordis-plugin-loader': {},
+      'plain-library': {},
+    })
+    const profileDir = tmp()
+    writeFileSync(join(profileDir, 'package.json'), '{}')
+    for (const name of [
+      '@deepseek-ai/dsh-client-ui-shell',
+      '@deepseek-ai/cordis-plugin-loader',
+      'plain-library',
+    ]) {
+      const dir = join(profileDir, 'node_modules', name)
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version: '99.0.0' }))
+    }
+
+    expect(findProfileRuntimeShadows(anchor, profileDir)).toEqual([
+      '@deepseek-ai/cordis-plugin-loader',
+      '@deepseek-ai/dsh-client-ui-shell',
+    ])
+    expect(() => { assertNoProfileRuntimeShadows('t', anchor, profileDir) })
+      .toThrow('profile-local copies of app runtime packages')
+
+    rmSync(join(profileDir, 'node_modules', '@deepseek-ai'), { recursive: true })
+    const packageName = '@deepseek-ai/dsh-client-ui-shell'
+    const linkedDir = join(profileDir, 'node_modules', packageName)
+    mkdirSync(dirname(linkedDir), { recursive: true })
+    symlinkSync(
+      join(dirname(anchor), 'node_modules', packageName),
+      linkedDir,
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+    expect(findProfileRuntimeShadows(anchor, profileDir)).toEqual([])
+    expect(() => { assertNoProfileRuntimeShadows('t', anchor, profileDir) }).not.toThrow()
+  })
+})
+
 describe('loadProfile', () => {
   it('resolves each dsh.profile.bundles entry to its patch layer in order, plus the user layer', () => {
     const anchor = stageInstallation({
@@ -152,6 +194,8 @@ describe('loadProfile', () => {
     // cannot be asserted to fail here: the source-plane test runner resolves
     // @deepseek-ai/* through tsconfig paths regardless of the staged anchor.
     expect(PROFILE_TEMPLATES.web).toContain('@deepseek-ai/dsh-base')
+    expect(PROFILE_TEMPLATES.web).toContain('@liustack/modlens')
+    expect(PROFILE_TEMPLATES.web).toContain('dsh-file-uploads')
     try {
       loadProfile('t', 'web', anchor, home)
     } catch {
@@ -161,13 +205,22 @@ describe('loadProfile', () => {
       .toEqual([...PROFILE_TEMPLATES.web ?? []])
   })
 
-  it('normalizes only the exact installation-owned headless bundle tuple', () => {
+  it('normalizes only exact installation-owned bundle tuples', () => {
     const anchor = stageInstallation({
       '@deepseek-ai/dsh-base': { patch: '[]\n' },
       '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
       '@deepseek-ai/dsh-headless': { patch: '[]\n' },
+      '@liustack/modlens': { patch: '[]\n' },
+      'dsh-file-uploads': { patch: '[]\n' },
       'custom-bundle': { patch: '[]\n' },
     })
+    const webHome = tmp()
+    const web = resolveProfileDir('web', webHome)
+    initProfile(web, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
+    loadProfile('t', 'web', anchor, webHome)
+    expect(readProfileManifest('t', web).dsh?.profile?.bundles)
+      .toEqual([...PROFILE_TEMPLATES.web ?? []])
+
     const home = tmp()
     const stock = resolveProfileDir('headless', home)
     initProfile(stock, [

@@ -1,6 +1,6 @@
 {
   "name": "@sudotech/xiaojing-accounting-desktop",
-  "version": "0.1.2",
+  "version": "0.1.7",
   "private": true,
   "description": "小兢会计 Windows desktop application",
   "type": "module",
@@ -115,7 +115,8 @@
     "@deepseek-ai/dsh-user-questions": "workspace:^",
     "@deepseek-ai/dsh-web": "workspace:^",
     "@deepseek-ai/dsh-workflow": "workspace:^",
-    "@deepseek-ai/schemastery": "workspace:^"
+    "@deepseek-ai/schemastery": "workspace:^",
+    "@earendil-works/pi-ai": "0.82.1"
   },
   "devDependencies": {
     "electron": "43.4.0",

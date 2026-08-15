@@ -10,6 +10,7 @@ English | [中文](README.zh.md)
 
 - **Install-and-run Windows application:** the installer includes its own Node.js runtime, so end users do not need to install Node.js separately.
 - **Local workspace:** the application creates `小兢会计工作区` under the user's Documents folder and lets the agent work with files and commands within the permissions granted by the user.
+- **Prompt file attachments:** users can upload local files into the current prompt, remove pending files before sending, and manage stored uploads in Settings.
 - **Editable model settings:** users configure a DeepSeek API key after launch and can replace it later from the same settings page.
 - **Sudotech product experience:** the interface, product name, visual system, first-use guide, installer, and deployment defaults are customized for Xiaojing Accounting.
 

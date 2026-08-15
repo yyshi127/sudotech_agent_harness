@@ -1,0 +1,103 @@
+diff --git a/client.js b/client.js
+index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e5ddc705c 100644
+--- a/client.js
++++ b/client.js
+@@ -280,12 +280,44 @@ window.__ModuleLoader__.load({
+       return controller.pendingFor(sessionId)
+     }
+ 
++    function composerTextarea(node) {
++      const textarea = node?.closest?.('[data-composer-seat]')?.querySelector('textarea')
++      return textarea instanceof HTMLTextAreaElement ? textarea : null
++    }
++
++    function firstFileOffset(input) {
++      let offset
++      for (const occurrence of input?.occurrences || []) {
++        if (occurrence.source !== SOURCE) continue
++        if (offset === undefined || occurrence.offset < offset) offset = occurrence.offset
++      }
++      return offset
++    }
++
++    function keepSelectionBeforeFiles(textarea, input) {
++      const boundary = firstFileOffset(input)
++      if (boundary === undefined) return
++      const start = textarea.selectionStart ?? boundary
++      const end = textarea.selectionEnd ?? start
++      if (start <= boundary && end <= boundary) return
++      textarea.setSelectionRange(
++        Math.min(start, boundary),
++        Math.min(end, boundary),
++        textarea.selectionDirection || 'none',
++      )
++    }
++
+     function UploadControl(props) {
+       const input = props.useInput((state) => state) || props.input
+       const pickerRef = React.useRef(null)
+       const [busy, setBusy] = React.useState(false)
+       const [status, setStatus] = React.useState('')
+ 
++      function keepInputFocus(event) {
++        event.preventDefault()
++        composerTextarea(event.currentTarget)?.focus({ preventScroll: true })
++      }
++
+       async function onPick(event) {
+         const files = Array.from(event.currentTarget.files || [])
+         event.currentTarget.value = ''
+@@ -331,6 +363,7 @@ window.__ModuleLoader__.load({
+             className: 'dsh-upload-button',
+             disabled,
+             'aria-label': busy ? '正在上传文件' : '上传文件',
++            onMouseDown: keepInputFocus,
+             onClick: () => pickerRef.current?.click(),
+           },
+           React.createElement('span', { className: 'dsh-upload-icon', 'aria-hidden': true }, busy ? '…' : '↑'),
+@@ -344,6 +377,7 @@ window.__ModuleLoader__.load({
+       const input = props.useInput((state) => state)
+       const promptError = props.useSession((session) => session.promptError) || null
+       const files = usePending(props.controller, props.sessionId)
++      const railRef = React.useRef(null)
+ 
+       React.useEffect(() => {
+         props.controller.migrateLegacy(props.sessionId, input?.draft || '')
+@@ -354,10 +388,27 @@ window.__ModuleLoader__.load({
+         if (promptError) props.controller.restoreFailed(props.sessionId)
+       }, [props.controller, props.sessionId, promptError])
+ 
++      React.useLayoutEffect(() => {
++        const textarea = composerTextarea(railRef.current)
++        if (!textarea) return undefined
++        const clamp = () => keepSelectionBeforeFiles(textarea, input)
++        clamp()
++        textarea.addEventListener('beforeinput', clamp)
++        textarea.addEventListener('focus', clamp)
++        textarea.addEventListener('keydown', clamp)
++        textarea.addEventListener('select', clamp)
++        return () => {
++          textarea.removeEventListener('beforeinput', clamp)
++          textarea.removeEventListener('focus', clamp)
++          textarea.removeEventListener('keydown', clamp)
++          textarea.removeEventListener('select', clamp)
++        }
++      }, [props.sessionId, input?.draftRev])
++
+       if (files.length === 0) return null
+       return React.createElement(
+         'div',
+-        { className: 'dsh-upload-rail', 'aria-label': '待发送文件' },
++        { ref: railRef, className: 'dsh-upload-rail', 'aria-label': '待发送文件' },
+         files.map((file) => React.createElement(
+           'div',
+           { className: 'dsh-upload-chip', key: file.ref },
+@@ -522,7 +573,7 @@ window.__ModuleLoader__.load({
+       .dsh-upload-button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+       .dsh-upload-button:disabled{opacity:.55;cursor:wait}
+       .dsh-upload-icon{font-size:15px;line-height:1;font-weight:600}
+-      .dsh-upload-rail{box-sizing:border-box;width:100%;max-width:var(--dsh-composer-card-max-width);margin:0 auto 6px;padding:0 var(--dsh-composer-side-clearance);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
++      .dsh-upload-rail{box-sizing:border-box;flex:none;width:100%;max-width:var(--dsh-composer-card-max-width);min-height:54px;margin:0 auto;padding:0 var(--dsh-composer-side-clearance);display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none}
+       .dsh-upload-rail::-webkit-scrollbar{display:none}
+       .dsh-upload-chip{min-width:180px;max-width:260px;height:54px;box-sizing:border-box;display:flex;align-items:center;gap:9px;padding:8px 8px 8px 11px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-specific-input-major);box-shadow:var(--dsw-shadow-lv1);color:var(--dsw-alias-label-primary)}
+       .dsh-upload-chip-icon{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:8px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary);font-size:16px}

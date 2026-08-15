@@ -18,6 +18,7 @@ import { FiberState, type Context } from '@deepseek-ai/cordis'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import {
+  assertNoProfileRuntimeShadows,
   boot,
   composeEntries,
   healProfilesModuleFallback,
@@ -98,6 +99,7 @@ export function resolveTelemetryPatch(disabledEnv: string | undefined, hasRow: b
 export function prepareProfile(name: string, userLayer = true): Profile {
   healProfilesModuleFallback(INSTALL_ANCHOR)
   const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer })
+  assertNoProfileRuntimeShadows(NAME, INSTALL_ANCHOR, profile.dir)
   writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
   return profile
 }

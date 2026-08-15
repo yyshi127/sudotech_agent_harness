@@ -24,7 +24,7 @@
 
 import { createRequire } from 'node:module'
 import {
-  existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync,
+  existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, unlinkSync, writeFileSync,
 } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
@@ -112,12 +112,13 @@ export function resolveProfileDir(name: string, home: string = resolveDshHome())
 
 /** The shipped profile templates auto-initialized on first use, by name. */
 export const PROFILE_TEMPLATES: Record<string, readonly string[]> = {
-  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
+  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@liustack/modlens', 'dsh-file-uploads'],
   headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
 }
 
 /** Installation-owned bundle tuples normalized to the shipped template. */
 const INSTALLATION_OWNED_PROFILE_TUPLES: Record<string, readonly string[]> = {
+  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
   headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless'],
 }
 
@@ -165,6 +166,85 @@ export function initProfile(dir: string, bundles: readonly string[]): void {
   if (!existsSync(patchPath)) writeFileSync(patchPath, PROFILE_PATCH_TEMPLATE)
   const workspacePath = join(dir, 'pnpm-workspace.yaml')
   if (!existsSync(workspacePath)) writeFileSync(workspacePath, PROFILE_PNPM_WORKSPACE)
+}
+
+/** Return whether one installed package belongs to the Harness/Cordis runtime supplied by the app. */
+function isProtectedRuntimePackage(packageName: string): boolean {
+  return /^@deepseek-ai\/(?:dsh|cordis)(?:-|$)/.test(packageName)
+}
+
+/**
+ * Resolve the installation's dependency closure by package name. The first
+ * resolution wins, matching Node's nearest-package lookup from each owner.
+ * @param installAnchor - absolute path of the dsh app's package.json.
+ * @returns package name to installed package directory.
+ */
+function installationPackageDirs(installAnchor: string): Map<string, string> {
+  const appManifest = JSON.parse(readFileSync(installAnchor, 'utf8')) as ProfileManifest
+  const packages = new Map<string, string>()
+  /* v8 ignore next -- a real app manifest always declares its name */
+  if (appManifest.name !== undefined) packages.set(appManifest.name, dirname(installAnchor))
+  const queue: { anchor: string; manifest: ProfileManifest }[] = [{ anchor: installAnchor, manifest: appManifest }]
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    // Peer dependencies participate because out-of-tree plugins import the
+    // installation's Service Definition packages directly.
+    /* v8 ignore next -- a real app manifest always declares dependencies */
+    for (const dependency of [
+      ...Object.keys(next.manifest.dependencies ?? {}),
+      ...Object.keys(next.manifest.peerDependencies ?? {}),
+    ]) {
+      if (packages.has(dependency)) continue
+      const dir = packageDirFromAnchor(next.anchor, dependency)
+      // A declared but uninstalled package cannot shadow or supply a plugin.
+      if (dir === undefined) continue
+      packages.set(dependency, dir)
+      const manifestPath = join(dir, 'package.json')
+      queue.push({
+        anchor: manifestPath,
+        manifest: JSON.parse(readFileSync(manifestPath, 'utf8')) as ProfileManifest,
+      })
+    }
+  }
+  return packages
+}
+
+/**
+ * Find profile-local copies of app-owned Harness/Cordis runtime packages.
+ * Such copies win Loader resolution from the profile and can replace the
+ * app's shipped backend or browser modules even though bundle manifests use
+ * installation-first resolution.
+ * @param installAnchor - absolute path of the dsh app's package.json.
+ * @param profileDir - profile directory whose pnpm-managed node_modules is inspected.
+ * @returns stable package-name list of runtime shadows.
+ */
+export function findProfileRuntimeShadows(installAnchor: string, profileDir: string): string[] {
+  const shadows: string[] = []
+  for (const [packageName, installationDir] of installationPackageDirs(installAnchor)) {
+    if (!isProtectedRuntimePackage(packageName)) continue
+    const profilePackageDir = join(profileDir, 'node_modules', packageName)
+    if (!existsSync(join(profilePackageDir, 'package.json'))) continue
+    if (realpathSync(profilePackageDir) !== realpathSync(installationDir)) shadows.push(packageName)
+  }
+  return shadows.sort()
+}
+
+/**
+ * Reject a profile whose local dependencies can shadow the app-owned runtime.
+ * @param binName - diagnostic prefix.
+ * @param installAnchor - absolute path of the dsh app's package.json.
+ * @param profileDir - profile directory to inspect.
+ */
+export function assertNoProfileRuntimeShadows(
+  binName: string,
+  installAnchor: string,
+  profileDir: string,
+): void {
+  const shadows = findProfileRuntimeShadows(installAnchor, profileDir)
+  if (shadows.length === 0) return
+  throw new Error(
+    `${binName}: profile ${JSON.stringify(basename(profileDir))} contains profile-local copies of app runtime packages: `
+    + `${shadows.join(', ')}; remove the plugin that depends on them before starting this profile`,
+  )
 }
 
 /** Ensure `link` is a symlink to `target`, replacing a wrong or dangling link; a real directory throws. */
@@ -224,30 +304,7 @@ export function healProfilesModuleFallback(installAnchor: string, home: string =
   const profilesDir = join(home, PROFILES_DIR)
   const modulesDir = join(profilesDir, 'node_modules')
   mkdirSync(modulesDir, { recursive: true })
-  const appManifest = JSON.parse(readFileSync(installAnchor, 'utf8')) as ProfileManifest
-  const links = new Map<string, string>()
-  /* v8 ignore next -- a real app manifest always declares its name */
-  if (appManifest.name !== undefined) links.set(appManifest.name, dirname(installAnchor))
-  // BFS over the resolvable dependency graph; the visited set is the link
-  // map itself (first resolution wins, matching Node's own nearest-wins).
-  const queue: { anchor: string; manifest: ProfileManifest }[] = [{ anchor: installAnchor, manifest: appManifest }]
-  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    // Peer dependencies participate: Service Definition packages (dsh-subprocess,
-    // dsh-compaction, ...) are peers of their implementations, never plain
-    // dependencies, yet out-of-tree plugins import them directly.
-    /* v8 ignore next -- a real app manifest always declares dependencies */
-    for (const dep of [...Object.keys(next.manifest.dependencies ?? {}), ...Object.keys(next.manifest.peerDependencies ?? {})]) {
-      if (links.has(dep)) continue
-      const dir = packageDirFromAnchor(next.anchor, dep)
-      // A declared-but-uninstalled dependency cannot be a loader-visible
-      // plugin; skip it rather than fail the whole boot.
-      if (dir === undefined) continue
-      links.set(dep, dir)
-      const manifestPath = join(dir, 'package.json')
-      queue.push({ anchor: manifestPath, manifest: JSON.parse(readFileSync(manifestPath, 'utf8')) as ProfileManifest })
-    }
-  }
-  for (const [packageName, target] of links) {
+  for (const [packageName, target] of installationPackageDirs(installAnchor)) {
     const link = join(modulesDir, packageName)
     mkdirSync(dirname(link), { recursive: true })
     ensureSymlink(link, target)

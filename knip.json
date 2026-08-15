@@ -3,6 +3,9 @@
   "exclude": [
     "duplicates"
   ],
+  "ignore": [
+    "apps/desktop/scripts/prepare-runtime.mjs"
+  ],
   "ignoreBinaries": [
     "bwrap",
     "icacls",
@@ -737,7 +740,18 @@
         "tests/**/*.ts"
       ],
       "ignoreDependencies": [
-        "@deepseek-ai/.+"
+        "@deepseek-ai/.+",
+        "@liustack/modlens",
+        "dsh-file-uploads"
+      ]
+    },
+    "apps/desktop": {
+      "project": [
+        "**/*.mjs"
+      ],
+      "ignoreDependencies": [
+        "@deepseek-ai/.+",
+        "@earendil-works/pi-ai"
       ]
     },
     "packages/client/modules": {
