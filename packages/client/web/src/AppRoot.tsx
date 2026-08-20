@@ -6,7 +6,8 @@
  * shell self-sufficiency rule); the real UI is produced by the
  * app-shell entry once every entry is active. A failed boot keeps the
  * loading page, lists the per-entry fiber states and the sweep report (fail
- * loud, no partial UI).
+ * loud, no partial UI). Static app HTML may select a boot logo through
+ * metadata because product plugins are not active at this stage.
  */
 import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
@@ -25,6 +26,18 @@ export interface AppRootProps {
   renderApp: () => ReactNode
 }
 
+interface BootLogo {
+  src: string
+  alt: string
+}
+
+function readBootLogo(): BootLogo | undefined {
+  const src = document.querySelector<HTMLMetaElement>('meta[name="dsh-boot-logo"]')?.content.trim()
+  if (src === undefined || src.length === 0) return undefined
+  const alt = document.querySelector<HTMLMetaElement>('meta[name="dsh-boot-logo-alt"]')?.content.trim() ?? ''
+  return { src, alt }
+}
+
 /** Boot gate: loading page until the boot settles; failures stay here. */
 export function AppRoot(props: AppRootProps) {
   const settled = useSyncExternalStore(props.settled.subscribe, props.settled.getSnapshot)
@@ -35,11 +48,14 @@ export function AppRoot(props: AppRootProps) {
   if (settled) return <>{props.renderApp()}</>
 
   const loud = error !== undefined || failed.length > 0
+  const logo = readBootLogo()
 
   return (
     <div className={css.boot}>
       <div className={css.card}>
-        <img className={css.wordmark} src="/sudo-logo-gray.png" alt="SUDO 数豆科技" />
+        {logo === undefined
+          ? <div className={css.wordmark}>HARNESS</div>
+          : <img className={css.logo} src={logo.src} alt={logo.alt} />}
         {!loud
           ? (
             <>
@@ -49,7 +65,7 @@ export function AppRoot(props: AppRootProps) {
           )
           : (
             <div className={css.failed}>
-              <div className={css.failedTitle}>数豆 AI Agent 启动失败</div>
+              <div className={css.failedTitle}>Failed to load plugins</div>
               {failed.map(([id]) => <div key={id} className={css.failedItem}>{id}</div>)}
               {error !== undefined && <div className={css.failedItem}>{error}</div>}
             </div>

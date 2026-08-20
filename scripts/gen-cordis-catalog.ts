@@ -98,6 +98,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   jobs: 'jobs.md',
   sessionTelemetry: 'session-telemetry.md',
   tokenMeter: 'token-meter.md',
+  usageAccounting: 'usage-accounting.md',
   toolResultPruner: 'compaction.md',
   tools: 'tools.md',
   typert: 'typert.md',
@@ -181,6 +182,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'system-prompt': 'system-prompt.md',
   'session-telemetry': 'session-telemetry.md',
   'tools': 'tools.md',
+  'usage-accounting': 'usage-accounting.md',
   'workflow': 'workflow.md',
 }
 
@@ -423,6 +425,8 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   JobStart: 'jobs.md',
   JobsChangedListener: 'jobs.md',
   TokenMeasurement: 'token-meter.md',
+  UsageAccountingDay: 'usage-accounting.md',
+  UsageAccountingSnapshot: 'usage-accounting.md',
   CodeDispatchLog: 'tools.md',
   PostToolDecision: 'tools.md',
   PreToolDecision: 'tools.md',

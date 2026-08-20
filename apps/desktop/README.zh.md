@@ -1,0 +1,42 @@
+# 小兢会计 Windows 桌面端
+
+[English](README.md) | 中文
+
+“小兢会计-您的AI办公搭子”的 Electron 外壳。它启动随包提供的 Node 运行时和 Web profile，将浏览器与 Node 隔离，并在一个 Windows 桌面窗口中呈现本地 Host。
+
+## 永久安装器身份
+
+`identity.json` 是身份源清单，`verify-desktop-identity.mjs` 固定以下兼容标识：
+
+| 字段 | 值 |
+|---|---|
+| Package name | `@sudotech/xiaojing-accounting-desktop` |
+| App ID / AppUserModelId | `com.sudotech.xiaojing-accounting` |
+| NSIS GUID | `1f6e3c2a-13e7-5ab1-a2d7-10b68c1b911a` |
+| 安装目录 | `xiaojing-agent-desktop` |
+| 可执行文件 | `小兢会计.exe` |
+| 产品名称 | `小兢会计-您的AI办公搭子` |
+| 安装范围 | 当前 Windows 用户 |
+| 快捷方式 | `小兢会计` |
+
+全新安装会显示自定义父目录选择页，并自动补齐 `xiaojing-agent-desktop`。具有相同身份的新版安装器会识别现有安装、沿用原 `InstallLocation`、跳过目录页、替换应用文件，并刷新快捷方式和卸载信息。迁移安装位置仍需卸载后重装。
+
+## 永久用户数据路径
+
+Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudotech\xiaojing-accounting-desktop`。随包 Host 使用其 `harness` 子目录作为 `DSH_HOME`，用户工作区位于 `%USERPROFILE%\Documents\小兢会计工作区`。
+
+`user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、上传文件、用量统计、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.7 数据集，在替换应用文件前后逐字节比对；若发布版改变持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
+
+## 独立集成补丁
+
+`integration-patches.json` 将启动后配置 API Key、profile 运行时遮蔽防护和附件上传输入区修复与品牌产品插件分开登记。某个条目消失或所属路径不存在时，桌面身份检查会失败。这样可以聚焦上游冲突审查，同时不会把这些补丁冒充为 Harness 官方行为。
+
+## 发布检查
+
+准备随包运行时前，先运行身份、用户数据和产品层检查。正式发布还必须在默认路径与自定义路径分别完成全新 Windows 安装，以及从上一安装包覆盖升级。安装后确认会话、凭据、预设、插件、附件、工作区和用量数据全部保留，才能发布安装器。
+
+## 已知限制
+
+- 更新方式是下载并运行新版安装包，目前没有应用内自动更新。
+- 安装包尚未进行 Authenticode 数字签名，因此 Windows 可能显示未知发布者或 SmartScreen 提示。
+- 覆盖升级只适用于同一 Windows 用户，且不能在升级过程中迁移安装目录。

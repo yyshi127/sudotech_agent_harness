@@ -12,26 +12,35 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
     <div
       class="logoRow"
     >
-      <button
-        aria-label="Open sidebar"
-        class="iconButton toggle"
-        type="button"
+      <div
+        data-slot="sidebar.brand"
+        style="display: contents;"
       >
-        <img
-          alt=""
-          class="railLogo"
-          src="/sdoobot-avatar.png"
-        />
-        <svg
-          class="panelIcon"
-          data-content="35f95b0c"
-          fill="none"
-          height="18"
-          viewBox="0 0 16 16"
-          width="18"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-      </button>
+        <button
+          aria-label="Open sidebar"
+          class="iconButton toggle"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="railFish"
+            data-content="965fe321"
+            fill="none"
+            height="17.6580310880829"
+            viewBox="0 0 23.16 17.04"
+            width="24"
+          />
+          <svg
+            class="panelIcon"
+            data-content="35f95b0c"
+            fill="none"
+            height="18"
+            viewBox="0 0 16 16"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+      </div>
     </div>
     <button
       aria-label="New session"
@@ -91,37 +100,40 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
     <div
       class="logoRow"
     >
-      <button
-        aria-label="New session"
-        class="brand wide"
-        type="button"
+      <div
+        data-slot="sidebar.brand"
+        style="display: contents;"
       >
-        <img
-          alt="SUDO 数豆科技"
-          class="brandLogo"
-          src="/sudo-logo-gray.png"
-        />
-        <span
-          class="brandTagline"
+        <button
+          aria-label="New session"
+          class="brand wide"
+          type="button"
         >
-          用AI重新定义财务
-        </span>
-      </button>
-      <button
-        aria-label="Collapse sidebar"
-        class="iconButton toggle"
-        type="button"
-      >
-        <svg
-          class="panelIcon"
-          data-content="35f95b0c"
-          fill="none"
-          height="16"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-      </button>
+          <svg
+            aria-hidden="true"
+            data-content="951274b9"
+            fill="none"
+            height="24"
+            viewBox="0 0 182 24"
+            width="182"
+          />
+        </button>
+        <button
+          aria-label="Collapse sidebar"
+          class="iconButton toggle"
+          type="button"
+        >
+          <svg
+            class="panelIcon"
+            data-content="35f95b0c"
+            fill="none"
+            height="16"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+      </div>
     </div>
     <button
       aria-label="New session"
@@ -186,37 +198,40 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
     <div
       class="logoRow"
     >
-      <button
-        aria-label="新建会话"
-        class="brand wide"
-        type="button"
+      <div
+        data-slot="sidebar.brand"
+        style="display: contents;"
       >
-        <img
-          alt="SUDO 数豆科技"
-          class="brandLogo"
-          src="/sudo-logo-gray.png"
-        />
-        <span
-          class="brandTagline"
+        <button
+          aria-label="新建会话"
+          class="brand wide"
+          type="button"
         >
-          用AI重新定义财务
-        </span>
-      </button>
-      <button
-        aria-label="收起侧边栏"
-        class="iconButton toggle"
-        type="button"
-      >
-        <svg
-          class="panelIcon"
-          data-content="35f95b0c"
-          fill="none"
-          height="16"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        />
-      </button>
+          <svg
+            aria-hidden="true"
+            data-content="951274b9"
+            fill="none"
+            height="24"
+            viewBox="0 0 182 24"
+            width="182"
+          />
+        </button>
+        <button
+          aria-label="收起侧边栏"
+          class="iconButton toggle"
+          type="button"
+        >
+          <svg
+            class="panelIcon"
+            data-content="35f95b0c"
+            fill="none"
+            height="16"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+      </div>
     </div>
     <button
       aria-label="新建会话"

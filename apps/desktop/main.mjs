@@ -1,12 +1,15 @@
 import { spawn } from 'node:child_process'
-import { createWriteStream, existsSync, mkdirSync } from 'node:fs'
+import { createWriteStream, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { app, BrowserWindow, dialog, session, shell } from 'electron'
 
-const PRODUCT_NAME = '小兢会计-您的AI办公搭子'
-const WINDOW_TITLE = '小兢会计'
+const identity = JSON.parse(readFileSync(new URL('./identity.json', import.meta.url), 'utf8'))
+const PRODUCT_NAME = identity.productName
+const WINDOW_TITLE = identity.shortcutName
 const COMPANY_NAME = '瑞华云数豆科技'
 const BACKEND_READY_TIMEOUT_MS = 60_000
+
+app.setPath('userData', join(app.getPath('appData'), ...identity.userDataSegments))
 
 let backend
 let backendUrl
@@ -30,7 +33,7 @@ if (!singleInstance) {
 
 async function startDesktop() {
   app.setName(PRODUCT_NAME)
-  app.setAppUserModelId('com.sudotech.xiaojing-accounting')
+  app.setAppUserModelId(identity.appId)
 
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false)

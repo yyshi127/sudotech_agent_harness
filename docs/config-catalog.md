@@ -2812,6 +2812,22 @@ export interface Config {
 
 Source: [`packages/typert/loader/src/index.ts:47`](../packages/typert/loader/src/index.ts)
 
+<a id="deepseek-aidsh-usage-accounting"></a>
+
+## `@deepseek-ai/dsh-usage-accounting`
+
+Requires: `llm` · `settings` · `credentials`
+
+```ts config-catalog
+/** Deployment settings for the local usage ledger. */
+export interface Config {
+  /** Explicit Harness home; omission follows `DSH_HOME`, then `~/.dsh`. */
+  dshHome?: string
+}
+```
+
+Source: [`packages/llm/usage-accounting/src/index.ts:18`](../packages/llm/usage-accounting/src/index.ts)
+
 <a id="deepseek-aidsh-user-approval"></a>
 
 ## `@deepseek-ai/dsh-user-approval`
@@ -3057,9 +3073,11 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-theme` ([`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-tool` ([`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-trajectory` ([`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-usage-accounting` ([`packages/client/ui-usage-accounting/src/index.ts`](../packages/client/ui-usage-accounting/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-user-questions` ([`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-workflow-run` ([`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-workspace` ([`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts))
+- `@deepseek-ai/dsh-client-xiaojing-product` — requires `systemPrompt` ([`packages/client/xiaojing-product/src/index.ts`](../packages/client/xiaojing-product/src/index.ts))
 - `@deepseek-ai/dsh-command-compact` — requires `commands` · `compaction` ([`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts))
 - `@deepseek-ai/dsh-command-feedback` — requires `commands` ([`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts))
 - `@deepseek-ai/dsh-command-goal` — requires `commands` · `goals` ([`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts))

@@ -1,0 +1,14 @@
+{
+  "packageName": "@sudotech/xiaojing-accounting-desktop",
+  "appId": "com.sudotech.xiaojing-accounting",
+  "nsisGuid": "1f6e3c2a-13e7-5ab1-a2d7-10b68c1b911a",
+  "installDirectoryName": "xiaojing-agent-desktop",
+  "executableName": "小兢会计",
+  "productName": "小兢会计-您的AI办公搭子",
+  "installScope": "currentUser",
+  "shortcutName": "小兢会计",
+  "userDataSegments": [
+    "@sudotech",
+    "xiaojing-accounting-desktop"
+  ]
+}

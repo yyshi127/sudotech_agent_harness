@@ -115,6 +115,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Adapters register provider implementations; the loop and compaction call the provider-neutral stream service.',
   },
   {
+    key: 'usageAccounting',
+    pkg: 'usage-accounting',
+    title: 'Local usage and request-time cost ledger',
+    mode: 'core',
+    note: 'Observes settled DeepSeek stream usage, stores current-key token and immutable request-time cost records, and exposes the local month snapshot through its Host Remote.',
+  },
+  {
     key: 'tokenMeter',
     pkg: 'token-meter',
     title: 'Replay token measurement',

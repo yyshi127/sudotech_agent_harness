@@ -1,0 +1,27 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "files": [
+    "src/css-modules.d.ts",
+    "src/client/HeroBrand.tsx",
+    "src/client/OnboardingContent.tsx",
+    "src/client/SidebarBrand.tsx",
+    "src/client/index.ts",
+    "src/client/locales.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../runtime-diagnostics/invariants" },
+    { "path": "../locale" },
+    { "path": "../runtime" },
+    { "path": "../ui-conversation" },
+    { "path": "../ui-primitives" },
+    { "path": "../ui-settings-models" },
+    { "path": "../ui-sidebar" },
+    { "path": "../ui-slots" }
+  ]
+}

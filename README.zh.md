@@ -39,6 +39,8 @@
 
 源码开发需要 Node.js `^22.19.0` 或 `>=24.0.0`，以及 pnpm `11.7.0`。
 
+修改产品界面、插件、用量统计或桌面封装前，请先阅读[小兢会计产品开发基线](docs/xiaojing-product-development.md)。
+
 ```sh
 git clone git@github.com:yyshi127/sudotech_agent_harness.git
 cd sudotech_agent_harness

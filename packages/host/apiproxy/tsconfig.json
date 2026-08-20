@@ -36,6 +36,9 @@
       "path": "../../llm/llm"
     },
     {
+      "path": "../../llm/usage-accounting"
+    },
+    {
       "path": "../../core/agent"
     },
     {

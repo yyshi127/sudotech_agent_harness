@@ -72,6 +72,8 @@
     "verify-package-paths": "tsx scripts/verify-package-paths.ts",
     "verify-dsh-package-licenses": "tsx scripts/verify-dsh-package-licenses.ts",
     "verify-config-source-ownership": "tsx scripts/verify-config-source-ownership.ts",
+    "verify:xiaojing-product": "node scripts/verify-xiaojing-product-layer.mjs",
+    "verify:xiaojing-user-data": "node apps/desktop/scripts/verify-user-data-contract.mjs",
     "verify-package-invariants": "tsx scripts/verify-package-invariants.ts",
     "verify-built-package-invariants": "node scripts/verify-built-package-invariants.mjs",
     "verify-package-readme-model-experience": "tsx scripts/verify-package-readme-model-experience.ts",

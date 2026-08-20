@@ -39,6 +39,8 @@ The distributed installer supports 64-bit Windows 10 and Windows 11.
 
 Source development requires Node.js `^22.19.0` or `>=24.0.0` and pnpm `11.7.0`.
 
+Before changing product UI, plugins, usage accounting, or desktop packaging, read the [Xiaojing Accounting product development baseline](docs/xiaojing-product-development.md).
+
 ```sh
 git clone git@github.com:yyshi127/sudotech_agent_harness.git
 cd sudotech_agent_harness

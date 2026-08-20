@@ -130,6 +130,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * zero owner changes.
      */
     'conversation.composer': { kind: 'chain'; scope: 'session'; owner: ComposerChainProps }
+    /** Product-owned logo, headline, and release badge on the empty-session hero. */
+    'conversation.hero.brand': { kind: 'single'; scope: 'root' }
     /**
      * The hero-phase Workspace picker hole: rendered by ConversationRoot
      * while the session is blank (picking another workspace switches to that
@@ -573,6 +575,7 @@ export type ConversationSlotProps =
     | 'conversation.input.overlay'
     | 'conversation.input.dock' | 'conversation.composer.dock'
     | 'conversation.input.left' | 'conversation.input.right'
+    | 'conversation.hero.brand'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
   >

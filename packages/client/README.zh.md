@@ -17,6 +17,7 @@ dsh web GUI 的浏览器侧：shell 启动、浏览器与宿主通信、共享 U
 | [`test-runtime/`](../test-support/client-runtime/README.md) | 为客户端功能包提供共享的仓库测试支持。 |
 | [`ui-slots/`](ui-slots/README.md) | 定义 UI 功能注册和组合扩展 slot 的方式。 |
 | [`ui-theme/`](ui-theme/README.md) | 应用所选颜色主题。 |
+| [`xiaojing-product/`](xiaojing-product/README.md) | 提供小兢会计品牌、主题、初次使用说明和默认部署人格。 |
 | [`ui-primitives/`](ui-primitives/README.md) | 提供共享 React 控件、图标和内容渲染器。 |
 | [`ui-attachment/`](ui-attachment/README.md) | 提供附件展示原子组件：草稿图片栏、消息画廊与灯箱。 |
 | [`ui-layout/`](ui-layout/README.md) | 排列应用的主要区域。 |
@@ -41,6 +42,7 @@ dsh web GUI 的浏览器侧：shell 启动、浏览器与宿主通信、共享 U
 | [`ui-settings/`](ui-settings/README.md) | 承载设置界面及其扩展区域。 |
 | [`ui-settings-general/`](ui-settings-general/README.md) | 提供常规设置分区。 |
 | [`ui-settings-models/`](ui-settings-models/README.md) | 提供模型提供方配置与 DeepSeek 配置引导。 |
+| [`ui-usage-accounting/`](ui-usage-accounting/README.md) | 展示今日本机用量和当前月份用量日历。 |
 | [`ui-settings-plugin-inventory/`](ui-settings-plugin-inventory/README.md) | 向“插件”设置贡献只读的 Host Loader 清单标签页。 |
 
 每个子文档负责自身的约定和详细行为。[slot 系统标准](../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md)与 [Web 客户端架构 Agent Note](../../.agents/notes/implemented/architecture/2026-07-19-gui-web-client-architecture.md)负责跨包组合与加载决策。

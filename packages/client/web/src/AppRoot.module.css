@@ -7,9 +7,7 @@
   height: 100%;
   display: grid;
   place-items: center;
-  background:
-    radial-gradient(circle at 50% 0%, rgb(18 164 137 / 12%), transparent 30rem),
-    var(--dsw-alias-bg-base, #f9fafb);
+  background: var(--dsw-alias-bg-base, #f9fafb);
 }
 
 .card {
@@ -20,8 +18,16 @@
 }
 
 .wordmark {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--dsw-alias-label-primary, #0f1115);
+}
+
+.logo {
   display: block;
-  width: min(240px, 60vw);
+  width: 190px;
   height: auto;
 }
 

@@ -1,12 +1,15 @@
 {
   "name": "@sudotech/xiaojing-accounting-desktop",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "private": true,
   "description": "小兢会计 Windows desktop application",
   "type": "module",
   "main": "main.mjs",
   "files": [
     "main.mjs",
+    "identity.json",
+    "integration-patches.json",
+    "user-data-contract.json",
     "loading.html",
     "assets",
     "build",
@@ -18,7 +21,10 @@
   "scripts": {
     "start": "electron .",
     "prepare:runtime": "node scripts/prepare-node-runtime.mjs",
-    "dist:win": "pnpm run prepare:runtime && electron-builder --win nsis --x64"
+    "verify:identity": "node scripts/verify-desktop-identity.mjs",
+    "verify:product-layer": "node ../../scripts/verify-xiaojing-product-layer.mjs",
+    "verify:user-data": "node scripts/verify-user-data-contract.mjs",
+    "dist:win": "pnpm run verify:identity && pnpm run verify:user-data && pnpm run verify:product-layer && pnpm run prepare:runtime && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -55,6 +61,8 @@
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-client-ui-theme": "workspace:^",
     "@deepseek-ai/dsh-client-ui-tool": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-usage-accounting": "workspace:^",
+    "@deepseek-ai/dsh-client-xiaojing-product": "workspace:^",
     "@deepseek-ai/dsh-client-ui-workspace": "workspace:^",
     "@deepseek-ai/dsh-client-web-react": "workspace:^",
     "@deepseek-ai/dsh-code-runtime": "workspace:^",
@@ -107,6 +115,7 @@
     "@deepseek-ai/dsh-terminal": "workspace:^",
     "@deepseek-ai/dsh-timeout": "workspace:^",
     "@deepseek-ai/dsh-token-meter": "workspace:^",
+    "@deepseek-ai/dsh-usage-accounting": "workspace:^",
     "@deepseek-ai/dsh-tool-workflow": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
@@ -137,6 +146,9 @@
     },
     "files": [
       "main.mjs",
+      "identity.json",
+      "integration-patches.json",
+      "user-data-contract.json",
       "loading.html",
       "assets/**/*",
       "package.json"
@@ -169,6 +181,7 @@
       "legalTrademarks": "小兢会计是瑞华云数豆科技内部使用品牌"
     },
     "nsis": {
+      "guid": "1f6e3c2a-13e7-5ab1-a2d7-10b68c1b911a",
       "oneClick": false,
       "perMachine": false,
       "allowElevation": true,

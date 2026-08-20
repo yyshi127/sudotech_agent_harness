@@ -1,0 +1,79 @@
+.brand {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.brandLogo {
+  display: block;
+  width: auto;
+  height: 26px;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.tagline {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--sudo-brand);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.collapsed {
+  width: 36px;
+  height: 36px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.railLogo {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.collapsed .panelIcon {
+  display: none;
+}
+
+.collapsed:hover .panelIcon {
+  display: inline;
+}
+
+.collapsed:hover .railLogo {
+  display: none;
+}

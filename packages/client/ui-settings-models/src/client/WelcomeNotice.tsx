@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WelcomeNoticeState, WelcomeNoticeStore } from './welcome-store.ts'
 import type { en } from './locales.ts'
-import { DEEPSEEK_PLATFORM_URL } from '../onboarding-copy.ts'
 import { OnboardingModal } from './OnboardingModal.tsx'
 import css from './WelcomeNotice.module.css'
 
@@ -23,9 +22,28 @@ export interface WelcomeNoticeInjected {
   t: (key: keyof typeof en) => string
 }
 
+/** Lifecycle actions and state supplied to a product-owned onboarding body. */
+export interface OnboardingContentOwnerProps {
+  /** Persist acknowledgement and advance the coordinator when it succeeds. */
+  acknowledge: () => Promise<void>
+  /** Whether the acknowledgement write is in flight. */
+  saving: boolean
+  /** Whether the latest read or write failed. */
+  failed: boolean
+}
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotMap {
+    /** Product-owned copy and presentation inside the versioned welcome lifecycle. */
+    'onboarding.content': { kind: 'single'; scope: 'root'; owner: OnboardingContentOwnerProps }
+  }
+}
+
 /** Coordinator owner props plus this step's injected face. */
 export type WelcomeNoticeProps =
-  PropsRuntime<'settings.onboarding'> & InjectFace<WelcomeNoticeInjected>
+  PropsRuntime<'settings.onboarding'>
+  & PropsRenderSlots<'onboarding.content'>
+  & InjectFace<WelcomeNoticeInjected>
 
 /**
  * Render the current notice until its exact copy version is acknowledged.
@@ -33,7 +51,7 @@ export type WelcomeNoticeProps =
  * @returns the welcome modal or null while the step decides not to show.
  */
 export function WelcomeNotice(props: WelcomeNoticeProps): ReactNode {
-  const { complete, controller, useWelcome, t } = props
+  const { complete, controller, renderSlot, useWelcome, t } = props
   const state = useWelcome(snapshot => snapshot)
   const finished = useRef(false)
   const finish = useCallback((): void => {
@@ -57,27 +75,10 @@ export function WelcomeNotice(props: WelcomeNoticeProps): ReactNode {
   }
   const paragraphs = t('welcomeBody').split('\n\n')
 
-  return (
+  const fallback = (
     <OnboardingModal title={t('welcomeTitle')} focusTitle>
       <div className={css.copy}>
-        {paragraphs.map((paragraph, index) => (
-          <p key={paragraph}>
-            {paragraph}
-            {index === 0 && (
-              <>
-                {' '}
-                <a
-                  className={css.platformLink}
-                  href={DEEPSEEK_PLATFORM_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {t('welcomePlatform')}
-                </a>
-              </>
-            )}
-          </p>
-        ))}
+        {paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
       </div>
       {state.error === null ? null : <p className={css.error} role="alert">{t('welcomeError')}</p>}
       <div className={css.actions}>
@@ -92,4 +93,9 @@ export function WelcomeNotice(props: WelcomeNoticeProps): ReactNode {
       </div>
     </OnboardingModal>
   )
+  return renderSlot('onboarding.content', {
+    acknowledge,
+    saving: state.status === 'saving',
+    failed: state.error !== null,
+  }, { fallback })
 }

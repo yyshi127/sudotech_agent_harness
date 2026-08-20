@@ -2004,6 +2004,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'usageAccounting',
+    summary: 'Host service owning the ledger, built-in pricing, Remote, and stream observer.',
+    description: 'Host service owning the ledger, built-in pricing, Remote, and stream observer.',
+    methods: [
+      {
+        signature: '@Remote(\'snapshot\') async snapshot(): Promise<UsageAccountingSnapshot>',
+        description: 'Return only the current API key\'s current-month usage.',
+        parameters: [],
+        returns: 'current Beijing-month snapshot without credential material.',
+      },
+    ],
+  },
+  {
     key: 'userQuestions',
     summary: '`ctx.userQuestions`: one active UI provider plus an `ask()` API.',
     description: '`ctx.userQuestions`: one active UI provider plus an `ask()` API.',
@@ -2556,6 +2569,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Observe the frozen, lossless-JSON final outcome.',
     description: 'Observe the frozen, lossless-JSON final outcome. Listener failures are contained. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): keyed by `exec.agent`.',
     parameters: [{ name: 'exec', description: 'the execution object that traversed the pipeline.' }, { name: 'result', description: 'a deep-frozen snapshot of the final returned result.' }],
+  },
+  {
+    name: 'usage-accounting/updated',
+    mode: 'emit',
+    signature: '\'usage-accounting/updated\'(revision: number): void',
+    summary: 'A durable local usage record committed; clients should refresh the snapshot.',
+    description: 'A durable local usage record committed; clients should refresh the snapshot.',
+    parameters: [{ name: 'revision', description: 'process-local committed revision.' }],
   },
   {
     name: 'workflow/agent-end',
@@ -4520,6 +4541,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TypertTypeModel',
     declaration: 'export interface TypertTypeModel {\n    readonly name: string;\n    readonly declaration: string;\n}',
+  },
+  {
+    name: 'UsageAccountingDay',
+    declaration: 'export interface UsageAccountingDay {\n    date: string;\n    cacheHitInputTokens: number;\n    cacheMissInputTokens: number;\n    outputTokens: number;\n    totalTokens: number;\n    cacheHitInputCostNanoyuan: string | null;\n    cacheMissInputCostNanoyuan: string | null;\n    outputCostNanoyuan: string | null;\n    costNanoyuan: string;\n    unpricedTokens: number;\n}',
+  },
+  {
+    name: 'UsageAccountingSnapshot',
+    declaration: 'export interface UsageAccountingSnapshot {\n    revision: number;\n    month: string;\n    today: string;\n    trackingSince: string;\n    keyConfigured: boolean;\n    days: UsageAccountingDay[];\n    total: UsageAccountingDay;\n}',
   },
   {
     name: 'UserMessage',

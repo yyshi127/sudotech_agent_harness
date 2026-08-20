@@ -17,6 +17,7 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`test-runtime/`](../test-support/client-runtime/README.md) | Provides shared repository test support for client feature packages. |
 | [`ui-slots/`](ui-slots/README.md) | Defines how UI features register and compose extension slots. |
 | [`ui-theme/`](ui-theme/README.md) | Applies the selected color theme. |
+| [`xiaojing-product/`](xiaojing-product/README.md) | Supplies the Xiaojing brand, theme, onboarding, and default deployment persona. |
 | [`ui-primitives/`](ui-primitives/README.md) | Provides shared React controls, icons, and content renderers. |
 | [`ui-attachment/`](ui-attachment/README.md) | Provides attachment display atoms: draft-image rail, message gallery, and lightbox. |
 | [`ui-layout/`](ui-layout/README.md) | Arranges the main application regions. |
@@ -41,6 +42,7 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`ui-settings/`](ui-settings/README.md) | Hosts the settings interface and its extension areas. |
 | [`ui-settings-general/`](ui-settings-general/README.md) | Provides the general settings section. |
 | [`ui-settings-models/`](ui-settings-models/README.md) | Provides model-provider configuration and DeepSeek onboarding. |
+| [`ui-usage-accounting/`](ui-usage-accounting/README.md) | Shows today's local usage and the current-month usage calendar. |
 | [`ui-settings-plugin-inventory/`](ui-settings-plugin-inventory/README.md) | Contributes the read-only Host Loader inventory tab to Plugins settings. |
 
 Each child reference owns its contract and detailed behavior. The [slot system standard](../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md) and [web client architecture note](../../.agents/notes/implemented/architecture/2026-07-19-gui-web-client-architecture.md) own the cross-package composition and loading decisions.

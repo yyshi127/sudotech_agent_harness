@@ -15,6 +15,8 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    /** Product-owned brand row; the shell supplies its fold and navigation actions. */
+    'sidebar.brand': { kind: 'single'; scope: 'root'; owner: SidebarBrandOwnerProps }
     /**
      * The workspace/session browsing region: section header, search, the
      * grouped/flat session list, and every workspace dialog. Declared by this
@@ -62,6 +64,22 @@ export interface SidebarFooterActionOwnerProps {
   wide: boolean
 }
 
+/** Owner share for a product brand rendered at the top of the sidebar. */
+export interface SidebarBrandOwnerProps {
+  /** Whether the expanded brand is currently visible. */
+  wide: boolean
+  /** Whether the sidebar is in its collapsed state. */
+  collapsed: boolean
+  /** Start a new session from the expanded brand. */
+  startSession: () => void
+  /** Toggle the sidebar column. */
+  toggleSidebar: () => void
+  /** Accessible label for the expanded brand action. */
+  newSessionLabel: string
+  /** Accessible label for the fold action. */
+  toggleLabel: string
+}
+
 /**
  * Registrant-private injected share (arrives via the register inject
  * factory). The shell keeps only its own controls: starting a Session from
@@ -85,5 +103,5 @@ export type SidebarRootInjected = {
  */
 export type SidebarRootComponentProps =
   PropsRuntime<'sidebar'>
-  & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'>
+  & PropsRenderSlots<'sidebar.brand' | 'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'>
   & SidebarRootInjected & PropsLocale<'sidebar'>

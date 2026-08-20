@@ -7,8 +7,7 @@ import type { WelcomeNoticeProps } from '../src/client/WelcomeNotice.tsx'
 import { WelcomeNoticeStore } from '../src/client/welcome-store.ts'
 import { en, zh } from '../src/client/locales.ts'
 import {
-  DEEPSEEK_PLATFORM_URL, WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_COPY, WELCOME_NOTICE_SETTINGS_NAMESPACE,
-  WELCOME_NOTICE_VERSION,
+  WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_COPY, WELCOME_NOTICE_SETTINGS_NAMESPACE, WELCOME_NOTICE_VERSION,
 } from '../src/onboarding-copy.ts'
 
 afterEach(() => {
@@ -56,6 +55,7 @@ function mount(version?: string, mutateImpl: () => Promise<unknown> = () => Prom
     controller,
     useWelcome: bindSnapshotSelector(controller.store),
     t: key => zh[key],
+    renderSlot: ((_key, _owner, options) => options?.fallback ?? null) as WelcomeNoticeProps['renderSlot'],
   }
   return { ...render(<WelcomeNotice {...props} />), complete, controller, mutate, appRoot }
 }
@@ -63,10 +63,9 @@ function mount(version?: string, mutateImpl: () => Promise<unknown> = () => Prom
 describe('WelcomeNotice', () => {
   it('uses the exact owner copy in both GUI locales', () => {
     expect(WELCOME_NOTICE_COPY.en).toEqual({
-      title: 'First-time setup',
-      body: '1. Get an API key: sign up for or sign in to the DeepSeek Platform, open the “API keys” page, then create and copy an API key.\n\n2. Set the API key: open “Settings” → “Models” in the lower-left corner, find DeepSeek and select “Edit”, paste the key into “API key”, then select “Apply”.\n\n3. Replace the API key: return to the same place, enter a new key, and apply it. The previous key will be replaced.\n\n4. Keep it secure: an API key is sensitive. Do not share it in chats, screenshots, or files.',
-      platformLabel: 'Open the DeepSeek Platform',
-      continueLabel: 'Get started',
+      title: 'Internal Testing Notice',
+      body: "DeepSeek Harness 0.1 remains in testing for Harness developers. Many areas need further improvement, and we welcome feedback from the developer community. DeepSeek Harness's core plugins and foundational APIs will continue to evolve rapidly over the coming months.\n\nWe look forward to exploring the limits of intelligence with developers around the world, building on open-source, open, reusable, and composable infrastructure. We welcome Harness developers everywhere to join the DSH plugin ecosystem.",
+      continueLabel: 'Continue',
     })
     expect(en.welcomeBody).toBe(WELCOME_NOTICE_COPY.en.body)
     expect(zh.welcomeBody).toBe(WELCOME_NOTICE_COPY.zh.body)
@@ -78,10 +77,7 @@ describe('WelcomeNotice', () => {
     for (const paragraph of WELCOME_NOTICE_COPY.zh.body.split('\n\n')) {
       expect(screen.getByText(paragraph, { exact: true })).toBeTruthy()
     }
-    expect(dialog.querySelectorAll('p')).toHaveLength(4)
-    const platform = screen.getByRole('link', { name: WELCOME_NOTICE_COPY.zh.platformLabel })
-    expect(platform.getAttribute('href')).toBe(DEEPSEEK_PLATFORM_URL)
-    expect(platform.getAttribute('target')).toBe('_blank')
+    expect(dialog.querySelectorAll('p')).toHaveLength(2)
     expect(dialog.querySelectorAll('button')).toHaveLength(1)
     expect(screen.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel })).toBeTruthy()
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: WELCOME_NOTICE_COPY.zh.title }))

@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
+  BrandWordmark, FishLogo,
   IconNewChatOutline16, IconPanelLeftOutline16,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -127,33 +128,40 @@ export function SidebarRoot({
       onPointerLeave={() => { armLinger() }}
     >
       <div className={css.logoRow}>
-        {/* Expanded, the wordmark doubles as a New Session shortcut; the
-            collapsed rail's logo is the expand toggle below instead. */}
-        {wide && (
-          <button
-            type="button"
-            className={clsx(css.brand, css.wide)}
-            aria-label={t('session.new.label')}
-            onClick={() => { startSession() }}
-          >
-            <img className={css.brandLogo} src="/sudo-logo-gray.png" alt="SUDO 数豆科技" />
-            <span className={css.brandTagline}>用AI重新定义财务</span>
-          </button>
-        )}
-        {/* Rail resting state is the Xiaojing mark; hovering swaps in the panel
-            icon (the expand affordance, figma sidebar-hover flow). */}
-        <Tooltip label={collapsed ? t('toggle.open') : t('toggle.collapse')} delayMs={500}>
-          <button
-            type="button"
-            className={clsx(css.iconButton, css.toggle)}
-            aria-label={collapsed ? t('toggle.open') : t('toggle.collapse')}
-            onClick={() => { toggleSidebar() }}
-          >
-            {!wide && <img className={css.railLogo} src="/sdoobot-avatar.png" alt="" />}
-            {/* Rail icons render at 18 (figma rail spec); expanded keeps the glyph-native sizes. */}
-            <IconPanelLeftOutline16 className={css.panelIcon} size={wide ? 16 : 18} />
-          </button>
-        </Tooltip>
+        {renderSlot('sidebar.brand', {
+          wide,
+          collapsed,
+          startSession: () => { startSession() },
+          toggleSidebar,
+          newSessionLabel: t('session.new.label'),
+          toggleLabel: collapsed ? t('toggle.open') : t('toggle.collapse'),
+        }, {
+          fallback: (
+            <>
+              {wide && (
+                <button
+                  type="button"
+                  className={clsx(css.brand, css.wide)}
+                  aria-label={t('session.new.label')}
+                  onClick={() => { startSession() }}
+                >
+                  <BrandWordmark />
+                </button>
+              )}
+              <Tooltip label={collapsed ? t('toggle.open') : t('toggle.collapse')} delayMs={500}>
+                <button
+                  type="button"
+                  className={clsx(css.iconButton, css.toggle)}
+                  aria-label={collapsed ? t('toggle.open') : t('toggle.collapse')}
+                  onClick={() => { toggleSidebar() }}
+                >
+                  {!wide && <FishLogo className={css.railFish} size={24} />}
+                  <IconPanelLeftOutline16 className={css.panelIcon} size={wide ? 16 : 18} />
+                </button>
+              </Tooltip>
+            </>
+          ),
+        })}
       </div>
 
       {/* Expanded, the button carries its own label — tooltip only on the rail. */}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "electronUserData": "%APPDATA%\\@sudotech\\xiaojing-accounting-desktop",
+  "harnessHome": "harness",
+  "documentsWorkspace": "小兢会计工作区",
+  "protectedPaths": [
+    "harness/sessions",
+    "harness/settings.yaml",
+    "harness/.credentials.yaml",
+    "harness/.agent-presets",
+    "harness/profiles",
+    "harness/storages",
+    "harness/uploads",
+    "harness/usage-accounting",
+    "Local Storage"
+  ]
+}

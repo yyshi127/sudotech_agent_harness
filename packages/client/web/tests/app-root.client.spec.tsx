@@ -10,7 +10,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, render } from '@testing-library/react'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  document.head.querySelectorAll('meta[name^="dsh-boot-logo"]').forEach((element) => {
+    element.remove()
+  })
+})
 import { AppRoot } from '@deepseek-ai/dsh-client-web/src/AppRoot.tsx'
 import { createLoaderStatusStore, createSignal } from '@deepseek-ai/dsh-client-web/src/loader-status.ts'
 
@@ -30,12 +35,32 @@ function mount() {
   return { settled, status, error, counts: () => renders, ...utils }
 }
 
+function setBootLogo(src: string, alt: string): void {
+  const metadata: ReadonlyArray<readonly [string, string]> = [
+    ['dsh-boot-logo', src],
+    ['dsh-boot-logo-alt', alt],
+  ]
+  for (const [name, content] of metadata) {
+    const meta = document.createElement('meta')
+    meta.name = name
+    meta.content = content
+    document.head.append(meta)
+  }
+}
+
 describe('AppRoot', () => {
   it('shows the loading page and never calls renderApp before settled', () => {
-    const { queryByTestId, counts, getByAltText } = mount()
-    expect(getByAltText('SUDO 数豆科技')).toBeTruthy()
+    const { queryByTestId, counts, getByText } = mount()
+    expect(getByText('HARNESS')).toBeTruthy()
     expect(queryByTestId('real-ui')).toBeNull()
     expect(counts()).toBe(0)
+  })
+
+  it('uses the boot logo selected by the static app HTML', () => {
+    setBootLogo('/brand.png', 'Product brand')
+    const { getByRole, queryByText } = mount()
+    expect(getByRole('img', { name: 'Product brand' }).getAttribute('src')).toBe('/brand.png')
+    expect(queryByText('HARNESS')).toBeNull()
   })
 
   it('all-active status alone does not open the gate (settled signal is the only key)', () => {
@@ -53,7 +78,7 @@ describe('AppRoot', () => {
       status.set('@deepseek-ai/dsh-client-ui-layout', 'failed')
       status.set('ok', 'active')
     })
-    expect(getByText('数豆 AI Agent 启动失败')).toBeTruthy()
+    expect(getByText('Failed to load plugins')).toBeTruthy()
     expect(getByText('@deepseek-ai/dsh-client-ui-layout')).toBeTruthy()
     expect(queryByTestId('real-ui')).toBeNull()
   })
@@ -61,16 +86,16 @@ describe('AppRoot', () => {
   it('renders the boot failure report even when no entry projected failed', () => {
     const { error, getByText, queryByTestId } = mount()
     act(() => { error.set('web boot: 1 entry did not activate\nx: pending (waiting for service: y)') })
-    expect(getByText('数豆 AI Agent 启动失败')).toBeTruthy()
+    expect(getByText('Failed to load plugins')).toBeTruthy()
     expect(getByText(/waiting for service/)).toBeTruthy()
     expect(queryByTestId('real-ui')).toBeNull()
   })
 
   it('flipping settled switches to the real UI in one pass', () => {
-    const { settled, getByTestId, queryByAltText, counts } = mount()
+    const { settled, getByTestId, queryByText, counts } = mount()
     act(() => { settled.set(true) })
     expect(getByTestId('real-ui')).toBeTruthy()
-    expect(queryByAltText('SUDO 数豆科技')).toBeNull()
+    expect(queryByText('HARNESS')).toBeNull()
     expect(counts()).toBe(1)
   })
 })

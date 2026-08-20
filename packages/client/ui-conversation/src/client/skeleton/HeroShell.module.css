@@ -50,10 +50,10 @@
   margin-top: 2px;
   margin-left: -3px;
   padding: 1px 7px 0;
-  border: 1px solid #12a489;
-  border-radius: 3px;
-  background: #12a489;
-  color: #fff;
+  border: 1px solid var(--dsw-alias-interactive-bg-hover);
+  border-radius: 24px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-label-primary-bluish);
   font-family: var(--ds-font-family-code);
   font-size: 12px;
   line-height: 18px;
@@ -62,7 +62,7 @@
 }
 
 /* Keep hover detection on a stationary box while the mark moves within it. */
-.brandHitbox {
+.fishHitbox {
   grid-row: 1;
   grid-column: 1;
   display: inline-flex;
@@ -70,12 +70,29 @@
   justify-content: center;
 }
 
-.heroLogo {
-  display: block;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  object-fit: cover;
+.fish {
+  color: var(--dsw-alias-label-primary);
+  transform-origin: 50% 60%;
+}
+
+@keyframes hero-fish-swim {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  35% {
+    transform: translate(-1px, -1px) rotate(-5deg);
+  }
+
+  70% {
+    transform: translate(1px, 0) rotate(3deg);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .fishHitbox:hover .fish {
+    animation: hero-fish-swim var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+  }
 }
 
 /* Workspace row sits 12px above the input card (figma y80 → y112). The blue

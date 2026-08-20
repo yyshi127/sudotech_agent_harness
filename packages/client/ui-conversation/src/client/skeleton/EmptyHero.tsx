@@ -7,7 +7,7 @@
 import { useId } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import {
-  IconChevronDownOutline14, IconFolderClose16, IconFolderOpen16,
+  FishLogo, IconChevronDownOutline14, IconFolderClose16, IconFolderOpen16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConversationSlotProps } from '../contract/slots.ts'
@@ -92,7 +92,14 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
         </filter>
       </defs>
       <g filter={`url(#${glowFilterId})`}>
-        <ellipse cx="525.5" cy="234" rx="425.5" ry="134" fill="#12A489" fillOpacity="0.1" />
+        <ellipse
+          cx="525.5"
+          cy="234"
+          rx="425.5"
+          ry="134"
+          fill="var(--dsh-hero-glow, #6187D8)"
+          fillOpacity="var(--dsh-hero-glow-opacity, 0.08)"
+        />
       </g>
     </svg>
   )
@@ -102,6 +109,8 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
 export interface HeroShellProps {
   /** The owner's locale seat, passed down as a plain prop. */
   t: HeroTranslate
+  /** Generic product-brand slot renderer supplied by ConversationRoot. */
+  renderSlot: ConversationSlotProps['renderSlot']
   /** Overlay content after the stack (modals). */
   children?: ReactNode
 }
@@ -112,18 +121,21 @@ export interface HeroShellProps {
  * @param props - see {@link HeroShellProps}.
  * @returns the centered hero element tree.
  */
-export function HeroShell({ t, children }: HeroShellProps) {
+export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
   return (
     <div className={css.root}>
       <div className={css.stack}>
-        <div className={css.headline}>
-          {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
-          <span className={css.brandHitbox}>
-            <img className={css.heroLogo} src="/sdoobot-avatar.png" alt="数豆办公助理" />
-          </span>
-          <span className={css.headlineText}>{t('hero.headline')}</span>
-          <span className={css.previewBadge}>{t('hero.preview')}</span>
-        </div>
+        {renderSlot('conversation.hero.brand', {}, {
+          fallback: (
+            <div className={css.headline}>
+              <span className={css.fishHitbox}>
+                <FishLogo size={34} className={css.fish} />
+              </span>
+              <span className={css.headlineText}>{t('hero.headline')}</span>
+              <span className={css.previewBadge}>{t('hero.preview')}</span>
+            </div>
+          ),
+        })}
         <div className={css.body}>
           {/* The resident composer (ConversationRoot's root-owned scrollport;
               the workspace row rides the stack above the card) is CSS-centered

@@ -16,8 +16,6 @@
 - id: system-prompt
   config:
     includeHarnessIdentity: false
-    persona: >-
-      You are 小兢会计, an AI office companion configured for internal use. Your working directory is {{cwd}}. For a simple identity question, answer concisely as “我是小兢会计，您的 AI 办公搭子。” in Chinese, or the equivalent in the user's language. Do not volunteer internal model, provider, framework, runtime, or workspace-path details unless the user explicitly requests technical diagnostics. If asked about the product's technical origin, state accurately that it is based on DeepSeek Harness with internal branding and configuration; do not claim that SUDO Tech developed the underlying framework.
 
 # TODO: Re-enable shared HMR for Web after its reload lifecycle is tested.
 - id: hmr
@@ -66,6 +64,9 @@
       name: '@deepseek-ai/dsh-message-feedback'
       config:
         maxNoteBytes: 8192
+
+    - id: usage-accounting
+      name: '@deepseek-ai/dsh-usage-accounting'
 
     # Browser Session export: `/export` command plus the shared download dialog.
     - id: session-log-download
@@ -175,6 +176,10 @@
     - id: ui-theme
       name: '@deepseek-ai/dsh-client-ui-theme'
 
+    # Product layer: persona on Host; brand/theme/onboarding through generic Client slots.
+    - id: xiaojing-product
+      name: '@deepseek-ai/dsh-client-xiaojing-product'
+
     - id: locale
       name: '@deepseek-ai/dsh-client-locale'
 
@@ -246,6 +251,9 @@
     # assistant-message action strip, over the messageFeedback Remote.
     - id: ui-message-feedback
       name: '@deepseek-ai/dsh-client-ui-message-feedback'
+
+    - id: ui-usage-accounting
+      name: '@deepseek-ai/dsh-client-ui-usage-accounting'
 
     # Model selection: the /model popupSelect + composer seat over session.models.
     - id: ui-model-selection

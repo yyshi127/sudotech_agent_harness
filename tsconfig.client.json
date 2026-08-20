@@ -78,6 +78,8 @@
     { "path": "./packages/client/ui-directory-picker-native" },
     { "path": "./packages/client/ui-goal" },
     { "path": "./packages/client/ui-message-feedback" },
+    { "path": "./packages/client/ui-usage-accounting" },
+    { "path": "./packages/client/xiaojing-product/tsconfig.client.json" },
     { "path": "./packages/client/ui-model-selection" },
     { "path": "./packages/client/ui-agent-preset" },
     { "path": "./packages/client/ui-permission-presets" },

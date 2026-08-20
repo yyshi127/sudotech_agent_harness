@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "product": "xiaojing-accounting",
+  "upstream": {
+    "remote": "https://github.com/deepseek-ai/deepseek-harness.git",
+    "release": "0.1.0-rc.5",
+    "commit": "abe560f81edebe5f6a5b62706ff502daa0dccd40"
+  },
+  "integrationBase": "c74f2d7e99a75fd898271b430dc1684040329dca",
+  "slots": [
+    "sidebar.brand",
+    "conversation.hero.brand",
+    "onboarding.content"
+  ],
+  "assets": [
+    "apps/web/public/sdoobot-avatar.png",
+    "apps/web/public/sudo-logo-gray.png"
+  ],
+  "desktopManifests": [
+    "apps/desktop/identity.json",
+    "apps/desktop/integration-patches.json",
+    "apps/desktop/user-data-contract.json"
+  ]
+}

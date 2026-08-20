@@ -26,6 +26,8 @@ import { en, zh, type ModelsKey } from './locales.ts'
 import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../onboarding-copy.ts'
 
 export type { ModelsSectionInjected, ModelsSectionProps } from './ModelsSection.tsx'
+export { OnboardingModal } from './OnboardingModal.tsx'
+export type { OnboardingContentOwnerProps } from './WelcomeNotice.tsx'
 export type { ModelsKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -118,6 +120,9 @@ export function apply(ctx: ClientContext): void {
     name: 'settings.onboarding',
     id: 'welcome-notice',
     order: -100,
+    children: {
+      'onboarding.content': { kind: 'single', scope: 'root' },
+    },
     inject: welcomeInjected,
   }, WelcomeNotice))
 }

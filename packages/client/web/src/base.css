@@ -25,18 +25,6 @@ body {
   background: var(--dsw-alias-bg-base);
 }
 
-:root {
-  --sudo-brand: #12a489;
-  --sudo-brand-dark: #0b8f7b;
-  --sudo-ink: #17323b;
-}
-
-body {
-  background:
-    radial-gradient(circle at 50% 0%, rgb(18 164 137 / 10%), transparent 36rem),
-    var(--dsw-alias-bg-base);
-}
-
 /* Form controls don't inherit the body font (UA sheets pin their families —
    Chrome buttons fall back to Arial, textareas to monospace), so the app
    stack is re-applied to them explicitly, as upstream's global reset does. */

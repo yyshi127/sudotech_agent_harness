@@ -92,7 +92,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
   height: 60px;
   padding: 8px 0 8px 4px;
   margin-bottom: 8px;
@@ -122,29 +122,6 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
-  gap: 8px;
-}
-
-.brandLogo {
-  display: block;
-  width: auto;
-  height: 26px;
-  max-width: 100%;
-  object-fit: contain;
-  object-position: left center;
-}
-
-.brandTagline {
-  flex: none;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: #12a489;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0;
-  white-space: nowrap;
 }
 
 .iconButton {
@@ -171,17 +148,6 @@
   height: 36px;
 }
 
-/* Rail logo swap: collapsed, the toggle rests as the Xiaojing mark and
-   hovering reveals the panel icon — the expand affordance. Expanded it is a
-   plain panel icon. */
-.railLogo {
-  display: block;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 .collapsed .toggle .panelIcon {
   display: none;
 }
@@ -190,7 +156,7 @@
   display: inline;
 }
 
-.collapsed .toggle:hover .railLogo {
+.collapsed .toggle:hover .railFish {
   display: none;
 }
 

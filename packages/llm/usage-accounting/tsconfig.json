@@ -1,0 +1,22 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../credentials/credentials" },
+    { "path": "../../util/launch-environment" },
+    { "path": "../../runtime-diagnostics/invariants" },
+    { "path": "../../settings/settings" },
+    { "path": "../../typert/protocol" },
+    { "path": "../../util/atomic-write" },
+    { "path": "../../util/home-paths" },
+    { "path": "../llm" },
+    { "path": "../llm-deepseek" }
+  ]
+}
