@@ -92,14 +92,7 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
         </filter>
       </defs>
       <g filter={`url(#${glowFilterId})`}>
-        <ellipse
-          cx="525.5"
-          cy="234"
-          rx="425.5"
-          ry="134"
-          fill="var(--dsh-hero-glow, #6187D8)"
-          fillOpacity="var(--dsh-hero-glow-opacity, 0.08)"
-        />
+        <ellipse cx="525.5" cy="234" rx="425.5" ry="134" fill="#6187D8" fillOpacity="0.08" />
       </g>
     </svg>
   )
@@ -109,7 +102,7 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
 export interface HeroShellProps {
   /** The owner's locale seat, passed down as a plain prop. */
   t: HeroTranslate
-  /** Generic product-brand slot renderer supplied by ConversationRoot. */
+  /** Authorized renderer for the hero brand-mark slot. */
   renderSlot: ConversationSlotProps['renderSlot']
   /** Overlay content after the stack (modals). */
   children?: ReactNode
@@ -125,17 +118,22 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
   return (
     <div className={css.root}>
       <div className={css.stack}>
-        {renderSlot('conversation.hero.brand', {}, {
-          fallback: (
-            <div className={css.headline}>
-              <span className={css.fishHitbox}>
-                <FishLogo size={34} className={css.fish} />
-              </span>
-              <span className={css.headlineText}>{t('hero.headline')}</span>
-              <span className={css.previewBadge}>{t('hero.preview')}</span>
-            </div>
-          ),
-        })}
+        <div className={css.headline}>
+          {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
+          <span className={css.fishHitbox}>
+            {renderSlot('conversation.hero.brand.mark', { size: 34, className: css.fish }, {
+              fallback: <FishLogo size={34} className={css.fish} />,
+            })}
+          </span>
+          {renderSlot('conversation.hero.brand.content', {}, {
+            fallback: (
+              <>
+                <span className={css.headlineText}>{t('hero.headline')}</span>
+                <span className={css.previewBadge}>{t('hero.preview')}</span>
+              </>
+            ),
+          })}
+        </div>
         <div className={css.body}>
           {/* The resident composer (ConversationRoot's root-owned scrollport;
               the workspace row rides the stack above the card) is CSS-centered

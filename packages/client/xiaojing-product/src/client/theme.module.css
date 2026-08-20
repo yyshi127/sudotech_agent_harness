@@ -1,5 +1,5 @@
 /* Xiaojing product palette. Generic components continue to consume upstream tokens. */
-:root {
+body[data-xiaojing-product] {
   --sudo-brand: #12a489;
   --sudo-brand-dark: #0b8f7b;
   --sudo-ink: #17323b;
@@ -7,7 +7,7 @@
   --dsh-hero-glow-opacity: 0.1;
 }
 
-body {
+body[data-xiaojing-product] {
   --dsw-alias-bg-base: rgb(251, 253, 253);
   --dsw-alias-bg-layer-1: rgb(255, 255, 255);
   --dsw-alias-bg-layer-2: rgb(247, 251, 250);
@@ -82,7 +82,7 @@ body {
     var(--dsw-alias-bg-base);
 }
 
-body[data-ds-dark-theme] {
+body[data-xiaojing-product][data-ds-dark-theme] {
   --dsw-alias-bg-base: rgb(13, 28, 26);
   --dsw-alias-bg-layer-1: rgb(18, 37, 34);
   --dsw-alias-bg-layer-2: rgb(23, 48, 44);

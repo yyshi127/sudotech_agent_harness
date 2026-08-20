@@ -1,0 +1,18 @@
+{
+  "name": "dsh-profile-custom",
+  "private": true,
+  "dependencies": {
+    "fixture-user-plugin": "1.0.0"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@liustack/modlens",
+        "dsh-file-uploads",
+        "fixture-user-plugin"
+      ]
+    }
+  }
+}

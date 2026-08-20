@@ -22,9 +22,11 @@
  * @module @deepseek-ai/dsh-app-boot/profile
  */
 
+import { randomBytes } from 'node:crypto'
 import { createRequire } from 'node:module'
 import {
-  existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, unlinkSync, writeFileSync,
+  existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync,
+  unlinkSync, writeFileSync,
 } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
@@ -112,14 +114,17 @@ export function resolveProfileDir(name: string, home: string = resolveDshHome())
 
 /** The shipped profile templates auto-initialized on first use, by name. */
 export const PROFILE_TEMPLATES: Record<string, readonly string[]> = {
-  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@liustack/modlens', 'dsh-file-uploads'],
+  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-file-uploads'],
   headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
 }
 
 /** Installation-owned bundle tuples normalized to the shipped template. */
-const INSTALLATION_OWNED_PROFILE_TUPLES: Record<string, readonly string[]> = {
-  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
-  headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless'],
+const INSTALLATION_OWNED_PROFILE_TUPLES: Record<string, readonly (readonly string[])[]> = {
+  web: [
+    ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
+    ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@liustack/modlens', 'dsh-file-uploads'],
+  ],
+  headless: [['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless']],
 }
 
 /** The bundle list a `dsh plugin` init uses for a name with no shipped template. */
@@ -342,6 +347,22 @@ export function writeProfileManifest(dir: string, manifest: ProfileManifest): vo
   writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest, undefined, 2) + '\n')
 }
 
+/** Replace an existing profile manifest through a same-directory atomic rename. */
+function writeProfileManifestAtomic(dir: string, manifest: ProfileManifest): void {
+  const path = join(dir, 'package.json')
+  const temp = `${path}.${randomBytes(6).toString('hex')}.tmp`
+  try {
+    writeFileSync(temp, JSON.stringify(manifest, undefined, 2) + '\n', {
+      flag: 'wx',
+      mode: lstatSync(path).mode & 0o777,
+    })
+    renameSync(temp, path)
+  } catch (error) {
+    rmSync(temp, { force: true })
+    throw error
+  }
+}
+
 /** Return whether two bundle lists have the same values in the same order. */
 function sameBundles(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index])
@@ -352,11 +373,11 @@ function sameBundles(left: readonly string[], right: readonly string[]): boolean
  * while preserving every other manifest field. Any other list is user-owned.
  */
 function normalizeShippedProfile(name: string, dir: string, manifest: ProfileManifest): ProfileManifest {
-  const installationOwned = INSTALLATION_OWNED_PROFILE_TUPLES[name]
+  const installationOwnedTuples = INSTALLATION_OWNED_PROFILE_TUPLES[name]
   const current = PROFILE_TEMPLATES[name]
   const bundles = manifest.dsh?.profile?.bundles
-  if (installationOwned === undefined || current === undefined || bundles === undefined
-    || !sameBundles(bundles, installationOwned)) return manifest
+  if (installationOwnedTuples === undefined || current === undefined || bundles === undefined
+    || !installationOwnedTuples.some(tuple => sameBundles(bundles, tuple))) return manifest
   const normalized: ProfileManifest = {
     ...manifest,
     dsh: {
@@ -364,7 +385,7 @@ function normalizeShippedProfile(name: string, dir: string, manifest: ProfileMan
       profile: { ...manifest.dsh?.profile, bundles: [...current] },
     },
   }
-  writeProfileManifest(dir, normalized)
+  writeProfileManifestAtomic(dir, normalized)
   return normalized
 }
 

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-在本机按当前 API Key 统计 DeepSeek token 与请求时点费用。插件通过 rc.5 的 `llm/stream` waterfall 观察提供方返回的 `usage` 分片，不修改 agent loop 或模型请求。
+在本机按当前 API Key 统计 DeepSeek token 与请求时点费用。插件通过 rc.8 的 `llm/stream` waterfall 观察提供方返回的 `usage` 分片，不修改 agent loop 或模型请求。
 
 ## 配置
 
@@ -14,7 +14,7 @@
 
 ## 观察与结算
 
-rc.5 兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek 设置和凭据解析的位置。每个实际 `deepseek-official` 流的首个 `usage` 分片只记录一次。普通对话、压缩、会话标题和重试请求会在提供方返回用量后分别结算。
+rc.8 兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek 设置和凭据解析的位置。每个实际 `deepseek-official` 流的首个 `usage` 分片只记录一次。普通对话、压缩、会话标题和重试请求会在提供方返回用量后分别结算。
 
 每条记录包含缓存命中输入、缓存未命中输入、输出、缓存写入 token、模型、请求发生的北京时间日期、请求用途、价格版本，以及固定的总费用和分类费用。API Key 只保留 SHA-256 指纹。切换 Key 后旧记录仍保留，但 `snapshot()` 只返回当前所配 Key 的本月数据。
 

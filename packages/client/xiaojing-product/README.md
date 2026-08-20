@@ -6,7 +6,7 @@ The Xiaojing Accounting product layer over DeepSeek Harness. Its Host half suppl
 
 ## Product contributions
 
-The browser plugin registers `sidebar.brand`, `conversation.hero.brand`, and `onboarding.content`. Product copy, palette overrides, and the default persona live in this package. The static Web app selects the inventoried SUDO logo for the pre-plugin loading page through generic boot metadata; the shell retains its `HARNESS` fallback when that metadata is absent. `product.json` records the official rc.5 baseline, generic slots, browser asset paths, and desktop product manifests. `scripts/verify-xiaojing-product-layer.mjs` rejects Xiaojing brand marks written back into the official UI source roots.
+The browser plugin registers `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.brand.content`, and `onboarding.content` only in the `xiaojing` Client build profile. Product copy, palette overrides, and the default persona live in this package. The build profile selects the inventoried SUDO logo for the pre-plugin loading page through generic boot metadata; the shell retains its `HARNESS` fallback when that metadata is absent. `product.json` records the official rc.8 baseline, generic slots, browser asset paths, and desktop product manifests. `scripts/verify-xiaojing-product-layer.mjs` rejects Xiaojing brand marks written back into the official UI source roots.
 
 The product identifies itself as “小兢会计，您的AI办公搭子” and accurately describes its technical origin as based on DeepSeek Harness with internal branding and configuration. It does not claim that SUDO Tech developed the underlying framework.
 
@@ -40,5 +40,5 @@ The text is prefix-stable while the product version and working directory stay u
 
 ## Known Limitations and Deferred Work
 
-- The product layer relies on three generic UI slots introduced on the rc.5 integration baseline; a future official release that changes those owners requires an adapter update before merge.
+- The product layer relies on five generic UI slots on the rc.8 integration baseline; a future official release that changes those owners requires an adapter update before merge.
 - Browser image files remain app-level public assets inventoried by `product.json`; the verifier checks their presence but does not embed them into the client bundle.

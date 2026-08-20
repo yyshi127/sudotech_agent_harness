@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { UsageAccountingSnapshot } from '@deepseek-ai/dsh-usage-accounting/types'
 import { UsageAccountingController } from '../src/client/controller.ts'
 import { formatNanoyuan, formatTokens } from '../src/client/format.ts'

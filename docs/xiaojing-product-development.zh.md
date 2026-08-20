@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.1.9）
+# 小兢会计产品开发基线（0.2.0 / rc.8）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述当前 0.1.9 产品基线；包级细节由各包 README 负责，[架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 rc.8 的当前 0.2.0 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md)与 [rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md)负责记录原因和被否决的替代方案。
 
 ## 开始前必读
 
@@ -17,10 +17,10 @@
 
 | 项目 | 当前值 | 真源 |
 |---|---|---|
-| 桌面产品版本 | `0.1.9` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| 官方 Harness 基线 | `0.1.0-rc.5` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 官方基线 commit | `abe560f81edebe5f6a5b62706ff502daa0dccd40` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 产品集成基准 | `c74f2d7e99a75fd898271b430dc1684040329dca` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 桌面产品版本 | `0.2.0` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| 官方 Harness 基线 | `dsh-v0.1.0-rc.8` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 官方基线 commit | `141eb6fef83422698aef7a981029e843e8161534` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 产品集成基准 | `8d7ded5a542a8fe99394e27b27e69cd3472838a3` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 源码仓库 | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
 `product.json` 显式记录上游基线，不能根据内容相似的源码推断基线。`@deepseek-ai/dsh-*` 包作用域继续遵循仓库级工作区约定，桌面包使用 `@sudotech/xiaojing-accounting-desktop`。产品文案和来源说明必须继续准确表述：小兢会计基于 DeepSeek Harness 进行内部品牌和配置定制，不能声称底层框架由数豆科技开发。
@@ -29,7 +29,7 @@
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream rc.5 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream rc.8 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
   Product --> Bundle["Web app composition"]
@@ -59,13 +59,13 @@ flowchart LR
 
 ### 通用 owner
 
-官方兼容 UI 根目录只公开小兢所需的三个单 owner slot：`sidebar.brand`、`conversation.hero.brand` 和 `onboarding.content`。每个 owner 都保留中性 fallback，因此缺少产品插件时，上游风格应用仍能运行。通用代码可以定义 owner props、布局空间、设计 token、元数据键和 fallback 渲染，但不能导入小兢包，也不能出现小兢、数豆、SUDO、产品资源文件名或产品文案。
+官方兼容 UI 根目录只公开小兢所需的五个单 owner slot：`sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content` 和 `onboarding.content`。每个 owner 都保留中性 fallback，因此缺少产品插件时，上游风格应用仍能运行。通用代码可以定义 owner props、布局空间、设计 token、元数据键和 fallback 渲染，但不能导入小兢包，也不能出现小兢、数豆、SUDO、产品资源文件名或产品文案。
 
 [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs)会扫描官方 UI 源码根目录中的产品标记，验证所有已声明 slot、清单中的资源和桌面 manifest，并要求 Web 组合加载产品插件。隔离检查失败时，打包命令会失败。
 
 ### 产品插件
 
-`@deepseek-ai/dsh-client-xiaojing-product` 同时包含 Host 半侧和浏览器半侧。Host 半侧只在 `deployment:persona` 为空时填入小兢身份，不会覆盖已选择或用户创建的 agent 人格。浏览器半侧把三个产品 slot、本地化文案和主题 CSS 注册为一个可卸载插件。
+`@deepseek-ai/dsh-client-xiaojing-product` 同时包含 Host 半侧和浏览器半侧。Host 半侧只在 `deployment:persona` 为空时填入小兢身份，不会覆盖已选择或用户创建的 agent 人格。浏览器半侧把五个产品 slot、本地化文案和主题 CSS 注册为一个可卸载插件，而且这些注册只会由 `xiaojing` Client 构建 profile 编译进入产品客户端。
 
 普通品牌修改都应从该包开始。在应用 public 资源中增加或替换资源，资源清单变化时更新 `product.json`，再由产品组件引用。不能为了补充产品展示而直接修改 `SidebarRoot`、`EmptyHero`、`WelcomeNotice` 或其他官方 owner。
 
@@ -74,7 +74,7 @@ flowchart LR
 当前有两个启动展示页面，二者都必须保留品牌：
 
 1. [`apps/desktop/loading.html`](../apps/desktop/loading.html) 是本地 Host 启动期间显示的 Electron 启动页，负责桌面专属产品文案和本地启动资源。
-2. [`apps/web/index.html`](../apps/web/index.html) 通过 `dsh-boot-logo` 元数据配置 Web 插件加载页。通用 `AppRoot` 读取该元数据并保留 `HARNESS` fallback；产品名称和资源路径留在应用元数据中。
+2. [`scripts/client-build-environment.ts`](../scripts/client-build-environment.ts) 中的 `xiaojing` 条目向构建后的 Web shell 注入 `dsh-boot-logo` 元数据。通用启动页读取该元数据并保留 `HARNESS` fallback；[`apps/web/index.html`](../apps/web/index.html) 本身保持产品中立。
 
 只检查一个页面不能算完成启动品牌修改。必须验证 Electron 启动页、Web 插件加载页、展开和收起的侧边栏、空会话首页及初次使用说明。
 
@@ -90,7 +90,7 @@ flowchart LR
 
 ### 本机用量统计
 
-计费功能不修改 agent loop。`@deepseek-ai/dsh-usage-accounting` 通过 rc.5 的 `llm/stream` waterfall 观察真实 `deepseek-official` 调用。[`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) 是唯一导入 rc 专属 stream、token 用量、DeepSeek 设置、endpoint 和凭据 API 的文件。上游 API 变化应先在此处吸收，然后再考虑是否需要修改结算、存储、价格或界面逻辑。
+计费功能不修改 agent loop。`@deepseek-ai/dsh-usage-accounting` 通过 rc.8 的 `llm/stream` waterfall 观察真实 `deepseek-official` 调用。[`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) 是唯一导入 rc 专属 stream、token 用量、DeepSeek 设置、endpoint 和凭据 API 的文件。上游 API 变化应先在此处吸收，然后再考虑是否需要修改结算、存储、价格或界面逻辑。
 
 每个请求只在首个提供方 `usage` 分片结算一次。对话、压缩、标题和重试请求互相独立。账本只保存 SHA-256 Key 指纹、请求元数据、互不重叠的 token bucket、请求时价格版本、整数纳元分类费用、总费用和未计价 token。浏览器只能获得 `usageAccounting.snapshot()` 和 `usage-accounting/updated` 刷新信号，不能获得 Key 或指纹。
 
@@ -98,7 +98,7 @@ flowchart LR
 
 ### 随包第三方插件
 
-发行版 Web profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `@liustack/modlens` 和 `dsh-file-uploads`。版本由应用依赖图固定；文件上传包还使用本地 pnpm patch 修复附件布局和文字光标行为。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
+发行版 Web profile 只通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`。其源码提交由应用依赖图固定，本地 pnpm patch 修复附件布局和文字光标行为。ModLens 及其视觉桥接不属于 0.2.0。rc.8 首次加载时，只会把安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
 
 ### 增加功能
 
@@ -113,7 +113,7 @@ flowchart LR
 
 | 补丁 id | 约定 | 负责路径 |
 |---|---|---|
-| `api-key-post-configuration` | 桌面端移除继承的 `DEEPSEEK_API_KEY`；用户可以在启动后通过设置创建或替换凭据。 | `apps/desktop/main.mjs`、模型设置 Client 插件 |
+| `desktop-api-key-environment-isolation` | 桌面端移除继承的 `DEEPSEEK_API_KEY`；用户通过 rc.8 可写凭据界面在启动后创建或替换凭据。 | `apps/desktop/main.mjs` |
 | `profile-runtime-shadow-protection` | 用户安装插件不能替换应用自带的 Harness 或 Cordis 运行时并恢复成上游界面。 | CLI 与 app-boot profile 加载 |
 | `file-upload-composer-repair` | 待发送附件布局不能遮挡输入框，并且可见光标必须与文字插入位置一致。 | `patches/dsh-file-uploads@1.0.0.patch` |
 
@@ -124,7 +124,7 @@ flowchart LR
 1. Electron 读取 `identity.json`、固定 `userData`、获取单实例锁、固定 AppUserModelId 和窗口标题，然后显示桌面启动页。
 2. 桌面端启动随包提供的 `runtime/node.exe`，不要求也不会选择终端用户已经安装的 Node。
 3. 子进程以 `%USERPROFILE%\Documents\小兢会计工作区` 为工作目录运行 `dsh web --port 0`，将永久 `harness` 数据目录设为 `DSH_HOME`，并移除继承的 DeepSeek API Key 环境变量。
-4. `web` profile 组合 base bundle、Web 应用 bundle、ModLens 和文件上传。Web bundle 加载用量 Host 插件、小兢产品插件、用量 Client 插件及普通 Harness UI 包。
+4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量 Host 插件、小兢产品插件、用量 Client 插件及普通 rc.8 Harness UI 包。
 5. API 网关向隔离 renderer 公开生成的 Remote。Electron 拒绝权限请求，并把新窗口 URL 交给操作系统浏览器打开。
 6. Host 公告动态分配的本地 URL 后，Electron 用组装后的 Web 应用替换启动页，同时保持固定的任务栏标题和图标。
 
@@ -155,7 +155,7 @@ flowchart LR
 3. 用上一正式版的真实结构数据替换合成升级 fixture，并覆盖全部受保护路径。
 4. 旧会话、凭据、人格、插件、附件、工作区文件、界面状态和计费数据在迁移后均可使用，才能解除打包阻断。
 
-`verify-user-data-contract.mjs` 当前会对 0.1.7 fixture 模拟应用文件替换，并比较每个受保护字节。它可以证明安装器路径不依赖用户数据，但不能代替真实 Windows 覆盖升级测试。
+`verify-user-data-contract.mjs` 会从合成的 0.1.9 fixture 还原真实 Zstandard 会话，模拟应用文件替换，并要求所有受保护数据保持字节不变。随后只允许一个原子变化：移除 ModLens 的安装程序默认 Web profile 清单迁移。同一检查通过 rc.8 打开旧会话并验证标题、消息和人格绑定，在不输出 Key 的情况下验证凭据可读且可替换，验证用户预设和设置，并核对当前 Key 的用量合计与分类费用。该检查不能代替真实 Windows 覆盖升级测试。
 
 ## 开发流程
 
@@ -172,7 +172,7 @@ flowchart LR
 先完成一次构建，再启动组合后的 Web 应用，不能只运行 Vite：
 
 ```sh
-pnpm run build
+pnpm run build:xiaojing
 pnpm dsh web --port 3090
 ```
 
@@ -227,7 +227,7 @@ pnpm desktop:dist
 - 组装应用加载 `xiaojing-product`、用量 Host 和用量 Client 插件；移除产品插件后通用 fallback 仍可运行。
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
-- ModLens、文件上传、附件布局、输入区光标行为和 profile 运行时遮蔽防护通过聚焦检查。
+- ModLens 与视觉桥接不存在；文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
 - 桌面身份和用户数据检查在版本递增后通过。
 - 全新安装可在默认路径和自定义父路径完成，并自动补齐 `xiaojing-agent-desktop`。

@@ -1,42 +1,17 @@
-.headline {
-  display: grid;
-  grid-template-columns: 34px auto auto;
-  column-gap: 10px;
-  align-items: center;
-  justify-content: center;
+.logo {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.title {
   color: var(--dsw-alias-label-primary);
   font-size: 26px;
   font-weight: 500;
   line-height: 32px;
 }
 
-.logoHitbox,
-.title,
 .badge {
-  grid-row: 1;
-}
-
-.logoHitbox {
-  grid-column: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo {
-  display: block;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.title {
-  grid-column: 2;
-}
-
-.badge {
-  grid-column: 3;
   align-self: start;
   margin-top: 2px;
   margin-left: -3px;

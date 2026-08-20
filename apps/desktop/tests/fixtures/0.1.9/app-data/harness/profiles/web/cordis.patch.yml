@@ -1,0 +1,3 @@
+# User-owned Web overrides must survive the installation-owned bundle migration.
+- id: fixture-web-setting
+  name: fixture-web-setting

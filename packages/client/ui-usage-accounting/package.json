@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-usage-accounting",
   "description": "Sidebar daily usage summary and current-month usage calendar",
-  "version": "0.1.0-rc.5",
+  "version": "0.1.0-rc.8",
   "publishConfig": {
     "access": "public"
   },
@@ -51,21 +51,18 @@
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-runtime": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-settings": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sidebar": "workspace:^",
-    "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
-    "@deepseek-ai/dsh-usage-accounting": "workspace:^",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@deepseek-ai/dsh-usage-accounting": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-runtime": "workspace:^",
+    "@deepseek-ai/dsh-client-test-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-settings": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sidebar": "workspace:^",

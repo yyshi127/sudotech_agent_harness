@@ -194,7 +194,7 @@ describe('loadProfile', () => {
     // cannot be asserted to fail here: the source-plane test runner resolves
     // @deepseek-ai/* through tsconfig paths regardless of the staged anchor.
     expect(PROFILE_TEMPLATES.web).toContain('@deepseek-ai/dsh-base')
-    expect(PROFILE_TEMPLATES.web).toContain('@liustack/modlens')
+    expect(PROFILE_TEMPLATES.web).not.toContain('@liustack/modlens')
     expect(PROFILE_TEMPLATES.web).toContain('dsh-file-uploads')
     try {
       loadProfile('t', 'web', anchor, home)
@@ -221,6 +221,20 @@ describe('loadProfile', () => {
     expect(readProfileManifest('t', web).dsh?.profile?.bundles)
       .toEqual([...PROFILE_TEMPLATES.web ?? []])
 
+    const legacyWebHome = tmp()
+    const legacyWeb = resolveProfileDir('web', legacyWebHome)
+    initProfile(legacyWeb, [
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@liustack/modlens', 'dsh-file-uploads',
+    ])
+    const legacyManifest = readProfileManifest('t', legacyWeb)
+    legacyManifest.dependencies = { 'user-installed-package': '1.0.0' }
+    writeProfileManifest(legacyWeb, legacyManifest)
+    loadProfile('t', 'web', anchor, legacyWebHome)
+    expect(readProfileManifest('t', legacyWeb)).toMatchObject({
+      dependencies: { 'user-installed-package': '1.0.0' },
+      dsh: { profile: { bundles: [...PROFILE_TEMPLATES.web ?? []] } },
+    })
+
     const home = tmp()
     const stock = resolveProfileDir('headless', home)
     initProfile(stock, [
@@ -239,6 +253,16 @@ describe('loadProfile', () => {
     expect(readProfileManifest('t', custom).dsh?.profile?.bundles).toEqual([
       '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless', 'custom-bundle',
     ])
+
+    const customWebHome = tmp()
+    const customWeb = resolveProfileDir('web', customWebHome)
+    initProfile(customWeb, [
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-file-uploads', '@liustack/modlens',
+    ])
+    const customWebPath = join(customWeb, 'package.json')
+    const customWebBefore = readFileSync(customWebPath, 'utf8')
+    loadProfile('t', 'web', anchor, customWebHome)
+    expect(readFileSync(customWebPath, 'utf8')).toBe(customWebBefore)
   })
 
   it('fails loud when a listed bundle declares no dsh.bundle', () => {

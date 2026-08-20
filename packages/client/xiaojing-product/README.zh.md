@@ -6,7 +6,7 @@
 
 ## 产品贡献
 
-浏览器插件注册 `sidebar.brand`、`conversation.hero.brand` 和 `onboarding.content`。产品文案、配色覆盖和默认人格位于本包。静态 Web 应用通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 rc.5 基线、通用 slot、浏览器资源路径和桌面产品清单。`scripts/verify-xiaojing-product-layer.mjs` 会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。
+浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content` 和 `onboarding.content`。产品文案、配色覆盖和默认人格位于本包。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 rc.8 基线、通用 slot、浏览器资源路径和桌面产品清单。`scripts/verify-xiaojing-product-layer.mjs` 会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。
 
 产品将自己称为“小兢会计，您的AI办公搭子”，并准确说明技术来源是基于 DeepSeek Harness 进行内部品牌与配置，不声称底层框架由数豆科技开发。
 
@@ -40,5 +40,5 @@ You are 小兢会计, an AI office companion configured for internal use. Your w
 
 ## Known Limitations and Deferred Work
 
-- 产品层依赖 rc.5 集成基线引入的三个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
+- 产品层依赖 rc.8 集成基线上的五个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
 - 浏览器图片仍是由 `product.json` 登记的应用级 public 资源；检查脚本验证其存在，但不会将其嵌入客户端 bundle。

@@ -1,4 +1,4 @@
-/** Xiaojing empty-session hero brand. */
+/** Xiaojing empty-session hero occupants. */
 
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -10,18 +10,32 @@ export interface HeroBrandInjected {
   t: (key: XiaojingProductKey) => string
 }
 
-/** Product hero brand props. */
-export type HeroBrandProps = PropsRuntime<'conversation.hero.brand'> & InjectFace<HeroBrandInjected>
+/** Product hero mark props. */
+export type HeroBrandMarkProps =
+  PropsRuntime<'conversation.hero.brand.mark'> & InjectFace<HeroBrandInjected>
 
-/** Render the Xiaojing avatar, product title, and beta badge. */
-export function HeroBrand({ t }: HeroBrandProps): ReactNode {
+/** Product hero copy props. */
+export type HeroBrandContentProps =
+  PropsRuntime<'conversation.hero.brand.content'> & InjectFace<HeroBrandInjected>
+
+/** Render the Xiaojing avatar at the size requested by the hero shell. */
+export function HeroBrandMark({ size, className, t }: HeroBrandMarkProps): ReactNode {
   return (
-    <div className={css.headline}>
-      <span className={css.logoHitbox}>
-        <img className={css.logo} src="/sdoobot-avatar.png" alt={t('assistantAlt')} />
-      </span>
+    <img
+      className={[css.logo, className].filter(Boolean).join(' ')}
+      style={{ width: size, height: size }}
+      src="/sdoobot-avatar.png"
+      alt={t('assistantAlt')}
+    />
+  )
+}
+
+/** Render the Xiaojing product title and internal-beta badge. */
+export function HeroBrandContent({ t }: HeroBrandContentProps): ReactNode {
+  return (
+    <>
       <span className={css.title}>{t('heroTitle')}</span>
       <span className={css.badge}>{t('beta')}</span>
-    </div>
+    </>
   )
 }

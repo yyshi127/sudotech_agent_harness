@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh",
   "description": "dsh CLI: profile boot, plugin management, and the browser UI alias",
-  "version": "0.1.0-rc.5",
+  "version": "0.1.0-rc.8",
   "publishConfig": {
     "access": "public"
   },
@@ -59,6 +59,7 @@
     "@deepseek-ai/dsh-tool-ask-user": "workspace:^",
     "@deepseek-ai/dsh-tool-bash": "workspace:^",
     "@deepseek-ai/dsh-tool-bash-persistent": "workspace:^",
+    "@deepseek-ai/dsh-tool-pwsh-persistent": "workspace:^",
     "@deepseek-ai/dsh-tool-cordis": "workspace:^",
     "@deepseek-ai/dsh-tool-fs": "workspace:^",
     "@deepseek-ai/dsh-tool-fs-search": "workspace:^",
@@ -77,7 +78,6 @@
     "@deepseek-ai/dsh-web-app": "workspace:^",
     "@deepseek-ai/dsh-workflow-worker-thread": "workspace:^",
     "@deepseek-ai/dsh-agent-instructions": "workspace:^",
-    "@liustack/modlens": "3.16.6",
     "commander": "^15.0.0",
     "dsh-file-uploads": "https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz",
     "@deepseek-ai/cordis": "workspace:^",

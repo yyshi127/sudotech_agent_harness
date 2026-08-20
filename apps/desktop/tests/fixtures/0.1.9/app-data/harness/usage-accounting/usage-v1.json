@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "trackingSince": "2026-08-20",
+  "records": [
+    {
+      "requestId": "fixture-peak-request",
+      "keyFingerprint": "b1b2f7a0c1dcfd3ccae7d52602f74db2f25b67192a8093edb4966439e03041f8",
+      "occurredAt": "2026-08-20T02:00:00.000Z",
+      "date": "2026-08-20",
+      "model": "deepseek-v4-flash",
+      "purpose": "conversation",
+      "cacheHitInputTokens": 1000,
+      "cacheMissInputTokens": 2000,
+      "outputTokens": 300,
+      "cacheWriteTokens": 0,
+      "priceVersion": "deepseek-public-v4-2026-08",
+      "cacheHitInputCostNanoyuan": "100000",
+      "cacheMissInputCostNanoyuan": "6000000",
+      "outputCostNanoyuan": "2700000",
+      "costNanoyuan": "8800000",
+      "unpricedTokens": 0
+    },
+    {
+      "requestId": "fixture-off-peak-request",
+      "keyFingerprint": "b1b2f7a0c1dcfd3ccae7d52602f74db2f25b67192a8093edb4966439e03041f8",
+      "occurredAt": "2026-08-20T16:00:00.000Z",
+      "date": "2026-08-21",
+      "model": "deepseek-v4-flash",
+      "purpose": "session-title",
+      "cacheHitInputTokens": 400,
+      "cacheMissInputTokens": 500,
+      "outputTokens": 100,
+      "cacheWriteTokens": 0,
+      "priceVersion": "deepseek-public-v4-2026-08",
+      "cacheHitInputCostNanoyuan": "20000",
+      "cacheMissInputCostNanoyuan": "750000",
+      "outputCostNanoyuan": "450000",
+      "costNanoyuan": "1220000",
+      "unpricedTokens": 0
+    },
+    {
+      "requestId": "fixture-old-key-request",
+      "keyFingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "occurredAt": "2026-08-20T02:00:00.000Z",
+      "date": "2026-08-20",
+      "model": "deepseek-v4-flash",
+      "purpose": "conversation",
+      "cacheHitInputTokens": 10,
+      "cacheMissInputTokens": 20,
+      "outputTokens": 30,
+      "cacheWriteTokens": 0,
+      "priceVersion": "deepseek-public-v4-2026-08",
+      "cacheHitInputCostNanoyuan": "1000",
+      "cacheMissInputCostNanoyuan": "60000",
+      "outputCostNanoyuan": "270000",
+      "costNanoyuan": "331000",
+      "unpricedTokens": 0
+    }
+  ]
+}

@@ -70,7 +70,7 @@ afterEach(async () => {
   await Promise.all(homes.splice(0).map(home => rm(home, { recursive: true, force: true })))
 })
 
-describe('rc.5 usage observer', () => {
+describe('rc.8 usage observer', () => {
   it('settles the first usage chunk once with a key fingerprint and request purpose', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(REQUEST_TIME)
     const ctx = await harness()

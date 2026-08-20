@@ -1,8 +1,8 @@
-# Xiaojing Accounting product development baseline (0.1.9)
+# Xiaojing Accounting product development baseline (0.2.0)
 
 English | [中文](xiaojing-product-development.zh.md)
 
-This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.1.9 product baseline; package READMEs own package-level details, while the [architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md) owns the rationale and rejected alternatives.
+This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.0 source baseline on official rc.8; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md) and the [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md) own the rationale and rejected alternatives.
 
 ## Read this first
 
@@ -17,10 +17,10 @@ Before editing product code, identify the owning layer instead of starting from 
 
 | Item | Current value | Source of truth |
 |---|---|---|
-| Desktop product version | `0.1.9` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| Official Harness baseline | `0.1.0-rc.5` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| Official baseline commit | `abe560f81edebe5f6a5b62706ff502daa0dccd40` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| Product integration base | `c74f2d7e99a75fd898271b430dc1684040329dca` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Desktop product version | `0.2.0` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| Official Harness baseline | `0.1.0-rc.8` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Official baseline commit | `141eb6fef83422698aef7a981029e843e8161534` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Product integration base | `8d7ded5a542a8fe99394e27b27e69cd3472838a3` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Source repository | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
 `product.json` is the explicit upstream record; do not infer the baseline from similar-looking source. The `@deepseek-ai/dsh-*` package scope remains the repository-wide workspace convention, while the desktop package uses `@sudotech/xiaojing-accounting-desktop`. Product copy and attribution must continue to state that Xiaojing Accounting is based on DeepSeek Harness with internal branding and configuration, not that Sudotech developed the underlying framework.
@@ -29,7 +29,7 @@ Before editing product code, identify the owning layer instead of starting from 
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream rc.5 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream rc.8 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
   Product --> Bundle["Web app composition"]
@@ -59,13 +59,13 @@ Do not duplicate detailed package contracts in this document. Update the owning 
 
 ### Generic owners
 
-The official-compatible UI roots expose exactly three Xiaojing-required single-owner slots: `sidebar.brand`, `conversation.hero.brand`, and `onboarding.content`. Each owner retains a neutral fallback so the upstream-style application still runs when the product plugin is absent. Generic code may define owner props, layout space, design tokens, metadata keys, and fallback rendering; it may not import the Xiaojing package or mention Xiaojing, Sudotech, SUDO, product asset filenames, or product copy.
+The official-compatible UI roots expose five Xiaojing-required single-owner slots: `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.brand.content`, and `onboarding.content`. Each owner retains a neutral fallback so the upstream-style application still runs when the product plugin is absent. Generic code may define owner props, layout space, design tokens, metadata keys, and fallback rendering; it may not import the Xiaojing package or mention Xiaojing, Sudotech, SUDO, product asset filenames, or product copy.
 
 [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs) scans the official UI source roots for product marks, verifies each declared slot, verifies inventoried assets and desktop manifests, and requires the Web composition to load the product plugin. A packaging command fails when this isolation check fails.
 
 ### Product plugin
 
-`@deepseek-ai/dsh-client-xiaojing-product` has a Host face and a browser face. The Host face fills an empty `deployment:persona` section with the Xiaojing identity but never replaces a selected or user-created agent persona. The browser face registers the three product slots, localized copy, and theme CSS as one unloadable plugin.
+`@deepseek-ai/dsh-client-xiaojing-product` has a Host face and a browser face. The Host face fills an empty `deployment:persona` section with the Xiaojing identity but never replaces a selected or user-created agent persona. The browser face registers the five product slots, localized copy, and theme CSS as one unloadable plugin, and its registrations are compiled only by the `xiaojing` Client build profile.
 
 All ordinary brand changes start in this package. Add or replace the asset in the application public assets, update `product.json` when the inventory changes, and reference it from the product component. Do not solve a missing product presentation by directly editing `SidebarRoot`, `EmptyHero`, `WelcomeNotice`, or another official owner.
 
@@ -74,7 +74,7 @@ All ordinary brand changes start in this package. Add or replace the asset in th
 There are two startup presentations, and both must remain branded:
 
 1. [`apps/desktop/loading.html`](../apps/desktop/loading.html) is the Electron splash displayed while the local Host starts. It owns desktop-only product copy and the local splash asset.
-2. [`apps/web/index.html`](../apps/web/index.html) provides `dsh-boot-logo` metadata for the Web plugin-loading screen. The generic `AppRoot` reads that metadata and retains `HARNESS` as its fallback; product names and asset paths stay in the application metadata.
+2. The `xiaojing` entry in [`scripts/client-build-environment.ts`](../scripts/client-build-environment.ts) injects `dsh-boot-logo` metadata into the built Web shell. The generic boot page reads that metadata and retains `HARNESS` as its fallback; [`apps/web/index.html`](../apps/web/index.html) itself stays product-neutral.
 
 A startup-brand change is incomplete if only one surface is checked. Verify the Electron splash, the Web plugin-loading screen, the expanded and collapsed sidebar, the empty-conversation hero, and onboarding.
 
@@ -90,15 +90,15 @@ A startup-brand change is incomplete if only one surface is checked. Verify the 
 
 ### Local usage accounting
 
-The accounting feature does not modify the agent loop. `@deepseek-ai/dsh-usage-accounting` observes actual `deepseek-official` calls through the rc.5 `llm/stream` waterfall. [`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) is the only file that imports the rc-specific stream, token usage, DeepSeek settings, endpoint, and credential APIs. An upstream API change should therefore be absorbed there before changing settlement, storage, pricing, or UI logic.
+The accounting feature does not modify the agent loop. `@deepseek-ai/dsh-usage-accounting` observes actual `deepseek-official` calls through the rc.8 `llm/stream` waterfall. [`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) is the only file that imports the rc-specific stream, token usage, DeepSeek settings, endpoint, and credential APIs. An upstream API change should therefore be absorbed there before changing settlement, storage, pricing, or UI logic.
 
 Each request settles at most once on its first provider `usage` chunk. Conversation, compaction, title, and retry requests remain distinct. The ledger stores only a SHA-256 key fingerprint, request metadata, disjoint token buckets, the request-time tariff version, integer-nanoyuan category costs, total cost, and unpriced tokens. The browser receives only `usageAccounting.snapshot()` and the `usage-accounting/updated` refresh signal; it never receives a key or fingerprint.
 
 The built-in Flash and Pro table in [`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) is the only tariff source. Startup performs no pricing request. The UI rounds exact nanoyuan values to fen for display and always shows two decimals; the ledger retains nanoyuan precision. Unknown models, custom endpoints, and cache-write tokens remain counted but unpriced. This is a local estimate from provider usage, not a DeepSeek Platform invoice or balance.
 
-### Bundled third-party plugins
+### Bundled third-party plugin
 
-The shipped Web profile includes `@liustack/modlens` and `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts). Their versions are pinned by the application dependency graph; the file-upload package also has a local pnpm patch for attachment layout and caret behavior. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
+The shipped Web profile includes only `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts). Its source commit is pinned by the application dependency graph, and a local pnpm patch fixes attachment layout and caret behavior. ModLens and its visual bridge are not part of 0.2.0. On first rc.8 load, only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
 
 ### Adding a capability
 
@@ -113,7 +113,7 @@ The shipped Web profile includes `@liustack/modlens` and `dsh-file-uploads` thro
 
 | Patch id | Contract | Owned paths |
 |---|---|---|
-| `api-key-post-configuration` | The desktop removes inherited `DEEPSEEK_API_KEY`; users can create or replace the credential after launch in Settings. | `apps/desktop/main.mjs`, model-settings Client plugin |
+| `desktop-api-key-environment-isolation` | The desktop removes inherited `DEEPSEEK_API_KEY`; rc.8's writable credential UI lets users create or replace the credential after launch. | `apps/desktop/main.mjs` |
 | `profile-runtime-shadow-protection` | User plugin installation cannot replace the application-owned Harness or Cordis runtime and restore the upstream interface. | CLI and app-boot profile loading |
 | `file-upload-composer-repair` | Pending attachment layout does not cover the composer, and the visible caret matches the insertion point. | `patches/dsh-file-uploads@1.0.0.patch` |
 
@@ -124,7 +124,7 @@ These contracts are neither branding nor claimed upstream behavior. Keep their i
 1. Electron reads `identity.json`, pins `userData`, obtains the single-instance lock, fixes the AppUserModelId and window title, and displays the desktop splash.
 2. The desktop starts its bundled `runtime/node.exe`; an end-user Node installation is neither required nor selected.
 3. The child process runs `dsh web --port 0` from `%USERPROFILE%\Documents\小兢会计工作区`, with `DSH_HOME` set to the permanent `harness` data directory and inherited DeepSeek API-key environment variables removed.
-4. The `web` profile composes the base bundle, Web application bundle, ModLens, and file uploads. The Web bundle loads the usage Host plugin, Xiaojing product plugin, usage Client plugin, and ordinary Harness UI packages.
+4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads the usage Host plugin, Xiaojing product plugin, usage Client plugin, and ordinary rc.8 Harness UI packages.
 5. The API gateway exposes generated Remotes to the isolated renderer. Electron denies permission requests and externalizes new-window URLs to the operating-system browser.
 6. When the Host announces its dynamically assigned local URL, Electron replaces the splash with the assembled Web application while retaining the fixed taskbar title and icon.
 
@@ -155,7 +155,7 @@ The version in `apps/desktop/package.json` must increase for every distributed i
 3. Replace the synthetic upgrade fixture with data from the immediately previous formal release and cover every protected path.
 4. Block packaging until old sessions, credentials, personas, plugins, attachments, workspace files, UI state, and accounting data remain usable after migration.
 
-`verify-user-data-contract.mjs` currently applies an application-file replacement to the 0.1.7 fixture and compares every protected byte. It proves that the installer path is data-independent; it does not replace a real Windows upgrade test.
+`verify-user-data-contract.mjs` materializes a real Zstandard session from the synthetic 0.1.9 fixture, applies an application-file replacement, and requires every protected byte to remain unchanged. It then permits exactly one atomic mutation: the installation-owned Web profile manifest migration that removes ModLens. The same gate opens the old session through rc.8, verifies its title, messages, and persona binding, checks that the API Key is readable and replaceable without printing it, validates the user preset and settings, and proves the current-key accounting totals and category costs. This gate does not replace a real Windows in-place upgrade test.
 
 ## Development workflow
 
@@ -172,7 +172,7 @@ The version in `apps/desktop/package.json` must increase for every distributed i
 Build once and launch the composed Web application, not standalone Vite:
 
 ```sh
-pnpm run build
+pnpm run build:xiaojing
 pnpm dsh web --port 3090
 ```
 
@@ -227,7 +227,7 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 - The assembled application loads `xiaojing-product`, usage Host, and usage Client plugins; generic fallbacks still work without the product plugin.
 - API-key creation and replacement work after launch, and no plaintext key enters usage records or browser snapshots.
 - Usage accounting settles each provider request once, applies Beijing peak windows and the built-in model table, preserves historical request-time costs, and displays two decimal places.
-- ModLens, file upload, attachment layout, composer caret behavior, and profile runtime-shadow protection pass focused checks.
+- ModLens and the visual bridge are absent; file upload, attachment layout, composer caret behavior, exact default-profile migration, and profile runtime-shadow protection pass focused checks.
 - Both startup surfaces, expanded and collapsed sidebar, hero, onboarding, taskbar title, and taskbar/shortcut icons show the intended product identity.
 - Desktop identity and user-data verifiers pass with the incremented version.
 - A clean installation works at the default and a custom parent path, automatically appending `xiaojing-agent-desktop`.

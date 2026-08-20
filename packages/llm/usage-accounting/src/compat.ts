@@ -1,4 +1,4 @@
-/** rc.5 Harness compatibility adapter for DeepSeek request observation. */
+/** rc.8 Harness compatibility adapter for DeepSeek request observation. */
 
 import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
@@ -22,7 +22,7 @@ export interface UsageObservation {
   usage: UsageBuckets
 }
 
-/** Observer callbacks kept outside the rc.5-specific imports. */
+/** Observer callbacks kept outside the rc.8-specific imports. */
 export interface UsageObserverCallbacks {
   settle(observation: UsageObservation): Promise<void>
   fail(error: unknown): void
@@ -106,7 +106,7 @@ async function* observe(
 }
 
 /**
- * Install the only rc.5-specific `llm/stream` listener used by accounting.
+ * Install the only rc.8-specific `llm/stream` listener used by accounting.
  * @param ctx - Host context carrying LLM, settings, and credential seams.
  * @param callbacks - durable settlement and contained-error hooks.
  * @returns listener disposer.

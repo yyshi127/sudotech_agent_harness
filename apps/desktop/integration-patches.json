@@ -2,10 +2,9 @@
   "schemaVersion": 1,
   "patches": [
     {
-      "id": "api-key-post-configuration",
+      "id": "desktop-api-key-environment-isolation",
       "paths": [
-        "apps/desktop/main.mjs",
-        "packages/client/ui-settings-models/src/client/index.ts"
+        "apps/desktop/main.mjs"
       ]
     },
     {

@@ -22,7 +22,7 @@ const expected = Object.freeze({
 })
 
 const expectedPatchIds = [
-  'api-key-post-configuration',
+  'desktop-api-key-environment-isolation',
   'profile-runtime-shadow-protection',
   'file-upload-composer-repair',
 ]

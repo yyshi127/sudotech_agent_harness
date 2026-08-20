@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-The Electron wrapper for “小兢会计-您的AI办公搭子”. It starts the bundled Node runtime and Web profile, keeps the browser isolated from Node, and presents the local Host in one Windows desktop window.
+The private Electron deployment for “小兢会计-您的AI办公搭子”. It is distributed through the Windows installer rather than npm, starts the bundled Node runtime and Web profile, keeps the browser isolated from Node, and presents the local Host in one Windows desktop window.
 
 ## Permanent installer identity
 
@@ -25,11 +25,11 @@ A fresh installation shows the custom parent-directory picker and appends `xiaoj
 
 Electron pins `userData` before the single-instance lock to `%APPDATA%\@sudotech\xiaojing-accounting-desktop`. The bundled Host uses its `harness` child as `DSH_HOME`, while the user workspace is `%USERPROFILE%\Documents\小兢会计工作区`.
 
-`user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, uploads, usage accounting, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` compares a synthetic 0.1.7 data set byte-for-byte across an application-file replacement; a release that changes a durable format must add an atomic migration and a previous-release fixture before this check may change.
+`user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, uploads, usage accounting, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and rc.8 readers. It requires protected bytes to remain unchanged except for the exact installation-owned Web profile migration that removes ModLens, and it verifies session, credential, preset, settings, upload, storage, and accounting compatibility. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
 
 ## Independent integration patches
 
-`integration-patches.json` inventories the post-launch API-key configuration, profile runtime-shadow protection, and file-upload composer repair separately from the product brand plugin. The desktop identity check fails if an inventory entry disappears or its owned path is absent. This keeps upstream conflict review focused without pretending these patches are official Harness behavior.
+`integration-patches.json` inventories desktop API-key environment isolation, profile runtime-shadow protection, and file-upload composer repair separately from the product brand plugin. rc.8 owns the writable credential UI; the desktop patch only removes inherited `DEEPSEEK_API_KEY` values before Host startup. The desktop identity check fails if an inventory entry disappears or its owned path is absent. This keeps upstream conflict review focused without pretending these patches are official Harness behavior.
 
 ## Release checks
 

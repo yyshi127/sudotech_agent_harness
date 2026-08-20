@@ -1,0 +1,7 @@
+agent-default-model:
+  provider: deepseek-official
+  model: deepseek-v4-flash
+agent-presets:
+  default: fixture-persona
+ui-onboarding:
+  welcomeNoticeVersion: xiaojing-v1

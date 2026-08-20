@@ -651,6 +651,21 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       }
       expect(Object.keys(manifest.dependencies)).toEqual(['anchored-bundle'])
       expect(manifest.dsh.profile.bundles).toContain('anchored-bundle')
+
+      const removed = await runBuiltBin(
+        ['plugin', '--profile', 'anchor', 'remove', 'anchored-bundle'],
+        { DSH_HOME: home },
+        checkout,
+      )
+      expect(removed.code).toBe(0)
+      const afterRemove = JSON.parse(
+        readFileSync(join(home, 'profiles', 'anchor', 'package.json'), 'utf8'),
+      ) as {
+        dependencies?: Record<string, string>
+        dsh: { profile: { bundles: string[] } }
+      }
+      expect(Object.keys(afterRemove.dependencies ?? {})).toEqual([])
+      expect(afterRemove.dsh.profile.bundles).not.toContain('anchored-bundle')
     } finally {
       rmSync(home, { recursive: true, force: true })
       rmSync(checkout, { recursive: true, force: true })
@@ -735,7 +750,7 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       expect(code).toBe(0)
       expect(stderr).toBe('')
       expect(stdout).toContain("name: '@deepseek-ai/dsh-agent-loop'")
-      expect(stdout).toContain("name: '@liustack/modlens'")
+      expect(stdout).not.toContain("name: '@liustack/modlens'")
       expect(stdout).toContain('name: dsh-file-uploads')
       expect(stdout).toContain('agents: []')
       expect(stdout).toContain('# == @deepseek-ai/dsh-base')

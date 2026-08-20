@@ -1,0 +1,4 @@
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: You are the user's preserved fixture persona.

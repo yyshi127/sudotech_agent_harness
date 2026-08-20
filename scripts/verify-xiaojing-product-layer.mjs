@@ -8,8 +8,8 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: '0.1.0-rc.5',
-  commit: 'abe560f81edebe5f6a5b62706ff502daa0dccd40',
+  release: 'dsh-v0.1.0-rc.8',
+  commit: '141eb6fef83422698aef7a981029e843e8161534',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {
@@ -21,6 +21,7 @@ const coreRoots = [
   'packages/client/ui-conversation/src',
   'packages/client/ui-settings-models/src',
   'packages/client/ui-theme/src',
+  'packages/client/ui-renderer/src',
   'packages/client/web/src',
 ]
 const productMarks = /小兢|数豆|SUDO|sdoobot|sudo-logo|xiaojing-product/i
@@ -58,6 +59,14 @@ for (const slot of manifest.slots) {
 }
 if (!composition.includes("name: '@deepseek-ai/dsh-client-xiaojing-product'")) {
   errors.push('web-app composition does not load @deepseek-ai/dsh-client-xiaojing-product')
+}
+const productClient = await readFile(join(root, 'packages', 'client', 'xiaojing-product', 'src', 'client', 'index.ts'), 'utf8')
+if (!productClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")) {
+  errors.push('xiaojing product client is not gated by the xiaojing build profile')
+}
+const buildEnvironment = await readFile(join(root, 'scripts', 'client-build-environment.ts'), 'utf8')
+if (!buildEnvironment.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
+  errors.push('xiaojing client build profile is missing')
 }
 
 if (errors.length > 0) {

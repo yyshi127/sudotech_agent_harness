@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Local, current-key DeepSeek token and request-time cost accounting. The plugin observes provider-reported `usage` chunks through the rc.5 `llm/stream` waterfall and does not modify the agent loop or model requests.
+Local, current-key DeepSeek token and request-time cost accounting. The plugin observes provider-reported `usage` chunks through the rc.8 `llm/stream` waterfall and does not modify the agent loop or model requests.
 
 ## Configuration
 
@@ -14,7 +14,7 @@ The built-in official table is the sole tariff source. The plugin performs no pr
 
 ## Observation and settlement
 
-The rc.5 compatibility adapter is the only file that imports `llm/stream`, `TokenUsage`, DeepSeek settings, and credential resolution. It records the first `usage` chunk from every actual `deepseek-official` stream exactly once. Ordinary conversation, compaction, session-title, and retried requests therefore settle independently when the provider reports usage.
+The rc.8 compatibility adapter is the only file that imports `llm/stream`, `TokenUsage`, DeepSeek settings, and credential resolution. It records the first `usage` chunk from every actual `deepseek-official` stream exactly once. Ordinary conversation, compaction, session-title, and retried requests therefore settle independently when the provider reports usage.
 
 Each record contains cached input, uncached input, output, cache-write tokens, model, Beijing request date, request purpose, tariff version, and the fixed total and per-category costs. The API key is represented only by its SHA-256 fingerprint. A key change retains old records but `snapshot()` returns only the configured key's current month.
 
