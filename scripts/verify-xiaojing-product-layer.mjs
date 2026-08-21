@@ -60,6 +60,14 @@ for (const slot of manifest.slots) {
 if (!composition.includes("name: '@deepseek-ai/dsh-client-xiaojing-product'")) {
   errors.push('web-app composition does not load @deepseek-ai/dsh-client-xiaojing-product')
 }
+for (const capability of [
+  '@deepseek-ai/dsh-xiaojing-browser-control',
+  '@deepseek-ai/dsh-xiaojing-computer-control',
+]) {
+  if (!composition.includes(`name: '${capability}'`)) {
+    errors.push(`web-app composition does not load ${capability}`)
+  }
+}
 const productClient = await readFile(join(root, 'packages', 'client', 'xiaojing-product', 'src', 'client', 'index.ts'), 'utf8')
 if (!productClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")) {
   errors.push('xiaojing product client is not gated by the xiaojing build profile')

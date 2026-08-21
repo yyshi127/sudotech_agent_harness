@@ -32,8 +32,12 @@ flowchart LR
   Upstream["Upstream rc.8 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
+  Adapters --> Browser["Edge browser-control plugin"]
+  Adapters --> Computer["Windows UIA control plugin"]
   Product --> Bundle["Web app composition"]
   Usage --> Bundle
+  Browser --> Bundle
+  Computer --> Bundle
   Bundle --> Desktop["Electron and NSIS desktop"]
   Desktop --> Data["Permanent user-data roots"]
 ```
@@ -48,6 +52,8 @@ flowchart LR
 | 小兢产品层 | 品牌组件、配色、产品文案、初次使用说明和默认部署人格 | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.md) |
 | 用量 Host 插件 | 提供方用量观察、API Key 指纹、内置计价、不可变账本、Remote 和更新事件 | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.md) |
 | 用量 Client 插件 | 侧边栏摘要和明细浮层、设置入口、月度日历、格式化和刷新控制器 | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.md) |
+| 浏览器操控插件 | 独立 Edge 生命周期、有界语义页面观察、不透明目标和高影响操作授权 | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.md) |
+| 电脑操控插件 | Windows PowerShell helper 生命周期、UI Automation 观察、原生语义动作和高影响操作授权 | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.md) |
 | Web 组合 | Host 与浏览器插件名录及加载顺序 | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | 独立集成补丁 | API Key 后配置、profile 运行时遮蔽防护和附件上传输入区修复 | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
 | 桌面端与安装器 | Electron 生命周期、内置 Node 运行时、图标、启动页、固定窗口身份、NSIS 配置和发布检查 | [`apps/desktop/`](../apps/desktop/README.md) |
@@ -96,6 +102,14 @@ flowchart LR
 
 [`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) 内置的 Flash 和 Pro 价格表是唯一价格来源，启动时不会请求价格。界面把精确纳元值四舍五入到分并始终显示两位小数，账本仍保留纳元精度。未知模型、自定义 endpoint 和缓存写入 token 保留统计但不计价。该费用是依据提供方 usage 的本机估算，不是 DeepSeek 开放平台账单或余额。
 
+### 内置浏览器与 Windows 自动化
+
+`@deepseek-ai/dsh-xiaojing-browser-control` 与 `@deepseek-ai/dsh-xiaojing-computer-control` 是两个独立 Cordis 能力插件，不修改 `agent-loop` 或官方 UI 包。Web 组合默认启用二者，开发 overlay 可以单独禁用任意配置行。两项工具有意注册为部署级全局工具，因此每个新会话，包括关闭 runtime context 的用户预设，都会获得两个 schema 及其路由说明。允许 runtime context 的会话还会获得小兢 Host 产品提示：无需可见界面时优先使用文件、数据、编辑和命令工具；网站使用 `browser_control`；原生应用可见界面使用 `computer_control`。
+
+浏览器操控使用专用持久 profile 启动 Microsoft Edge，返回有界的页面、文本和语义目标结果，并且只接受当前会话最新观察中的不透明 ID。它不接受 CSS 选择器、JavaScript、CDP 命令、任意 profile 路径或密码值。产品不捆绑 Chrome for Testing；显式 Chromium 可执行文件只保留给测试或受控部署。Windows 操控通过 subprocess 能力维护一个有界换行 JSON helper，只从 Windows“开始”应用目录发现和启动条目，并使用 Windows PowerShell 5.1 与 `System.Windows.Automation`。它返回不暴露注册 ID 或可执行文件路径的有界应用、窗口和控件结果，也不接受坐标、截图、OCR、PowerShell 源码或任意 Shell 命令。
+
+两个插件都会在状态变化后使观察失效、拒绝其他会话持有的 ID、在自有进程中断后恢复，并在插件卸载时停止自有进程；受保护动作缺少授权通道时会关闭式失败。浏览器取消失败页时，如果该页是最后一个页面，会先保留一个空白替代页，因此恢复过程不会关闭可见 Edge 窗口。浏览器操作按会话串行，Windows 操作则由单个 helper 全局串行。访问私有或回环地址、上传、提交、支付、删除、发送、高风险应用启动及同类原生动作需要一次性授权。密码字段、UAC、安全桌面、管理员权限应用、纯像素控件、验证码和仅 Canvas 网站不属于这项语义能力。
+
 ### 随包第三方插件
 
 发行版 Web profile 只通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`。其源码提交由应用依赖图固定，本地 pnpm patch 修复附件布局和文字光标行为。ModLens 及其视觉桥接不属于 0.2.0。rc.8 首次加载时，只会把安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
@@ -124,7 +138,7 @@ flowchart LR
 1. Electron 读取 `identity.json`、固定 `userData`、获取单实例锁、固定 AppUserModelId 和窗口标题，然后显示桌面启动页。
 2. 桌面端启动随包提供的 `runtime/node.exe`，不要求也不会选择终端用户已经安装的 Node。
 3. 子进程以 `%USERPROFILE%\Documents\小兢会计工作区` 为工作目录运行 `dsh web --port 0`，将永久 `harness` 数据目录设为 `DSH_HOME`，并移除继承的 DeepSeek API Key 环境变量。
-4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量 Host 插件、小兢产品插件、用量 Client 插件及普通 rc.8 Harness UI 包。
+4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、Edge 浏览器操控、Windows 电脑操控及普通 rc.8 Harness UI 插件。
 5. API 网关向隔离 renderer 公开生成的 Remote。Electron 拒绝权限请求，并把新窗口 URL 交给操作系统浏览器打开。
 6. Host 公告动态分配的本地 URL 后，Electron 用组装后的 Web 应用替换启动页，同时保持固定的任务栏标题和图标。
 
@@ -138,9 +152,10 @@ flowchart LR
 |---|---|---|
 | Electron 状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop` | 获取单实例锁前调用的 `app.setPath('userData', ...)` |
 | Harness 状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness` | 传给随包 Host 的 `DSH_HOME` |
+| 浏览器操控 profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control\profile` | 浏览器操控插件；只用于专用 Edge profile |
 | 用户工作区 | `%USERPROFILE%\Documents\小兢会计工作区` | 桌面端工作目录 |
 
-[`user-data-contract.json`](../apps/desktop/user-data-contract.json) 登记会话、设置、凭据、agent 预设、profile、storage、上传文件、用量统计、Local Storage 和“文档”工作区。安装器只负责应用文件，普通升级或卸载时不能读取、重写或删除这些数据路径。
+[`user-data-contract.json`](../apps/desktop/user-data-contract.json) 登记会话、设置、凭据、agent 预设、profile、storage、上传文件、用量统计、浏览器操控 profile、Local Storage 和“文档”工作区。安装器只负责应用文件，普通升级或卸载时不能读取、重写或删除这些数据路径。
 
 ### 不可变安装器身份
 
@@ -187,7 +202,7 @@ pnpm run dev:web
 先运行聚焦产品检查，再运行更广的仓库检查：
 
 ```sh
-pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests
+pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:identity
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:user-data
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:product-layer
@@ -228,6 +243,8 @@ pnpm desktop:dist
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
 - ModLens 与视觉桥接不存在；文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
+- 真实 Edge 测试覆盖页面观察、填写、受保护提交、跨会话与过期目标拒绝、有界标签页、中断导航恢复和浏览器重启。真实 Windows UI Automation 测试覆盖有界窗口发现、跨会话拒绝、观察、编辑、受保护原生动作分类、调用、等待、中断恢复和 helper 重启。
+- 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
 - 桌面身份和用户数据检查在版本递增后通过。
 - 全新安装可在默认路径和自定义父路径完成，并自动补齐 `xiaojing-agent-desktop`。
@@ -243,6 +260,8 @@ pnpm desktop:dist
 - 本机用量从插件首次创建账本时开始，只公开当前 Key 和北京时间当前月份，不会根据旧会话反向重建。
 - 本机费用依据提供方 usage 和内置公开价格计算，不是官方平台账单、余额或服务器端对账结果。
 - 运行时没有远程价格源或缓存，因此价格变化需要发布产品版本。
+- 浏览器操控依赖 Microsoft Edge 并使用专用 profile；应用不捆绑第二套浏览器运行时。
+- 浏览器和 Windows 操控依赖语义而不是视觉；纯像素或仅 Canvas 界面需要未来独立的视觉能力。
 - 后续上游版本可能要求调整通用 slot、rc 适配器、集成补丁或数据迁移，但不能要求重新实现产品层和功能层。
 
 ## 新会话快速交接

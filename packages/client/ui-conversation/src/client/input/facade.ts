@@ -17,7 +17,7 @@ import type {
   PasteComponent, QueuedMessage, SessionInput, SubmitAttempt,
 } from './contract.ts'
 import type { InputSubmitMode } from '../contract/composer-submission.ts'
-import { InputMachine, projectClipboard } from './machine.ts'
+import { argsAfter, InputMachine, projectClipboard } from './machine.ts'
 
 /** Popup face the shell needs (dismissal only; typed structurally to avoid a value import). */
 export interface PopupDismissFace {
@@ -460,36 +460,45 @@ export class SessionInputShell implements SessionInput {
       this.settleSubmit(attempt, this.deps.defaultSink(draft.trim(), imageIds, mode, attempt.signal), imageIds)
       return
     }
-    const inputTriggers = this.deps.inputTriggers?.()
-    const controller = new AbortController()
-    void Promise.all(occurrences.map(async (o) => {
-      if (inputTriggers === undefined) throw new Error(`no serializer for reference source "${o.source}"`)
-      return {
-        offset: o.offset,
-        length: o.length,
-        text: await inputTriggers.serializeReference(o.source, o.ref, controller.signal),
-      }
-    })).then(
-      (parts) => {
+    void this.serializeReferences(draft, occurrences).then(
+      (serialized) => {
         if (this.disposed) return
-        // Splice model forms over their display ranges (offsets are draft-time;
-        // parts arrive offset-sorted since the table is).
-        let out = ''
-        let cursor = 0
-        for (const part of parts) {
-          out += draft.slice(cursor, part.offset) + part.text
-          cursor = part.offset + part.length
-        }
-        out += draft.slice(cursor)
-        this.settleSubmit(attempt, this.deps.defaultSink(out.trim(), imageIds, mode, attempt.signal), imageIds)
+        this.settleSubmit(attempt, this.deps.defaultSink(serialized.trim(), imageIds, mode, attempt.signal), imageIds)
       },
       (error: unknown) => {
-        controller.abort()
         if (this.dead(attempt)) return
         const message = error instanceof Error ? error.message : String(error)
         this.run(this.core.dispatch({ type: 'submit-settled', attempt, ok: false, message }))
       },
     )
+  }
+
+  /** Expand structured references through their owner codecs without mutating the live draft. */
+  private async serializeReferences(draft: string, occurrences: InputState['occurrences']): Promise<string> {
+    if (occurrences.length === 0) return draft
+    const inputTriggers = this.deps.inputTriggers?.()
+    const controller = new AbortController()
+    try {
+      const parts = await Promise.all(occurrences.map(async (o) => {
+        if (inputTriggers === undefined) throw new Error(`no serializer for reference source "${o.source}"`)
+        return {
+          offset: o.offset,
+          length: o.length,
+          text: await inputTriggers.serializeReference(o.source, o.ref, controller.signal),
+        }
+      }))
+      // Offsets are draft-time and the occurrence table is sorted.
+      let out = ''
+      let cursor = 0
+      for (const part of parts) {
+        out += draft.slice(cursor, part.offset) + part.text
+        cursor = part.offset + part.length
+      }
+      return out + draft.slice(cursor)
+    } catch (error) {
+      controller.abort()
+      throw error
+    }
   }
 
   /** Settle one admission attempt; successful sends consume only their captured images. */
@@ -547,20 +556,23 @@ export class SessionInputShell implements SessionInput {
 
   /**
    * The submit transaction: claim.submit against the session scope; ok maps
-   * from the outcome kind. An accepting claim receives the serialized draft
-   * images, which are cleared and released only on a success outcome; a
-   * failure (serialize, transport, or handler error) keeps draft and images
-   * for correction.
+   * from the outcome kind. An accepting claim receives reference-expanded
+   * arguments and serialized draft images. Images are cleared and released
+   * only on a success outcome; a failure (serialize, transport, or handler
+   * error) keeps draft references and images for correction.
    */
   private beginSubmit(attempt: SubmitAttempt, claim: CommandClaim, args: string): void {
     const imageIds = claim.images === true ? [...this.imageIds] : []
+    const occurrences = [...this.core.state.occurrences]
     Promise.resolve()
       .then(async () => {
+        const serializedDraft = await this.serializeReferences(attempt.draftSnapshot, occurrences)
+        const serializedArgs = occurrences.length > 0 ? argsAfter(serializedDraft, claim.token) : args
         const images = imageIds.length > 0 ? await this.deps.commandImages.serialize(imageIds) : []
         // Serialization may outlive the attempt (large files, session
         // teardown); a dead attempt must not reach the Host executor.
         if (this.dead(attempt)) return undefined
-        return claim.submit(args, this.deps.actx, images)
+        return claim.submit(serializedArgs, this.deps.actx, images)
       })
       .then(
         (outcome) => {

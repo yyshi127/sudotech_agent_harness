@@ -5,9 +5,9 @@
 
 Every model-facing tool a shipped plugin contributes to `ctx.tools`: the `name`, `description`, and JSON-Schema `parameters` the model receives via the system-prompt assembly. It complements the [subsystem pages](subsystems/core.md) (the types plus each page's generated Cordis API region) — this page is the *tools* the agent is offered.
 
-This file is GENERATED and verified fresh by `pnpm run verify-tool-catalog` (part of `doc-sync`) — do not edit it by hand. Unlike the cordis catalog (a pure source-AST pass), this generator BOOTS each tool plugin on a real context and reads `ctx.tools.schemas()`, because a tool schema is not statically knowable (runtime-spread enums, concatenated descriptions, config-driven names, raw-JSON-Schema MCP tools). A completeness guard globs `packages/*/tool-*` and fails if any package is missing from the generator's boot manifest, so a new tool cannot be silently undocumented. See [the tool-schema-catalog Agent Note](../.agents/notes/implemented/process/2026-07-02-tool-schema-catalog.md).
+This file is GENERATED and verified fresh by `pnpm run verify-tool-catalog` (part of `doc-sync`) — do not edit it by hand. Unlike the cordis catalog (a pure source-AST pass), this generator BOOTS each tool plugin on a real context and reads `ctx.tools.schemas()`, because a tool schema is not statically knowable (runtime-spread enums, concatenated descriptions, config-driven names, raw-JSON-Schema MCP tools). A completeness guard globs `packages/*/tool-*` plus the product-owned Xiaojing control leaves and fails if any package is missing from the generator's boot manifest, so a new shipped tool cannot be silently undocumented. See [the tool-schema-catalog Agent Note](../.agents/notes/implemented/process/2026-07-02-tool-schema-catalog.md).
 
-Scope: shipped product tools under `packages/*/tool-*`, each booted with its DEFAULT config, except where a Config field is REQUIRED with no default — there the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`'s `toolName`), so a deployment may expose a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog's packages-only scope.
+Scope: shipped product tools under `packages/*/tool-*` and `packages/xiaojing/xiaojing-*-control`, each booted with its DEFAULT config, except where a Config field is REQUIRED with no default — there the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`'s `toolName`), so a deployment may expose a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog's packages-only scope.
 
 ## Tool Package Map
 
@@ -41,6 +41,8 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
+| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Microsoft Edge at execution time` | `tool/call`, `isolated persistent browser profile`, `tool/result` | - | The product-owned browser_control tool starts Edge lazily, so catalog generation records its schema without launching a browser or changing a user profile. |
+| `@deepseek-ai/dsh-xiaojing-computer-control` | `computer_control` | `ctx.tools`, `ctx.subprocess`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Windows UI Automation at execution time` | `tool/call`, `native Windows UI state`, `tool/result` | - | The product-owned computer_control tool starts its bounded PowerShell helper lazily, so catalog generation records its schema without reading or changing the Windows desktop. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
 
@@ -2219,3 +2221,163 @@ Search the web for current information. Provide 1–4 queries in the required qu
 Source: [`packages/web/tool-web/src/index.ts`](../packages/web/tool-web/src/index.ts)
 
 web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.
+
+<a id="deepseek-aidsh-xiaojing-browser-control"></a>
+
+## `@deepseek-ai/dsh-xiaojing-browser-control`
+
+### `browser_control`
+
+Control a dedicated visible browser using semantic page observations. Use open, then target only opaque IDs from the latest observation. Actions return a fresh observation automatically. Never guess target IDs. Use this tool for websites instead of computer_control. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "open",
+        "observe",
+        "click",
+        "fill",
+        "select",
+        "press",
+        "scroll",
+        "upload",
+        "tabs",
+        "switch_tab",
+        "close_tab"
+      ]
+    },
+    "url": {
+      "type": "string",
+      "description": "HTTP(S) URL for open."
+    },
+    "observation_id": {
+      "type": "string",
+      "description": "Latest observation ID for a target action."
+    },
+    "target_id": {
+      "type": "string",
+      "description": "Opaque target ID from that observation."
+    },
+    "value": {
+      "type": "string",
+      "description": "Text for fill or option label/value for select."
+    },
+    "key": {
+      "type": "string",
+      "description": "Playwright key such as Enter, Tab, or Control+L."
+    },
+    "delta_y": {
+      "type": "number",
+      "description": "Vertical scroll delta; positive moves down."
+    },
+    "paths": {
+      "type": "array",
+      "description": "Absolute local file paths for upload.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "page_id": {
+      "type": "string",
+      "description": "Opaque page ID for switch_tab or close_tab."
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
+```
+
+Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+
+The product-owned browser_control tool starts Edge lazily, so catalog generation records its schema without launching a browser or changing a user profile.
+
+<a id="deepseek-aidsh-xiaojing-computer-control"></a>
+
+## `@deepseek-ai/dsh-xiaojing-computer-control`
+
+### `computer_control`
+
+Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Use browser_control for websites. If the required application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "list_apps",
+        "launch_app",
+        "list_windows",
+        "observe",
+        "invoke",
+        "set_value",
+        "toggle",
+        "select",
+        "focus",
+        "press_key",
+        "scroll",
+        "wait"
+      ]
+    },
+    "query": {
+      "type": "string",
+      "description": "Installed-application display name to search for with list_apps."
+    },
+    "app_id": {
+      "type": "string",
+      "description": "Opaque application ID from the latest list_apps result."
+    },
+    "window_id": {
+      "type": "string",
+      "description": "Opaque window ID from list_windows."
+    },
+    "observation_id": {
+      "type": "string",
+      "description": "Latest observation ID for a target action."
+    },
+    "target_id": {
+      "type": "string",
+      "description": "Opaque target ID from that observation."
+    },
+    "value": {
+      "type": "string",
+      "description": "New text for set_value. Password fields are intentionally unsupported."
+    },
+    "key": {
+      "type": "string",
+      "description": "Windows Forms SendKeys expression, such as {TAB}, ^s, or {ENTER}."
+    },
+    "direction": {
+      "type": "string",
+      "description": "Scroll direction.",
+      "enum": [
+        "up",
+        "down",
+        "left",
+        "right"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "description": "Exact accessible name to wait for."
+    },
+    "timeout_ms": {
+      "type": "number",
+      "description": "Wait timeout, capped by product configuration."
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
+```
+
+Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
+
+The product-owned computer_control tool starts its bounded PowerShell helper lazily, so catalog generation records its schema without reading or changing the Windows desktop.

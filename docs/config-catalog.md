@@ -3200,6 +3200,78 @@ export interface Config {
 
 Source: [`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
 
+<a id="deepseek-aidsh-xiaojing-browser-control"></a>
+
+## `@deepseek-ai/dsh-xiaojing-browser-control`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Browser runtime configuration. */
+export interface Config {
+  /** Dedicated persistent profile directory; never point this at a person's normal browser profile. */
+  profileDir: string
+  /** Explicit Chromium executable used by tests or a controlled deployment when Microsoft Edge is unavailable. */
+  executablePath?: string
+  /** Whether to hide the controlled browser window. Xiaojing ships with this disabled. */
+  headless?: boolean
+  /** Playwright operation timeout. */
+  actionTimeoutMs?: number
+  /** Page navigation timeout. */
+  navigationTimeoutMs?: number
+  /** Lifetime of opaque observation targets. */
+  observationTtlMs?: number
+  /** Maximum semantic targets returned per observation. */
+  maxTargets?: number
+  /** Maximum session-owned pages returned by `tabs`. */
+  maxTabs?: number
+  /** Maximum visible page characters returned per observation. */
+  maxTextChars?: number
+  /** Whether private and loopback destinations are allowed without approval. Intended only for tests. */
+  allowPrivateHosts?: boolean
+}
+```
+
+Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts:43`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+
+<a id="deepseek-aidsh-xiaojing-computer-control"></a>
+
+## `@deepseek-ai/dsh-xiaojing-computer-control`
+
+Requires: `tools` · `subprocess`
+
+```ts config-catalog
+/** Windows computer-control configuration. */
+export interface Config {
+  /** Windows PowerShell executable name or absolute path. */
+  powershellPath?: string
+  /** Maximum duration of one helper request. */
+  requestTimeoutMs?: number
+  /** Process-tree termination grace. */
+  processGraceMs?: number
+  /** Lifetime of a UI Automation observation. */
+  observationTtlMs?: number
+  /** Maximum elements returned from one UI Automation tree walk. */
+  maxTargets?: number
+  /** Maximum installed applications returned from one catalog query. */
+  maxApps?: number
+  /** Maximum top-level windows returned from one listing. */
+  maxWindows?: number
+  /** Maximum UI Automation tree depth. */
+  maxDepth?: number
+  /** Maximum wait action duration. */
+  maxWaitMs?: number
+  /** Maximum time to wait for a launched application's visible window. */
+  launchWaitMs?: number
+  /** Poll interval used by the helper's semantic wait action. */
+  waitPollMs?: number
+  /** Maximum buffered helper protocol line length. */
+  maxProtocolLineBytes?: number
+}
+```
+
+Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:55`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
+
 ## Loadable plugins with no config
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.

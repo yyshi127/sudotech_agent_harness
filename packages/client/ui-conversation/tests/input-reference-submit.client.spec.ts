@@ -5,7 +5,9 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-import type { InputTriggerController, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
+import type {
+  CommandClaim, InputTriggerController, SubmitOutcome,
+} from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import { SessionInputShell } from '../src/client/input/facade.ts'
 import type { DraftAttachmentId } from '../src/client/input/contract.ts'
 
@@ -142,6 +144,91 @@ describe('reference submission', () => {
     expect(shell.notices.getSnapshot()).toMatchObject({
       level: 'error',
       text: 'reference codec unavailable',
+    })
+  })
+
+  it('serializes an uploaded-file reference before a claimed command receives its arguments', async () => {
+    const fileRef = 'upload-ref'
+    const modelText = '\n上传文件：`C:\\reports\\ledger.xlsx`'
+    const serializeReference = vi.fn(() => Promise.resolve(modelText))
+    const submit = vi.fn(() => Promise.resolve<SubmitOutcome>({ kind: 'success' }))
+    const inputTriggers = {
+      serializeReference,
+      track: vi.fn(),
+    } as unknown as InputTriggerController
+    const actx = {} as ClientContext
+    const shell = new SessionInputShell({
+      actx,
+      inputTriggers: () => inputTriggers,
+      defaultSink: vi.fn(),
+      commandImages,
+    })
+    const claim: CommandClaim = { token: '/goal ', submit }
+    shell.setDraft('/go')
+    expect(shell.beginCommand(claim, {
+      start: 0,
+      end: 3,
+      draftRev: shell.snapshot.draftRev,
+    })).toBe(true)
+    expect(shell.insertReference({
+      source: 'local-upload-files',
+      ref: fileRef,
+      label: `__dsh_upload_hidden__:${fileRef}`,
+      clipboardText: '',
+    }, {
+      start: shell.snapshot.draft.length,
+      end: shell.snapshot.draft.length,
+      draftRev: shell.snapshot.draftRev,
+    })).toBe(true)
+    expect(shell.snapshot.phase).toBe('claimed')
+
+    shell.submit()
+    await vi.waitFor(() => {
+      expect(submit).toHaveBeenCalledWith(`${modelText} `, actx, [])
+    })
+    expect(serializeReference).toHaveBeenCalledWith('local-upload-files', fileRef, expect.any(AbortSignal))
+    expect(shell.snapshot).toMatchObject({ phase: 'plain', draft: '', occurrences: [] })
+  })
+
+  it('retains a claimed command and its uploaded-file reference when serialization fails', async () => {
+    const submit = vi.fn()
+    const inputTriggers = {
+      serializeReference: () => Promise.reject(new Error('upload reference unavailable')),
+      track: vi.fn(),
+    } as unknown as InputTriggerController
+    const shell = new SessionInputShell({
+      actx: {} as ClientContext,
+      inputTriggers: () => inputTriggers,
+      defaultSink: vi.fn(),
+      commandImages,
+    })
+    const claim: CommandClaim = { token: '/plan ', submit }
+    shell.setDraft('/pl')
+    expect(shell.beginCommand(claim, {
+      start: 0,
+      end: 3,
+      draftRev: shell.snapshot.draftRev,
+    })).toBe(true)
+    expect(shell.insertReference({
+      source: 'local-upload-files',
+      ref: 'upload-ref',
+      label: '__dsh_upload_hidden__:upload-ref',
+      clipboardText: '',
+    }, {
+      start: shell.snapshot.draft.length,
+      end: shell.snapshot.draft.length,
+      draftRev: shell.snapshot.draftRev,
+    })).toBe(true)
+
+    shell.submit()
+    await vi.waitFor(() => {
+      expect(shell.snapshot.phase).toBe('claimed')
+    })
+    expect(submit).not.toHaveBeenCalled()
+    expect(shell.snapshot.occurrences).toHaveLength(1)
+    expect(shell.notices.getSnapshot()).toMatchObject({
+      level: 'error',
+      text: 'upload reference unavailable',
     })
   })
 

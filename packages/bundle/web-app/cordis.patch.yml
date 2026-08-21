@@ -68,6 +68,20 @@
     - id: usage-accounting
       name: '@deepseek-ai/dsh-usage-accounting'
 
+    # Xiaojing product capabilities stay in independent Cordis rows so a
+    # development overlay can disable either one without changing Harness core.
+    - id: xiaojing-browser-control
+      name: '@deepseek-ai/dsh-xiaojing-browser-control'
+      config:
+        profileDir: !!js dshHomePath('browser-control', 'profile')
+        executablePath: !!js process.env.XIAOJING_BROWSER_EXECUTABLE
+        headless: false
+
+    - id: xiaojing-computer-control
+      name: '@deepseek-ai/dsh-xiaojing-computer-control'
+      config:
+        powershellPath: powershell.exe
+
     # Browser Session export: `/export` command plus the shared download dialog.
     - id: session-log-download
       name: '@deepseek-ai/dsh-session-log-export'

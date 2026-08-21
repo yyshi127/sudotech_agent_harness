@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-The private Electron deployment for “小兢会计-您的AI办公搭子”. It is distributed through the Windows installer rather than npm, starts the bundled Node runtime and Web profile, keeps the browser isolated from Node, and presents the local Host in one Windows desktop window.
+The private Electron deployment for “小兢会计-您的AI办公搭子”. It is distributed through the Windows installer rather than npm, starts the bundled Node runtime and Web profile, keeps the renderer isolated from Node, and presents the local Host in one Windows desktop window.
 
 ## Permanent installer identity
 
@@ -25,7 +25,13 @@ A fresh installation shows the custom parent-directory picker and appends `xiaoj
 
 Electron pins `userData` before the single-instance lock to `%APPDATA%\@sudotech\xiaojing-accounting-desktop`. The bundled Host uses its `harness` child as `DSH_HOME`, while the user workspace is `%USERPROFILE%\Documents\小兢会计工作区`.
 
-`user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, uploads, usage accounting, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and rc.8 readers. It requires protected bytes to remain unchanged except for the exact installation-owned Web profile migration that removes ModLens, and it verifies session, credential, preset, settings, upload, storage, and accounting compatibility. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
+`user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, uploads, usage accounting, the dedicated browser-control profile, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and rc.8 readers. It requires protected bytes to remain unchanged except for the exact installation-owned Web profile migration that removes ModLens, and it verifies session, credential, preset, settings, upload, storage, and accounting compatibility. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
+
+## Built-in automation runtimes
+
+Browser automation starts the installed Microsoft Edge with a dedicated profile at `harness/browser-control/profile`; the application does not bundle Chrome for Testing or reuse the user's normal Edge profile. Windows application control uses Windows PowerShell 5.1 and the operating system's `System.Windows.Automation` API. End users do not install Node, a browser driver, PowerShell module, or a separate automation service.
+
+Both capabilities are independent Cordis rows. A development overlay can disable either row, while the Xiaojing product composition enables both and tells every new agent session when they are available. Browser and Windows observations use session-owned opaque identifiers and expire after state changes. Private-network browser navigation, file uploads, submissions, payments, deletions, sends, and comparable native actions require one-use approval.
 
 ## Independent integration patches
 
@@ -33,10 +39,12 @@ Electron pins `userData` before the single-instance lock to `%APPDATA%\@sudotech
 
 ## Release checks
 
-Run the identity, user-data, and product-layer verifiers before preparing the bundled runtime. A release also requires a fresh Windows install and an in-place upgrade from the previous installer on both default and custom paths. The installed application must retain sessions, credentials, presets, plugins, attachments, workspaces, and accounting data before an installer is published.
+Run the identity, user-data, and product-layer verifiers plus real Edge and Windows UI Automation tests before preparing the bundled runtime. A release also requires a fresh Windows install and an in-place upgrade from the previous installer on both default and custom paths. The installed application must retain sessions, credentials, presets, plugins, attachments, workspaces, accounting data, and the dedicated browser profile before an installer is published.
 
 ## Known limitations
 
 - Updates are delivered by downloading and running a newer installer; there is no in-app automatic updater.
 - The installer is not Authenticode-signed, so Windows may show an unknown-publisher or SmartScreen warning.
 - In-place upgrades apply only to the same Windows user and cannot move the installation directory.
+- Browser automation requires Microsoft Edge. It reports an explicit startup error if Edge is removed or blocked by device policy.
+- The built-in automation is semantic, not visual: it cannot operate pixel-only controls, CAPTCHAs, UAC, the secure desktop, or elevated applications.

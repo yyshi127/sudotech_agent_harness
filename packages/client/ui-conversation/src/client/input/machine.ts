@@ -52,8 +52,11 @@ function unreachable(value: never): never {
  * missing the token's trailing separator yields empty args. Exactly one
  * separator char is consumed; the remainder — newlines included — stays
  * verbatim (`/goal x\ny` → `x\ny`).
+ * @param draft - Complete command draft, including the claimed token.
+ * @param token - Claimed command token, normally including its trailing separator.
+ * @returns The command arguments after the token.
  */
-function argsAfter(draft: string, token: string): string {
+export function argsAfter(draft: string, token: string): string {
   const s = draft.trimStart()
   if (s.startsWith(token)) return s.slice(token.length)
   const base = token.trimEnd()

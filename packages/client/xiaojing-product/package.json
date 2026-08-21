@@ -40,7 +40,9 @@
     "@deepseek-ai/dsh-client-ui-settings-models": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sidebar": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-system-prompt": "workspace:^"
+    "@deepseek-ai/dsh-system-prompt": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -53,6 +55,8 @@
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:^",
     "@types/react": "~18.3.1",
     "react": "^18.2.0"
   },

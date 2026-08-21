@@ -9,7 +9,7 @@ overrides:
   '@deepseek-ai/schemastery': link:vendor/schemastery
 
 patchedDependencies:
-  dsh-file-uploads@1.0.0: 59e9f04a0e51ac954dcf30fa8927a1db2272a1ea55047645312cd0c750770e8c
+  dsh-file-uploads@1.0.0: 25dee94083ebdb990cc6424d5f046000e3ec916ce6ac3c1d03517150308ad36a
   node-pty@1.2.0-beta.15: b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0
 
 importers:
@@ -304,12 +304,18 @@ importers:
       '@deepseek-ai/dsh-workflow-worker-thread':
         specifier: workspace:^
         version: link:../../packages/workflow/workflow-worker-thread
+      '@deepseek-ai/dsh-xiaojing-browser-control':
+        specifier: workspace:^
+        version: link:../../packages/xiaojing/xiaojing-browser-control
+      '@deepseek-ai/dsh-xiaojing-computer-control':
+        specifier: workspace:^
+        version: link:../../packages/xiaojing/xiaojing-computer-control
       commander:
         specifier: ^15.0.0
         version: 15.0.0
       dsh-file-uploads:
         specifier: https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz
-        version: https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=59e9f04a0e51ac954dcf30fa8927a1db2272a1ea55047645312cd0c750770e8c)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1)
+        version: https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=25dee94083ebdb990cc6424d5f046000e3ec916ce6ac3c1d03517150308ad36a)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1)
       js-yaml:
         specifier: ^4.2.0
         version: 4.2.0
@@ -647,6 +653,12 @@ importers:
       '@deepseek-ai/dsh-workflow':
         specifier: workspace:^
         version: link:../../packages/workflow/workflow
+      '@deepseek-ai/dsh-xiaojing-browser-control':
+        specifier: workspace:^
+        version: link:../../packages/xiaojing/xiaojing-browser-control
+      '@deepseek-ai/dsh-xiaojing-computer-control':
+        specifier: workspace:^
+        version: link:../../packages/xiaojing/xiaojing-computer-control
       '@deepseek-ai/schemastery':
         specifier: link:../../vendor/schemastery
         version: link:../../vendor/schemastery
@@ -1799,6 +1811,12 @@ importers:
       '@deepseek-ai/dsh-workspace':
         specifier: workspace:^
         version: link:../../workspace/workspace
+      '@deepseek-ai/dsh-xiaojing-browser-control':
+        specifier: workspace:^
+        version: link:../../xiaojing/xiaojing-browser-control
+      '@deepseek-ai/dsh-xiaojing-computer-control':
+        specifier: workspace:^
+        version: link:../../xiaojing/xiaojing-computer-control
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -3639,6 +3657,12 @@ importers:
       '@deepseek-ai/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt
+      '@deepseek-ai/dsh-xiaojing-browser-control':
+        specifier: workspace:^
+        version: link:../../xiaojing/xiaojing-browser-control
+      '@deepseek-ai/dsh-xiaojing-computer-control':
+        specifier: workspace:^
+        version: link:../../xiaojing/xiaojing-computer-control
       '@types/react':
         specifier: ~18.3.1
         version: 18.3.31
@@ -9110,6 +9134,65 @@ importers:
       '@deepseek-ai/dsh-storage-domain':
         specifier: workspace:^
         version: link:../../storage/storage-domain
+
+  packages/xiaojing/xiaojing-browser-control:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      playwright-core:
+        specifier: 1.61.1
+        version: 1.61.1
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
+
+  packages/xiaojing/xiaojing-computer-control:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@deepseek-ai/dsh-subprocess':
+        specifier: workspace:^
+        version: link:../../subprocess/subprocess
+      '@deepseek-ai/dsh-subprocess-local':
+        specifier: workspace:^
+        version: link:../../subprocess/subprocess-local
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: workspace:^
+        version: link:../../core/system-prompt
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   python/sdk-runtime:
     dependencies:
@@ -19172,7 +19255,7 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  dsh-file-uploads@https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=59e9f04a0e51ac954dcf30fa8927a1db2272a1ea55047645312cd0c750770e8c)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1):
+  dsh-file-uploads@https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=25dee94083ebdb990cc6424d5f046000e3ec916ce6ac3c1d03517150308ad36a)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1):
     optionalDependencies:
       '@deepseek-ai/dsh-host-webserver': link:packages/host/webserver
       react: 18.3.1

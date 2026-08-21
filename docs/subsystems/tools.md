@@ -573,6 +573,70 @@ Types: [ScopeKey](scope.md)
 
 Source: [`packages/core/tools/src/index.ts:787`](../../packages/core/tools/src/index.ts)
 
+<a id="ctxxiaojingbrowsercontrol--browsercontrol"></a>
+
+### `ctx.xiaojingBrowserControl` — `BrowserControl`
+
+Semantic browser automation provider and model-facing tool consumer.
+
+```ts cordis-catalog
+/**
+ * Explain whether one request requires a one-shot user approval.
+ * @param owner - Agent session that owns the browser page.
+ * @param request - Validated browser operation.
+ * @returns The approval reason, or undefined when the operation may proceed directly.
+ */
+async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined>
+
+/**
+ * Execute one validated browser operation for an owning session.
+ * @param owner - Agent session that owns the browser page.
+ * @param request - Browser operation to execute.
+ * @param signal - Cancellation signal for the operation.
+ * @returns The bounded browser observation produced by the operation.
+ */
+run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>
+
+/** Close the persistent browser context and clear all opaque handles. */
+async close(): Promise<void>
+```
+
+Types: [SessionId](core.md)
+
+Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts:306`](../../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+
+<a id="ctxxiaojingcomputercontrol--computercontrol"></a>
+
+### `ctx.xiaojingComputerControl` — `ComputerControl`
+
+Semantic Windows UI Automation provider and model-facing tool consumer.
+
+```ts cordis-catalog
+/**
+ * Explain whether one request requires a one-shot user approval.
+ * @param owner - Agent session that owns the observed Windows targets.
+ * @param request - Validated Windows operation.
+ * @returns The approval reason, or undefined when the operation may proceed directly.
+ */
+approvalReason(owner: SessionId, request: ComputerActionRequest): string | undefined
+
+/**
+ * Execute one validated Windows operation for an owning session.
+ * @param owner - Agent session that owns the observed Windows targets.
+ * @param request - Windows operation to execute.
+ * @param signal - Cancellation signal for the operation.
+ * @returns The bounded application catalog, window list, or UI Automation observation produced by the operation.
+ */
+run(owner: SessionId, request: ComputerActionRequest, signal: AbortSignal): Promise<ComputerActionResult>
+
+/** Terminate the helper process tree and reject any pending request. */
+async close(): Promise<void>
+```
+
+Types: [SessionId](core.md)
+
+Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:238`](../../packages/xiaojing/xiaojing-computer-control/src/index.ts)
+
 <a id="tools-events"></a>
 
 ### `tools/*` events

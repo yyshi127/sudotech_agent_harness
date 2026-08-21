@@ -2277,6 +2277,54 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
     ],
   },
+  {
+    key: 'xiaojingBrowserControl',
+    summary: 'Semantic browser automation provider and model-facing tool consumer.',
+    description: 'Semantic browser automation provider and model-facing tool consumer.',
+    methods: [
+      {
+        signature: 'async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined>',
+        description: 'Explain whether one request requires a one-shot user approval.',
+        parameters: [{ name: 'owner', description: 'Agent session that owns the browser page.' }, { name: 'request', description: 'Validated browser operation.' }],
+        returns: 'The approval reason, or undefined when the operation may proceed directly.',
+      },
+      {
+        signature: 'run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>',
+        description: 'Execute one validated browser operation for an owning session.',
+        parameters: [{ name: 'owner', description: 'Agent session that owns the browser page.' }, { name: 'request', description: 'Browser operation to execute.' }, { name: 'signal', description: 'Cancellation signal for the operation.' }],
+        returns: 'The bounded browser observation produced by the operation.',
+      },
+      {
+        signature: 'async close(): Promise<void>',
+        description: 'Close the persistent browser context and clear all opaque handles.',
+        parameters: [],
+      },
+    ],
+  },
+  {
+    key: 'xiaojingComputerControl',
+    summary: 'Semantic Windows UI Automation provider and model-facing tool consumer.',
+    description: 'Semantic Windows UI Automation provider and model-facing tool consumer.',
+    methods: [
+      {
+        signature: 'approvalReason(owner: SessionId, request: ComputerActionRequest): string | undefined',
+        description: 'Explain whether one request requires a one-shot user approval.',
+        parameters: [{ name: 'owner', description: 'Agent session that owns the observed Windows targets.' }, { name: 'request', description: 'Validated Windows operation.' }],
+        returns: 'The approval reason, or undefined when the operation may proceed directly.',
+      },
+      {
+        signature: 'run(owner: SessionId, request: ComputerActionRequest, signal: AbortSignal): Promise<ComputerActionResult>',
+        description: 'Execute one validated Windows operation for an owning session.',
+        parameters: [{ name: 'owner', description: 'Agent session that owns the observed Windows targets.' }, { name: 'request', description: 'Windows operation to execute.' }, { name: 'signal', description: 'Cancellation signal for the operation.' }],
+        returns: 'The bounded application catalog, window list, or UI Automation observation produced by the operation.',
+      },
+      {
+        signature: 'async close(): Promise<void>',
+        description: 'Terminate the helper process tree and reject any pending request.',
+        parameters: [],
+      },
+    ],
+  },
 ]
 
 /** Every harness event, sorted by name. */
@@ -2866,6 +2914,38 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type Branded<B extends string> = string & {\n    readonly [BRAND]: B;\n};',
   },
   {
+    name: 'BrowserAction',
+    declaration: 'export type BrowserAction = typeof BROWSER_ACTIONS[number];',
+  },
+  {
+    name: 'BrowserActionRequest',
+    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly url?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n}',
+  },
+  {
+    name: 'BrowserActionResult',
+    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly pageId?: BrowserPageId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly truncated?: boolean;\n}',
+  },
+  {
+    name: 'BrowserObservationId',
+    declaration: 'export type BrowserObservationId = Branded<\'BrowserObservationId\'>;',
+  },
+  {
+    name: 'BrowserPageId',
+    declaration: 'export type BrowserPageId = Branded<\'BrowserPageId\'>;',
+  },
+  {
+    name: 'BrowserPageSummary',
+    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
+  },
+  {
+    name: 'BrowserTarget',
+    declaration: 'export interface BrowserTarget {\n    readonly id: BrowserTargetId;\n    readonly role: string;\n    readonly name: string;\n    readonly value?: string;\n    readonly disabled: boolean;\n    readonly checked?: boolean;\n    readonly actions: string[];\n}',
+  },
+  {
+    name: 'BrowserTargetId',
+    declaration: 'export type BrowserTargetId = Branded<\'BrowserTargetId\'>;',
+  },
+  {
     name: 'CancelOptions',
     declaration: 'export interface CancelOptions {\n    keepInbox?: boolean | undefined;\n}',
   },
@@ -2952,6 +3032,46 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CompactionTrigger',
     declaration: 'export type CompactionTrigger = \'pressure\' | \'context-overflow\';',
+  },
+  {
+    name: 'ComputerAction',
+    declaration: 'export type ComputerAction = typeof COMPUTER_ACTIONS[number];',
+  },
+  {
+    name: 'ComputerActionRequest',
+    declaration: 'export interface ComputerActionRequest {\n    readonly action: ComputerAction;\n    readonly query?: string;\n    readonly appId?: ComputerAppId;\n    readonly windowId?: ComputerWindowId;\n    readonly observationId?: ComputerObservationId;\n    readonly targetId?: ComputerTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly direction?: \'up\' | \'down\' | \'left\' | \'right\';\n    readonly text?: string;\n    readonly timeoutMs?: number;\n}',
+  },
+  {
+    name: 'ComputerActionResult',
+    declaration: 'export interface ComputerActionResult {\n    readonly action: ComputerAction;\n    readonly summary: string;\n    readonly appName?: string;\n    readonly apps?: ComputerApp[];\n    readonly windowId?: ComputerWindowId;\n    readonly windowTitle?: string;\n    readonly observationId?: ComputerObservationId;\n    readonly windows?: ComputerWindow[];\n    readonly targets?: ComputerTarget[];\n    readonly truncated?: boolean;\n}',
+  },
+  {
+    name: 'ComputerApp',
+    declaration: 'export interface ComputerApp {\n    readonly id: ComputerAppId;\n    readonly name: string;\n}',
+  },
+  {
+    name: 'ComputerAppId',
+    declaration: 'export type ComputerAppId = Branded<\'ComputerAppId\'>;',
+  },
+  {
+    name: 'ComputerObservationId',
+    declaration: 'export type ComputerObservationId = Branded<\'ComputerObservationId\'>;',
+  },
+  {
+    name: 'ComputerTarget',
+    declaration: 'export interface ComputerTarget {\n    readonly id: ComputerTargetId;\n    readonly controlType: string;\n    readonly name: string;\n    readonly value?: string;\n    readonly enabled: boolean;\n    readonly actions: string[];\n}',
+  },
+  {
+    name: 'ComputerTargetId',
+    declaration: 'export type ComputerTargetId = Branded<\'ComputerTargetId\'>;',
+  },
+  {
+    name: 'ComputerWindow',
+    declaration: 'export interface ComputerWindow {\n    readonly id: ComputerWindowId;\n    readonly title: string;\n    readonly processId: number;\n}',
+  },
+  {
+    name: 'ComputerWindowId',
+    declaration: 'export type ComputerWindowId = Branded<\'ComputerWindowId\'>;',
   },
   {
     name: 'ConfinedArgv',

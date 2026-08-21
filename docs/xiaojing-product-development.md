@@ -32,8 +32,12 @@ flowchart LR
   Upstream["Upstream rc.8 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
+  Adapters --> Browser["Edge browser-control plugin"]
+  Adapters --> Computer["Windows UIA control plugin"]
   Product --> Bundle["Web app composition"]
   Usage --> Bundle
+  Browser --> Bundle
+  Computer --> Bundle
   Bundle --> Desktop["Electron and NSIS desktop"]
   Desktop --> Data["Permanent user-data roots"]
 ```
@@ -48,6 +52,8 @@ The lowest layer that can own a change owns it. Official packages expose neutral
 | Xiaojing product layer | Brand components, palette, product copy, onboarding, and default deployment persona | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.md) |
 | Usage Host plugin | Provider usage observation, API-key fingerprinting, built-in pricing, immutable ledger, Remote, and update event | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.md) |
 | Usage Client plugin | Sidebar summary and detail panel, Settings entry, monthly calendar, formatting, and refresh controller | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.md) |
+| Browser-control plugin | Dedicated Edge lifecycle, bounded semantic page observations, opaque targets, and high-impact approval | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.md) |
+| Computer-control plugin | Windows PowerShell helper lifecycle, UI Automation observations, semantic native actions, and high-impact approval | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.md) |
 | Web composition | Host and browser plugin roster and load order | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | Independent integration patches | API-key post-configuration, profile runtime-shadow protection, and file-upload composer repair | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
 | Desktop and installer | Electron lifecycle, bundled Node runtime, icons, splash, fixed window identity, NSIS configuration, and release checks | [`apps/desktop/`](../apps/desktop/README.md) |
@@ -96,6 +102,14 @@ Each request settles at most once on its first provider `usage` chunk. Conversat
 
 The built-in Flash and Pro table in [`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) is the only tariff source. Startup performs no pricing request. The UI rounds exact nanoyuan values to fen for display and always shows two decimals; the ledger retains nanoyuan precision. Unknown models, custom endpoints, and cache-write tokens remain counted but unpriced. This is a local estimate from provider usage, not a DeepSeek Platform invoice or balance.
 
+### Built-in browser and Windows automation
+
+`@deepseek-ai/dsh-xiaojing-browser-control` and `@deepseek-ai/dsh-xiaojing-computer-control` are independent Cordis capability plugins and do not modify `agent-loop` or official UI packages. The Web composition enables both by default; a development overlay can disable either row. Their tools are deployment-global by design, so every new session, including a user-authored preset that suppresses runtime context, receives both schemas and their routing descriptions. Sessions that accept runtime context also receive the Xiaojing Host product contribution: direct file, data, editing, and command tools remain primary when no visible UI is required; websites use `browser_control`; native visible applications use `computer_control`.
+
+Browser control starts Microsoft Edge with a dedicated persistent profile, returns bounded page, text, and semantic-target results, and accepts only opaque IDs from the latest session-owned observation. It does not accept CSS selectors, JavaScript, CDP commands, arbitrary profile paths, or password values. The product does not bundle Chrome for Testing; an explicit Chromium executable is reserved for tests or controlled deployment. Windows control keeps one bounded JSON-line helper running through the subprocess capability, discovers and launches only Windows Start catalog entries, and uses Windows PowerShell 5.1 plus `System.Windows.Automation`. It returns opaque, bounded application, window, and control results without exposing registration IDs or executable paths, and it does not accept coordinates, screenshots, OCR, PowerShell source, or arbitrary shell commands.
+
+Both plugins invalidate observations after state changes, reject IDs owned by another session, recover after an interrupted owned process, stop owned processes on plugin disposal, and fail closed when a protected action has no approval channel. Browser cancellation preserves a replacement blank tab when the failed tab was the last page, so recovery does not close the visible Edge window. Browser operations serialize per session; the single Windows helper serializes all Windows operations. Private or loopback browser destinations, uploads, submissions, payments, deletions, sends, high-impact application launches, and comparable native actions require one-use approval. Password fields, UAC, secure desktop, elevated applications, pixel-only controls, CAPTCHAs, and canvas-only sites are outside this semantic capability.
+
 ### Bundled third-party plugin
 
 The shipped Web profile includes only `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts). Its source commit is pinned by the application dependency graph, and a local pnpm patch fixes attachment layout and caret behavior. ModLens and its visual bridge are not part of 0.2.0. On first rc.8 load, only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
@@ -124,7 +138,7 @@ These contracts are neither branding nor claimed upstream behavior. Keep their i
 1. Electron reads `identity.json`, pins `userData`, obtains the single-instance lock, fixes the AppUserModelId and window title, and displays the desktop splash.
 2. The desktop starts its bundled `runtime/node.exe`; an end-user Node installation is neither required nor selected.
 3. The child process runs `dsh web --port 0` from `%USERPROFILE%\Documents\小兢会计工作区`, with `DSH_HOME` set to the permanent `harness` data directory and inherited DeepSeek API-key environment variables removed.
-4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads the usage Host plugin, Xiaojing product plugin, usage Client plugin, and ordinary rc.8 Harness UI packages.
+4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Edge browser-control, Windows computer-control, and ordinary rc.8 Harness UI plugins.
 5. The API gateway exposes generated Remotes to the isolated renderer. Electron denies permission requests and externalizes new-window URLs to the operating-system browser.
 6. When the Host announces its dynamically assigned local URL, Electron replaces the splash with the assembled Web application while retaining the fixed taskbar title and icon.
 
@@ -138,9 +152,10 @@ The packaged desktop intentionally uses an ephemeral local port. Port `3090` is 
 |---|---|---|
 | Electron state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop` | `app.setPath('userData', ...)` before the single-instance lock |
 | Harness state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness` | `DSH_HOME` passed to the bundled Host |
+| Browser-control profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control\profile` | Browser-control plugin; dedicated Edge profile only |
 | User workspace | `%USERPROFILE%\Documents\小兢会计工作区` | Desktop working directory |
 
-[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, uploads, usage accounting, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
+[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, uploads, usage accounting, the browser-control profile, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
 
 ### Immutable installer identity
 
@@ -187,7 +202,7 @@ The bare `apps/web` Vite server is not a valid product preview because it lacks 
 Run the focused product checks before broader repository checks:
 
 ```sh
-pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests
+pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:identity
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:user-data
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:product-layer
@@ -228,6 +243,8 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 - API-key creation and replacement work after launch, and no plaintext key enters usage records or browser snapshots.
 - Usage accounting settles each provider request once, applies Beijing peak windows and the built-in model table, preserves historical request-time costs, and displays two decimal places.
 - ModLens and the visual bridge are absent; file upload, attachment layout, composer caret behavior, exact default-profile migration, and profile runtime-shadow protection pass focused checks.
+- Real Edge tests cover page observation, fill, protected submit, cross-session and stale-target rejection, bounded tabs, interrupted-navigation recovery, and browser relaunch. Real Windows UI Automation tests cover bounded window discovery, cross-session rejection, observation, edit, protected native action classification, invoke, wait, interruption recovery, and helper relaunch.
+- Every assembled agent receives `browser_control` and `computer_control` with routing descriptions; presets that accept runtime context also receive the combined capability prompt. A development composition can remove either Cordis row without changing Harness core.
 - Both startup surfaces, expanded and collapsed sidebar, hero, onboarding, taskbar title, and taskbar/shortcut icons show the intended product identity.
 - Desktop identity and user-data verifiers pass with the incremented version.
 - A clean installation works at the default and a custom parent path, automatically appending `xiaojing-agent-desktop`.
@@ -243,6 +260,8 @@ Failure of any applicable item blocks publication. Do not treat successful insta
 - Local accounting starts when the plugin first creates its ledger, exposes only the current key and current Beijing month, and does not reconstruct old conversations.
 - Local cost is calculated from provider usage and the built-in public tariff; it is not an official platform bill, balance, or server-side reconciliation.
 - Tariff changes require a product release because runtime pricing has no remote source or cache.
+- Browser automation requires Microsoft Edge and uses a dedicated profile; the application does not bundle a second browser runtime.
+- Browser and Windows control are semantic, not visual. They cannot handle pixel-only or canvas-only interfaces without a separate future vision capability.
 - A future upstream release can require changes to generic slots, the rc adapter, integration patches, or data migration, but it must not require reimplementing the product and feature layers.
 
 ## Quick handoff for a new session

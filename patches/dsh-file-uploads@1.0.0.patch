@@ -2,6 +2,15 @@ diff --git a/client.js b/client.js
 index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e5ddc705c 100644
 --- a/client.js
 +++ b/client.js
+@@ -121,7 +121,7 @@ window.__ModuleLoader__.load({
+       insertReference(sessionId, entry) {
+         const { actx, shell } = this.scope(sessionId)
+         const input = shell.snapshot
+-        if (!input || input.phase !== 'plain') return false
++        if (!input || (input.phase !== 'plain' && input.phase !== 'claimed')) return false
+         return actx.bail(actx, 'slash/input-insert-reference', {
+           reference: {
+             source: SOURCE,
 @@ -280,12 +280,44 @@ window.__ModuleLoader__.load({
        return controller.pendingFor(sessionId)
      }
@@ -47,6 +56,15 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
        async function onPick(event) {
          const files = Array.from(event.currentTarget.files || [])
          event.currentTarget.value = ''
+@@ -313,7 +345,7 @@ window.__ModuleLoader__.load({
+         }
+       }
+ 
+-      const disabled = busy || !input || input.phase !== 'plain'
++      const disabled = busy || !input || (input.phase !== 'plain' && input.phase !== 'claimed')
+       return React.createElement(
+         'div',
+         { className: 'dsh-upload-control', title: status || '上传本地文件并加入本次消息' },
 @@ -331,6 +363,7 @@ window.__ModuleLoader__.load({
              className: 'dsh-upload-button',
              disabled,

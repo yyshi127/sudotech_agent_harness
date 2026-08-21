@@ -12,6 +12,7 @@
     "harness/storages",
     "harness/uploads",
     "harness/usage-accounting",
+    "harness/browser-control",
     "Local Storage"
   ]
 }

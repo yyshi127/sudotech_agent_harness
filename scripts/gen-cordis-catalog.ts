@@ -109,6 +109,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   web: 'web.md',
   workflowEngine: 'workflow.md',
   workspaceRegistry: 'workspace.md',
+  xiaojingBrowserControl: 'tools.md',
+  xiaojingComputerControl: 'tools.md',
 }
 
 /**
@@ -584,6 +586,10 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   LocaleDict: 'service-local dictionary fields are owned by packages/client/i18n/src/index.ts',
   ThemeTokens: 'service-local token dictionary is owned by packages/client/ui-theme/src/index.ts',
   Translate: 'service-local bound translator is owned by packages/client/i18n/src/index.ts',
+  BrowserActionRequest: 'browser automation request is owned by packages/xiaojing/xiaojing-browser-control/README.md',
+  BrowserActionResult: 'browser automation result is owned by packages/xiaojing/xiaojing-browser-control/README.md',
+  ComputerActionRequest: 'Windows automation request is owned by packages/xiaojing/xiaojing-computer-control/README.md',
+  ComputerActionResult: 'Windows automation result is owned by packages/xiaojing/xiaojing-computer-control/README.md',
   WebUpgradeRoute:
     'upgrade route registration contract is owned by packages/host/webserver/src/index.ts',
   InvariantRegistration: 'service-local lifecycle handle is owned by packages/runtime-diagnostics/invariants/README.md',

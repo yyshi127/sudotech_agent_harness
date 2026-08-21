@@ -170,6 +170,8 @@
     { "path": "./packages/session/session-telemetry-otel" },
     { "path": "./packages/core/system-prompt" },
     { "path": "./packages/client/xiaojing-product/tsconfig.host.json" },
+    { "path": "./packages/xiaojing/xiaojing-browser-control" },
+    { "path": "./packages/xiaojing/xiaojing-computer-control" },
     { "path": "./packages/core/agent" },
     { "path": "./packages/core/agent-default-model" },
     { "path": "./packages/interaction/commands" },

@@ -512,6 +512,20 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Search and fetch providers register into one ctx.web seam; tool-web owns the stable model-facing names.',
   },
   {
+    key: 'xiaojingBrowserControl',
+    pkg: 'xiaojing-browser-control',
+    title: 'Xiaojing browser automation',
+    mode: 'core',
+    note: 'Owns the isolated Edge lifecycle, bounded semantic observations, approval checks, and browser_control tool registration in one removable product plugin.',
+  },
+  {
+    key: 'xiaojingComputerControl',
+    pkg: 'xiaojing-computer-control',
+    title: 'Xiaojing Windows automation',
+    mode: 'core',
+    note: 'Owns the bounded PowerShell UI Automation helper, observation identities, approval checks, and computer_control tool registration in one removable product plugin.',
+  },
+  {
     key: 'spillStore',
     pkg: 'spill',
     title: 'Spill storage seam',

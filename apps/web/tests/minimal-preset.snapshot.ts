@@ -12,6 +12,7 @@ import { assertFixtureInventory, launchWebScaffold, type WebScaffold } from './s
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/minimal-preset', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, 'session.jsonl')
 const PROMPT = 'Reply exactly MINIMAL_PRESET_REQUEST_OK and stop.'
+const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
 
 describe('minimal agent preset', () => {
   let scaffold: WebScaffold
@@ -68,16 +69,24 @@ describe('minimal agent preset', () => {
     const signal = new AbortController().signal
     await scaffold.ctx.tools.execute({
       signal,
-      callId: CallId('minimal-bash-state-setup'),
-      name: 'bash',
-      arguments: { command: `cd ${JSON.stringify(stateDir)} && export DSH_MINIMAL_STATE=PERSISTED` },
+      callId: CallId('minimal-shell-state-setup'),
+      name: SHELL_TOOL,
+      arguments: {
+        command: process.platform === 'win32'
+          ? `Set-Location -LiteralPath ${JSON.stringify(stateDir)}; $env:DSH_MINIMAL_STATE = 'PERSISTED'`
+          : `cd ${JSON.stringify(stateDir)} && export DSH_MINIMAL_STATE=PERSISTED`,
+      },
       agent: agentHandle.agent,
     })
-    const bash = await scaffold.ctx.tools.execute({
+    const shell = await scaffold.ctx.tools.execute({
       signal,
-      callId: CallId('minimal-bash-state-read'),
-      name: 'bash',
-      arguments: { command: 'printf \'%s:%s\n\' "$DSH_MINIMAL_STATE" "$PWD"' },
+      callId: CallId('minimal-shell-state-read'),
+      name: SHELL_TOOL,
+      arguments: {
+        command: process.platform === 'win32'
+          ? "Write-Output ($env:DSH_MINIMAL_STATE + ':' + (Get-Location).Path)"
+          : 'printf \'%s:%s\n\' "$DSH_MINIMAL_STATE" "$PWD"',
+      },
       agent: agentHandle.agent,
     })
     const seedPath = join(scaffold.workspaceCwd, 'preset-smoke.txt')
@@ -90,27 +99,34 @@ describe('minimal agent preset', () => {
       agent: agentHandle.agent,
     })
 
-    const text = (result: typeof bash): string => result.content
+    const text = (result: typeof shell): string => result.content
       .filter(block => block.type === 'text')
       .map(block => block.text)
       .join('')
       .replaceAll(scaffold.workspaceCwd, '{{cwd}}')
+      .replaceAll('\\', '/')
       .trimEnd()
 
     expect({
       prompt: requestHeader.system,
-      tools: requestHeader.tools?.map(tool => tool.name),
-      bash: text(bash),
+      tools: requestHeader.tools?.map(tool => tool.name === SHELL_TOOL ? 'platform_shell' : tool.name),
+      browserDescription: requestHeader.tools?.find(tool => tool.name === 'browser_control')?.description,
+      computerDescription: requestHeader.tools?.find(tool => tool.name === 'computer_control')?.description,
+      shell: text(shell),
       editor: text(editor),
     }).toMatchInlineSnapshot(`
       {
-        "bash": "PERSISTED:{{cwd}}/persistent-state",
+        "browserDescription": "Control a dedicated visible browser using semantic page observations. Use open, then target only opaque IDs from the latest observation. Actions return a fresh observation automatically. Never guess target IDs. Use this tool for websites instead of computer_control. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.",
+        "computerDescription": "Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Use browser_control for websites. If the required application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.",
         "editor": "Here's the content of {{cwd}}/preset-smoke.txt with line numbers (which has a total of 2 lines):
            1  MINIMAL_EDITOR_OK
            2",
         "prompt": "You are a helpful software engineer assistant.",
+        "shell": "PERSISTED:{{cwd}}/persistent-state",
         "tools": [
-          "bash",
+          "browser_control",
+          "computer_control",
+          "platform_shell",
           "str_replace_editor",
         ],
       }

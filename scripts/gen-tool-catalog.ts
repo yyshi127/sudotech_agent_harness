@@ -63,6 +63,8 @@ import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
 import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
 import * as ToolSubagent from '@deepseek-ai/dsh-tool-subagent'
 import * as ToolWeb from '@deepseek-ai/dsh-tool-web'
+import XiaojingBrowserControl from '@deepseek-ai/dsh-xiaojing-browser-control'
+import XiaojingComputerControl from '@deepseek-ai/dsh-xiaojing-computer-control'
 import VmWorkflowEngine from '@deepseek-ai/dsh-workflow-worker-thread'
 import * as ToolRalph from '@deepseek-ai/dsh-tool-ralph'
 import * as ToolWorkflow from '@deepseek-ai/dsh-tool-workflow'
@@ -181,9 +183,10 @@ export interface ToolPackage {
 }
 
 /**
- * The boot manifest: every shipped tool package (a `tool-*` leaf under
- * `packages/`). Ordered by package name (the render order); the completeness
- * guard proves it is exhaustive against the on-disk glob.
+ * The boot manifest: every shipped tool package (a `tool-*` leaf or an
+ * explicitly product-owned control leaf under `packages/`). Ordered by package
+ * name (the render order); the completeness guard proves it is exhaustive
+ * against the on-disk globs.
  */
 const TOOL_PACKAGES: ToolPackage[] = [
   {
@@ -606,6 +609,33 @@ const TOOL_PACKAGES: ToolPackage[] = [
     note:
       'web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps.',
   },
+  {
+    pkg: '@deepseek-ai/dsh-xiaojing-browser-control',
+    dir: 'xiaojing-browser-control',
+    source: 'packages/xiaojing/xiaojing-browser-control/src/index.ts',
+    requires: ['ctx.tools', 'ctx.approval for protected actions', 'an owning Agent at execution time', 'Microsoft Edge at execution time'],
+    writes: ['tool/call', 'isolated persistent browser profile', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(XiaojingBrowserControl, {
+        profileDir: resolve(root, '.tmp/tool-catalog/browser-control'),
+      })
+    },
+    note:
+      'The product-owned browser_control tool starts Edge lazily, so catalog generation records its schema without launching a browser or changing a user profile.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-xiaojing-computer-control',
+    dir: 'xiaojing-computer-control',
+    source: 'packages/xiaojing/xiaojing-computer-control/src/index.ts',
+    requires: ['ctx.tools', 'ctx.subprocess', 'ctx.approval for protected actions', 'an owning Agent at execution time', 'Windows UI Automation at execution time'],
+    writes: ['tool/call', 'native Windows UI state', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(LocalSubprocessRuntime)
+      await ctx.plugin(XiaojingComputerControl)
+    },
+    note:
+      'The product-owned computer_control tool starts its bounded PowerShell helper lazily, so catalog generation records its schema without reading or changing the Windows desktop.',
+  },
 ]
 
 /** One package's contribution to the catalog: its schemas plus attribution. */
@@ -625,7 +655,7 @@ export type ToolCatalog = CatalogPackage[]
 
 /**
  * Assert the boot manifest covers every shipped tool package on disk (a
- * `tool-*` leaf under `packages/`).
+ * `tool-*` leaf or a Xiaojing control leaf under `packages/`).
  * Booting has no source declaration to enumerate, so this glob restores the
  * "a new tool cannot be silently undocumented" guarantee: an unlisted package
  * fails the generator (and the freshness gate) until it is added to
@@ -634,7 +664,9 @@ export type ToolCatalog = CatalogPackage[]
  * `scanRoot` defaults to the repo root; a test may point it at a fixture tree.
  */
 export function assertManifestComplete(packages: ToolPackage[] = TOOL_PACKAGES, scanRoot: string = root): void {
-  const onDisk = globSync('packages/*/tool-*', { cwd: scanRoot }).map(p => basename(p)).sort()
+  const onDisk = globSync(['packages/*/tool-*', 'packages/xiaojing/xiaojing-*-control'], { cwd: scanRoot })
+    .map(p => basename(p))
+    .sort()
   const listed = new Set(packages.map(p => p.dir))
   const missing = onDisk.filter(dir => !listed.has(dir))
   if (missing.length > 0) {
@@ -746,9 +778,9 @@ export function render(catalog: ToolCatalog): string {
     '',
     'Every model-facing tool a shipped plugin contributes to `ctx.tools`: the `name`, `description`, and JSON-Schema `parameters` the model receives via the system-prompt assembly. It complements the [subsystem pages](subsystems/core.md) (the types plus each page\'s generated Cordis API region) — this page is the *tools* the agent is offered.',
     '',
-    'This file is GENERATED and verified fresh by `pnpm run verify-tool-catalog` (part of `doc-sync`) — do not edit it by hand. Unlike the cordis catalog (a pure source-AST pass), this generator BOOTS each tool plugin on a real context and reads `ctx.tools.schemas()`, because a tool schema is not statically knowable (runtime-spread enums, concatenated descriptions, config-driven names, raw-JSON-Schema MCP tools). A completeness guard globs `packages/*/tool-*` and fails if any package is missing from the generator\'s boot manifest, so a new tool cannot be silently undocumented. See [the tool-schema-catalog Agent Note](../.agents/notes/implemented/process/2026-07-02-tool-schema-catalog.md).',
+    'This file is GENERATED and verified fresh by `pnpm run verify-tool-catalog` (part of `doc-sync`) — do not edit it by hand. Unlike the cordis catalog (a pure source-AST pass), this generator BOOTS each tool plugin on a real context and reads `ctx.tools.schemas()`, because a tool schema is not statically knowable (runtime-spread enums, concatenated descriptions, config-driven names, raw-JSON-Schema MCP tools). A completeness guard globs `packages/*/tool-*` plus the product-owned Xiaojing control leaves and fails if any package is missing from the generator\'s boot manifest, so a new shipped tool cannot be silently undocumented. See [the tool-schema-catalog Agent Note](../.agents/notes/implemented/process/2026-07-02-tool-schema-catalog.md).',
     '',
-    'Scope: shipped product tools under `packages/*/tool-*`, each booted with its DEFAULT config, except where a Config field is REQUIRED with no default — there the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`\'s `toolName`), so a deployment may expose a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog\'s packages-only scope.',
+    'Scope: shipped product tools under `packages/*/tool-*` and `packages/xiaojing/xiaojing-*-control`, each booted with its DEFAULT config, except where a Config field is REQUIRED with no default — there the generator must choose, and the per-package note records which branch this page shows. The registered tool NAME can be a load-time config (e.g. `tool-subagent`\'s `toolName`), so a deployment may expose a package under a different or additional name — a per-package note records those shipped aliases where they exist. The `examples/` demo tools (e.g. `echo`) are excluded, matching the cordis catalog\'s packages-only scope.',
     '',
     '## Tool Package Map',
     '',

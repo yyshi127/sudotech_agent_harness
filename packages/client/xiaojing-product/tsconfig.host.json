@@ -12,6 +12,8 @@
   "references": [
     { "path": "../../../vendor/cordis" },
     { "path": "../../core/system-prompt" },
+    { "path": "../../xiaojing/xiaojing-browser-control" },
+    { "path": "../../xiaojing/xiaojing-computer-control" },
     { "path": "../../runtime-diagnostics/invariants" }
   ]
 }

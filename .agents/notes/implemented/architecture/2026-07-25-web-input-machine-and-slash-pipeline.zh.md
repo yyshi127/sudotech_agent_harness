@@ -46,7 +46,7 @@ occurrence 表与 chip 三投影：
 - 单字符占位使键盘原子性大半原生成立（caret 无内部位；Backspace/方向键/Shift 扩选原生即整颗）；鼠标点 chip 由 backdrop 命中 → 整颗 setSelectionRange。
 - 视觉投影 = label：backdrop 在占位符 offset 渲染 chip（textarea 字形不可见），invalid 走失效样式。
 - 剪贴板/持久化投影 = clipboardText：copy/cut 把选区内占位符展开；draft 持久化 mirror 写同一投影（chat store 里永远是普通文本，刷新 seed 语义 = 全选复制→重开→粘贴，chip 跨刷新降级为文本）。
-- 模型投影 = submit 时经 source `codec.serialize` 逐颗生成（归 submit attempt 的 signal 与陈旧守卫；owner 缺失/失败/取消则不发送，不降级为 `/name`）。
+- 模型投影 = submit 时经 source `codec.serialize` 逐颗生成，并在普通 sink 或已认领命令的 handler 运行前完成。对于已认领命令，shell 先展开完整草稿，再移除 claim token，使 occurrence offset 在两条投递路径中始终只有一种含义。该过程归 submit attempt 的 signal 与陈旧守卫所有；owner 缺失、失败或取消时不发送，并保留 command claim、草稿和 occurrence，而不会降级为展示文本或剪贴板文本。
 
 ### 跨插件输入改写：三个 scoped bail 事件
 

@@ -46,7 +46,7 @@ The occurrence table and the chip's three projections:
 - The single-character placeholder makes keyboard atomicity mostly hold natively (the caret has no interior position; Backspace / arrow keys / Shift extension natively take the whole chip); a mouse click on a chip goes backdrop hit → whole-chip setSelectionRange.
 - The visual projection = label: the backdrop renders the chip at the placeholder offset (the textarea glyph is invisible), with invalid taking the invalid style.
 - The clipboard/persistence projection = clipboardText: copy/cut expands placeholders inside the selection; the draft-persistence mirror writes the same projection (the chat store always holds plain text; the refresh seed semantics = select-all copy → reopen → paste, with chips degrading to text across a refresh).
-- The model projection = generated per chip at submit through the source's `codec.serialize` (owned by the submit attempt's signal and stale guard; a missing owner / failure / cancel means no send, never a downgrade to `/name`).
+- The model projection = generated per chip at submit through the source's `codec.serialize` before either the ordinary sink or a claimed command handler runs. For a claimed command, the shell expands the complete draft and then removes the claim token so occurrence offsets retain one meaning across both delivery paths. The submit attempt's signal and stale guard own the work; a missing owner, failure, or cancel means no send and retains the command claim, draft, and occurrences instead of downgrading to display or clipboard text.
 
 ### Cross-plugin input rewrites: three scoped bail events
 

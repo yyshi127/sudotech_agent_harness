@@ -122,6 +122,8 @@
     "@deepseek-ai/dsh-user-questions": "workspace:^",
     "@deepseek-ai/dsh-web": "workspace:^",
     "@deepseek-ai/dsh-workflow": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "@earendil-works/pi-ai": "0.82.1"
   },

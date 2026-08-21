@@ -24,6 +24,11 @@ import { launchWebScaffold, type WebScaffold } from './scaffold.ts'
 const FILE_REFERENCE_PROMPT = fileURLToPath(new URL(
   './snapshots/web-runtime-context/file-reference-prompt.expected.md', import.meta.url,
 ))
+const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
+const BACKGROUND_COMMAND = process.platform === 'win32'
+  ? 'Write-Output SHIPPED_BACKGROUND_OK'
+  : 'printf SHIPPED_BACKGROUND_OK'
+const BACKGROUND_JOB_ID = `${SHELL_TOOL}-1`
 
 /**
  * The catalog the shipped Web composition puts in front of the model, minus the
@@ -35,7 +40,7 @@ const FILE_REFERENCE_PROMPT = fileURLToPath(new URL(
  */
 const EXPECTED_TOOLS = [
   'ask_user_question',
-  'bash',
+  SHELL_TOOL,
   'create_goal',
   'edit',
   'exit_plan_mode',
@@ -66,6 +71,10 @@ const EXPECTED_TOOLS = [
  * dependency.
  */
 const RIPGREP_TOOLS = ['glob', 'grep']
+const GLOBAL_PRODUCT_TOOLS = [
+  'browser_control',
+  'computer_control',
+]
 
 let scaffold: WebScaffold | undefined
 
@@ -134,25 +143,37 @@ it('assembles the shipped Web catalog, file-reference guidance, retry policy, an
       "mode": "always",
     }
   `)
-  // The catalog belongs to an AGENT, not to the process: every model-facing row
-  // now lives in a preset mounted under one session's scope, so the global
-  // layer holds nothing and a caller must name the agent to see anything. This
-  // composes from the deployment default — what a session that names no preset
-  // gets — which is the shape this test has always been about.
-  expect(ctx.tools.schemas().map(schema => schema.name)).toEqual([])
+  expect(ctx.get('xiaojingBrowserControl')).toBeDefined()
+  expect(ctx.get('xiaojingComputerControl')).toBeDefined()
+  // Ordinary model-facing rows belong to a preset. Xiaojing's two deployment
+  // capabilities are deliberate global exceptions so every new session,
+  // including a user-authored preset, receives the same built-in automation.
+  expect(ctx.tools.schemas().map(schema => schema.name).sort()).toEqual(GLOBAL_PRODUCT_TOOLS)
   const handle = await ctx.agents.create({
     sessionId: SessionId('shipped-composition'),
     setup: agentCtx => ctx.agentPresets.mount(agentCtx).then(() => undefined),
   })
   try {
     const names = ctx.tools.schemas(handle.agent).map(schema => schema.name).sort()
-    expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual(EXPECTED_TOOLS)
+    expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual(
+      [...EXPECTED_TOOLS, ...GLOBAL_PRODUCT_TOOLS].sort(),
+    )
     // The packaged ripgrep binary ships with the dependency, so the pair is a
     // fixed roster member on every host.
     expect(names.filter(name => RIPGREP_TOOLS.includes(name))).toEqual(RIPGREP_TOOLS)
-    const fileReferenceSection = (await ctx.systemPrompt.assemble({ scope: handle.agent })).sections
+    const prompt = await ctx.systemPrompt.assemble({ scope: handle.agent })
+    const fileReferenceSection = prompt.sections
       .find(section => section.name === 'ui:deliverable-file-references')
     expect(fileReferenceSection?.text).toBe(readFileSync(FILE_REFERENCE_PROMPT, 'utf8').trimEnd())
+    const automationContext = prompt.contexts.find(context => context.name === 'xiaojing:built-in-automation')
+    expect(automationContext?.text).toMatchInlineSnapshot(`
+      "Built-in Xiaojing automation capabilities:
+      - Choose the shortest deterministic route. Use direct file, data, editing, and command tools when they can complete the task without driving a visible application.
+      - Use browser_control for websites. Observe first, use only target IDs from the latest observation, and re-observe after state changes.
+      - Use computer_control only when the task requires a visible native Windows application. If it is closed, search with list_apps and launch the returned app ID; then select a listed window, observe it, and invoke only actions advertised by each target.
+      - Do not automate a website through computer_control when browser_control can operate it.
+      - High-impact actions may require one-time user approval; a rejection means do not perform the action."
+    `)
   } finally {
     await handle.dispose()
   }
@@ -194,15 +215,15 @@ it('lets a preset producer reach the background-job registry', async () => {
   })
   try {
     const signal = new AbortController().signal
-    // `tool-bash` is a preset row and `tasks` is a host registry; the producer
+    // The platform shell tool is a preset row and `tasks` is a host registry; the producer
     // resolves it with `ctx.get`, so a registry hidden behind a preset realm
     // fails here — with every task control still listed in the catalog above.
     const started = await ctx.tools.execute({
       signal,
-      callId: CallId('shipped-bash-background'),
-      name: 'bash',
+      callId: CallId('shipped-shell-background'),
+      name: SHELL_TOOL,
       arguments: {
-        command: 'printf SHIPPED_BACKGROUND_OK',
+        command: BACKGROUND_COMMAND,
         description: 'shipped background probe',
         run_in_background: true,
       },
@@ -210,7 +231,7 @@ it('lets a preset producer reach the background-job registry', async () => {
     })
     expect({ isError: started.isError, content: started.content }).toEqual({
       isError: false,
-      content: [{ type: 'text', text: 'started background job bash-1' }],
+      content: [{ type: 'text', text: `started background job ${BACKGROUND_JOB_ID}` }],
     })
 
     // The controller reads what the producer started: same registry, one
@@ -224,7 +245,7 @@ it('lets a preset producer reach the background-job registry', async () => {
     })
     expect(listed.isError).toBe(false)
     expect(listed.content).toEqual([
-      { type: 'text', text: expect.stringContaining('bash-1 [bash]') as unknown as string },
+      { type: 'text', text: expect.stringContaining(`${BACKGROUND_JOB_ID} [${SHELL_TOOL}]`) as unknown as string },
     ])
 
     // The full round trip: the output a host-plane producer wrote is collected
@@ -233,7 +254,7 @@ it('lets a preset producer reach the background-job registry', async () => {
       signal,
       callId: CallId('shipped-task-output'),
       name: 'job_output',
-      arguments: { job_id: 'bash-1', wait: true },
+      arguments: { job_id: BACKGROUND_JOB_ID, wait: true },
       agent: handle.agent,
     })
     expect(collected.isError).toBe(false)
