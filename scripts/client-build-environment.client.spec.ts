@@ -27,7 +27,11 @@ const OFFICIAL_PROFILE = {
   DSH_CLIENT_FAVICON_HREF: '/favicon.svg',
   DSH_CLIENT_FAVICON_TYPE: 'image/svg+xml',
   DSH_CLIENT_HTML_LANG: 'en',
-  DSH_CLIENT_THEME_COLOR: '',
+  DSH_CLIENT_PWA_ICON_HREF: '/favicon.svg',
+  DSH_CLIENT_PWA_ICON_SIZES: 'any',
+  DSH_CLIENT_PWA_ICON_TYPE: 'image/svg+xml',
+  DSH_CLIENT_PWA_NAME: 'DeepSeek Harness',
+  DSH_CLIENT_PWA_SHORT_NAME: 'DSH',
   DSH_CLIENT_TITLE: 'DeepSeek Harness',
 } as const
 const XIAOJING_PROFILE = {
@@ -37,7 +41,11 @@ const XIAOJING_PROFILE = {
   DSH_CLIENT_FAVICON_HREF: '/sdoobot-avatar.png',
   DSH_CLIENT_FAVICON_TYPE: 'image/png',
   DSH_CLIENT_HTML_LANG: 'zh-CN',
-  DSH_CLIENT_THEME_COLOR: '#12a489',
+  DSH_CLIENT_PWA_ICON_HREF: '/sudo-logo-gray.png',
+  DSH_CLIENT_PWA_ICON_SIZES: '767x216',
+  DSH_CLIENT_PWA_ICON_TYPE: 'image/png',
+  DSH_CLIENT_PWA_NAME: 'SUDO 数豆 AI Agent',
+  DSH_CLIENT_PWA_SHORT_NAME: '数豆 AI',
   DSH_CLIENT_TITLE: '小兢会计-您的AI办公搭子',
 } as const
 const dshBuildWorkflows = [

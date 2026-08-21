@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useOnboardingRootInert } from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { XiaojingProductKey } from './locales.ts'
 import css from './OnboardingContent.module.css'
@@ -22,14 +23,7 @@ export type OnboardingContentProps = PropsRuntime<'onboarding.content'> & Inject
 export function OnboardingContent({ acknowledge, saving, failed, t }: OnboardingContentProps): ReactNode {
   const paragraphs = t('onboardingBody').split('\n\n')
   const titleRef = useRef<HTMLHeadingElement | null>(null)
-
-  useEffect(() => {
-    const appRoot = document.getElementById('root')
-    if (appRoot === null) return
-    const previous = appRoot.inert
-    appRoot.inert = true
-    return () => { appRoot.inert = previous }
-  }, [])
+  useOnboardingRootInert()
 
   useEffect(() => { titleRef.current?.focus() }, [])
 

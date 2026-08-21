@@ -17,6 +17,14 @@
   config:
     includeHarnessIdentity: false
 
+# Xiaojing's fresh-install default follows the rc.1 native vision route. A
+# saved agent-default-model settings section still wins, so upgrades preserve
+# the user's existing default and every session-local model selection.
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4-flash-vision-exp
+
 # TODO: Re-enable shared HMR for Web after its reload lifecycle is tested.
 - id: hmr
   disabled: true

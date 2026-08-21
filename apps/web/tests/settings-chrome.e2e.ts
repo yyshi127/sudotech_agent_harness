@@ -17,15 +17,15 @@ import { join } from 'node:path'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, profileGoldenPath, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/settings-chrome', import.meta.url))
-const DIALOG_EXPECTED = join(SNAPSHOT_DIR, 'dialog.expected.md')
+const DIALOG_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'dialog.expected.md'))
 const PLUGINS_EXPECTED = join(SNAPSHOT_DIR, 'plugins.expected.md')
 // The English fallback surface: a browser naming no shipped language.
-const DIALOG_EN_EXPECTED = join(SNAPSHOT_DIR, 'dialog-en.expected.md')
+const DIALOG_EN_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'dialog-en.expected.md'))
 const PLUGIN_ROW_SELECTOR = '[data-plugin-entry$="ui-settings"]'
 const MODE = webSnapshotMode()
 
@@ -524,6 +524,12 @@ describe('web e2e: settings modal and General preferences', () => {
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['dialog-en.expected.md', 'dialog.expected.md', 'plugins.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'dialog-en.expected.md',
+      'dialog-en.xiaojing.expected.md',
+      'dialog.expected.md',
+      'dialog.xiaojing.expected.md',
+      'plugins.expected.md',
+    ])
   })
 })

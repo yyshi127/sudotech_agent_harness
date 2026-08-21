@@ -205,11 +205,20 @@ describe('mock LLM server wire behaviors', () => {
     expect(server.requests[0]?.body).toEqual({ messages: [{ role: 'user', content: '你好' }] })
   })
 
-  it('formats an IPv6 listener as a valid base URL', async () => {
+  it('formats an IPv6 listener as a valid base URL', async (context) => {
     const server = await start(['success'], { host: '::1' })
 
     expect(server.baseURL).toMatch(/^http:\/\/\[::1\]:\d+$/)
-    expect((await chat(server)).status).toBe(200)
+    try {
+      expect((await chat(server)).status).toBe(200)
+    } catch (error) {
+      const cause = error instanceof Error ? error.cause : undefined
+      const code = typeof cause === 'object' && cause !== null && 'code' in cause ? cause.code : undefined
+      if (process.platform === 'win32' && code === 'EACCES') {
+        return context.skip('Windows host policy denied an IPv6 loopback connection.')
+      }
+      throw error
+    }
   })
 
   it('emits reasoning, tool calls, max-token finishes, slow chunks, and a wrong content type', async () => {

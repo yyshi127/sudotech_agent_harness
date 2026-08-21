@@ -2,13 +2,13 @@
 
 English | [中文](README.zh.md)
 
-Browser presentation for the local usage-accounting Remote. It adds a current-day summary to `sidebar.footer.action` and a current-month calendar to `settings.section` without owning billing data or credential values.
+Xiaojing-profile browser presentation for the local usage-accounting Remote. It adds a current-day summary to `sidebar.footer.action` and a current-month calendar to `settings.section` without owning billing data or credential values. Official and local Harness client builds register neither entry.
 
 ## Composition
 
 The plugin requires the generic sidebar and settings slots, locale, the generated `remote.usageAccounting` client, and forwarded Host events. Both entries share one observable controller. The slot renderer binds that observable to `useUsage`; components receive only the framework hook, a refresh callback, and localized copy.
 
-The controller refreshes on `usage-accounting/updated`, `credentials/updated`, and connection reset. A newer request generation wins when responses arrive out of order.
+The controller refreshes on `usage-accounting/updated`, a `DEEPSEEK_API_KEY` `credentials/reference-updated` event, and connection reset. A newer request generation wins when responses arrive out of order.
 
 ## Presentation
 

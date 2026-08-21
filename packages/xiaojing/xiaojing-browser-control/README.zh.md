@@ -29,7 +29,7 @@ Service Worker 流量的分类不假定请求关联页面 frame。公共目标�
 
 #### 模型看到的内容
 
-模型会看到 [`browser_control` schema](../../../docs/tool-catalog.md#deepseek-aidsh-xiaojing-browser-control)，其中要求在用户明确指定浏览器时通过 `open` 或 `tabs` 传入该值，否则省略以使用保存的默认值；启动失败时不得自行选择另一款浏览器；它还要求先复用合适的现有页面，再仅操作最新观察中的不透明 ID。每个页面动作都会返回新的 `observationId`、有界可见文本和语义 `targets`；后续目标动作必须使用同一份观察中的 ID。网站操作使用本工具，而不是 Windows 电脑操控。
+模型会看到 [`browser_control` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-xiaojing-browser-control)，其中要求在用户明确指定浏览器时通过 `open` 或 `tabs` 传入该值，否则省略以使用保存的默认值；启动失败时不得自行选择另一款浏览器；它还要求先复用合适的现有页面，再仅操作最新观察中的不透明 ID。每个页面动作都会返回新的 `observationId`、有界可见文本和语义 `targets`；后续目标动作必须使用同一份观察中的 ID。网站操作使用本工具，而不是 Windows 电脑操控。
 
 #### Token 影响
 

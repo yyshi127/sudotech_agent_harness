@@ -466,9 +466,7 @@ export class SessionInputShell implements SessionInput {
         this.settleSubmit(attempt, this.deps.defaultSink(serialized.trim(), imageIds, mode, attempt.signal), imageIds)
       },
       (error: unknown) => {
-        if (this.dead(attempt)) return
-        const message = error instanceof Error ? error.message : String(error)
-        this.run(this.core.dispatch({ type: 'submit-settled', attempt, ok: false, message }))
+        this.failSubmit(attempt, error)
       },
     )
   }
@@ -588,11 +586,16 @@ export class SessionInputShell implements SessionInput {
           }))
         },
         (error: unknown) => {
-          if (this.dead(attempt)) return
-          const message = error instanceof Error ? error.message : String(error)
-          this.run(this.core.dispatch({ type: 'submit-settled', attempt, ok: false, message }))
+          this.failSubmit(attempt, error)
         },
       )
+  }
+
+  /** Retain the draft and attachments when one submission path rejects. */
+  private failSubmit(attempt: SubmitAttempt, error: unknown): void {
+    if (this.dead(attempt)) return
+    const message = error instanceof Error ? error.message : String(error)
+    this.run(this.core.dispatch({ type: 'submit-settled', attempt, ok: false, message }))
   }
 
   /** Late-settlement guard: superseded attempts and disposed facades drop silently. */

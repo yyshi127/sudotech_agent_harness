@@ -145,6 +145,7 @@ export class WeixinInstanceLease {
       if (!Number.isSafeInteger(record.pid) || record.pid <= 0 || alive(record.pid)) return false
       await rm(this.filename, { force: true })
     }
+    /* v8 ignore next -- exhausting both retries requires a competing process to recreate the stale lease after each atomic removal */
     return false
   }
 

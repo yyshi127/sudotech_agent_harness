@@ -21,16 +21,12 @@ function clientDocumentMetadata(): Plugin {
   const language = escapeHtmlAttribute(process.env.DSH_CLIENT_HTML_LANG ?? 'en')
   const faviconHref = escapeHtmlAttribute(process.env.DSH_CLIENT_FAVICON_HREF ?? '/favicon.svg')
   const faviconType = escapeHtmlAttribute(process.env.DSH_CLIENT_FAVICON_TYPE ?? 'image/svg+xml')
-  const themeColor = process.env.DSH_CLIENT_THEME_COLOR
   const bootLogo = process.env.DSH_CLIENT_BOOT_LOGO
   const bootLogoAlt = process.env.DSH_CLIENT_BOOT_LOGO_ALT
   return {
     name: 'dsh-client-document-metadata',
     transformIndexHtml(html) {
       const metadata = [
-        themeColor === undefined || themeColor === ''
-          ? ''
-          : `    <meta name="theme-color" content="${escapeHtmlAttribute(themeColor)}" />\n`,
         bootLogo === undefined || bootLogo === ''
           ? ''
           : `    <meta name="dsh-boot-logo" content="${escapeHtmlAttribute(bootLogo)}" />\n`,
@@ -45,6 +41,34 @@ function clientDocumentMetadata(): Plugin {
           `<link rel="icon" type="${faviconType}" href="${faviconHref}" />`,
         )
         .replace('<title>DSH Local Build</title>', `${metadata}    <title>${title}</title>`)
+    },
+  }
+}
+
+/** Generate install metadata from the selected client profile. */
+function clientPwaManifest(): Plugin {
+  const manifest = {
+    id: '/',
+    name: process.env.DSH_CLIENT_PWA_NAME ?? 'DeepSeek Harness',
+    short_name: process.env.DSH_CLIENT_PWA_SHORT_NAME ?? 'DSH',
+    start_url: '/',
+    scope: '/',
+    display: 'fullscreen',
+    icons: [{
+      src: process.env.DSH_CLIENT_PWA_ICON_HREF ?? '/favicon.svg',
+      sizes: process.env.DSH_CLIENT_PWA_ICON_SIZES ?? 'any',
+      type: process.env.DSH_CLIENT_PWA_ICON_TYPE ?? 'image/svg+xml',
+      purpose: 'any',
+    }],
+  }
+  return {
+    name: 'dsh-client-pwa-manifest',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'manifest.webmanifest',
+        source: `${JSON.stringify(manifest, null, 2)}\n`,
+      })
     },
   }
 }
@@ -131,7 +155,7 @@ function npmPackageOf(id: string): string | undefined {
 }
 
 export default defineConfig({
-  plugins: [rejectStandaloneServe(), clientDocumentMetadata(), react()],
+  plugins: [rejectStandaloneServe(), clientDocumentMetadata(), clientPwaManifest(), react()],
   build: {
     sourcemap: true,
     rollupOptions: {

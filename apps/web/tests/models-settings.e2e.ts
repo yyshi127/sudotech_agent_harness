@@ -21,15 +21,15 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, profileGoldenPath, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/models-settings', import.meta.url))
-const EMPTY_EXPECTED = join(SNAPSHOT_DIR, 'empty.expected.md')
-const CONFIGURED_EXPECTED = join(SNAPSHOT_DIR, 'configured.expected.md')
-const DECLARED_EXPECTED = join(SNAPSHOT_DIR, 'declared.expected.md')
-const DECLARED_EDIT_EXPECTED = join(SNAPSHOT_DIR, 'declared-edit.expected.md')
+const EMPTY_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'empty.expected.md'))
+const CONFIGURED_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'configured.expected.md'))
+const DECLARED_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'declared.expected.md'))
+const DECLARED_EDIT_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'declared-edit.expected.md'))
 const MODEL_PICKER_EXPECTED = join(SNAPSHOT_DIR, 'model-picker.expected.md')
 const NATIVE_DELETE_EXPECTED = join(SNAPSHOT_DIR, 'native-delete.expected.md')
 const DELETE_EXPECTED = join(SNAPSHOT_DIR, 'delete.expected.md')
@@ -319,6 +319,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       'configured.expected.md', 'declared-edit.expected.md', 'declared.expected.md',
       'delete.expected.md', 'empty.expected.md', 'model-picker.expected.md',
       'native-delete.expected.md',
+      'configured.xiaojing.expected.md', 'declared-edit.xiaojing.expected.md',
+      'declared.xiaojing.expected.md', 'empty.xiaojing.expected.md',
     ])
   })
 })

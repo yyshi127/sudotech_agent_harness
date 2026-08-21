@@ -9,6 +9,17 @@ const WINDOW_TITLE = identity.shortcutName
 const COMPANY_NAME = '瑞华云数豆科技'
 const BACKEND_READY_TIMEOUT_MS = 60_000
 
+const previewRoot = !app.isPackaged ? process.env.DSH_DESKTOP_PREVIEW_ROOT?.trim() : undefined
+if (previewRoot !== undefined && previewRoot !== '') {
+  const root = resolve(previewRoot)
+  const appData = join(root, 'app-data')
+  const documents = join(root, 'documents')
+  mkdirSync(appData, { recursive: true })
+  mkdirSync(documents, { recursive: true })
+  app.setPath('appData', appData)
+  app.setPath('documents', documents)
+}
+
 app.setPath('userData', join(app.getPath('appData'), ...identity.userDataSegments))
 
 let backend
@@ -120,7 +131,7 @@ function startBackend() {
     if (name.toUpperCase() === 'DEEPSEEK_API_KEY') delete environment[name]
   }
 
-  backend = spawn(paths.node, [paths.cli, 'web', '--port', '0'], {
+  backend = spawn(paths.node, [paths.cli, 'web', '--port', '0', '--no-open'], {
     cwd: workspace,
     env: environment,
     windowsHide: true,

@@ -18,8 +18,9 @@ import type {
 } from './contract/slots.ts'
 import type { InputNotice } from './input/contract.ts'
 import { createChatStore } from './stores.ts'
-import { ConversationController, UnsupportedImageMediaTypeError } from './service.ts'
+import { ConversationController } from './service.ts'
 import type { IConversation } from './service.ts'
+import { imageIntakeErrorText } from './image-labels.ts'
 import { ComposerBlockRegistry } from './input/blocks.ts'
 import type { ComposerBlock } from './input/blocks.ts'
 import { InputHub } from './input/hub.ts'
@@ -309,21 +310,9 @@ export function apply(ctx: Context): void {
       const inputTriggers = inputHub.inputTriggers(sessionId)
       return {
         keyboard: shell,
-        addImages: (files) => {
-          try {
-            const images = conversation.createDraftImages(files)
-            if (!shell.addImages(images.map(image => image.id))) {
-              conversation.releaseDraftImages(images)
-            }
-            return null
-          } catch (error: unknown) {
-            if (error instanceof UnsupportedImageMediaTypeError) {
-              // Positive copy: the supported list is fixed in imageMediaType,
-              // and naming it beats echoing the rejected MIME type back.
-              return t('image.unsupportedType')
-            }
-            return error instanceof Error ? error.message : String(error)
-          }
+        addImages: (files, limits) => {
+          const result = scopedConversation(sessions, sessionId).addImages(files, limits)
+          return result.ok ? null : imageIntakeErrorText(t, result.error)
         },
         removeImage: (id) => {
           conversation.releaseDraftImage(id)

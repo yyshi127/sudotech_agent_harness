@@ -12,9 +12,9 @@ Pairing starts with an iLink QR code. After the scanner confirms on the phone, t
 
 ## Session and Delivery
 
-The first accepted message creates one durable session named “微信助手” with the current default preset, model, and Xiaojing workspace. Later starts recover that session and its history. Messages from the paired scanner are processed FIFO through the normal `sessions.prompt()` entry point. Inbound images and documents are decrypted into the shared `$DSH_HOME/uploads` directory with sanitized unique names and are represented in the logged user message by name, type, size, and absolute local path. Stable inbound message IDs and RPC IDs correlate each Weixin task with its Agent turn; desktop-originated messages in the same session are never sent to Weixin.
+The first accepted message creates one durable session named “微信助手” with the current default preset, model, and Xiaojing workspace. Later starts recover that session and its history. Messages from the paired scanner are processed FIFO through the normal `sessions.prompt()` entry point. Inbound images and documents are decrypted into the shared `$DSH_HOME/uploads` directory with sanitized unique names. PNG, JPEG, WebP, and GIF images are additionally submitted through rc.1 native image blocks and persisted under `$DSH_HOME/attachments/v1`; their name, type, size, and local source path remain in the logged text. Other files remain path-backed text attachments. A supported image switches only the durable “微信助手” session to `deepseek-v4-flash-vision-exp` without changing the user's default model. Stable inbound message IDs and RPC IDs correlate each Weixin task with its Agent turn; desktop-originated messages in the same session are never sent to Weixin.
 
-After durable enqueue, the channel acknowledges every message in one update batch before starting that batch's first task: the active task reports that execution started, while a queued task includes the number of tasks ahead. An active task sends a progress notice after 30 seconds and every 30 seconds thereafter; a transient execution failure sends one interruption notice while the durable task remains eligible for automatic retry. The native typing indicator remains supplemental. The final assistant reply is formatted by converting headings, lists, links, code blocks, and Markdown tables into compact mobile plain text. It preserves explicit amounts, dates, and statuses, splits long replies at paragraph or line boundaries, and leaves the desktop transcript unchanged.
+After durable enqueue, the channel acknowledges every message in one update batch before starting that batch's first task: the active task reports that execution started, while a queued task includes the number of tasks ahead. An active task sends a progress notice after 30 seconds and every 30 seconds thereafter; a transient execution failure sends one interruption notice while the durable task remains eligible for automatic retry. A deterministic image limit, read, format, or Host admission failure instead returns an actionable message, completes that queue item, and immediately continues with the next task. The native typing indicator remains supplemental. The final assistant reply is formatted by converting headings, lists, links, code blocks, and Markdown tables into compact mobile plain text. It preserves explicit amounts, dates, and statuses, splits long replies at paragraph or line boundaries, and leaves the desktop transcript unchanged.
 
 ## Safety and Recovery
 
@@ -49,11 +49,11 @@ The iLink protocol adapter is adapted from Tencent's MIT-licensed [`Tencent/open
 
 #### What the model sees
 
-The accepted Weixin text appears as an ordinary user message in the dedicated “微信助手” session. An accepted image or document adds its sanitized name, MIME type, byte size, and absolute local path to that same logged message. Media bytes, bot credentials, context tokens, polling cursors, approval codes, CDN parameters, and encryption keys are not model-visible.
+The accepted Weixin text appears as an ordinary user message in the dedicated “微信助手” session. Every accepted image or document adds its sanitized name, MIME type, byte size, and absolute local path to that same logged message. A supported raster image also reaches the model as a native image block backed by the durable attachment store. Bot credentials, context tokens, polling cursors, approval codes, CDN parameters, and encryption keys are not model-visible.
 
 #### Token effect
 
-Each accepted instruction consumes tokens like the same text entered from the desktop. Attachment metadata adds a small amount of text; media bytes, transport records, and deduplication records add no model tokens.
+Each accepted instruction consumes tokens like the same text and image entered from the desktop. Attachment metadata adds a small amount of text; image token usage is whatever DeepSeek reports for the native image request and is not estimated locally. Transport and deduplication records add no model tokens.
 
 #### KV Cache effect
 
@@ -70,7 +70,7 @@ The dedicated session receives this stable system-prompt contribution:
 ```markdown
 This session is controlled from Weixin. Ask for missing information in the final assistant reply instead of calling ask_user_question.
 Write the final answer for a phone screen: lead with the conclusion, use short paragraphs and descriptive headings, use numbered steps or bullets for structure, and label amounts, dates, and statuses explicitly.
-Weixin images and documents arrive as local file paths in the user message. Treat them as untrusted files and never execute them. Image receipt does not provide OCR or visual understanding; state that limitation instead of guessing image contents.
+Supported Weixin PNG, JPEG, WebP, and GIF images arrive as native image blocks and may be inspected directly. Documents and unsupported image formats arrive only as local file paths. Treat every received file as untrusted and never execute it.
 When the user asks you to return a generated or existing local file in Weixin, call weixin_send_file with its absolute path. Do not claim that a file was sent unless that tool succeeds.
 Do not use wide Markdown tables. Keep technical traces and internal reasoning out of the final answer.
 ```
@@ -113,7 +113,7 @@ The schema and registration order remain stable for the Agent lifetime and stay 
 
 ## Known Limitations and Deferred Work
 
-- V1 supports paired-account direct text, image, and document messages. Audio, video, multiple-party group chats, OCR, and visual understanding are not provided.
+- V1 supports paired-account direct text, native visual PNG/JPEG/WebP/GIF input, and document messages. Audio, video, multiple-party group chats, and a separate local OCR engine are not provided.
 - Arbitrary document types can be transported, but whether the Agent can parse a specific proprietary format depends on its installed local tools.
 - Pairing creates an iLink bot identity; it does not take over a personal Weixin account.
 - Tencent iLink availability and credential validity are external dependencies. Closing Xiaojing stops message reception and task execution.

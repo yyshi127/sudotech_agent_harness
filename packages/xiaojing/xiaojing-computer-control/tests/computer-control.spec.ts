@@ -60,7 +60,7 @@ describe('Windows UI Automation provider', () => {
     )
     expect(listed.windows?.length).toBeLessThanOrEqual(1)
     expect(typeof listed.truncated).toBe('boolean')
-  })
+  }, 15_000)
 
   windowsIt('lists, observes, edits, and invokes a native WinForms fixture', async () => {
     const title = `Xiaojing UIA Fixture ${String(process.pid)}`

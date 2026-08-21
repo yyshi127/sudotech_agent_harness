@@ -28,8 +28,9 @@ const NS = 'usage.accounting'
 /** Required slots, Remote, and locale services. */
 export const inject = ['slots', 'remote', 'remote.usageAccounting', 'locale']
 
-/** Register both views over one shared pushed snapshot controller. */
+/** Register both views over one shared pushed snapshot controller in the Xiaojing build. */
 export function apply(ctx: ClientContext): void {
+  if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing') return
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-usage-accounting: dictionaries')
   const controller = new UsageAccountingController(ctx.remote.usageAccounting)
   const t = ctx.locale.bind(NS)
@@ -41,7 +42,9 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     const disposers = [
       ctx.remote.$on('usage-accounting/updated', refresh),
-      ctx.remote.$on('credentials/updated', refresh),
+      ctx.remote.$on('credentials/reference-updated', (ref) => {
+        if (ref === 'DEEPSEEK_API_KEY') refresh()
+      }),
       ctx.on('connection/reset', refresh),
     ]
     return () => { for (const dispose of disposers) dispose() }

@@ -11,6 +11,7 @@
     "harness/profiles",
     "harness/storages",
     "harness/uploads",
+    "harness/attachments",
     "harness/usage-accounting",
     "harness/browser-control",
     "harness/weixin-channel",

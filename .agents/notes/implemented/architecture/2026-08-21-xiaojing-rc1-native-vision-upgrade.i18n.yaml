@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md
+2026-08-21-xiaojing-rc1-native-vision-upgrade.md: 99c7638291967fe27bf4619f9609e0d0eb736c11
+2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md: 73a2d7ce1ced7f2127144f56e8a300ad08d72e53

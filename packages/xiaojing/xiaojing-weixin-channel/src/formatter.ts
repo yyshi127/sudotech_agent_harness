@@ -107,7 +107,7 @@ export function splitWeixinText(text: string, maxChars: number): string[] {
       current = candidate
       continue
     }
-    if (current !== '') chunks.push(current)
+    chunks.push(current)
     current = unit
   }
   if (current !== '') chunks.push(current)

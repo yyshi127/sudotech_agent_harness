@@ -4,7 +4,11 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { withFileLock, writeFileAtomic } from '../src/index.ts'
 
-const state = vi.hoisted(() => ({ failLockCreateWithEPERM: false }))
+const state = vi.hoisted(() => ({
+  failLockCreateWithEPERM: false,
+  renameCalls: 0,
+  renameFailures: [] as string[],
+}))
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -17,11 +21,21 @@ vi.mock('node:fs/promises', async (importOriginal) => {
       }
       return (actual.writeFile as (path: unknown, ...args: never[]) => Promise<void>)(path, ...rest)
     }) as typeof actual.writeFile,
+    rename: async (...args: Parameters<typeof actual.rename>) => {
+      state.renameCalls += 1
+      const code = state.renameFailures.shift()
+      if (code !== undefined) {
+        throw Object.assign(new Error(`${code}: injected rename failure`), { code })
+      }
+      return actual.rename(...args)
+    },
   }
 })
 
 afterEach(() => {
   state.failLockCreateWithEPERM = false
+  state.renameCalls = 0
+  state.renameFailures = []
 })
 
 async function scratch(): Promise<string> {
@@ -56,6 +70,45 @@ describe('writeFileAtomic', () => {
     await writeFileAtomic(target, 'new', { mode: 0o600 })
     expect(await readFile(target, 'utf8')).toBe('new')
     if (process.platform !== 'win32') expect((await stat(target)).mode & 0o777).toBe(0o600)
+  })
+
+  it('retries a transient replacement denial and commits the complete new file', async () => {
+    const dir = await scratch()
+    const target = join(dir, 'doc.yaml')
+    await writeFile(target, 'old')
+    state.renameFailures = ['EPERM', 'EBUSY']
+
+    await writeFileAtomic(target, 'new', { mode: 0o600 })
+
+    expect(state.renameCalls).toBe(3)
+    expect(await readFile(target, 'utf8')).toBe('new')
+    expect((await readdir(dir)).filter(entry => entry.includes('.tmp'))).toEqual([])
+  })
+
+  it('does not retry a permanent rename failure and preserves the old target', async () => {
+    const dir = await scratch()
+    const target = join(dir, 'doc.yaml')
+    await writeFile(target, 'old')
+    state.renameFailures = ['EINVAL']
+
+    await expect(writeFileAtomic(target, 'new', { mode: 0o600 })).rejects.toMatchObject({ code: 'EINVAL' })
+
+    expect(state.renameCalls).toBe(1)
+    expect(await readFile(target, 'utf8')).toBe('old')
+    expect((await readdir(dir)).filter(entry => entry.includes('.tmp'))).toEqual([])
+  })
+
+  it('stops after bounded transient retries and preserves the old target', async () => {
+    const dir = await scratch()
+    const target = join(dir, 'doc.yaml')
+    await writeFile(target, 'old')
+    state.renameFailures = Array.from({ length: 5 }, () => 'EACCES')
+
+    await expect(writeFileAtomic(target, 'new', { mode: 0o600 })).rejects.toMatchObject({ code: 'EACCES' })
+
+    expect(state.renameCalls).toBe(5)
+    expect(await readFile(target, 'utf8')).toBe('old')
+    expect((await readdir(dir)).filter(entry => entry.includes('.tmp'))).toEqual([])
   })
 
   it('replaces a symlinked target itself without writing through to the referent', async () => {

@@ -25,7 +25,13 @@ A fresh installation shows the custom parent-directory picker and appends `xiaoj
 
 Electron pins `userData` before the single-instance lock to `%APPDATA%\@sudotech\xiaojing-accounting-desktop`. The bundled Host uses its `harness` child as `DSH_HOME`, while the user workspace is `%USERPROFILE%\Documents\小兢会计工作区`.
 
-`user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, uploads, usage accounting, the dedicated browser-control profile, Weixin channel state, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and rc.8 readers. It requires protected bytes to remain unchanged except for the exact installation-owned Web profile migration that removes ModLens, and it verifies session, credential, preset, settings, upload, storage, and accounting compatibility. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
+The desktop launches its Host on an ephemeral loopback port with `--no-open`, so only the Electron window loads the application and the Host never opens a second system-browser window.
+
+`user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, legacy uploads, native image attachments, usage accounting, the dedicated browser-control profile, Weixin channel state, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and rc.1 readers. It requires protected bytes to remain unchanged except for the exact installation-owned Web profile migration that removes ModLens, verifies the atomic flat-to-version-1 credential migration on a private copy without creating a plaintext backup, and checks session, credential, preset, settings, upload, storage, and accounting compatibility. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
+
+## Development preview isolation
+
+Source-only Electron previews may set `DSH_DESKTOP_PREVIEW_ROOT` to an empty temporary directory before starting the desktop package. Unpackaged runs then place both Electron application data and the Documents workspace below that root; packaged builds ignore the variable and retain the permanent paths above. This keeps development previews from reading or writing an installed user's data.
 
 ## Built-in automation runtimes
 
@@ -35,7 +41,7 @@ Both capabilities are independent Cordis rows. A development overlay can disable
 
 ## Independent integration patches
 
-`integration-patches.json` inventories desktop API-key environment isolation, profile runtime-shadow protection, and file-upload composer repair separately from the product brand plugin. rc.8 owns the writable credential UI; the desktop patch only removes inherited `DEEPSEEK_API_KEY` values before Host startup. The desktop identity check fails if an inventory entry disappears or its owned path is absent. This keeps upstream conflict review focused without pretending these patches are official Harness behavior.
+`integration-patches.json` inventories desktop API-key environment isolation, profile runtime-shadow protection, and file-upload composer repair separately from the product brand plugin. rc.1 owns the writable credential UI; the desktop patch only removes inherited `DEEPSEEK_API_KEY` values before Host startup. The desktop identity check fails if an inventory entry disappears or its owned path is absent. This keeps upstream conflict review focused without pretending these patches are official Harness behavior.
 
 ## Release checks
 

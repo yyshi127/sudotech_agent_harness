@@ -89,7 +89,7 @@ interface BenchOptions {
   leftItems?: React.ReactNode
   rightItems?: React.ReactNode
   attachments?: readonly ComposerAttachment[]
-  addImages?: (files: readonly File[]) => string | null
+  addImages?: InputBarProps['addImages']
   commandMenuOpen?: boolean
   busyEnter?: 'queue' | 'steer'
   toggleCommandMenu?: (selection: { start: number; end: number }) => void
@@ -247,11 +247,11 @@ describe('image draft rail', () => {
         getData: () => '同时粘贴的文字',
       },
     })
-    expect(addImages).toHaveBeenCalledWith([image])
+    expect(addImages).toHaveBeenCalledWith([image], undefined)
     expect(shell.snapshot.draft).toBe('同时粘贴的文字')
   })
 
-  it('pre-checks projected limits at intake: whole-batch refusal with product copy, none added', () => {
+  it('delegates projected limits to shared intake and presents its rejection copy', () => {
     const limits = {
       maxImageBytes: 1024 * 1024,
       maxImagesPerMessage: 2,
@@ -264,31 +264,37 @@ describe('image draft rail', () => {
     const intake = (result: ReturnType<typeof bench>, files: File[]) => {
       act(() => { attachmentOwner(result.slotCalls).onAddImages(files) })
     }
-    // Count: three at once over a two-image limit → the whole batch refused.
-    const overCount = bench({ addImages: vi.fn(() => null), imageLimits: limits })
-    intake(overCount, [png(8, 'a.png'), png(8, 'b.png'), png(8, 'c.png')])
+    const countFiles = [png(8, 'a.png'), png(8, 'b.png'), png(8, 'c.png')]
+    const overCount = bench({
+      addImages: vi.fn(() => '一条消息最多添加 2 张图片'),
+      imageLimits: limits,
+    })
+    intake(overCount, countFiles)
     expect(overCount.view.getByRole('alert').textContent).toContain('一条消息最多添加 2 张图片')
-    expect(overCount.props.addImages).not.toHaveBeenCalled()
+    expect(overCount.props.addImages).toHaveBeenCalledWith(countFiles, limits)
     cleanup()
-    // Per-file bytes.
-    const overFile = bench({ addImages: vi.fn(() => null), imageLimits: limits })
-    intake(overFile, [png(1024 * 1024 + 1, 'big.png')])
+    const fileBatch = [png(1024 * 1024 + 1, 'big.png')]
+    const overFile = bench({ addImages: vi.fn(() => '单张图片不能超过 1MB'), imageLimits: limits })
+    intake(overFile, fileBatch)
     expect(overFile.view.getByRole('alert').textContent).toContain('单张图片不能超过 1MB')
-    expect(overFile.props.addImages).not.toHaveBeenCalled()
+    expect(overFile.props.addImages).toHaveBeenCalledWith(fileBatch, limits)
     cleanup()
-    // Aggregate bytes across the existing rail plus the new batch.
     const held = new File([new ArrayBuffer(1024 * 1024 * 1.5)], 'held.png', { type: 'image/png' })
     const attachment = { kind: 'image' as const, id: 'draft-1' as DraftAttachmentId, file: held, previewUrl: 'blob:held' }
-    const overTotal = bench({ addImages: vi.fn(() => null), imageLimits: limits, attachments: [attachment] })
-    intake(overTotal, [png(1024 * 1024, 'more.png')])
+    const totalBatch = [png(1024 * 1024, 'more.png')]
+    const overTotal = bench({
+      addImages: vi.fn(() => '图片总大小超过 2MB，请移除部分图片'),
+      imageLimits: limits,
+      attachments: [attachment],
+    })
+    intake(overTotal, totalBatch)
     expect(overTotal.view.getByRole('alert').textContent).toContain('图片总大小超过 2MB')
-    expect(overTotal.props.addImages).not.toHaveBeenCalled()
+    expect(overTotal.props.addImages).toHaveBeenCalledWith(totalBatch, limits)
     cleanup()
-    // Within every limit: the batch passes through to addImages.
     const within = bench({ addImages: vi.fn(() => null), imageLimits: limits })
     const fits = png(16, 'fits.png')
     intake(within, [fits])
-    expect(within.props.addImages).toHaveBeenCalledWith([fits])
+    expect(within.props.addImages).toHaveBeenCalledWith([fits], limits)
     expect(within.view.queryByRole('alert')).toBeNull()
   })
 
@@ -311,7 +317,7 @@ describe('image draft rail', () => {
       new File([new ArrayBuffer(64)], 'b.pdf', { type: 'application/pdf' }),
     ]
     act(() => { attachmentOwner(result.slotCalls).onAddImages(files) })
-    expect(addImages).toHaveBeenCalledWith(files)
+    expect(addImages).toHaveBeenCalledWith(files, result.props.useProjection('imageLimits'))
     expect(result.view.getByRole('alert').textContent).toContain('仅支持 PNG、JPG、WebP、GIF 格式的图片')
   })
 

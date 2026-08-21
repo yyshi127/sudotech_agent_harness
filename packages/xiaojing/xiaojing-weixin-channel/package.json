@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-weixin-channel",
   "description": "Xiaojing Weixin iLink channel, durable Agent session bridge, and encrypted image/document transfer",
-  "version": "0.1.0-rc.8",
+  "version": "0.1.1-rc.1",
   "publishConfig": {
     "access": "public"
   },

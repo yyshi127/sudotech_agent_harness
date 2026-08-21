@@ -8,8 +8,8 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: 'dsh-v0.1.0-rc.8',
-  commit: '141eb6fef83422698aef7a981029e843e8161534',
+  release: 'dsh-v0.1.1-rc.1',
+  commit: '528c682e061696f5a160f363f236ecbf53cbd006',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {
@@ -81,6 +81,12 @@ if (!browserControlClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xi
   || !browserControlClient.includes('connection.isLoopback')
   || !browserControlClient.includes("id: 'browser-control'")) {
   errors.push('browser-control settings are not isolated to a standalone Xiaojing loopback section')
+}
+const usageAccountingClient = await readFile(join(
+  root, 'packages', 'client', 'ui-usage-accounting', 'src', 'client', 'index.ts',
+), 'utf8')
+if (!usageAccountingClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")) {
+  errors.push('usage-accounting UI is not gated by the xiaojing build profile')
 }
 const userDataContract = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'user-data-contract.json'), 'utf8'))
 if (!userDataContract.protectedPaths.includes('harness/weixin-channel')) {

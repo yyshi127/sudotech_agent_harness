@@ -739,6 +739,9 @@ export class BrowserControl extends Service {
                 },
               },
             },
+            /* jscpd:ignore-start -- browser and computer control deliberately keep tool-registration
+             * and approval plumbing local so either independently removable plugin has no dependency
+             * on the other or on a product-only shared package. */
             truncated: { type: 'boolean' },
           },
         },
@@ -796,6 +799,7 @@ export class BrowserControl extends Service {
     if (outcome === 'cancelled') throw new Error(`approval was cancelled: ${reason}`)
     throw new Error(`approval is unavailable: ${reason}`)
   }
+  /* jscpd:ignore-end */
 
   private enqueue<T>(owner: SessionId, signal: AbortSignal, operation: () => Promise<T>): Promise<T> {
     const previous = this.operationTails.get(owner) ?? Promise.resolve()

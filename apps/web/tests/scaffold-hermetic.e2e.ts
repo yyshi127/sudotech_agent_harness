@@ -5,7 +5,7 @@ import { expect, it } from 'vitest'
 import type {} from '@deepseek-ai/dsh-skill'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent-presets'
-import { launchWebScaffold, type WebScaffold } from './scaffold.ts'
+import { launchWebScaffold, realizeSeedFixture, type WebScaffold } from './scaffold.ts'
 
 async function writeSkill(root: string, name: string): Promise<void> {
   const bundle = join(root, name)
@@ -18,6 +18,25 @@ description: Must not enter the Web replay scaffold
 Ambient host state.
 `)
 }
+
+it('realizes seed paths as valid JSON on Windows', () => {
+  const workspaceCwd = 'E:\\Projects\\sudo agent'
+  const scaffold = { workspaceCwd } as WebScaffold
+  const fixture = [
+    '{"type":"session","id":"{{sessionId}}","cwd":"{{cwd}}"}',
+    '{"type":"user/message","data":{"content":[{"type":"text","text":"{{cwd}}/invoice.pdf"}]}}',
+    '',
+  ].join('\n')
+
+  const lines = realizeSeedFixture(scaffold, fixture, 'seed-session').trimEnd().split('\n')
+  expect(JSON.parse(lines[0]!) as unknown).toMatchObject({
+    id: 'seed-session',
+    cwd: workspaceCwd,
+  })
+  expect(JSON.parse(lines[1]!) as unknown).toMatchObject({
+    data: { content: [{ text: `${workspaceCwd}/invoice.pdf` }] },
+  })
+})
 
 it('isolates replay skill discovery from every ambient host root', async () => {
   const ambient = await mkdtemp(join(tmpdir(), 'dsh-web-ambient-skills-'))

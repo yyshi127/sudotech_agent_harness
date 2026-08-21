@@ -49,14 +49,17 @@ function modelPrice(peak: PriceBand, offPeak: PriceBand): ModelPrice {
   return Object.freeze({ peak, offPeak })
 }
 
-/** Sole runtime tariff, matching the published DeepSeek V4 Flash and V4 Pro prices. */
+const FLASH_PRICE = modelPrice(
+  priceBand(100n, 3_000n, 9_000n),
+  priceBand(50n, 1_500n, 4_500n),
+)
+
+/** Sole runtime tariff, matching the published DeepSeek V4 Flash, Vision Exp, and V4 Pro prices. */
 export const EMBEDDED_PRICE_TABLE: PriceTable = Object.freeze({
-  version: 'deepseek-public-v4-2026-08',
+  version: 'deepseek-public-v4-vision-2026-08',
   models: Object.freeze({
-    'deepseek-v4-flash': modelPrice(
-      priceBand(100n, 3_000n, 9_000n),
-      priceBand(50n, 1_500n, 4_500n),
-    ),
+    'deepseek-v4-flash': FLASH_PRICE,
+    'deepseek-v4-flash-vision-exp': FLASH_PRICE,
     'deepseek-v4-pro': modelPrice(
       priceBand(300n, 9_000n, 27_000n),
       priceBand(150n, 4_500n, 13_500n),

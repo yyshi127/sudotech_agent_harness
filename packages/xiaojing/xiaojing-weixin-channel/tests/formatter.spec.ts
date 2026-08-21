@@ -37,6 +37,40 @@ describe('Weixin reply formatting', () => {
       .toBe('运行 「pnpm test」：\n\n—— 代码 ——\npnpm.cmd test\n—— 结束 ——')
   })
 
+  it('renders compact two-column tables and unnamed or missing fields', () => {
+    expect(formatWeixinText(`
+| 项目 | 金额 |
+| --- | ---: |
+| 差旅 | 100 |
+
+| | 金额 | 状态 |
+| --- | ---: | --- |
+| 税额 | 20 |
+`)).toBe(`• 差旅：100
+
+• 字段1：税额；金额：20；状态：`)
+  })
+
+  it('normalizes the remaining mobile Markdown forms and whitespace', () => {
+    expect(formatWeixinText(`
+***
+- **重点**${'  '}
+> _引用_
+*斜体* 与 __下划线__
+![凭证](https://example.com/a.png)
+
+
+
+普通文本
+`)).toBe(`────────
+• 重点
+｜引用
+斜体 与 下划线
+凭证（图片：https://example.com/a.png）
+
+普通文本`)
+  })
+
   it('splits by paragraphs, preserves emoji code points, and labels each part', () => {
     const parts = splitWeixinText(`${'结果很好🙂'.repeat(45)}\n\n${'下一步'.repeat(70)}`, 220)
     expect(parts.length).toBeGreaterThan(1)
@@ -48,5 +82,12 @@ describe('Weixin reply formatting', () => {
 
   it('rejects a delivery budget too small for readable messages', () => {
     expect(() => splitWeixinText('test', 199)).toThrow('at least 200')
+    expect(() => splitWeixinText('test', 200.5)).toThrow('integer')
+  })
+
+  it('leaves one short message unlabeled and drops empty input', () => {
+    expect(splitWeixinText('简短结果', 200)).toEqual(['简短结果'])
+    expect(splitWeixinText('', 200)).toEqual([])
+    expect(splitWeixinText(`${'x'.repeat(189)}\n`, 200)).toHaveLength(2)
   })
 })

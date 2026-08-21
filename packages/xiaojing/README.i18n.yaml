@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/README.md
 README.md: 7df9f8f35d29f0f9c91fb247f90e625b1fee9d66
-README.zh.md: 308a08aa0b6862071ae3b9a603afb0f9d2ba4a13
+README.zh.md: d9556d19a26d3568e8e6f4028edb64c19e1de9b8

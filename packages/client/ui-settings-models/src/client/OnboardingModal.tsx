@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useOnboardingRootInert } from './use-onboarding-root-inert.ts'
 import css from './OnboardingModal.module.css'
 
 const ignoreImplicitDismiss = (): void => {}
@@ -22,14 +23,7 @@ export function OnboardingModal({
   children: ReactNode
 }): ReactNode {
   const titleRef = useRef<HTMLHeadingElement | null>(null)
-
-  useEffect(() => {
-    const appRoot = document.getElementById('root')
-    if (appRoot === null) return
-    const previous = appRoot.inert
-    appRoot.inert = true
-    return () => { appRoot.inert = previous }
-  }, [])
+  useOnboardingRootInert()
 
   useEffect(() => {
     if (focusTitle) titleRef.current?.focus()

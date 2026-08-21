@@ -2,13 +2,13 @@
 
 [English](README.md) | 中文
 
-本机用量 Remote 的浏览器展示插件。它在 `sidebar.footer.action` 增加当日摘要，在 `settings.section` 增加本月日历，但不拥有计费数据或凭据值。
+本机用量 Remote 的小兢产品浏览器展示插件。它在 `sidebar.footer.action` 增加当日摘要，在 `settings.section` 增加本月日历，但不拥有计费数据或凭据值。官方和本地 Harness 客户端构建都不会注册这两个入口。
 
 ## 组合
 
 插件依赖通用侧边栏与设置 slot、locale、生成的 `remote.usageAccounting` 客户端以及 Host 转发事件。两个入口共享同一个可观察控制器。slot renderer 将该可观察源绑定为 `useUsage`；组件只接收框架生成的 hook、刷新回调和本地化文字。
 
-控制器在 `usage-accounting/updated`、`credentials/updated` 和连接重置时刷新。响应乱序到达时，以较新的请求代次为准。
+控制器在 `usage-accounting/updated`、`DEEPSEEK_API_KEY` 的 `credentials/reference-updated` 事件和连接重置时刷新。响应乱序到达时，以较新的请求代次为准。
 
 ## 展示
 

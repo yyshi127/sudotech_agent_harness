@@ -31,6 +31,18 @@
             You are a coding assistant powered by the {{model}} model. Your working directory is {{cwd}}.
 
             Keep answers brief and factual.
+      # This short-lived provider request does not exercise the workflow
+      # engine. Keeping its Worker out avoids racing Worker startup against the
+      # immediate Windows process shutdown after the second HTTP response.
+      - id: workflow-worker-thread
+        name: '@deepseek-ai/dsh-workflow-worker-thread'
+        disabled: true
+      - id: tool-workflow
+        name: '@deepseek-ai/dsh-tool-workflow'
+        disabled: true
+      - id: tool-ralph
+        name: '@deepseek-ai/dsh-tool-ralph'
+        disabled: true
       - insert:
           - id: attachment-local
             name: '@deepseek-ai/dsh-attachment-local'

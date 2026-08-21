@@ -1,8 +1,76 @@
 diff --git a/client.js b/client.js
-index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e5ddc705c 100644
+index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4d58e82f3 100644
 --- a/client.js
 +++ b/client.js
-@@ -121,7 +121,7 @@ window.__ModuleLoader__.load({
+@@ -10,6 +10,14 @@ window.__ModuleLoader__.load({
+     const DOWNLOAD_PATH = '/api/dsh-uploads/download'
+     const SOURCE = 'local-upload-files'
+     const HIDDEN_LABEL = '__dsh_upload_hidden__:'
++    const VISION_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
++    const VISION_EXTENSION_TYPES = new Map([
++      ['png', 'image/png'],
++      ['jpg', 'image/jpeg'],
++      ['jpeg', 'image/jpeg'],
++      ['webp', 'image/webp'],
++      ['gif', 'image/gif'],
++    ])
+ 
+     function errorMessage(error) {
+       return error instanceof Error ? error.message : String(error)
+@@ -37,8 +45,39 @@ window.__ModuleLoader__.load({
+       return `${DOWNLOAD_PATH}?name=${encodeURIComponent(name)}`
+     }
+ 
++    function fileExtension(name) {
++      const offset = name.lastIndexOf('.')
++      return offset < 0 ? '' : name.slice(offset + 1).toLowerCase()
++    }
++
++    function visionImage(file) {
++      const declared = String(file.type || '').toLowerCase()
++      if (VISION_MEDIA_TYPES.has(declared)) return file
++      if (declared !== '') return null
++      const inferred = VISION_EXTENSION_TYPES.get(fileExtension(file.name))
++      if (!inferred) return null
++      return new File([file], file.name, { type: inferred, lastModified: file.lastModified })
++    }
++
++    function unsupportedVisualFile(file) {
++      return String(file.type || '').toLowerCase().startsWith('image/')
++        || ['bmp', 'tif', 'tiff', 'heic', 'heif'].includes(fileExtension(file.name))
++    }
++
++    function imageIntakeError(error) {
++      switch (error?.reason) {
++        case 'unsupported-type': return '仅支持 PNG、JPG、WebP、GIF 格式的图片'
++        case 'too-many': return `一条消息最多添加 ${error.limit} 张图片`
++        case 'file-too-large': return `单张图片不能超过 ${sizeText(error.limit)}`
++        case 'total-too-large': return `图片总大小不能超过 ${sizeText(error.limit)}`
++        case 'input-busy': return '当前输入正在提交，请稍后再添加图片'
++        default: return '图片添加失败，请重试'
++      }
++    }
++
+     function modelLine(file) {
+-      return `上传文件：\`${file.path}\``
++      const label = file.visualUnsupported ? '上传文件（当前格式不能直接视觉识别）' : '上传文件'
++      return `${label}：\`${file.path}\``
+     }
+ 
+     function serializedFile(file) {
+@@ -118,10 +157,19 @@ window.__ModuleLoader__.load({
+         return { actx, shell: this.ctx.conversation.input.for(actx) }
+       }
+ 
++      addImages(sessionId, files, limits) {
++        const { actx } = this.scope(sessionId)
++        const conversation = actx.get('conversation')
++        if (!conversation || typeof conversation.addImages !== 'function') {
++          throw new Error('当前版本未提供原生图片附件能力')
++        }
++        return conversation.addImages(files, limits)
++      }
++
        insertReference(sessionId, entry) {
          const { actx, shell } = this.scope(sessionId)
          const input = shell.snapshot
@@ -11,7 +79,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
          return actx.bail(actx, 'slash/input-insert-reference', {
            reference: {
              source: SOURCE,
-@@ -280,12 +280,44 @@ window.__ModuleLoader__.load({
+@@ -280,40 +328,97 @@ window.__ModuleLoader__.load({
        return controller.pendingFor(sessionId)
      }
  
@@ -44,6 +112,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
 +
      function UploadControl(props) {
        const input = props.useInput((state) => state) || props.input
++      const imageLimits = props.useProjection('imageLimits')
        const pickerRef = React.useRef(null)
        const [busy, setBusy] = React.useState(false)
        const [status, setStatus] = React.useState('')
@@ -56,7 +125,58 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
        async function onPick(event) {
          const files = Array.from(event.currentTarget.files || [])
          event.currentTarget.value = ''
-@@ -313,7 +345,7 @@ window.__ModuleLoader__.load({
+         if (files.length === 0) return
+ 
+         setBusy(true)
+-        setStatus(`正在上传 ${files.length} 个文件…`)
+-        let attached = 0
++        setStatus(`正在添加 ${files.length} 个附件…`)
++        const images = []
++        const documents = []
++        for (const file of files) {
++          const image = visionImage(file)
++          if (image) images.push(image)
++          else documents.push(file)
++        }
++        let attachedImages = 0
++        let attachedDocuments = 0
+         const failures = []
+         try {
+-          for (const file of files) {
++          if (images.length > 0) {
++            try {
++              const result = props.controller.addImages(props.sessionId, images, imageLimits)
++              if (result.ok) attachedImages = images.length
++              else failures.push(`图片：${imageIntakeError(result.error)}`)
++            } catch (error) {
++              failures.push(`图片：${errorMessage(error)}`)
++            }
++          }
++          for (const file of documents) {
+             try {
+               const stored = await uploadFile(file)
+-              props.controller.attach(props.sessionId, stored)
+-              attached += 1
++              props.controller.attach(props.sessionId, {
++                ...stored,
++                visualUnsupported: unsupportedVisualFile(file),
++              })
++              attachedDocuments += 1
+             } catch (error) {
+               failures.push(`${file.name}: ${errorMessage(error)}`)
+             }
+           }
++          const attached = [
++            ...(attachedImages === 0 ? [] : [`${attachedImages} 张图片`]),
++            ...(attachedDocuments === 0 ? [] : [`${attachedDocuments} 个文件`]),
++          ].join('、')
+           setStatus(failures.length === 0
+-            ? `已添加 ${attached} 个待发送文件`
+-            : `已添加 ${attached} 个，失败 ${failures.length} 个：${failures.join('；')}`)
++            ? `已添加 ${attached}`
++            : `${attached === '' ? '未添加附件' : `已添加 ${attached}`}；失败：${failures.join('；')}`)
+         } finally {
+           setBusy(false)
          }
        }
  
@@ -65,7 +185,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
        return React.createElement(
          'div',
          { className: 'dsh-upload-control', title: status || '上传本地文件并加入本次消息' },
-@@ -331,6 +363,7 @@ window.__ModuleLoader__.load({
+@@ -331,6 +436,7 @@ window.__ModuleLoader__.load({
              className: 'dsh-upload-button',
              disabled,
              'aria-label': busy ? '正在上传文件' : '上传文件',
@@ -73,7 +193,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
              onClick: () => pickerRef.current?.click(),
            },
            React.createElement('span', { className: 'dsh-upload-icon', 'aria-hidden': true }, busy ? '…' : '↑'),
-@@ -344,6 +377,7 @@ window.__ModuleLoader__.load({
+@@ -344,6 +450,7 @@ window.__ModuleLoader__.load({
        const input = props.useInput((state) => state)
        const promptError = props.useSession((session) => session.promptError) || null
        const files = usePending(props.controller, props.sessionId)
@@ -81,7 +201,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
  
        React.useEffect(() => {
          props.controller.migrateLegacy(props.sessionId, input?.draft || '')
-@@ -354,10 +388,27 @@ window.__ModuleLoader__.load({
+@@ -354,10 +461,27 @@ window.__ModuleLoader__.load({
          if (promptError) props.controller.restoreFailed(props.sessionId)
        }, [props.controller, props.sessionId, promptError])
  
@@ -110,7 +230,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..6a8b6d65d2a8c656e9b0e4feb7bff94e
          files.map((file) => React.createElement(
            'div',
            { className: 'dsh-upload-chip', key: file.ref },
-@@ -522,7 +573,7 @@ window.__ModuleLoader__.load({
+@@ -522,7 +646,7 @@ window.__ModuleLoader__.load({
        .dsh-upload-button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
        .dsh-upload-button:disabled{opacity:.55;cursor:wait}
        .dsh-upload-icon{font-size:15px;line-height:1;font-weight:600}

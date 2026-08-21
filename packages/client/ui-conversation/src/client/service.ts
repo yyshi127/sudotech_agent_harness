@@ -14,7 +14,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // method) instead of the standalone helper.
 import type { ISessions, SessionFace, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type { SubmitImageAttachment, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
-import type { ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
+import type { ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import type { ComposerAttachment } from './contract/slots.ts'
 import type { QueueAction, QueueItemId } from './contract/queue.ts'
 import type { ComposerBlocks } from './input/blocks.ts'
@@ -34,6 +34,13 @@ export interface IConversation {
    * cannot import makes a session's input inert with its own reason.
    */
   readonly blocks: ComposerBlocks
+  /**
+   * Add one image batch to the caller scope's draft through the shared intake policy.
+   * @param files - browser files in user-selected order.
+   * @param limits - current Host image limits, when that capability is projected.
+   * @returns success or a stable reason suitable for localized presentation.
+   */
+  addImages(files: readonly File[], limits?: ImageAttachmentLimits): ImageIntakeResult
   /**
    * Send a prompt into the caller scope's session (queued turn).
    * @param text - prompt text, sent verbatim as one text block.
@@ -58,6 +65,17 @@ export interface IConversation {
    */
   loadOlder(): Promise<void>
 }
+
+/** Stable image-intake rejection shared by paste, drop, and file pickers. */
+export type ImageIntakeFailure =
+  | { readonly reason: 'unsupported-type' }
+  | { readonly reason: 'too-many'; readonly limit: number }
+  | { readonly reason: 'file-too-large'; readonly limit: number }
+  | { readonly reason: 'total-too-large'; readonly limit: number }
+  | { readonly reason: 'input-busy' }
+
+/** Synchronous browser-draft admission result. */
+export type ImageIntakeResult = { readonly ok: true } | { readonly ok: false; readonly error: ImageIntakeFailure }
 
 /** Create one browser-only draft descriptor; only its id enters input state. */
 function browserDraftAttachment(file: File): ComposerAttachment {
@@ -133,6 +151,41 @@ export class ConversationController extends Service implements IConversation {
     if (!result.ok) throw new Error(`conversation.send failed: ${result.error.code}: ${result.error.message}`)
   }
 
+  /** Add one image batch to the scoped draft after one shared validation pass. */
+  addImages(files: readonly File[], limits?: ImageAttachmentLimits): ImageIntakeResult {
+    const shell = this.input.for(this.ctx)
+    const mediaTypes: ImageMediaType[] = []
+    try {
+      for (const file of files) mediaTypes.push(imageMediaType(file.type, file.name))
+    } catch (error: unknown) {
+      if (error instanceof UnsupportedImageMediaTypeError) {
+        return { ok: false, error: { reason: 'unsupported-type' } }
+      }
+      throw error
+    }
+    if (limits !== undefined) {
+      if (mediaTypes.some(type => !limits.mediaTypes.includes(type))) {
+        return { ok: false, error: { reason: 'unsupported-type' } }
+      }
+      const current = this.draftImages(shell.state.getSnapshot().imageIds)
+      if (current.length + files.length > limits.maxImagesPerMessage) {
+        return { ok: false, error: { reason: 'too-many', limit: limits.maxImagesPerMessage } }
+      }
+      if (files.some(file => file.size > limits.maxImageBytes)) {
+        return { ok: false, error: { reason: 'file-too-large', limit: limits.maxImageBytes } }
+      }
+      const total = current.reduce((sum, attachment) => sum + attachment.file.size, 0)
+        + files.reduce((sum, file) => sum + file.size, 0)
+      if (total > limits.maxMessageImageBytes) {
+        return { ok: false, error: { reason: 'total-too-large', limit: limits.maxMessageImageBytes } }
+      }
+    }
+    const images = this.createDraftImages(files)
+    if (shell.addImages(images.map(image => image.id))) return { ok: true }
+    this.releaseDraftImages(images)
+    return { ok: false, error: { reason: 'input-busy' } }
+  }
+
   /**
    * Submit ordered draft images with text through one host admission.
    * @param session - target session.
@@ -167,7 +220,7 @@ export class ConversationController extends Service implements IConversation {
    * @returns ordered draft descriptors.
    */
   createDraftImages(files: readonly File[]): readonly ComposerAttachment[] {
-    for (const file of files) imageMediaType(file.type)
+    for (const file of files) imageMediaType(file.type, file.name)
     return files.map((file) => {
       const attachment = browserDraftAttachment(file)
       this.draftAttachments.set(attachment.id, attachment)
@@ -340,22 +393,30 @@ export class ConversationController extends Service implements IConversation {
   /** Canonical base64 wire form of one browser image file. */
   private async encodeImage(file: File): Promise<SubmitImageAttachment> {
     return {
-      mediaType: imageMediaType(file.type),
+      mediaType: imageMediaType(file.type, file.name),
       data: bytesToBase64(new Uint8Array(await file.arrayBuffer())),
       ...(file.name === '' ? {} : { name: file.name }),
     }
   }
 }
 
-function imageMediaType(value: string): ImageMediaType {
+function imageMediaType(value: string, name = ''): ImageMediaType {
   switch (value) {
     case 'image/png':
     case 'image/jpeg':
     case 'image/webp':
     case 'image/gif':
       return value
-    default:
+    default: {
+      if (value === '') {
+        const extension = name.slice(name.lastIndexOf('.') + 1).toLowerCase()
+        if (extension === 'png') return 'image/png'
+        if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg'
+        if (extension === 'webp') return 'image/webp'
+        if (extension === 'gif') return 'image/gif'
+      }
       throw new UnsupportedImageMediaTypeError(value)
+    }
   }
 }
 

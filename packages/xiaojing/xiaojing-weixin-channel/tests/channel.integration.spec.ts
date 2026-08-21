@@ -8,6 +8,15 @@ import { WeixinStateStore } from '../src/state.ts'
 
 type Listener = (...args: unknown[]) => unknown
 
+const IMAGE_LIMITS = {
+  maxImageBytes: 3_500_000,
+  maxImagesPerMessage: 20,
+  maxMessageImageBytes: 100_000_000,
+  maxImagePixels: 40_000_000,
+  maxImageDimension: 2000,
+  mediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+} as const
+
 function createListenerHarness(): {
   listeners: Map<string, Listener[]>
   on: (name: string, listener: Listener, options?: { prepend?: boolean }) => void
@@ -265,6 +274,7 @@ describe('Xiaojing Weixin assembled channel', () => {
     })
     const rpcHandle = vi.fn(() => () => undefined)
     const ctx = {
+      attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: rpcHandle } },
       credentials: {
         resolve: vi.fn(async () => token === undefined ? undefined : { value: token }),
@@ -421,6 +431,7 @@ describe('Xiaojing Weixin assembled channel', () => {
     })
     const cancel = vi.fn(async () => ({ result: { ok: true, value: { accepted: true } } }))
     const ctx = {
+      attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: () => () => undefined } },
       credentials: {
         resolve: vi.fn(async () => ({ value: 'private-token' })),

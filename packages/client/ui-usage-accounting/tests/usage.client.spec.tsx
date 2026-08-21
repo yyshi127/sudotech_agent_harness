@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { Context, Service } from '@deepseek-ai/cordis'
+import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { UsageAccountingSnapshot } from '@deepseek-ai/dsh-usage-accounting/types'
+import { apply, inject } from '../src/client/index.ts'
 import { UsageAccountingController } from '../src/client/controller.ts'
 import { formatNanoyuan, formatTokens } from '../src/client/format.ts'
 import { UsageSection } from '../src/client/UsageSection.tsx'
@@ -44,7 +48,10 @@ const snapshot: UsageAccountingSnapshot = {
   },
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllEnvs()
+})
 
 function readyController(value = snapshot): UsageAccountingController {
   const controller = new UsageAccountingController({ snapshot: vi.fn() })
@@ -144,5 +151,71 @@ describe('UsageAccountingController', () => {
     remote.snapshot.mockRejectedValueOnce(new Error('offline'))
     await act(async () => { await controller.load() })
     expect(controller.store.getSnapshot()).toMatchObject({ status: 'error', error: 'offline' })
+  })
+})
+
+describe('usage-accounting pushed refresh', () => {
+  it('reloads for the DeepSeek key, committed usage, and reconnect only', async () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    const ctx = new Context()
+    class RemoteService extends Service {
+      private readonly listeners = new Map<string, Set<(...args: never[]) => void>>()
+
+      constructor() { super(ctx, 'remote') }
+      $on(event: string, listener: (...args: never[]) => void): () => void {
+        const listeners = this.listeners.get(event) ?? new Set()
+        this.listeners.set(event, listeners)
+        listeners.add(listener)
+        return () => { listeners.delete(listener) }
+      }
+      dispatch(event: string, ...args: unknown[]): void {
+        for (const listener of this.listeners.get(event) ?? []) listener(...args as never[])
+      }
+    }
+    const remote = new RemoteService()
+    await ctx.plugin(SlotRegistry).await()
+    ctx.slots.register({
+      name: 'root',
+      children: {
+        'sidebar.footer.action': { kind: 'list', scope: 'root' },
+        'settings.section': { kind: 'list', scope: 'root' },
+      },
+    } as never, (() => null) as never)
+    ctx.provide('locale', new LocaleRuntime(ctx))
+    const load = vi.fn(() => Promise.resolve({ ok: true as const, value: snapshot }))
+    ctx.provide('remote.usageAccounting', { snapshot: load })
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+
+    try {
+      remote.dispatch('credentials/reference-updated', 'OPENAI_API_KEY')
+      expect(load).not.toHaveBeenCalled()
+      remote.dispatch('credentials/reference-updated', 'DEEPSEEK_API_KEY')
+      remote.dispatch('usage-accounting/updated', 3)
+      ctx.emit('connection/reset')
+      await vi.waitFor(() => { expect(load).toHaveBeenCalledTimes(3) })
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('does not register outside the Xiaojing build profile', async () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'official')
+    const ctx = new Context()
+    await ctx.plugin(SlotRegistry).await()
+    const slots = ctx.get('slots') as SlotRegistry
+    slots.register({
+      name: 'root',
+      children: {
+        'sidebar.footer.action': { kind: 'list', scope: 'root' },
+        'settings.section': { kind: 'list', scope: 'root' },
+      },
+    } as never, (() => null) as never)
+
+    await ctx.plugin({ apply }).await()
+
+    expect(slots.entries('sidebar.footer.action')).toHaveLength(0)
+    expect(slots.entries('settings.section')).toHaveLength(0)
+    await ctx.fiber.dispose()
   })
 })

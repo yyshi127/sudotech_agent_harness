@@ -441,6 +441,12 @@ describe('Web session model selection', () => {
       { provider: 'deepseek-official', model: 'deepseek-reasoner', reasoningEffort: 'max' },
     ])
 
+    const sessionOnly = expectValue(await api.sessions.selectModel(request({
+      sessionId, provider: 'deepseek-official', model: 'private-preview', saveDefault: false,
+    })))
+    expect(sessionOnly.selected).toEqual({ provider: 'deepseek-official', model: 'private-preview', reasoningEffort: 'high' })
+    expect(saved).toHaveLength(1)
+
     // A refused selection never becomes anyone's default.
     await api.sessions.selectModel(request({ sessionId, provider: 'missing', model: 'model' }))
     expect(saved).toHaveLength(1)

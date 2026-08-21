@@ -123,10 +123,10 @@ describe('in-process policy inheritance', () => {
         .map(block => block.text)
         .join('\n')
       expect(contextText).toContain('Current DSH file policy: read-only')
-      expect(contextText).toContain('Approval prompts are disabled')
+      expect(contextText).toContain('Ordinary approval prompts are disabled')
       // The statement rides runtime context; the system prompt stays uniform.
       expect(contextText).toContain('You are a delegated subagent')
-      expect(request.data.header.system).not.toContain('Approval prompts are disabled')
+      expect(request.data.header.system).not.toContain('Ordinary approval prompts are disabled')
       expect(request.data.header.system).not.toContain('You are a delegated subagent')
       expect(parent.session.events).toHaveLength(parentLogLength)
     } finally {

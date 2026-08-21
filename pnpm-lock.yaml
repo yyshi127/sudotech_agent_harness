@@ -9,7 +9,7 @@ overrides:
   '@deepseek-ai/schemastery': link:vendor/schemastery
 
 patchedDependencies:
-  dsh-file-uploads@1.0.0: 25dee94083ebdb990cc6424d5f046000e3ec916ce6ac3c1d03517150308ad36a
+  dsh-file-uploads@1.0.0: bc2fa3166f98d4171d430c43b98fdd2ec6ca3d281295411616dfafd72461ad6d
   node-pty@1.2.0-beta.15: b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0
 
 importers:
@@ -318,7 +318,7 @@ importers:
         version: 15.0.0
       dsh-file-uploads:
         specifier: https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz
-        version: https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=25dee94083ebdb990cc6424d5f046000e3ec916ce6ac3c1d03517150308ad36a)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1)
+        version: https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=bc2fa3166f98d4171d430c43b98fdd2ec6ca3d281295411616dfafd72461ad6d)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1)
       js-yaml:
         specifier: ^4.2.0
         version: 4.2.0
@@ -19577,7 +19577,7 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  dsh-file-uploads@https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=25dee94083ebdb990cc6424d5f046000e3ec916ce6ac3c1d03517150308ad36a)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1):
+  dsh-file-uploads@https://github.com/l541402398/dsh-file-uploads/archive/3ea46e1583eac426cc34e191ea811e71b0c8347e.tar.gz(patch_hash=bc2fa3166f98d4171d430c43b98fdd2ec6ca3d281295411616dfafd72461ad6d)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(react@18.3.1):
     optionalDependencies:
       '@deepseek-ai/dsh-host-webserver': link:packages/host/webserver
       react: 18.3.1

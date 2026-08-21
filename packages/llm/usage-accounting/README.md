@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Local, current-key DeepSeek token and request-time cost accounting. The plugin observes provider-reported `usage` chunks through the rc.8 `llm/stream` waterfall and does not modify the agent loop or model requests.
+Local, current-key DeepSeek token and request-time cost accounting. The plugin observes provider-reported `usage` chunks through the rc.1 `llm/stream` waterfall and does not modify the agent loop or model requests.
 
 ## Configuration
 
@@ -14,22 +14,24 @@ The built-in official table is the sole tariff source. The plugin performs no pr
 
 ## Observation and settlement
 
-The rc.8 compatibility adapter is the only file that imports `llm/stream`, `TokenUsage`, DeepSeek settings, and credential resolution. It records the first `usage` chunk from every actual `deepseek-official` stream exactly once. Ordinary conversation, compaction, session-title, and retried requests therefore settle independently when the provider reports usage.
+The rc.1 compatibility adapter is the only file that imports `llm/stream`, `TokenUsage`, DeepSeek settings, and credential resolution. It records the first `usage` chunk from every actual `deepseek-official` stream exactly once. Ordinary conversation, compaction, session-title, and retried requests therefore settle independently when the provider reports usage.
 
 Each record contains cached input, uncached input, output, cache-write tokens, model, Beijing request date, request purpose, tariff version, and the fixed total and per-category costs. The API key is represented only by its SHA-256 fingerprint. A key change retains old records but `snapshot()` returns only the configured key's current month.
 
 ## Pricing
 
-The embedded table follows the [DeepSeek public pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) shown for V4 Flash and V4 Pro. Peak time is Beijing time 09:00–12:00 and 14:00–18:00; both ranges are half-open. Every other time is off-peak.
+The embedded table follows the [DeepSeek public pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) shown for V4 Flash and V4 Pro. V4 Flash Vision Exp uses the published V4 Flash rates. Peak time is Beijing time 09:00–12:00 and 14:00–18:00; both ranges are half-open. Every other time is off-peak.
 
 | Model and band | Cache hit input / million | Cache miss input / million | Output / million |
 |---|---:|---:|---:|
 | V4 Flash peak | ¥0.10 | ¥3.00 | ¥9.00 |
 | V4 Flash off-peak | ¥0.05 | ¥1.50 | ¥4.50 |
+| V4 Flash Vision Exp peak | ¥0.10 | ¥3.00 | ¥9.00 |
+| V4 Flash Vision Exp off-peak | ¥0.05 | ¥1.50 | ¥4.50 |
 | V4 Pro peak | ¥0.30 | ¥9.00 | ¥27.00 |
 | V4 Pro off-peak | ¥0.15 | ¥4.50 | ¥13.50 |
 
-Costs use integer nanoyuan per token. A request keeps the tariff version and exact cost active at its start time, so later tariff changes do not reprice history. Unknown models, cache-write tokens, and non-official endpoints remain in token totals but are marked unpriced.
+Costs use integer nanoyuan per token. A request keeps the tariff version and exact cost active at its start time, so later tariff changes do not reprice history. Vision image consumption comes only from the provider-reported usage; the plugin does not estimate image tokens. Unknown models, cache-write tokens, and non-official endpoints remain in token totals but are marked unpriced.
 
 ## Persistence and Remote API
 

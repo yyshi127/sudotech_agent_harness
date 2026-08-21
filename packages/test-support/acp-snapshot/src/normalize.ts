@@ -98,10 +98,13 @@ export interface NormalizeOptions {
 function cwdSpellings(ctx: NormalizeContext): string[] {
   const spellings = [...new Set([ctx.cwd, ...ctx.cwdAliases ?? []])]
     .filter(spelling => spelling.length > 0)
+  const jsonEscapedAliases = spellings
+    .filter(spelling => spelling.includes('\\'))
+    .map(spelling => JSON.stringify(spelling).slice(1, -1))
   const macAliases = spellings
     .filter(spelling => spelling.startsWith('/') && !spelling.startsWith('/private/'))
     .map(spelling => `/private${spelling}`)
-  return [...new Set([...spellings, ...macAliases])]
+  return [...new Set([...spellings, ...jsonEscapedAliases, ...macAliases])]
     .sort((left, right) => right.length - left.length)
 }
 
@@ -161,7 +164,7 @@ function scrubString(value: string, ctx: NormalizeContext, cwdPathMode: CwdPathM
   if (cwdPathMode === 'canonical') {
     // Restrict separator conversion to paths rooted at the cwd token. A global
     // backslash rewrite would corrupt regexes, commands, and model-authored text.
-    out = out.replace(CWD_ROOTED_PATH_RE, path => path.replaceAll('\\', '/'))
+    out = out.replace(CWD_ROOTED_PATH_RE, path => path.replace(/[\\/]+/g, '/'))
     out = canonicalizeEmbeddedPaths(out)
   }
   out = out.replace(LOCAL_SPILL_PATH_RE, (_match, name: string) => `{{spillLocator:${name}}}`)

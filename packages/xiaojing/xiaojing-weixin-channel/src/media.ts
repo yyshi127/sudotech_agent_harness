@@ -12,7 +12,7 @@ export const DEFAULT_WEIXIN_MEDIA_TOTAL_MAX_BYTES = 1024 * 1024 * 1024
 
 /** One inbound image or document saved below the local upload directory. */
 export interface StoredWeixinMedia {
-  /** Transport-level media kind; this does not imply OCR or visual understanding. */
+  /** Transport kind; the channel decides whether a received image is eligible for native vision. */
   kind: 'image' | 'file'
   /** Sanitized unique filename visible in the upload manager. */
   name: string
@@ -44,7 +44,6 @@ function sanitizeName(value: string): string {
     .replace(/^\.+/u, '')
     .trim()
   if (safe === '') safe = 'weixin-file.bin'
-  if (safe.startsWith('.upload-')) safe = `file-${safe}`
   if (safe.length > 180) {
     const extension = extname(safe).slice(0, 24)
     safe = `${safe.slice(0, Math.max(1, 180 - extension.length))}${extension}`
@@ -112,7 +111,6 @@ function decodeCdnKey(value: string): Buffer {
 }
 
 function decryptAesEcb(ciphertext: Buffer, key: Buffer): Buffer {
-  if (key.length !== 16) throw new Error('iLink media AES key is invalid')
   const decipher = createDecipheriv('aes-128-ecb', key, null)
   return Buffer.concat([decipher.update(ciphertext), decipher.final()])
 }
@@ -220,6 +218,7 @@ export class WeixinMediaStore {
       try {
         total += (await stat(join(this.root, entry.name))).size
       } catch (error) {
+        /* v8 ignore next -- this branch requires a filesystem failure other than the handled readdir/stat deletion race */
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
       }
     }
@@ -235,10 +234,13 @@ export class WeixinMediaStore {
         await unlink(tempPath)
         return { name, path: target }
       } catch (error) {
+        /* v8 ignore else -- duplicate names are covered; other hard-link failures are OS/filesystem errors propagated unchanged */
         if ((error as NodeJS.ErrnoException).code === 'EEXIST') continue
+        /* v8 ignore next -- paired with the non-EEXIST hard-link boundary above */
         throw error
       }
     }
+    /* v8 ignore next -- reaching the bound requires 10,000 concurrent or pre-existing same-name files */
     throw new Error('本机已有过多同名附件。')
   }
 }
@@ -321,6 +323,7 @@ export async function sendOutboundWeixinMedia(
   } finally {
     await handle.close()
   }
+  /* v8 ignore next -- requires a same-handle truncate race after the identity stat and before read completion */
   if (plaintext.byteLength !== file.bytes) throw new Error('文件在确认后发生了变化，请重新发送指令。')
   const aesKey = randomBytes(16)
   const ciphertext = encryptAesEcb(plaintext, aesKey)

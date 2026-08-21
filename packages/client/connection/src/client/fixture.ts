@@ -1450,6 +1450,8 @@ export interface FixtureOptions {
   dropSessionCreateResponse?: boolean
   /** Order of the two successful create frames. */
   createFrameOrder?: 'session-first' | 'workspace-first'
+  /** Product-onboarding copy version already acknowledged by this fixture user. */
+  welcomeNoticeVersion?: string
 }
 
 /** Inbox pump shared by both stream generators (FrameQueue pattern: ONE abort listener hung
@@ -2987,20 +2989,30 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       },
     },
     settings: {
-      // Only the resolved DeepSeek address needed by first-run readiness is
-      // represented here. Fixture-backed journeys do not open its Models
-      // editor; real schema-driven forms ride the HTTP transport.
+      // The fixture carries the resolved DeepSeek address needed by first-run
+      // readiness. Assembled journeys may also name the product welcome copy
+      // they have acknowledged so unrelated boot smokes do not enter setup.
       describe: request => ok(request, {
         writable: true,
         hasDocument: true,
-        namespaces: [{
-          ns: 'llm-deepseek',
-          schema: {},
-          value: { apiKeyEnv: 'DEEPSEEK_API_KEY' },
-          applies: 'live',
-          secrets: [{ path: ['apiKey'], set: false }],
-          revision: 0,
-        }],
+        namespaces: [
+          {
+            ns: 'llm-deepseek',
+            schema: {},
+            value: { apiKeyEnv: 'DEEPSEEK_API_KEY' },
+            applies: 'live',
+            secrets: [{ path: ['apiKey'], set: false }],
+            revision: 0,
+          },
+          ...options.welcomeNoticeVersion === undefined ? [] : [{
+            ns: 'ui-onboarding',
+            schema: {},
+            value: { welcomeNoticeVersion: options.welcomeNoticeVersion },
+            applies: 'live' as const,
+            secrets: [],
+            revision: 0,
+          }],
+        ],
       }),
       // Native opens are deterministic no-op successes in this fixture, as is host.openPath.
       openDocument: request => ok(request, { opened: true as const }),
@@ -3094,6 +3106,8 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
       if (channel !== '/api') {
         return Promise.reject(new Error(`fixture connection RPC channel ${JSON.stringify(channel)} is unavailable`))
       }
+      if (endpoint === 'dynamicCordisRunner/inventory') return Promise.resolve({ ok: true, value: [] })
+      if (endpoint === 'dynamicCordisRunner/syncInspectManifest') return Promise.resolve({ ok: true, value: null })
       const args = (payload as {
         args: {
           agentId: SessionId
@@ -3282,5 +3296,8 @@ function fixtureOptionsFromLocation(): FixtureOptions {
     failWorkspaceAttach: query.get('fixtureAttach') === 'fail',
     dropSessionCreateResponse: query.get('fixtureSessionCreate') === 'drop-response',
     createFrameOrder: query.get('fixtureFrames') === 'workspace-first' ? 'workspace-first' : 'session-first',
+    ...query.get('welcomeNoticeVersion') === null
+      ? {}
+      : { welcomeNoticeVersion: query.get('welcomeNoticeVersion') as string },
   }
 }

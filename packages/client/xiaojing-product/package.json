@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-xiaojing-product",
   "description": "Xiaojing Accounting product branding, onboarding, theme, and default persona",
-  "version": "0.1.0-rc.8",
+  "version": "0.1.1-rc.1",
   "publishConfig": { "access": "public" },
   "repository": {
     "type": "git",
@@ -26,6 +26,9 @@
         "@deepseek-ai/dsh-client-ui-sidebar",
         "@deepseek-ai/dsh-client-ui-conversation",
         "@deepseek-ai/dsh-client-ui-settings-models"
+      ],
+      "external": [
+        "@deepseek-ai/dsh-client-ui-settings-models/client"
       ],
       "platform": "web"
     }

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-在本机按当前 API Key 统计 DeepSeek token 与请求时点费用。插件通过 rc.8 的 `llm/stream` waterfall 观察提供方返回的 `usage` 分片，不修改 agent loop 或模型请求。
+在本机按当前 API Key 统计 DeepSeek token 与请求时点费用。插件通过 rc.1 的 `llm/stream` waterfall 观察提供方返回的 `usage` 分片，不修改 agent loop 或模型请求。
 
 ## 配置
 
@@ -14,22 +14,24 @@
 
 ## 观察与结算
 
-rc.8 兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek 设置和凭据解析的位置。每个实际 `deepseek-official` 流的首个 `usage` 分片只记录一次。普通对话、压缩、会话标题和重试请求会在提供方返回用量后分别结算。
+rc.1 兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek 设置和凭据解析的位置。每个实际 `deepseek-official` 流的首个 `usage` 分片只记录一次。普通对话、压缩、会话标题和重试请求会在提供方返回用量后分别结算。
 
 每条记录包含缓存命中输入、缓存未命中输入、输出、缓存写入 token、模型、请求发生的北京时间日期、请求用途、价格版本，以及固定的总费用和分类费用。API Key 只保留 SHA-256 指纹。切换 Key 后旧记录仍保留，但 `snapshot()` 只返回当前所配 Key 的本月数据。
 
 ## 价格
 
-内置价格表遵循 V4 Flash 与 V4 Pro 的 [DeepSeek 公开价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)。高峰为北京时间 09:00–12:00、14:00–18:00，两个区间均为左闭右开；其余时间为空闲时段。
+内置价格表遵循 V4 Flash 与 V4 Pro 的 [DeepSeek 公开价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)，V4 Flash Vision Exp 使用公开的 V4 Flash 价格。高峰为北京时间 09:00–12:00、14:00–18:00，两个区间均为左闭右开；其余时间为空闲时段。
 
 | 模型与时段 | 缓存命中输入 / 百万 | 缓存未命中输入 / 百万 | 输出 / 百万 |
 |---|---:|---:|---:|
 | V4 Flash 高峰 | ¥0.10 | ¥3.00 | ¥9.00 |
 | V4 Flash 空闲 | ¥0.05 | ¥1.50 | ¥4.50 |
+| V4 Flash Vision Exp 高峰 | ¥0.10 | ¥3.00 | ¥9.00 |
+| V4 Flash Vision Exp 空闲 | ¥0.05 | ¥1.50 | ¥4.50 |
 | V4 Pro 高峰 | ¥0.30 | ¥9.00 | ¥27.00 |
 | V4 Pro 空闲 | ¥0.15 | ¥4.50 | ¥13.50 |
 
-费用使用整数纳元逐 token 计算。每个请求保存其开始时生效的价格版本和准确费用，因此后续调价不会重算历史。未知模型、缓存写入 token 和非官方地址仍计入 token 总数，但标记为未计价。
+费用使用整数纳元逐 token 计算。每个请求保存其开始时生效的价格版本和准确费用，因此后续调价不会重算历史。视觉图片消耗只采用提供方返回的 usage，插件不会自行估算图片 token。未知模型、缓存写入 token 和非官方地址仍计入 token 总数，但标记为未计价。
 
 ## 持久化与 Remote API
 

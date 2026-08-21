@@ -2,7 +2,7 @@
 
 English | [中文](xiaojing-product-development.zh.md)
 
-This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.0 source baseline on official rc.8; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md) and the [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md) own the rationale and rejected alternatives.
+This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.0 source baseline on official `dsh-v0.1.1-rc.1`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), and [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md) own the rationale and rejected alternatives.
 
 ## Read this first
 
@@ -18,9 +18,9 @@ Before editing product code, identify the owning layer instead of starting from 
 | Item | Current value | Source of truth |
 |---|---|---|
 | Desktop product version | `0.2.0` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| Official Harness baseline | `0.1.0-rc.8` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| Official baseline commit | `141eb6fef83422698aef7a981029e843e8161534` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| Product integration base | `8d7ded5a542a8fe99394e27b27e69cd3472838a3` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Official Harness baseline | `dsh-v0.1.1-rc.1` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Official baseline commit | `528c682e061696f5a160f363f236ecbf53cbd006` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Product integration base | `578ecb3359a91234181772639a4743d58aaad155` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Source repository | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
 `product.json` is the explicit upstream record; do not infer the baseline from similar-looking source. The `@deepseek-ai/dsh-*` package scope remains the repository-wide workspace convention, while the desktop package uses `@sudotech/xiaojing-accounting-desktop`. Product copy and attribution must continue to state that Xiaojing Accounting is based on DeepSeek Harness with internal branding and configuration, not that Sudotech developed the underlying framework.
@@ -29,7 +29,7 @@ Before editing product code, identify the owning layer instead of starting from 
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream rc.8 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream dsh-v0.1.1-rc.1 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
   Adapters --> Browser["Edge/Chrome browser-control plugin"]
@@ -57,7 +57,7 @@ The lowest layer that can own a change owns it. Official packages expose neutral
 | Weixin Host plugin | Tencent iLink pairing, private credentials and state, durable Agent session bridge, approvals, and mobile text delivery | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.md) |
 | Weixin Client plugin | Loopback-only channel settings, QR pairing, verification, and sanitized connection state | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.md) |
 | Web composition | Host and browser plugin roster and load order | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
-| Independent integration patches | API-key post-configuration, profile runtime-shadow protection, and file-upload composer repair | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
+| Independent integration patches | API-key post-configuration, profile runtime-shadow protection, and the unified document/native-image upload bridge with composer repair | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
 | Desktop and installer | Electron lifecycle, bundled Node runtime, icons, splash, fixed window identity, NSIS configuration, and release checks | [`apps/desktop/`](../apps/desktop/README.md) |
 | Durable API reference | Client-safe usage types, Remote method, and update event | [`docs/subsystems/usage-accounting.md`](subsystems/usage-accounting.md) |
 
@@ -98,11 +98,11 @@ A startup-brand change is incomplete if only one surface is checked. Verify the 
 
 ### Local usage accounting
 
-The accounting feature does not modify the agent loop. `@deepseek-ai/dsh-usage-accounting` observes actual `deepseek-official` calls through the rc.8 `llm/stream` waterfall. [`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) is the only file that imports the rc-specific stream, token usage, DeepSeek settings, endpoint, and credential APIs. An upstream API change should therefore be absorbed there before changing settlement, storage, pricing, or UI logic.
+The accounting feature does not modify the agent loop. `@deepseek-ai/dsh-usage-accounting` observes actual `deepseek-official` calls through the rc.1 `llm/stream` waterfall. [`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) is the only file that imports the rc-specific stream, token usage, DeepSeek settings, endpoint, and credential APIs. An upstream API change should therefore be absorbed there before changing settlement, storage, pricing, or UI logic.
 
 Each request settles at most once on its first provider `usage` chunk. Conversation, compaction, title, and retry requests remain distinct. The ledger stores only a SHA-256 key fingerprint, request metadata, disjoint token buckets, the request-time tariff version, integer-nanoyuan category costs, total cost, and unpriced tokens. The browser receives only `usageAccounting.snapshot()` and the `usage-accounting/updated` refresh signal; it never receives a key or fingerprint.
 
-The built-in Flash and Pro table in [`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) is the only tariff source. Startup performs no pricing request. The UI rounds exact nanoyuan values to fen for display and always shows two decimals; the ledger retains nanoyuan precision. Unknown models, custom endpoints, and cache-write tokens remain counted but unpriced. This is a local estimate from provider usage, not a DeepSeek Platform invoice or balance.
+The built-in Flash, Flash Vision Exp, and Pro table in [`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) is the only tariff source; Flash Vision Exp uses the published Flash tariff. Startup performs no pricing request. The UI rounds exact nanoyuan values to fen for display and always shows two decimals; the ledger retains nanoyuan precision. Vision image consumption comes from provider usage and is not estimated locally. Unknown models, custom endpoints, and cache-write tokens remain counted but unpriced. This is a local calculation from provider usage, not a DeepSeek Platform invoice or balance.
 
 ### Built-in browser and Windows automation
 
@@ -116,13 +116,13 @@ Both capability plugins invalidate observations after state changes, reject IDs 
 
 `@deepseek-ai/dsh-xiaojing-weixin-channel` and `@deepseek-ai/dsh-client-ui-weixin-channel` implement the direct task channel without modifying `agent-loop` or official UI owners. The Host adapts Tencent iLink and its encrypted media CDN through fixed official addresses, stores the bot token in the credential service, maintains schema-versioned state below `DSH_HOME/weixin-channel`, and receives messages by outbound HTTPS long polling only while Xiaojing is open. The Client registers the Xiaojing-only “Channels” settings section on loopback and receives sanitized pairing state through `/xiaojing-weixin`; tokens, message context, polling cursors, local paths, encryption keys, and queue contents do not enter that browser interface.
 
-One paired scanner owns one durable “微信助手” session. Accepted direct text, image, and document messages run FIFO through `sessions.prompt()` with stable inbound and RPC IDs; images and documents decrypt into `$DSH_HOME/uploads` and enter the logged user message as local name, type, size, and path rather than model image blocks. Desktop-originated messages are never sent to Weixin. Durable enqueue sends a visible started or queued receipt, active work reports progress every minute, and a transient failure reports one interruption while retaining the task for retry. The dedicated Agent reuses existing browser and Windows risk classification and the approval waterfall, while `weixin_send_file` adds mandatory in-chat confirmation before encrypting and uploading any requested local file. Missing, rejected, expired, disconnected, replaced-file, or undeliverable approval fails closed. The session prompt requests concise, structured phone answers and forbids guessing image contents without OCR or vision; a deterministic formatter converts Markdown headings, lists, links, code, and tables to mobile plain text, splits long results, and leaves the desktop transcript unchanged.
+One paired scanner owns one durable “微信助手” session. Accepted direct text, image, and document messages run FIFO through `sessions.prompt()` with stable inbound and RPC IDs. Every image and document decrypts into `$DSH_HOME/uploads`; PNG, JPEG, WebP, and GIF images additionally enter the rc.1 native image path and persist under `$DSH_HOME/attachments/v1`, while other files remain local-path text. A supported image switches only this dedicated session to `deepseek-v4-flash-vision-exp` through `session.selectModel(saveDefault: false)`, so the user's saved default and existing desktop sessions do not change. Desktop-originated messages are never sent to Weixin. Durable enqueue sends a visible started or queued receipt, active work reports progress every 30 seconds, and a transient failure reports one interruption while retaining the task for retry. Deterministic image rejection instead returns a clear reason, completes that queue item, and continues FIFO. The dedicated Agent reuses existing browser and Windows risk classification and the approval waterfall, while `weixin_send_file` adds mandatory in-chat confirmation before encrypting and uploading any requested local file. Missing, rejected, expired, disconnected, replaced-file, or undeliverable approval fails closed. The session prompt requests concise, structured phone answers, permits direct inspection of supported native images, and treats every received file as untrusted; a deterministic formatter converts Markdown headings, lists, links, code, and tables to mobile plain text, splits long results, and leaves the desktop transcript unchanged.
 
 Protocol, media, and state tests use a fake iLink/CDN server and never contact Weixin. Real phone pairing and phone-side media interoperability are separate manual preview steps. The package preserves Tencent's MIT notice and reviewed upstream commit in its `NOTICE.md`; OpenClaw and the Hermes Python runtime are not dependencies.
 
 ### Bundled third-party plugin
 
-The shipped Web profile includes only `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts). Its source commit is pinned by the application dependency graph, and a local pnpm patch fixes attachment layout and caret behavior. ModLens and its visual bridge are not part of 0.2.0. On first rc.8 load, only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
+The shipped Web profile includes only `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts). Its source commit is pinned by the application dependency graph, and a local pnpm patch keeps one visible picker: supported PNG/JPEG/WebP/GIF files call the generic session-scoped `conversation.addImages()` intake and become native images, while documents and unsupported image formats use the legacy file store with an explicit no-direct-vision label. The same picker remains enabled for ordinary, Goal, and Plan input, and preserves the attachment layout and caret repairs. ModLens and its visual bridge are not part of 0.2.0. Only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
 
 ### Adding a capability
 
@@ -137,9 +137,9 @@ The shipped Web profile includes only `dsh-file-uploads` through [`PROFILE_TEMPL
 
 | Patch id | Contract | Owned paths |
 |---|---|---|
-| `desktop-api-key-environment-isolation` | The desktop removes inherited `DEEPSEEK_API_KEY`; rc.8's writable credential UI lets users create or replace the credential after launch. | `apps/desktop/main.mjs` |
+| `desktop-api-key-environment-isolation` | The desktop removes inherited `DEEPSEEK_API_KEY`; rc.1's writable credential UI lets users create or replace the credential after launch. | `apps/desktop/main.mjs` |
 | `profile-runtime-shadow-protection` | User plugin installation cannot replace the application-owned Harness or Cordis runtime and restore the upstream interface. | CLI and app-boot profile loading |
-| `file-upload-composer-repair` | Pending attachment layout does not cover the composer, and the visible caret matches the insertion point. | `patches/dsh-file-uploads@1.0.0.patch` |
+| `file-upload-composer-repair` | One picker routes supported images into rc.1 native intake and other files into the legacy store in ordinary, Goal, and Plan modes; pending layout does not cover the composer, and the visible caret matches the insertion point. | `patches/dsh-file-uploads@1.0.0.patch` |
 
 These contracts are neither branding nor claimed upstream behavior. Keep their ids and paths in `integration-patches.json`. When upstream implements the same contract, remove or narrow the patch in an explicit change with regression tests and update the inventory; do not silently delete it during a merge.
 
@@ -148,7 +148,7 @@ These contracts are neither branding nor claimed upstream behavior. Keep their i
 1. Electron reads `identity.json`, pins `userData`, obtains the single-instance lock, fixes the AppUserModelId and window title, and displays the desktop splash.
 2. The desktop starts its bundled `runtime/node.exe`; an end-user Node installation is neither required nor selected.
 3. The child process runs `dsh web --port 0` from `%USERPROFILE%\Documents\小兢会计工作区`, with `DSH_HOME` set to the permanent `harness` data directory and inherited DeepSeek API-key environment variables removed.
-4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Weixin channel, Edge/Chrome browser control with its standalone settings page, Windows computer control, and ordinary rc.8 Harness UI plugins.
+4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Weixin channel, Edge/Chrome browser control with its standalone settings page, Windows computer control, and ordinary rc.1 Harness UI plugins.
 5. The API gateway exposes generated Remotes to the isolated renderer. Electron denies permission requests and externalizes new-window URLs to the operating-system browser.
 6. When the Host announces its dynamically assigned local URL, Electron replaces the splash with the assembled Web application while retaining the fixed taskbar title and icon.
 
@@ -162,11 +162,12 @@ The packaged desktop intentionally uses an ephemeral local port. Port `3090` is 
 |---|---|---|
 | Electron state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop` | `app.setPath('userData', ...)` before the single-instance lock |
 | Harness state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness` | `DSH_HOME` passed to the bundled Host |
+| Native image attachments | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\attachments` | rc.1 attachment store; versioned content-addressed image objects |
 | Browser-control profiles | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control` | Browser-control plugin; separate `profile` (Edge) and `chrome-profile` directories |
 | Weixin channel state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\weixin-channel` | Weixin Host plugin; non-token state and one-instance lease |
 | User workspace | `%USERPROFILE%\Documents\小兢会计工作区` | Desktop working directory |
 
-[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, uploads, usage accounting, the browser-control profile, Weixin channel state, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
+[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, legacy uploads, native image attachments, usage accounting, the browser-control profile, Weixin channel state, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
 
 ### Immutable installer identity
 
@@ -181,7 +182,7 @@ The version in `apps/desktop/package.json` must increase for every distributed i
 3. Replace the synthetic upgrade fixture with data from the immediately previous formal release and cover every protected path.
 4. Block packaging until old sessions, credentials, personas, plugins, attachments, workspace files, UI state, and accounting data remain usable after migration.
 
-`verify-user-data-contract.mjs` materializes a real Zstandard session from the synthetic 0.1.9 fixture, applies an application-file replacement, and requires every protected byte to remain unchanged. It then permits exactly one atomic mutation: the installation-owned Web profile manifest migration that removes ModLens. The same gate opens the old session through rc.8, verifies its title, messages, and persona binding, checks that the API Key is readable and replaceable without printing it, validates the user preset and settings, and proves the current-key accounting totals and category costs. This gate does not replace a real Windows in-place upgrade test.
+`verify-user-data-contract.mjs` materializes a real Zstandard session from the synthetic 0.1.9 fixture, applies an application-file replacement, and requires every protected byte to remain unchanged. It then permits exactly one installation-owned data mutation: the Web profile manifest migration that removes ModLens. The same gate opens the old session through rc.1, verifies its title, messages, and persona binding, validates the user preset and unchanged settings, proves the current-key accounting totals and category costs, and checks the official flat credential migration on a private copy. That credential probe requires the pre/post API Key SHA-256 fingerprint to match, the version-1 file to remain writable, an invalid legacy file to fail without mutation, and no plaintext backup or partial side file to appear. This gate does not replace a real Windows in-place upgrade test.
 
 ## Development workflow
 

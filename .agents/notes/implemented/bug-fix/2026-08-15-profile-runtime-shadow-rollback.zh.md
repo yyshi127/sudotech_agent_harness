@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-profile 组合包 manifest 会优先从 dsh 安装目录解析，但这些组合包插入的裸插件行仍从 profile 目录解析。第三方插件如果把 `@deepseek-ai/dsh` 或应用内置的 DSH／Cordis 包声明为普通依赖，就能在 profile 的 `node_modules` 中安装另一套运行时；Loader 随后会导入这些距离更近的后端与浏览器包，而不是应用随附的副本。即使 profile 仍列出安装自有的 `dsh-base` 与 `dsh-web-app` 组合包，运行中的 UI 和核心服务也可能被替换。[profile 插件组合包决策](../architecture/2026-08-05-profile-plugin-bundles.md)负责组合包合成与安装回退机制；本 note 负责防止 profile 依赖遮蔽该回退机制。
+profile 组合包 manifest 会优先从 dsh 安装目录解析，但这些组合包插入的裸插件行仍从 profile 目录解析。第三方插件如果把 `@deepseek-ai/dsh` 或应用内置的 DSH／Cordis 包声明为普通依赖，就能在 profile 的 `node_modules` 中安装另一套运行时；Loader 随后会导入这些距离更近的后端与浏览器包，而不是应用随附的副本。即使 profile 仍列出安装自有的 `dsh-base` 与 `dsh-web-app` 组合包，运行中的 UI 和核心服务也可能被替换。[profile 插件组合包决策](../architecture/2026-08-05-profile-plugin-bundles.zh.md)负责组合包合成与安装回退机制；本 note 负责防止 profile 依赖遮蔽该回退机制。
 
 ## 决策
 

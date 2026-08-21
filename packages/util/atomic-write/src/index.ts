@@ -15,6 +15,34 @@ import { lstat, mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 /**
+ * Short retries cover transient replacement denial from virus scanners and
+ * file indexers without extending a settings write into a long operation.
+ */
+const RENAME_RETRY_DELAYS_MS = [20, 40, 80, 160] as const
+
+/** Whether another process can release the replacement path without intervention. */
+function isTransientRenameError(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | null)?.code
+  return code === 'EPERM' || code === 'EACCES' || code === 'EBUSY'
+}
+
+/** Replace the target, retrying only errors that can represent a temporary file hold. */
+async function renameWithTransientRetry(temp: string, filename: string): Promise<void> {
+  let retry = 0
+  for (;;) {
+    try {
+      await rename(temp, filename)
+      return
+    } catch (error) {
+      const delay = RENAME_RETRY_DELAYS_MS[retry]
+      if (!isTransientRenameError(error) || delay === undefined) throw error
+      retry += 1
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+}
+
+/**
  * Filesystem options for {@link writeFileAtomic}; `mode` is required so the
  * permission decision stays visible at every call site.
  */
@@ -40,7 +68,8 @@ export interface WriteFileAtomicOptions {
  * rename, so replacing a wider-permission file narrows it without a chmod
  * race. The rename also replaces a symlinked target itself instead of writing
  * through to its referent, and the same-directory sibling keeps the rename on
- * one filesystem. On any failure the temp file is removed and the failure
+ * one filesystem. Transient replacement denial is retried for a bounded
+ * interval; on any final failure the temp file is removed and the failure
  * rethrown. Crash durability (fsync) is out of scope.
  * @param filename - final path receiving the content.
  * @param content - complete next file content.
@@ -56,7 +85,7 @@ export async function writeFileAtomic(filename: string, content: string, options
   const temp = `${filename}.${randomBytes(6).toString('hex')}.tmp`
   try {
     await writeFile(temp, content, { mode: options.mode, flag: 'wx' })
-    await rename(temp, filename)
+    await renameWithTransientRetry(temp, filename)
   } catch (error) {
     await rm(temp, { force: true })
     throw error

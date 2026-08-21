@@ -6,6 +6,7 @@ const configPath = fileURLToPath(new URL('./fixtures/dsh-badge/cordis.yml', impo
 const defaultConfigPath = fileURLToPath(new URL('./fixtures/dsh-badge/default.cordis.yml', import.meta.url))
 const tsconfigPath = fileURLToPath(new URL('../../../tsconfig.json', import.meta.url))
 const badgeAssetsPath = fileURLToPath(new URL('../../../packages/skill/skill-badge/assets/', import.meta.url))
+const serializedBadgeAssetsPath = JSON.stringify(badgeAssetsPath).slice(1, -1)
 
 describe('dsh badge assembled snapshot', () => {
   it('advertises and loads the opt-in bundled skill through the shipped app', async () => {
@@ -27,7 +28,7 @@ describe('dsh badge assembled snapshot', () => {
     })
     const disabledSnapshot = JSON.parse(disabled.stdout) as unknown
     const enabledSnapshot = JSON.parse(
-      enabled.stdout.replaceAll(badgeAssetsPath, '{{badgeAssetsPath}}'),
+      enabled.stdout.replaceAll(serializedBadgeAssetsPath, '{{badgeAssetsPath}}'),
     ) as unknown
 
     expect(disabled.stderr).toBe('')

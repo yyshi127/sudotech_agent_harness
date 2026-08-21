@@ -32,6 +32,10 @@ const clientBuildEnvironment: unknown = Reflect.get(record, 'environment')
 if (typeof clientBuildEnvironment !== 'object' || clientBuildEnvironment === null) {
   throw new TypeError('client build record environment must be an object')
 }
+const clientProfile: unknown = Reflect.get(clientBuildEnvironment, 'DSH_CLIENT_BUILD_PROFILE')
+if (clientProfile !== 'official' && clientProfile !== 'xiaojing') {
+  throw new TypeError(`built boot needs an official or xiaojing profile, got ${JSON.stringify(clientProfile)}`)
+}
 
 function isBuildRecordReader(value: unknown): value is (root: string) => unknown {
   return typeof value === 'function'
@@ -42,7 +46,13 @@ it('boots the built plugin graph and renders a fixture session end to end', asyn
 
   // The sidebar renders from the boot graph: every inject layer activated.
   const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
-  expect(document.querySelector('svg[viewBox="26 0 156 24"]')).not.toBeNull()
+  if (clientProfile === 'xiaojing') {
+    expect(document.querySelector('img[src="/sdoobot-avatar.png"]')).not.toBeNull()
+    expect(document.querySelector('img[src="/sudo-logo-gray.png"][alt="SUDO Tech"]')).not.toBeNull()
+    expect(screen.getByText('Redefining finance with AI')).toBeTruthy()
+  } else {
+    expect(document.querySelector('svg[viewBox="26 0 156 24"]')).not.toBeNull()
+  }
   expect(screen.queryByText('DSH Local Build')).toBeNull()
   // The compact layout dropped group session counts; the fixture workspace
   // group row renders immediately with its sessions beneath it.

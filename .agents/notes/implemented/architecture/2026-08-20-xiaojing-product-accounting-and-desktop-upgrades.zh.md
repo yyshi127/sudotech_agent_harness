@@ -14,13 +14,13 @@ Status: implemented
 
 ### 产品层
 
-官方 UI owner 只公开 `sidebar.brand`、`conversation.hero.brand` 和 `onboarding.content`。[`@deepseek-ai/dsh-client-xiaojing-product`](../../../../packages/client/xiaojing-product/README.md) 填充这些 slot、应用配色，并且只填充空的部署人格，不覆盖已经选择的 agent 人格。插件激活前，静态 Web 应用中的通用元数据选择已登记的产品 Logo，shell 则保留中性默认内容。`product.json` 固定上游 rc.5 tag 与 commit，并登记产品资源和桌面清单。`scripts/verify-xiaojing-product-layer.mjs` 拒绝官方 UI 源码目录中出现小兢会计标记，同时核对 slot 和组合引用。
+官方 UI owner 只公开 `sidebar.brand`、`conversation.hero.brand` 和 `onboarding.content`。[`@deepseek-ai/dsh-client-xiaojing-product`](../../../../packages/client/xiaojing-product/README.zh.md) 填充这些 slot、应用配色，并且只填充空的部署人格，不覆盖已经选择的 agent 人格。插件激活前，静态 Web 应用中的通用元数据选择已登记的产品 Logo，shell 则保留中性默认内容。`product.json` 固定上游 rc.5 tag 与 commit，并登记产品资源和桌面清单。`scripts/verify-xiaojing-product-layer.mjs` 拒绝官方 UI 源码目录中出现小兢会计标记，同时核对 slot 和组合引用。
 
 启动后配置 API Key、profile 运行时遮蔽防护和附件上传输入区修复仍是独立集成补丁，并登记在 [`apps/desktop/integration-patches.json`](../../../../apps/desktop/integration-patches.json) 中。它们的所属路径与品牌隔离分开执行机器检查。
 
 ### 用量结算与计价
 
-[`@deepseek-ai/dsh-usage-accounting`](../../../../packages/llm/usage-accounting/README.md) 通过 `llm/stream` 观察 `deepseek-official`。一个 rc.5 兼容文件集中拥有 stream、usage、设置和凭据 API 的全部导入。每个实际流的首个提供方 `usage` 分片只结算一次，因此对话、压缩、标题和重试调用保持为独立计费请求，同时无需修改 agent loop。
+[`@deepseek-ai/dsh-usage-accounting`](../../../../packages/llm/usage-accounting/README.zh.md) 通过 `llm/stream` 观察 `deepseek-official`。一个 rc.5 兼容文件集中拥有 stream、usage、设置和凭据 API 的全部导入。每个实际流的首个提供方 `usage` 分片只结算一次，因此对话、压缩、标题和重试调用保持为独立计费请求，同时无需修改 agent loop。
 
 记录只保留 API Key 的 SHA-256 指纹，并且只公开当前 Key 按北京时间计算的本月数据。每次结算保存价格版本，以及整数纳元表示的总费用和分类费用。高峰为北京时间 09:00–12:00、14:00–18:00；内置 Flash 与 Pro 高峰价格及减半的空闲价格与公开价格表一致。未知模型、缓存写入 token 和自定义地址仍显示为未计价 token。内置价格表是唯一运行时价格来源，因此价格更新需要随客户端版本发布，启动时不会发起价格网络请求。历史记录永不重新计价。缺少分类费用的旧 schema-v1 记录只有在同版本内置价格重算结果与已存总额及未计价数量完全一致时才恢复明细，否则保持不可用。
 

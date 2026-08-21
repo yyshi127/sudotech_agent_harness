@@ -30,6 +30,7 @@ import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../onboarding-copy.ts'
 export type { ModelsSectionInjected, ModelsSectionProps } from './ModelsSection.tsx'
 export type { OnboardingContentOwnerProps } from './WelcomeNotice.tsx'
 export type { ModelsKey } from './locales.ts'
+export { useOnboardingRootInert } from './use-onboarding-root-inert.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {

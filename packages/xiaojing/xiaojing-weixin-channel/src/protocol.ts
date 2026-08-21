@@ -144,6 +144,11 @@ export type IlinkOutboundMediaItem =
     }
   }
 
+type IlinkOutboundMessageItem = IlinkOutboundMediaItem | {
+  type: 1
+  text_item: { text: string }
+}
+
 /** iLink transport configuration supplied by the Cordis plugin. */
 export interface IlinkClientOptions {
   /** Timeout for ordinary API requests. */
@@ -377,30 +382,7 @@ export class IlinkClient {
     text: string,
     signal?: AbortSignal,
   ): Promise<void> {
-    const value = await this.request(
-      baseUrl,
-      'ilink/bot/sendmessage',
-      {
-        method: 'POST',
-        headers: authenticatedHeaders(token),
-        body: JSON.stringify({
-          msg: {
-            from_user_id: '',
-            to_user_id: to,
-            client_id: `xiaojing-${randomUUID()}`,
-            message_type: 2,
-            message_state: 2,
-            item_list: [{ type: 1, text_item: { text } }],
-            context_token: contextToken,
-          },
-          base_info: BASE_INFO,
-        }),
-      },
-      this.options.requestTimeoutMs,
-      signal,
-    )
-    const parsed = resultSchema.parse(value)
-    if (parsed.ret !== undefined && parsed.ret !== 0) throw new Error(`iLink send failed (${parsed.ret})`)
+    await this.sendMessageItems(baseUrl, token, to, contextToken, [{ type: 1, text_item: { text } }], signal)
   }
 
   /**
@@ -519,6 +501,18 @@ export class IlinkClient {
     if (caption !== undefined && caption.trim() !== '') {
       await this.sendText(baseUrl, token, to, contextToken, caption.trim())
     }
+    await this.sendMessageItems(baseUrl, token, to, contextToken, [item])
+  }
+
+  /** Send one validated item list through the shared iLink message envelope. */
+  private async sendMessageItems(
+    baseUrl: string,
+    token: string,
+    to: string,
+    contextToken: string,
+    items: readonly IlinkOutboundMessageItem[],
+    signal?: AbortSignal,
+  ): Promise<void> {
     const value = await this.request(
       baseUrl,
       'ilink/bot/sendmessage',
@@ -532,13 +526,14 @@ export class IlinkClient {
             client_id: `xiaojing-${randomUUID()}`,
             message_type: 2,
             message_state: 2,
-            item_list: [item],
+            item_list: items,
             context_token: contextToken,
           },
           base_info: BASE_INFO,
         }),
       },
       this.options.requestTimeoutMs,
+      signal,
     )
     const parsed = resultSchema.parse(value)
     if (parsed.ret !== undefined && parsed.ret !== 0) throw new Error(`iLink send failed (${parsed.ret})`)

@@ -25,7 +25,13 @@
 
 Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudotech\xiaojing-accounting-desktop`。随包 Host 使用其 `harness` 子目录作为 `DSH_HOME`，用户工作区位于 `%USERPROFILE%\Documents\小兢会计工作区`。
 
-`user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、上传文件、用量统计、专用浏览器操控 profile、微信频道状态、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和 rc.8 reader；除精确移除 ModLens 的安装程序默认 Web profile 迁移外，所有受保护数据必须保持字节不变，并验证会话、凭据、预设、设置、上传、storage 和用量兼容。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
+桌面端通过临时 loopback 端口和 `--no-open` 启动 Host，因此只有 Electron 窗口会加载应用，Host 不会额外打开系统浏览器窗口。
+
+`user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、专用浏览器操控 profile、微信频道状态、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和 rc.1 reader；除精确移除 ModLens 的安装程序默认 Web profile 迁移外，所有受保护数据必须保持字节不变。它还会在私有副本上验证扁平凭据到 version 1 的原子迁移不会生成明文备份，并检查会话、凭据、预设、设置、上传、storage 和用量兼容。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
+
+## 开发预览隔离
+
+仅源码 Electron 预览可以在启动桌面包之前，将 `DSH_DESKTOP_PREVIEW_ROOT` 指向一个空的临时目录。未打包运行会把 Electron 应用数据和“文档”工作区同时放到该目录下；打包后的应用忽略此变量，并继续使用上文固定的永久路径。这样可避免开发预览读取或写入已安装用户的数据。
 
 ## 内置自动化运行环境
 
@@ -35,7 +41,7 @@ Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudo
 
 ## 独立集成补丁
 
-`integration-patches.json` 将桌面 API Key 环境隔离、profile 运行时遮蔽防护和附件上传输入区修复与品牌产品插件分开登记。可写凭据界面由 rc.8 提供；桌面补丁只在 Host 启动前清除继承的 `DEEPSEEK_API_KEY`。某个条目消失或所属路径不存在时，桌面身份检查会失败。这样可以聚焦上游冲突审查，同时不会把这些补丁冒充为 Harness 官方行为。
+`integration-patches.json` 将桌面 API Key 环境隔离、profile 运行时遮蔽防护和附件上传输入区修复与品牌产品插件分开登记。可写凭据界面由 rc.1 提供；桌面补丁只在 Host 启动前清除继承的 `DEEPSEEK_API_KEY`。某个条目消失或所属路径不存在时，桌面身份检查会失败。这样可以聚焦上游冲突审查，同时不会把这些补丁冒充为 Harness 官方行为。
 
 ## 发布检查
 

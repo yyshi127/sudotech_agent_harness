@@ -46,6 +46,10 @@ interface BootComposition {
 }
 
 const REPO_ROOT = process.cwd()
+// Mirrored from ui-settings-models/onboarding-copy.ts because this app-local
+// test project cannot import another package's source file. Drift reopens the
+// welcome dialog and fails the assembled boot journey.
+const FIXTURE_WELCOME_NOTICE_VERSION = '2026-08-15.1'
 const BUNDLE_LAYERS = [
   {
     manifest: join(REPO_ROOT, 'packages/bundle/base/package.json'),
@@ -188,7 +192,9 @@ export function installAssembledBootEnv(): void {
  * registered by installAssembledBootEnv disposes it.
  * @param search - fixture query string used to select deterministic host behavior.
  */
-export function mountAssembledApp(search = '?fixture'): void {
+export function mountAssembledApp(
+  search = `?fixture&welcomeNoticeVersion=${encodeURIComponent(FIXTURE_WELCOME_NOTICE_VERSION)}`,
+): void {
   history.replaceState(null, '', `/${search}`)
   const root = document.createElement('div')
   root.id = 'root'

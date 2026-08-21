@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { EMBEDDED_PRICE_TABLE, priceUsage } from '../src/pricing.ts'
@@ -40,6 +40,18 @@ function input(keyFingerprint: string, occurredAt: number, costNanoyuan: bigint)
     unpricedTokens: 0,
     priceVersion: 'price-v1',
   })
+}
+
+function record(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    requestId: 'request-1',
+    ...input(KEY_A, AUGUST_20, 100n),
+    ...overrides,
+  }
+}
+
+async function replaceLedger(store: UsageLedgerStore, records: unknown[], trackingSince = '2026-08-20'): Promise<void> {
+  await writeFile(store.ledgerPath, `${JSON.stringify({ schemaVersion: 1, trackingSince, records }, null, 2)}\n`, 'utf8')
 }
 
 describe('UsageLedgerStore', () => {
@@ -158,5 +170,147 @@ describe('UsageLedgerStore', () => {
     await writeFile(store.ledgerPath, incompatible, 'utf8')
     await expect(store.init(AUGUST_20)).rejects.toThrow(/migration is required/)
     expect(await readFile(store.ledgerPath, 'utf8')).toBe(incompatible)
+  })
+
+  it.each([
+    ['non-object ledger', null, /not a versioned ledger object/],
+    ['invalid tracking date', { schemaVersion: 1, trackingSince: 'August 20', records: [] }, /invalid trackingSince/],
+    ['non-array records', { schemaVersion: 1, trackingSince: '2026-08-20', records: {} }, /invalid records/],
+    ['non-object request', { schemaVersion: 1, trackingSince: '2026-08-20', records: [null] }, /invalid request record/],
+    ['negative token count', { schemaVersion: 1, trackingSince: '2026-08-20', records: [record({ outputTokens: -1 })] }, /invalid token count/],
+    ['invalid request metadata', { schemaVersion: 1, trackingSince: '2026-08-20', records: [record({ requestId: '' })] }, /invalid request metadata/],
+    ['incomplete breakdown', {
+      schemaVersion: 1,
+      trackingSince: '2026-08-20',
+      records: [record({ cacheMissInputCostNanoyuan: undefined })],
+    }, /incomplete cost breakdown/],
+    ['invalid breakdown', {
+      schemaVersion: 1,
+      trackingSince: '2026-08-20',
+      records: [record({ cacheHitInputCostNanoyuan: '-1' })],
+    }, /invalid cost breakdown/],
+    ['mismatched breakdown total', {
+      schemaVersion: 1,
+      trackingSince: '2026-08-20',
+      records: [record({ cacheHitInputCostNanoyuan: '1' })],
+    }, /cost breakdown does not equal total/],
+  ])('rejects a %s without rewriting it', async (_label, value, expected) => {
+    const store = new UsageLedgerStore(home)
+    await store.init(AUGUST_20)
+    const text = `${JSON.stringify(value)}\n`
+    await writeFile(store.ledgerPath, text, 'utf8')
+
+    await expect(store.init(AUGUST_20)).rejects.toThrow(expected)
+    expect(await readFile(store.ledgerPath, 'utf8')).toBe(text)
+  })
+
+  it('preserves malformed JSON and non-ENOENT read failures', async () => {
+    const malformed = new UsageLedgerStore(home)
+    await malformed.init(AUGUST_20)
+    await writeFile(malformed.ledgerPath, '{', 'utf8')
+    await expect(malformed.init(AUGUST_20)).rejects.toThrow(/cannot parse/)
+    expect(await readFile(malformed.ledgerPath, 'utf8')).toBe('{')
+
+    const otherHome = join(home, 'other')
+    const unreadable = new UsageLedgerStore(otherHome)
+    await mkdir(unreadable.ledgerPath, { recursive: true })
+    await expect(unreadable.init(AUGUST_20)).rejects.toThrow()
+  })
+
+  it('serializes racing initialization through the atomic ledger lock', async () => {
+    const first = new UsageLedgerStore(home)
+    const second = new UsageLedgerStore(home)
+
+    await Promise.all([first.init(AUGUST_20), second.init(AUGUST_20 + 86_400_000)])
+
+    const snapshot = await first.snapshot(undefined, 0, AUGUST_20)
+    expect(snapshot.trackingSince).toMatch(/^2026-08-2[01]$/u)
+  })
+
+  it('aggregates multiple days and keeps unavailable legacy details unavailable', async () => {
+    const store = new UsageLedgerStore(home)
+    await store.init(AUGUST_20)
+    const zeroLegacy = record({
+      requestId: 'zero-legacy',
+      cacheHitInputTokens: 0,
+      cacheMissInputTokens: 0,
+      outputTokens: 0,
+      cacheWriteTokens: 0,
+      costNanoyuan: '0',
+    })
+    delete zeroLegacy.cacheHitInputCostNanoyuan
+    delete zeroLegacy.cacheMissInputCostNanoyuan
+    delete zeroLegacy.outputCostNanoyuan
+    const nonzeroLegacy = record({ requestId: 'nonzero-legacy' })
+    delete nonzeroLegacy.cacheHitInputCostNanoyuan
+    delete nonzeroLegacy.cacheMissInputCostNanoyuan
+    delete nonzeroLegacy.outputCostNanoyuan
+    const nextDay = record({
+      requestId: 'next-day',
+      occurredAt: new Date(AUGUST_20 + 86_400_000).toISOString(),
+      date: '2026-08-21',
+    })
+    await replaceLedger(store, [zeroLegacy, nonzeroLegacy, nextDay])
+
+    const snapshot = await store.snapshot(KEY_A, 3, AUGUST_20)
+
+    expect(snapshot.days.map(day => day.date)).toEqual(['2026-08-20', '2026-08-21'])
+    expect(snapshot.days[0]).toMatchObject({
+      cacheHitInputCostNanoyuan: null,
+      cacheMissInputCostNanoyuan: null,
+      outputCostNanoyuan: null,
+    })
+    expect(snapshot.total.cacheHitInputCostNanoyuan).toBeNull()
+  })
+
+  it('does not reconstruct legacy details when the matching tariff disagrees with the stored total', async () => {
+    const store = new UsageLedgerStore(home)
+    await store.init(AUGUST_20)
+    const legacy = record({ priceVersion: EMBEDDED_PRICE_TABLE.version, costNanoyuan: '1' })
+    delete legacy.cacheHitInputCostNanoyuan
+    delete legacy.cacheMissInputCostNanoyuan
+    delete legacy.outputCostNanoyuan
+    await replaceLedger(store, [legacy])
+
+    expect((await store.snapshot(KEY_A, 1, AUGUST_20, [EMBEDDED_PRICE_TABLE])).days[0]).toMatchObject({
+      cacheHitInputCostNanoyuan: null,
+      cacheMissInputCostNanoyuan: null,
+      outputCostNanoyuan: null,
+    })
+  })
+
+  it('persists null category costs for unpriced requests', async () => {
+    const usage = {
+      cacheHitInputTokens: 1,
+      cacheMissInputTokens: 2,
+      outputTokens: 3,
+      cacheWriteTokens: 4,
+    }
+
+    const unpriced = ledgerInput({
+      keyFingerprint: KEY_A,
+      model: 'custom-model',
+      occurredAt: AUGUST_20,
+      purpose: 'conversation',
+      usage,
+    }, {
+      cacheHitInputCostNanoyuan: null,
+      cacheMissInputCostNanoyuan: null,
+      outputCostNanoyuan: null,
+      costNanoyuan: 0n,
+      unpricedTokens: 10,
+      priceVersion: null,
+    })
+    expect(unpriced).toMatchObject({
+      cacheHitInputCostNanoyuan: null,
+      cacheMissInputCostNanoyuan: null,
+      outputCostNanoyuan: null,
+      unpricedTokens: 10,
+    })
+
+    const store = new UsageLedgerStore(home)
+    await store.init(AUGUST_20)
+    await store.append(unpriced)
+    expect((await store.snapshot(KEY_A, 1, AUGUST_20)).total.unpricedTokens).toBe(10)
   })
 })

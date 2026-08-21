@@ -12,17 +12,24 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, profileGoldenPath, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_COPY, WELCOME_NOTICE_SETTINGS_NAMESPACE,
   WELCOME_NOTICE_VERSION,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/onboarding-deepseek-config', import.meta.url))
-const WELCOME_EXPECTED = join(SNAPSHOT_DIR, 'welcome.expected.md')
+const WELCOME_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'welcome.expected.md'))
 const MISSING_EXPECTED = join(SNAPSHOT_DIR, 'missing.expected.md')
-const MODELS_EXPECTED = join(SNAPSHOT_DIR, 'models.expected.md')
+const MODELS_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'models.expected.md'))
 const MODE = webSnapshotMode()
+const CLIENT_PROFILE = webClientProfile()
+const XIAOJING_WELCOME_COPY = {
+  title: '初次使用说明',
+  body: '1. 获取 API Key：注册或登录 DeepSeek 开放平台，进入“API keys”页面，创建并复制 API Key。\n\n2. 设置 API Key：打开左下角“设置”→“模型”，找到 DeepSeek 并点击“编辑”，将密钥粘贴到“API 密钥”，然后点击“保存”。\n\n3. 更换 API Key：回到同一位置，输入新的 API Key 并保存，原密钥会被替换。\n\n4. 安全提示：API Key 属于敏感信息，请勿通过聊天、截图或文件分享给他人。',
+  continueLabel: '开始使用',
+} as const
+const ACTIVE_WELCOME_COPY = CLIENT_PROFILE === 'xiaojing' ? XIAOJING_WELCOME_COPY : WELCOME_NOTICE_COPY.zh
 
 describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup', () => {
   let scaffold: WebScaffold
@@ -49,15 +56,19 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
 
   it('stores a key write-only and observes configured state without restarting', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-onboarding-deepseek-config'))
-    const welcome = page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title })
+    const welcome = page.getByRole('dialog', { name: ACTIVE_WELCOME_COPY.title })
     await welcome.waitFor({ timeout: 15_000 })
     expect(await page.locator('#root').evaluate(root => (root as HTMLElement).inert)).toBe(true)
-    for (const paragraph of WELCOME_NOTICE_COPY.zh.body.split('\n\n')) {
-      expect(await welcome.getByText(paragraph, { exact: true }).count()).toBe(1)
+    for (const paragraph of ACTIVE_WELCOME_COPY.body.split('\n\n')) {
+      expect(await welcome.getByText(paragraph, { exact: false }).count()).toBe(1)
     }
     expect(await welcome.getByRole('button').allTextContents()).toEqual([
-      WELCOME_NOTICE_COPY.zh.continueLabel,
+      ACTIVE_WELCOME_COPY.continueLabel,
     ])
+    if (CLIENT_PROFILE === 'xiaojing') {
+      expect(await welcome.getByRole('link', { name: '打开 DeepSeek 开放平台' }).getAttribute('href'))
+        .toBe('https://platform.deepseek.com/')
+    }
     const welcomeAria = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(WELCOME_EXPECTED, welcomeAria, MODE)
 
@@ -68,7 +79,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     acknowledgeReloadConnectionLoss(tripwire, firstReloadWarnings)
     await welcome.waitFor({ timeout: 15_000 })
 
-    await welcome.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel }).click()
+    await welcome.getByRole('button', { name: ACTIVE_WELCOME_COPY.continueLabel }).click()
     await welcome.waitFor({ state: 'detached', timeout: 15_000 })
 
     const credentialStep = page.getByRole('dialog', { name: '添加一个 API Key 开始使用' })
@@ -113,7 +124,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await page.reload({ waitUntil: 'load' })
     acknowledgeReloadConnectionLoss(tripwire, secondReloadWarnings)
     await page.waitForSelector('[class*="frame"]', { timeout: 15_000 })
-    expect(await page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title }).count()).toBe(0)
+    expect(await page.getByRole('dialog', { name: ACTIVE_WELCOME_COPY.title }).count()).toBe(0)
     expect(await page.getByRole('dialog', { name: '添加一个 API Key 开始使用' }).count()).toBe(0)
 
     // An old acknowledgement means materially revised copy: welcome returns,
@@ -125,7 +136,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await page.reload({ waitUntil: 'load' })
     acknowledgeReloadConnectionLoss(tripwire, thirdReloadWarnings)
     await welcome.waitFor({ timeout: 15_000 })
-    await welcome.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel }).click()
+    await welcome.getByRole('button', { name: ACTIVE_WELCOME_COPY.continueLabel }).click()
     await welcome.waitFor({ state: 'detached', timeout: 15_000 })
     expect(await page.getByRole('dialog', { name: '添加一个 API Key 开始使用' }).count()).toBe(0)
 
@@ -149,19 +160,19 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     // navigations (init scripts re-run per navigation); that stays harmless
     // because no later scenario in this file legitimately shows the
     // takeover, and only this test reads __takeoverSightings.
-    await page.addInitScript(() => {
+    await page.addInitScript((welcomeTitle) => {
       const sightings: string[] = []
       ;(window as unknown as { __takeoverSightings: string[] }).__takeoverSightings = sightings
       setInterval(() => {
         if (document.querySelector(
-          '[role="dialog"][aria-label="内测声明"], '
+          `[role="dialog"][aria-label="${welcomeTitle}"], `
           + '[role="dialog"][aria-label="添加一个 API Key 开始使用"]',
         ) !== null) {
           sightings.push('chrome')
         }
         if (document.getElementById('root')?.inert === true) sightings.push('inert')
       }, 8)
-    })
+    }, ACTIVE_WELCOME_COPY.title)
     // EVERY settings.describe issued before the release is held — not just
     // the first — so the pin cannot silently collapse back to loopback
     // timing if a second boot-time consumer of the join ever appears.
@@ -186,7 +197,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     acknowledgeReloadConnectionLoss(tripwire, warningsBefore)
     expect(await page.evaluate(() =>
       (window as unknown as { __takeoverSightings: string[] }).__takeoverSightings)).toEqual([])
-    expect(await page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title }).count()).toBe(0)
+    expect(await page.getByRole('dialog', { name: ACTIVE_WELCOME_COPY.title }).count()).toBe(0)
     expect(await page.getByRole('dialog', { name: '添加一个 API Key 开始使用' }).count()).toBe(0)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
@@ -248,7 +259,13 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
   it('keeps the fixture inventory closed', async () => {
     await assertFixtureInventory(
       SNAPSHOT_DIR,
-      ['welcome.expected.md', 'missing.expected.md', 'models.expected.md'],
+      [
+        'welcome.expected.md',
+        'welcome.xiaojing.expected.md',
+        'missing.expected.md',
+        'models.expected.md',
+        'models.xiaojing.expected.md',
+      ],
     )
   })
 })

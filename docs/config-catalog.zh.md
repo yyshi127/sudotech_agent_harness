@@ -3287,7 +3287,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-xiaojing-weixin-channel`
 
-需要：`connection` · `credentials` · `apiProxy` · `agents` · `systemPrompt` · `tools` · `commands` · `permissionPresets`
+需要：`connection` · `credentials` · `apiProxy` · `agents` · `systemPrompt` · `tools` · `commands` · `permissionPresets` · `attachments`
 
 ```ts config-catalog
 /** Deployment tunables for network deadlines and reply delivery. */
@@ -3319,7 +3319,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:57`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
+来源：[`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:60`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
 
 ## 无配置的可加载插件
 

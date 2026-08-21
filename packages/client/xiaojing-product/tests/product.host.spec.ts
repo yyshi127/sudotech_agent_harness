@@ -97,9 +97,19 @@ describe('mandatory deletion confirmation', () => {
   it.each([
     ['pwsh', { command: "Get-Item 'C:\\Users\\Ada\\Desktop\\test.txt'" }],
     ['bash', { command: 'ls -la' }],
+    ['pwsh', null],
+    ['pwsh', { command: 42 }],
     ['schedule_list', {}],
   ])('does not classify a non-deleting %s call', (toolName, args) => {
     expect(deletionApprovalReason(toolName, args)).toBeUndefined()
+  })
+
+  it('bounds and flattens the operation preview', () => {
+    const reason = deletionApprovalReason('pwsh', { command: `Remove-Item  ${'x'.repeat(260)}\n-Force` })
+
+    expect(reason).toMatch(/\.\.\.$/u)
+    expect(reason).not.toContain('\n')
+    expect(reason?.length).toBeLessThan(340)
   })
 
   it('fails closed without an answerer even when ordinary approval is never', async () => {
@@ -139,6 +149,64 @@ describe('mandatory deletion confirmation', () => {
     const result = await runShell(ctx, openTurnAgent('delete-rejected'), "Remove-Item 'test.txt' -Force")
 
     expect(result.isError).toBe(true)
+    expect(body).not.toHaveBeenCalled()
+    await ctx.fiber.dispose()
+  })
+
+  it('reports a cancelled mandatory confirmation distinctly', async () => {
+    const ctx = await mountedProduct()
+    const body = vi.fn(() => Promise.resolve('deleted'))
+    ctx.on('approval/request', () => Promise.resolve<'cancelled'>('cancelled'))
+    ctx.tools.register(shellTool(body))
+
+    const result = await runShell(ctx, openTurnAgent('delete-cancelled'), "Remove-Item 'test.txt' -Force")
+
+    expect(result.content).toEqual([{ type: 'text', text: 'Error: 删除操作确认已取消或超时，未执行。' }])
+    expect(body).not.toHaveBeenCalled()
+    await ctx.fiber.dispose()
+  })
+
+  it('denies deletion calls that have no agent identity', async () => {
+    const ctx = await mountedProduct()
+    const body = vi.fn(() => Promise.resolve('deleted'))
+    ctx.tools.register(shellTool(body))
+
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: CallId('product-missing-agent'),
+      name: 'pwsh',
+      arguments: { command: "Remove-Item 'test.txt' -Force" },
+    })
+
+    expect(result.content).toEqual([{ type: 'text', text: 'Error: 删除操作缺少可确认的会话身份，未执行。' }])
+    expect(body).not.toHaveBeenCalled()
+    await ctx.fiber.dispose()
+  })
+
+  it('revokes a grant when a later pre-execute listener denies the call', async () => {
+    const ctx = await mountedProduct()
+    const body = vi.fn(() => Promise.resolve('deleted'))
+    ctx.on('approval/request', () => Promise.resolve<'allowed-once'>('allowed-once'))
+    ctx.on('tools/pre-execute', () => Promise.resolve({ kind: 'deny', reason: 'downstream denied' }))
+    ctx.tools.register(shellTool(body))
+
+    const result = await runShell(ctx, openTurnAgent('delete-downstream-denied'), "Remove-Item 'test.txt' -Force")
+
+    expect(result.content).toEqual([{ type: 'text', text: 'Error: downstream denied' }])
+    expect(body).not.toHaveBeenCalled()
+    await ctx.fiber.dispose()
+  })
+
+  it('revokes a grant when a later pre-execute listener throws', async () => {
+    const ctx = await mountedProduct()
+    const body = vi.fn(() => Promise.resolve('deleted'))
+    ctx.on('approval/request', () => Promise.resolve<'allowed-once'>('allowed-once'))
+    ctx.on('tools/pre-execute', () => { throw new Error('downstream exploded') })
+    ctx.tools.register(shellTool(body))
+
+    const result = await runShell(ctx, openTurnAgent('delete-downstream-error'), "Remove-Item 'test.txt' -Force")
+
+    expect(result.content).toEqual([{ type: 'text', text: 'Error: downstream exploded' }])
     expect(body).not.toHaveBeenCalled()
     await ctx.fiber.dispose()
   })

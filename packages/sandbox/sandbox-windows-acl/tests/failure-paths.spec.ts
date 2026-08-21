@@ -355,6 +355,25 @@ describe('spawnSandboxedInherited failure paths', () => {
 })
 
 describe('drainPipe', () => {
+  it('waits when a live pipe has no bytes available yet', async () => {
+    let peeks = 0
+    const peekNamedPipe = vi.fn((_pipe: unknown, _buffer: unknown, _size: unknown, _read: unknown, totalAvail: NativePtr) => {
+      peeks++
+      if (peeks > 1) return 0
+      koffi.encode(totalAvail, 'uint32', 0)
+      return 1
+    })
+    const api = {
+      peekNamedPipe,
+      getLastError: vi.fn(() => abi.ERROR_BROKEN_PIPE),
+      closeHandle: vi.fn(() => 1),
+      formatMessageW: vi.fn(() => 0),
+    } as unknown as Win32Bindings
+
+    await expect(drainPipe(api, 30n as NativePtr)).resolves.toEqual(Buffer.alloc(0))
+    expect(peekNamedPipe).toHaveBeenCalledTimes(2)
+  })
+
   it('stops at ERROR_NO_DATA and closes the read end', () => {
     const closeHandle = vi.fn(() => 1)
     const api = {

@@ -3284,7 +3284,7 @@ Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:55`](../packa
 
 ## `@deepseek-ai/dsh-xiaojing-weixin-channel`
 
-Requires: `connection` · `credentials` · `apiProxy` · `agents` · `systemPrompt` · `tools` · `commands` · `permissionPresets`
+Requires: `connection` · `credentials` · `apiProxy` · `agents` · `systemPrompt` · `tools` · `commands` · `permissionPresets` · `attachments`
 
 ```ts config-catalog
 /** Deployment tunables for network deadlines and reply delivery. */
@@ -3316,7 +3316,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:57`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:60`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
 
 ## Loadable plugins with no config
 

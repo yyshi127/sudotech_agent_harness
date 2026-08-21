@@ -11,7 +11,7 @@ import {
 const HIGH = ReasoningEffortId('high')
 const OFF = ReasoningEffortId('off')
 
-/** Keyless headless-agent adapter: one real bash call followed by a final answer. */
+/** Keyless headless-agent adapter: one portable file read followed by a final answer. */
 class CliMockAdapter extends LlmAdapter {
   override async resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
     return {
@@ -35,10 +35,10 @@ class CliMockAdapter extends LlmAdapter {
     }
     const toolResult = options.messages.at(-1)?.content.find(block => block.type === 'tool-result')
     if (toolResult === undefined) {
-      const args = JSON.stringify({ command: 'printf CLI_TOOL_ROUND_TRIP', description: 'Prove the CLI tool round trip.' })
+      const args = JSON.stringify({ file_path: 'cli-tool-round-trip.txt' })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-      yield { type: 'tool-call-delta', index: 0, id: CallId('cli-smoke-call'), name: 'bash', argumentsDelta: args }
-      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('cli-smoke-call'), name: 'bash', arguments: args } }
+      yield { type: 'tool-call-delta', index: 0, id: CallId('cli-smoke-call'), name: 'read', argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('cli-smoke-call'), name: 'read', arguments: args } }
       yield { type: 'usage', usage: { inputTokens: 11, outputTokens: 3, cacheReadTokens: 2 } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return
@@ -48,7 +48,7 @@ class CliMockAdapter extends LlmAdapter {
       .filter(block => block.type === 'text')
       .map(block => block.text)
       .join('')
-    const reply = `CLI tool round trip complete: ${toolText.trim()}`
+    const reply = `CLI tool round trip complete: ${toolText.includes('CLI_TOOL_ROUND_TRIP') ? 'CLI_TOOL_ROUND_TRIP' : toolText.trim()}`
     yield { type: 'block-start', index: 0, blockType: 'text' }
     yield { type: 'text-delta', index: 0, text: reply }
     yield { type: 'block-end', index: 0, block: { type: 'text', text: reply } }

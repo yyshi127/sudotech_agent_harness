@@ -83,7 +83,6 @@ async function stopServer(server: Server): Promise<void> {
 /** Build one closed, invariant-checked session fixture with remote and local image Markdown. */
 function markdownImageFixture(remoteUrl: string): string {
   const session = Session.create(SessionId('markdown-image-source'))
-  const eventTimeOrigin = new Date().setHours(12, 0, 0, 0)
   session.append('turn/start', { turn: 1 })
   const user = session.append('user/message', createUserMessage({
     content: [{ type: 'text', text: 'Show the Markdown image policy.' }],
@@ -117,6 +116,7 @@ function markdownImageFixture(remoteUrl: string): string {
   }, { surfaceOp: 'append' })
   session.append('step/end', { turn: 1, step: 1 })
   session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+  const eventTimeOrigin = Date.now() - (session.events.length + 1) * 1_000
 
   const header = {
     type: 'session',

@@ -76,6 +76,14 @@ if (!installer.includes('${isUpdated}')) {
 if (!main.includes("app.setPath('userData'")) {
   throw new Error('Electron userData must be pinned before startup')
 }
+if (!main.includes("const previewRoot = !app.isPackaged ? process.env.DSH_DESKTOP_PREVIEW_ROOT?.trim() : undefined")
+  || !main.includes("app.setPath('appData', appData)")
+  || !main.includes("app.setPath('documents', documents)")) {
+  throw new Error('source Electron previews must isolate application data and Documents workspaces')
+}
+if (!main.includes("[paths.cli, 'web', '--port', '0', '--no-open']")) {
+  throw new Error('Electron must prevent the embedded Host from opening an external browser')
+}
 if (!main.includes('app.setAppUserModelId(identity.appId)')) {
   throw new Error('Electron AppUserModelId must come from identity.json')
 }

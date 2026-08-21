@@ -29,7 +29,7 @@ const { values } = parseArgs({
 const ctx = await boot(NAME, resolveConfigPath(values.config ?? './cordis.yml', snapshotMode))
 if (snapshotMode !== undefined) {
   process.stdin.on('end', () => {
-    void ctx.fiber.dispose().then(() => { process.exit(0) })
+    void ctx.fiber.dispose().then(() => { process.exitCode = 0 })
   })
 }
 /* v8 ignore stop */

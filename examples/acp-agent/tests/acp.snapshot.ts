@@ -806,7 +806,7 @@ it('pins native DeepSeek image offload in the request sent by the assembled app'
     )))]
     let toolContent = toolMessage.content
     for (const cwd of cwdSpellings) toolContent = toolContent.replaceAll(cwd, '{{cwd}}')
-    toolMessage.content = toolContent
+    toolMessage.content = toolContent.replaceAll('\\', '/')
     expect(followup).toEqual([
       {
         role: 'user',
@@ -816,7 +816,7 @@ it('pins native DeepSeek image offload in the request sent by the assembled app'
         role: 'user',
         content: 'Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n'
           + 'Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\n'
-          + 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).',
+          + 'Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.',
       },
       {
         role: 'assistant',

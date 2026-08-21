@@ -65,6 +65,7 @@ import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-agent'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
+import { readClientBuildRecord } from '../../../scripts/client-build-environment.ts'
 import { REPO_ROOT, requireDist } from './support.ts'
 
 // Host-side web e2e cannot import a browser package: doing so would pull that
@@ -77,7 +78,7 @@ import { REPO_ROOT, requireDist } from './support.ts'
 // } from '@deepseek-ai/dsh-client-ui-settings-models'
 export const WELCOME_NOTICE_SETTINGS_NAMESPACE = 'ui-onboarding'
 export const WELCOME_NOTICE_ACK_FIELD = 'welcomeNoticeVersion'
-export const WELCOME_NOTICE_VERSION = '2026-08-13.1'
+export const WELCOME_NOTICE_VERSION = '2026-08-15.1'
 export const WELCOME_NOTICE_COPY = {
   zh: {
     title: '内测声明',
@@ -88,6 +89,35 @@ export const WELCOME_NOTICE_COPY = {
 
 /** Snapshot mode for the lane, from $DSH_SNAPSHOT (same vocabulary as the other snapshot suites). */
 export type WebSnapshotMode = 'replay' | 'record' | 'refresh'
+
+/** Client artifact profile exercised by a built Web test. */
+export type WebClientProfile = 'official' | 'xiaojing'
+
+/**
+ * Read the profile bound to the current complete client build.
+ * @returns the validated official or Xiaojing profile name.
+ */
+export function webClientProfile(): WebClientProfile {
+  const profile = readClientBuildRecord(REPO_ROOT).environment.DSH_CLIENT_BUILD_PROFILE
+  if (profile !== 'official' && profile !== 'xiaojing') {
+    throw new Error(`Web tests need an official or xiaojing build, got ${JSON.stringify(profile)}`)
+  }
+  return profile
+}
+
+/**
+ * Select a product-specific golden when the built artifact contains Xiaojing-only navigation.
+ * @param officialPath - official golden ending in `.expected.md`.
+ * @returns the official path or its `.xiaojing.expected.md` sibling.
+ */
+export function profileGoldenPath(officialPath: string): string {
+  if (!officialPath.endsWith('.expected.md')) {
+    throw new Error(`profile golden must end in .expected.md: ${officialPath}`)
+  }
+  return webClientProfile() === 'official'
+    ? officialPath
+    : officialPath.replace(/\.expected\.md$/u, '.xiaojing.expected.md')
+}
 
 /**
  * Resolve and validate the lane's snapshot mode.
@@ -116,7 +146,14 @@ const SHIPPED_PRESET_DIR = join(REPO_ROOT, 'apps/cli/config/agent-presets')
 const REPLAY_PROVIDERS = [{
   id: 'deepseek-official',
   name: 'DeepSeek',
-  models: [{ id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', contextWindow: 128_000 }],
+  models: [
+    { id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', contextWindow: 128_000 },
+    {
+      id: 'deepseek-v4-flash-vision-exp',
+      name: 'DeepSeek-V4-Flash-Vision-Exp',
+      contextWindow: 128_000,
+    },
+  ],
 }]
 
 /**
@@ -193,6 +230,8 @@ export interface WebScaffold {
 
 /** Options for {@link launchWebScaffold}. */
 export interface LaunchOptions {
+  /** Keep the shipped default-model row instead of pinning replay fixtures to text Flash. */
+  preserveShippedDefaultModel?: boolean
   /**
    * Optional product overlay applied after the shipped Web surface and before
    * the scaffold's hermetic test patches, matching the launcher's `--patch`
@@ -404,6 +443,12 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
   const patches: PatchOptions[] = [
     ...basePatches,
     ...surfacePatches,
+    ...options.preserveShippedDefaultModel === true
+      ? []
+      : [{
+        id: 'agent-default-model',
+        config: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      }],
     ...extraOverlayPatches,
     // The roster's `roots` is an assembly fact AppCLIEntry resolves and patches
     // in, exactly like `distIndex` on the webserver row — the shipped preset
@@ -766,13 +811,17 @@ export function fixtureUserPrompts(fixtureText: string): string[] {
  * @returns the realized fixture text.
  */
 export function realizeSeedFixture(scaffold: WebScaffold, fixtureText: string, id: string): string {
+  const sessionIdContent = JSON.stringify(id).slice(1, -1)
+  const workspaceCwdContent = JSON.stringify(scaffold.workspaceCwd).slice(1, -1)
   const realized = fixtureText
-    .split('{{sessionId}}').join(id)
-    .split('{{cwd}}').join(scaffold.workspaceCwd)
+    .split('{{sessionId}}').join(sessionIdContent)
+    .split('{{cwd}}').join(workspaceCwdContent)
   const fixtureCwd = (JSON.parse(realized.split('\n', 1)[0]!) as { cwd?: string }).cwd
   return fixtureCwd === undefined
     ? realized
-    : realized.split(fixtureCwd).join(scaffold.workspaceCwd)
+    : realized
+      .split(JSON.stringify(fixtureCwd).slice(1, -1))
+      .join(workspaceCwdContent)
 }
 
 /**
@@ -895,9 +944,13 @@ async function persistSeedSession(
 function normalizeAria(snapshot: string, workspaceCwd: string): string {
   // The session heading renders the workspace's basename, not the full
   // path, so both spellings must collapse to the token.
-  const base = workspaceCwd.split('/').pop()!
+  const normalizedCwd = workspaceCwd.replaceAll('\\', '/')
+  const escapedCwd = workspaceCwd.replaceAll('\\', '\\\\')
+  const base = workspaceCwd.split(/[\\/]/).pop()!
   return snapshot
+    .split(escapedCwd).join('{{cwd}}')
     .split(workspaceCwd).join('{{cwd}}')
+    .split(normalizedCwd).join('{{cwd}}')
     .split(base).join('{{workspace}}')
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '{{uuid}}')
     // The optional space in `\d+m ?\d+s` covers both minute spellings: the

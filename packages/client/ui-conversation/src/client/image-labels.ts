@@ -3,6 +3,7 @@
 import type { ImageAttachmentLimits } from '@deepseek-ai/dsh-attachment'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationKey } from './locales.ts'
+import type { ImageIntakeFailure } from './service.ts'
 
 /**
  * Byte count as user-facing megabytes (`10MB`, `2.5MB`).
@@ -12,6 +13,25 @@ import type { ConversationKey } from './locales.ts'
 export function imageSizeText(bytes: number): string {
   const mb = bytes / (1024 * 1024)
   return `${Number.isInteger(mb) ? String(mb) : mb.toFixed(1)}MB`
+}
+
+/**
+ * Product copy for a browser-side image intake rejection.
+ * @param t - the conversation-namespace translate.
+ * @param error - stable shared-intake reason.
+ * @returns localized banner text.
+ */
+export function imageIntakeErrorText(
+  t: Translate<ConversationKey>,
+  error: ImageIntakeFailure,
+): string {
+  switch (error.reason) {
+    case 'unsupported-type': return t('image.unsupportedType')
+    case 'too-many': return t('image.tooMany', { count: error.limit })
+    case 'file-too-large': return t('image.fileTooLarge', { size: imageSizeText(error.limit) })
+    case 'total-too-large': return t('image.totalTooLarge', { size: imageSizeText(error.limit) })
+    case 'input-busy': return t('image.inputBusy')
+  }
 }
 
 /**

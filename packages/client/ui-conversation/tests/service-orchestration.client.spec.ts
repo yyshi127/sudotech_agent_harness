@@ -115,6 +115,46 @@ describe('ConversationController', () => {
     await b.runtime.dispose()
   })
 
+  it('uses one atomic intake policy for file pick, paste, and drop callers', async () => {
+    const b = await bench()
+    const created = vi.spyOn(URL, 'createObjectURL').mockImplementation(file => `blob:${(file as File).name}`)
+    const revoked = vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined)
+    const limits = {
+      maxImageBytes: 10,
+      maxImagesPerMessage: 2,
+      maxMessageImageBytes: 12,
+      maxImagePixels: 40_000_000,
+      maxImageDimension: 2000,
+      mediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const,
+    }
+    try {
+      const extensionOnly = new File([Uint8Array.of(1, 2, 3, 4)], 'extension.png')
+      expect(b.scoped.addImages([extensionOnly], limits)).toEqual({ ok: true })
+      expect(b.shell.snapshot.imageIds).toHaveLength(1)
+      expect(created).toHaveBeenCalledOnce()
+
+      expect(b.scoped.addImages([
+        new File([Uint8Array.of(1)], 'second.png', { type: 'image/png' }),
+        new File([Uint8Array.of(1)], 'third.png', { type: 'image/png' }),
+      ], limits)).toEqual({ ok: false, error: { reason: 'too-many', limit: 2 } })
+      expect(b.scoped.addImages([
+        new File([new Uint8Array(11)], 'large.png', { type: 'image/png' }),
+      ], limits)).toEqual({ ok: false, error: { reason: 'file-too-large', limit: 10 } })
+      expect(b.scoped.addImages([
+        new File([new Uint8Array(9)], 'total.png', { type: 'image/png' }),
+      ], limits)).toEqual({ ok: false, error: { reason: 'total-too-large', limit: 12 } })
+      expect(b.scoped.addImages([
+        new File([Uint8Array.of(1)], 'invoice.pdf', { type: 'application/pdf' }),
+      ], limits)).toEqual({ ok: false, error: { reason: 'unsupported-type' } })
+      expect(b.shell.snapshot.imageIds).toHaveLength(1)
+      expect(created).toHaveBeenCalledOnce()
+    } finally {
+      created.mockRestore()
+      revoked.mockRestore()
+    }
+    await b.runtime.dispose()
+  })
+
   it('invalidates pending historical image loads when the rendered session is released', async () => {
     const read = Promise.withResolvers<Awaited<ReturnType<SessionFace['readAttachment']>>>()
     const b = await bench(() => read.promise)

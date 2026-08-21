@@ -212,9 +212,10 @@ function contextOfContents(contents: readonly string[]): NormalizeContext {
 async function hydrateReplayFixtures(scenario: SdkScenario, cwd: string): Promise<string[]> {
   const root = join(cwd, '.replay-fixtures')
   await mkdir(root, { recursive: true })
+  const escapedCwd = JSON.stringify(cwd.replaceAll('\\', '/')).slice(1, -1)
   return Promise.all(fixtureFiles(scenario).map(async (source) => {
     const destination = join(root, basename(source))
-    await writeFile(destination, (await readFile(source, 'utf8')).replaceAll('{{cwd}}', cwd))
+    await writeFile(destination, (await readFile(source, 'utf8')).replaceAll('{{cwd}}', escapedCwd))
     return destination
   }))
 }
@@ -347,7 +348,10 @@ function fixtureFiles(scenario: SdkScenario): string[] {
 
 describe('TypeScript SDK snapshots over the jsonrpc runtime', () => {
   for (const scenario of SCENARIOS) {
-    it(`replays ${scenario.name} through the SDK`, async () => {
+    // This fixture asserts a persistent POSIX Bash session; Windows exercises
+    // its native persistent PowerShell path in the ACP and headless suites.
+    const testScenario = scenario.name === 'persistent-tools' && process.platform === 'win32' ? it.skip : it
+    testScenario(`replays ${scenario.name} through the SDK`, async () => {
       const scenarioDir = join(snapshotsDir, scenario.name)
       const notificationsExpectedPath = join(scenarioDir, 'notifications.expected.jsonl')
       const resultExpectedPath = join(scenarioDir, 'result.expected.json')

@@ -84,7 +84,10 @@ afterEach(async () => {
 })
 
 it('assembles the shipped Web catalog, file-reference guidance, retry policy, and confined access default', async () => {
-  scaffold = await launchWebScaffold({ deepSeekMissingCredential: true })
+  scaffold = await launchWebScaffold({
+    deepSeekMissingCredential: true,
+    preserveShippedDefaultModel: true,
+  })
   const ctx = scaffold.ctx
   const channelResponse = await fetch(`${scaffold.baseUrl}/xiaojing-weixin/status`, {
     method: 'POST',
@@ -104,6 +107,24 @@ it('assembles the shipped Web catalog, file-reference guidance, retry policy, an
     },
   })
   expect(JSON.stringify(channelStatus)).not.toMatch(/token|context/i)
+  const freshSession = await ctx.apiProxy.sessions.create({
+    rpcId: 'shipped-fresh-default-create' as never,
+    payload: { sessionId: SessionId('shipped-fresh-default'), cwd: scaffold.workspaceCwd },
+  })
+  expect(freshSession.result).toMatchObject({ ok: true })
+  const freshModels = await ctx.apiProxy.sessions.models({
+    rpcId: 'shipped-fresh-default-models' as never,
+    payload: { sessionId: SessionId('shipped-fresh-default') },
+  })
+  expect(freshModels.result).toMatchObject({
+    ok: true,
+    value: {
+      current: {
+        provider: 'deepseek-official',
+        model: 'deepseek-v4-flash-vision-exp',
+      },
+    },
+  })
   expect(ctx.llm.providerRetryPolicy('deepseek-official')).toMatchInlineSnapshot(`
     {
       "initialDelayMs": 500,

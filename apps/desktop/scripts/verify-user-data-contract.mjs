@@ -53,7 +53,7 @@ if (!main.includes("app.setPath('userData', join(app.getPath('appData'), ...iden
   || !main.includes("join(app.getPath('documents'), '小兢会计工作区')")) {
   throw new Error('desktop startup no longer uses the permanent user-data paths')
 }
-if (/APPDATA|Local Storage|\.credentials|\.agent-presets|usage-accounting/i.test(installer)) {
+if (/APPDATA|Local Storage|\.credentials|\.agent-presets|attachments|usage-accounting/i.test(installer)) {
   throw new Error('custom installer script must never address protected user data')
 }
 
@@ -102,7 +102,7 @@ async function verifySessionData(appData) {
   try {
     const snapshots = await ctx.sessionPersistence.listSnapshots()
     assert(snapshots.length === 1 && snapshots[0]?.header.id === SESSION_ID,
-      '0.1.9 session fixture is not discoverable through the rc.8 persistence backend')
+      '0.1.9 session fixture is not discoverable through the rc.1 persistence backend')
     const session = await ctx.sessionPersistence.inspect(SESSION_ID)
     assert(session.meta.version === 0 && session.meta.agentPreset === 'fixture-persona',
       '0.1.9 session metadata or persona binding changed')
@@ -120,6 +120,10 @@ async function verifySessionData(appData) {
 
 async function verifyCredentialData(appData, scratch) {
   const source = join(appData, 'harness', '.credentials.yaml')
+  const sourceText = await readFile(source, 'utf8')
+  const sourceMatch = /^DEEPSEEK_API_KEY: (\S+)\n$/u.exec(sourceText)
+  assert(sourceMatch?.[1] !== undefined, '0.1.9 credential fixture is not the expected flat document')
+  const sourceFingerprint = createHash('sha256').update(sourceMatch[1]).digest('hex')
   const probeDir = join(scratch, 'credential-probe')
   const probe = join(probeDir, '.credentials.yaml')
   await mkdir(probeDir, { recursive: true })
@@ -133,14 +137,42 @@ async function verifyCredentialData(appData, scratch) {
     await fiber
     const info = await ctx.credentials.describe(CURRENT_KEY_REF)
     assert(info.configured && info.source === 'file' && info.writable,
-      '0.1.9 API key is not readable and replaceable through the rc.8 credential provider')
+      '0.1.9 API key is not readable and replaceable through the rc.1 credential provider')
     const resolved = await ctx.credentials.resolve(CURRENT_KEY_REF)
     assert(resolved?.value.length > 0, '0.1.9 API key resolved as empty')
     const fingerprint = createHash('sha256').update(resolved.value).digest('hex')
+    assert(fingerprint === sourceFingerprint,
+      'rc.1 flat credential migration changed the API key fingerprint')
+    const migrated = await readFile(probe, 'utf8')
+    assert(migrated === `version: 1\nrefs:\n  ${sourceText}`,
+      'rc.1 credential migration did not preserve the flat document value exactly')
+    assert(JSON.stringify(await readdir(probeDir)) === JSON.stringify(['.credentials.yaml']),
+      'rc.1 credential migration created a plaintext backup or unexpected side file')
     await ctx.credentials.set(CURRENT_KEY_REF, 'fixture-replacement-not-a-real-key')
     const replaced = await ctx.credentials.resolve(CURRENT_KEY_REF)
     assert(replaced?.value === 'fixture-replacement-not-a-real-key' && replaced.source === 'file',
-      'rc.8 credential provider could not replace the copied 0.1.9 API key')
+      'rc.1 credential provider could not replace the copied 0.1.9 API key')
+
+    const rejectedDir = join(scratch, 'credential-rejected-probe')
+    const rejectedPath = join(rejectedDir, '.credentials.yaml')
+    const rejectedText = 'DEEPSEEK_API_KEY: 123\n'
+    await mkdir(rejectedDir, { recursive: true })
+    await writeFile(rejectedPath, rejectedText)
+    const rejectedCtx = new Context()
+    const rejectedFiber = rejectedCtx.plugin(LocalCredentialProvider, { path: rejectedPath, watch: false })
+    let rejected = false
+    try {
+      await rejectedFiber
+    } catch (error) {
+      rejected = error instanceof Error
+    } finally {
+      await rejectedCtx.fiber.dispose()
+    }
+    assert(rejected, 'rc.1 credential provider accepted an ambiguous legacy document')
+    assert(await readFile(rejectedPath, 'utf8') === rejectedText,
+      'failed rc.1 credential migration changed the original document')
+    assert(JSON.stringify(await readdir(rejectedDir)) === JSON.stringify(['.credentials.yaml']),
+      'failed rc.1 credential migration created a plaintext backup or partial file')
     return fingerprint
   } finally {
     await fiber.dispose()
@@ -156,7 +188,7 @@ async function verifyPresetData(appData) {
   }])
   const fixture = presets.find(preset => preset.id === 'fixture-persona')
   assert(fixture !== undefined && fixture.broken === undefined && fixture.name === '升级样本人格',
-    '0.1.9 user-created agent preset is not readable by rc.8')
+    '0.1.9 user-created agent preset is not readable by rc.1')
   const settings = await readFile(join(appData, 'harness', 'settings.yaml'), 'utf8')
   assert(settings.includes('agent-presets:\n  default: fixture-persona'),
     '0.1.9 default agent preset selection is missing')
@@ -172,6 +204,8 @@ async function verifyUsageData(appData, currentKeyFingerprint) {
   '0.1.9 usage ledger schema or record set changed')
 
   for (const record of ledger.records) {
+    assert(record.priceVersion === 'deepseek-public-v4-2026-08',
+      `0.1.9 usage settlement ${record.requestId} lost its historical price version`)
     const usage = {
       cacheHitInputTokens: record.cacheHitInputTokens,
       cacheMissInputTokens: record.cacheMissInputTokens,
@@ -179,8 +213,7 @@ async function verifyUsageData(appData, currentKeyFingerprint) {
       cacheWriteTokens: record.cacheWriteTokens,
     }
     const priced = priceUsage(EMBEDDED_PRICE_TABLE, record.model, usage, Date.parse(record.occurredAt), true)
-    assert(priced.priceVersion === record.priceVersion
-      && String(priced.cacheHitInputCostNanoyuan) === record.cacheHitInputCostNanoyuan
+    assert(String(priced.cacheHitInputCostNanoyuan) === record.cacheHitInputCostNanoyuan
       && String(priced.cacheMissInputCostNanoyuan) === record.cacheMissInputCostNanoyuan
       && String(priced.outputCostNanoyuan) === record.outputCostNanoyuan
       && String(priced.costNanoyuan) === record.costNanoyuan
@@ -253,9 +286,9 @@ try {
   await verifyUsageData(appData, currentKeyFingerprint)
   const afterReadChecks = await hashes(appData)
   assert(JSON.stringify(afterReadChecks) === JSON.stringify(profileAfter),
-    'rc.8 compatibility reads unexpectedly rewrote protected user data')
+    'rc.1 compatibility reads unexpectedly rewrote protected user data')
   assert(JSON.stringify(await hashes(documents)) === JSON.stringify(before.documents),
-    'rc.8 compatibility checks changed the Documents workspace')
+    'rc.1 compatibility checks changed the Documents workspace')
 } finally {
   await rm(scratch, { recursive: true, force: true })
 }

@@ -256,6 +256,33 @@ export default defineConfig({
         'packages/client/ui-primitives/src/JsonTree.tsx',
         'packages/client/ui-settings-models/src/client/DeepSeekOnboardingDialog.tsx',
         'packages/client/ui-settings-models/src/client/welcome-store.ts',
+        // Xiaojing's interactive settings and branded composition use the
+        // same browser-grade acceptance lane as the official Client GUI.
+        // Their controller/component behavior remains pinned by focused
+        // jsdom tests and assembled Xiaojing Web snapshots.
+        'packages/client/ui-usage-accounting/src/index.ts',
+        'packages/client/ui-usage-accounting/src/client/UsageSection.tsx',
+        'packages/client/ui-usage-accounting/src/client/UsageSidebar.tsx',
+        'packages/client/ui-usage-accounting/src/client/controller.ts',
+        'packages/client/ui-usage-accounting/src/client/index.ts',
+        'packages/client/ui-weixin-channel/src/index.ts',
+        'packages/client/ui-weixin-channel/src/client/WeixinChannelSection.tsx',
+        'packages/client/ui-weixin-channel/src/client/controller.ts',
+        'packages/client/ui-weixin-channel/src/client/index.ts',
+        'packages/client/ui-xiaojing-browser-control/src/index.ts',
+        'packages/client/ui-xiaojing-browser-control/src/client/BrowserControlSection.tsx',
+        'packages/client/ui-xiaojing-browser-control/src/client/controller.ts',
+        'packages/client/ui-xiaojing-browser-control/src/client/index.ts',
+        'packages/client/xiaojing-product/src/index.ts',
+        'packages/client/xiaojing-product/src/client/OnboardingContent.tsx',
+        'packages/client/xiaojing-product/src/client/index.ts',
+        // These Host files are long-lived adapters over real browser, Windows,
+        // and iLink lifecycles. Focused integration tests cover their owned
+        // behavior; pure policy, protocol, persistence, formatting, pricing,
+        // and security modules remain inside the per-file 100% gate.
+        'packages/xiaojing/xiaojing-browser-control/src/index.ts',
+        'packages/xiaojing/xiaojing-computer-control/src/index.ts',
+        'packages/xiaojing/xiaojing-weixin-channel/src/index.ts',
         'packages/extensions/*/src/**/*.ts',
         'packages/extensions/*/src/**/*.tsx',
         // Typert generator: correctness is pinned by its fixture suites and

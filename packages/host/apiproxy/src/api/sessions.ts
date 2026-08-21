@@ -313,6 +313,8 @@ export interface SessionsApi {
     provider: string
     model: string
     reasoningEffort?: string
+    /** Persist this selection as the default for future sessions; defaults to true. */
+    saveDefault?: boolean
   }>):
   Promise<RpcResponse<{ selected: ModelSelection }>>
 

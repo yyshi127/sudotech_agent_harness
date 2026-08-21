@@ -28,8 +28,9 @@
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
+import { readClientBuildRecord } from '../../../scripts/client-build-environment.ts'
 import { acknowledgeReloadConnectionLoss, launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newEnglishPage, REPO_ROOT, saveFailureShot } from './support.ts'
 
 /** Wire path of the history round-trip the conversation root waits out (POST /api/session.history). */
 const HISTORY_ROUTE = '**/api/session.history'
@@ -39,6 +40,14 @@ const HISTORY_ROUTE = '**/api/session.history'
  * composer textarea, which carries an unrelated `data-phase` of its own.
  */
 const ROOT_PHASE = 'div[data-phase]'
+
+const clientProfile = readClientBuildRecord(REPO_ROOT).environment.DSH_CLIENT_BUILD_PROFILE
+if (clientProfile !== 'official' && clientProfile !== 'xiaojing') {
+  throw new Error(`startup auto-selection needs an official or xiaojing build, got ${JSON.stringify(clientProfile)}`)
+}
+const HERO_HEADLINE = clientProfile === 'xiaojing'
+  ? 'Xiaojing Accounting, Your AI Workmate'
+  : 'Into the Unknown'
 
 /** Every distinct `data-phase` the conversation root shows, in order, across one page load. */
 function recordedPhases(page: Page): Promise<string[]> {
@@ -68,13 +77,20 @@ describe('web e2e: startup auto-selection', () => {
   it('keeps the resident Hero and composer nodes when the first Workspace session appears', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-first-workspace-stable-tree'))
     await page.locator(`${ROOT_PHASE}[data-phase="hero"]`).waitFor({ timeout: 15_000 })
-    const headline = page.getByText('Into the Unknown', { exact: true })
-    const fishHitbox = headline.locator('xpath=preceding-sibling::span[1]')
-    const fish = fishHitbox.locator('svg')
-    expect(await fish.evaluate(node => getComputedStyle(node).color))
-      .toBe(await headline.evaluate(node => getComputedStyle(node).color))
-    await fishHitbox.hover()
-    expect(await fish.evaluate(node => getComputedStyle(node).animationName)).not.toBe('none')
+    const headline = page.getByText(HERO_HEADLINE, { exact: true })
+    const markSlot = page.locator('[data-slot="conversation.hero.brand.mark"]')
+    if (clientProfile === 'xiaojing') {
+      const avatar = markSlot.locator('img')
+      expect(await avatar.getAttribute('src')).toBe('/sdoobot-avatar.png')
+      expect(await avatar.getAttribute('alt')).toBe('Xiaojing Accounting')
+      expect(await avatar.isVisible()).toBe(true)
+    } else {
+      const fish = markSlot.locator('svg')
+      expect(await fish.evaluate(node => getComputedStyle(node).color))
+        .toBe(await headline.evaluate(node => getComputedStyle(node).color))
+      await fish.hover()
+      expect(await fish.evaluate(node => getComputedStyle(node).animationName)).not.toBe('none')
+    }
     await page.evaluate(() => {
       const refs = {
         root: document.querySelector('div[data-phase="hero"]'),
@@ -152,7 +168,7 @@ describe('web e2e: startup auto-selection', () => {
     // seat with `visibility:hidden`, which Playwright reports as not visible).
     await page.waitForSelector(ROOT_PHASE, { timeout: 15_000 })
     expect(await page.locator(ROOT_PHASE).first().getAttribute('data-phase')).toBe('hero')
-    expect(await page.getByText('Into the Unknown').isVisible()).toBe(true)
+    expect(await page.getByText(HERO_HEADLINE).isVisible()).toBe(true)
     expect(await page.locator('textarea').first().isVisible()).toBe(true)
 
     releaseHistory()

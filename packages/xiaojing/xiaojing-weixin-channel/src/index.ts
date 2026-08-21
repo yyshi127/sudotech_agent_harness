@@ -1,6 +1,7 @@
 /** Xiaojing Weixin iLink channel: pairing, durable polling, Agent bridging, and approval replies. */
 
 import { createHash, randomInt, randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
@@ -9,7 +10,8 @@ import type {} from '@deepseek-ai/dsh-commands'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy'
-import type { RpcResult } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { PromptContentPart, RpcResult } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type { ImageAttachmentLimits, ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import type { AssistantMessage, ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-permission-presets'
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
@@ -52,6 +54,7 @@ const MEDIA_UNSUPPORTED = '当前版本支持文字、图片和普通文档，�
 const SESSION_TITLE = '微信助手'
 const WORKSPACE_WRITE_PRESET = 'workspace-write'
 const FULL_ACCESS_PRESET = 'danger-full-access'
+const VISION_MODEL = 'deepseek-v4-flash-vision-exp'
 
 /** Deployment tunables for network deadlines and reply delivery. */
 export interface Config {
@@ -100,7 +103,7 @@ export const Config: Schema<Config> = Schema.object({
 /** Services used by the Host-only channel. */
 export const inject = [
   'connection', 'credentials', 'apiProxy', 'agents', 'systemPrompt', 'tools',
-  'commands', 'permissionPresets',
+  'commands', 'permissionPresets', 'attachments',
 ]
 
 interface ResolvedConfig {
@@ -149,6 +152,10 @@ interface PairingAttempt {
   baseUrl: string
   verifyCode: string | undefined
   controller: AbortController
+}
+
+class WeixinTaskInputError extends Error {
+  override readonly name = 'WeixinTaskInputError'
 }
 
 interface ConnectedAccount {
@@ -291,20 +298,88 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function visionMediaType(value: string): ImageMediaType | undefined {
+  switch (value.toLowerCase()) {
+    case 'image/png':
+    case 'image/jpeg':
+    case 'image/webp':
+    case 'image/gif': return value.toLowerCase() as ImageMediaType
+    default: return undefined
+  }
+}
+
 function taskPrompt(task: WeixinPendingMessage): string {
   if (task.attachments.length === 0) return task.text
-  const rows = task.attachments.flatMap((attachment, index) => [
-    `${index + 1}. ${attachment.kind === 'image' ? '图片' : '文档'}：${attachment.name}`,
-    `   类型：${attachment.mediaType}`,
-    `   大小：${formatBytes(attachment.bytes)}`,
-    `   本机路径：${attachment.path}`,
-  ])
+  const rows = task.attachments.flatMap((attachment, index) => {
+    const nativeImage = attachment.kind === 'image' && visionMediaType(attachment.mediaType) !== undefined
+    return [
+      `${index + 1}. ${attachment.kind === 'image' ? '图片' : '文档'}：${attachment.name}${nativeImage ? '（已附加视觉内容）' : ''}`,
+      `   类型：${attachment.mediaType}`,
+      `   大小：${formatBytes(attachment.bytes)}`,
+      `   本机路径：${attachment.path}`,
+      ...(attachment.kind === 'image' && !nativeImage ? ['   说明：当前格式不能直接视觉识别。'] : []),
+    ]
+  })
   return [
     task.text || '请处理我从微信发送的附件。',
     '',
     '微信附件（已安全保存到本机，未自动打开或执行）：',
     ...rows,
   ].join('\n')
+}
+
+async function taskContent(
+  task: WeixinPendingMessage,
+  limits: ImageAttachmentLimits,
+): Promise<PromptContentPart[]> {
+  const imageAttachments = task.attachments.flatMap((attachment) => {
+    const mediaType = attachment.kind === 'image' ? visionMediaType(attachment.mediaType) : undefined
+    return mediaType === undefined ? [] : [{ attachment, mediaType }]
+  })
+  if (imageAttachments.length > limits.maxImagesPerMessage) {
+    throw new WeixinTaskInputError(`微信图片超过单条消息 ${limits.maxImagesPerMessage} 张的上限，请减少图片后重新发送。`)
+  }
+  let totalBytes = 0
+  const images: PromptContentPart[] = []
+  for (const { attachment, mediaType } of imageAttachments) {
+    if (!limits.mediaTypes.includes(mediaType)) {
+      throw new WeixinTaskInputError(`微信图片 ${attachment.name} 的格式当前不可用，请转换为 PNG、JPEG、WebP 或 GIF 后重新发送。`)
+    }
+    if (attachment.bytes > limits.maxImageBytes) {
+      throw new WeixinTaskInputError(`微信图片 ${attachment.name} 超过 ${formatBytes(limits.maxImageBytes)} 的上限，请压缩后重新发送。`)
+    }
+    let data: Buffer
+    try {
+      data = await readFile(attachment.path)
+    } catch {
+      throw new WeixinTaskInputError(`微信图片 ${attachment.name} 已无法读取，请重新发送。`)
+    }
+    if (data.byteLength !== attachment.bytes) {
+      throw new WeixinTaskInputError(`微信图片 ${attachment.name} 在提交前发生变化，请重新发送。`)
+    }
+    totalBytes += data.byteLength
+    if (totalBytes > limits.maxMessageImageBytes) {
+      throw new WeixinTaskInputError(`微信图片总大小超过 ${formatBytes(limits.maxMessageImageBytes)} 的上限，请减少图片后重新发送。`)
+    }
+    images.push({ type: 'image', mediaType, data: data.toString('base64'), name: attachment.name })
+  }
+  return [...images, { type: 'text', text: taskPrompt(task) }]
+}
+
+function imageAdmissionReason(reason: string): string {
+  switch (reason) {
+    case 'MODEL_DOES_NOT_SUPPORT_IMAGES': return '当前会话模型不支持图片，请重新发送或在桌面端检查模型配置。'
+    case 'TOO_MANY_IMAGES': return '图片数量超过上限，请减少图片后重新发送。'
+    case 'IMAGES_TOO_LARGE': return '图片总大小超过上限，请减少或压缩图片后重新发送。'
+    case 'UNSUPPORTED_IMAGE_TYPE': return '图片格式不受支持，请转换为 PNG、JPEG、WebP 或 GIF 后重新发送。'
+    case 'INVALID_IMAGE_BASE64':
+    case 'INVALID_IMAGE': return '图片内容无效或已损坏，请重新发送。'
+    case 'IMAGE_TYPE_MISMATCH': return '图片格式与文件内容不一致，请转换格式后重新发送。'
+    case 'IMAGE_TOO_LARGE': return '图片文件过大，请压缩后重新发送。'
+    case 'IMAGE_TOO_MANY_PIXELS':
+    case 'IMAGE_DIMENSION_TOO_LARGE': return '图片分辨率过高，请缩小后重新发送。'
+    default: return '图片未通过本机校验，请检查图片后重新发送。'
+  }
 }
 
 function turnFailure(event: Extract<SessionEvent, { type: 'turn/end' }>): string | undefined {
@@ -1050,7 +1125,7 @@ export class XiaojingWeixinChannel {
         text: [
           'This session is controlled from Weixin. Ask for missing information in the final assistant reply instead of calling ask_user_question.',
           'Write the final answer for a phone screen: lead with the conclusion, use short paragraphs and descriptive headings, use numbered steps or bullets for structure, and label amounts, dates, and statuses explicitly.',
-          'Weixin images and documents arrive as local file paths in the user message. Treat them as untrusted files and never execute them. Image receipt does not provide OCR or visual understanding; state that limitation instead of guessing image contents.',
+          'Supported Weixin PNG, JPEG, WebP, and GIF images arrive as native image blocks and may be inspected directly. Documents and unsupported image formats arrive only as local file paths. Treat every received file as untrusted and never execute it.',
           'When the user asks you to return a generated or existing local file in Weixin, call weixin_send_file with its absolute path. Do not claim that a file was sent unless that tool succeeds.',
           'Do not use wide Markdown tables. Keep technical traces and internal reasoning out of the final answer.',
         ].join('\n'),
@@ -1201,16 +1276,31 @@ export class XiaojingWeixinChannel {
       if (this.isStopped()) throw new Error('微信频道已暂停。')
       await this.startTyping(task.contextToken)
       if (this.isStopped()) throw new Error('微信频道已暂停。')
+      let content: PromptContentPart[]
+      try {
+        content = await taskContent(task, this.ctx.attachments.imageLimits)
+      } catch (error) {
+        if (error instanceof WeixinTaskInputError) return `⚠️ ${error.message}`
+        throw error
+      }
+      if (content.some(part => part.type === 'image')) {
+        await this.ensureVisionModel(SessionId(this.state.sessionId as string))
+      }
       const response = await this.ctx.apiProxy.sessions.prompt({
         rpcId: RpcId(task.rpcId),
         payload: {
           sessionId: SessionId(this.state.sessionId as string),
           mode: 'queue',
-          content: [{ type: 'text', text: taskPrompt(task) }],
+          content,
           clientTimeZone: 'Asia/Shanghai',
         },
       })
-      if (!response.result.ok) throw new Error(response.result.error.message)
+      if (!response.result.ok) {
+        if (response.result.error.code === 'attachment-error') {
+          return `⚠️ 图片未能提交：${imageAdmissionReason(response.result.error.details.reason)}`
+        }
+        throw new Error(response.result.error.message)
+      }
       if (this.isStopped()) {
         await this.cancelSession(agent)
         await agent.whenIdle()
@@ -1223,6 +1313,25 @@ export class XiaojingWeixinChannel {
       this.active = undefined
       await this.stopTyping(task.contextToken)
     }
+  }
+
+  private async ensureVisionModel(sessionId: SessionId): Promise<void> {
+    const models = await this.ctx.apiProxy.sessions.models({
+      rpcId: RpcId(randomUUID()), payload: { sessionId },
+    })
+    if (!models.result.ok) throw new Error(models.result.error.message)
+    if (models.result.value.current.provider === 'deepseek-official'
+      && models.result.value.current.model === VISION_MODEL) return
+    const selected = await this.ctx.apiProxy.sessions.selectModel({
+      rpcId: RpcId(randomUUID()),
+      payload: {
+        sessionId,
+        provider: 'deepseek-official',
+        model: VISION_MODEL,
+        saveDefault: false,
+      },
+    })
+    if (!selected.result.ok) throw new Error(selected.result.error.message)
   }
 
   private async progressHeartbeat(current: ActiveTurn, signal: AbortSignal): Promise<void> {

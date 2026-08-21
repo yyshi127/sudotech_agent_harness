@@ -33,7 +33,7 @@ export interface WeixinChannelStatus {
 
 /** One inbound image or document retained with its originating task. */
 export interface WeixinPendingAttachment {
-  /** Transport-level media kind; images are not automatically understood or OCR-processed. */
+  /** Transport kind; supported raster images are promoted to native vision input at submission. */
   kind: 'image' | 'file'
   /** Sanitized unique filename in the local upload directory. */
   name: string
