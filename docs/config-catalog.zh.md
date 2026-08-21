@@ -3013,9 +3013,9 @@ export interface Config {
  *
  * - `'ask'` (the default) — delegate to the composed answerers; with none
  *   composed the chain falls through to the fail-closed `'unavailable'`.
- * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
- *   deterministically. The strict headless stance (CI, unattended runs) and
- *   the policy whose outcome is knowable without asking.
+ * - `'never'` — never prompt anyone for an ordinary request: every ordinary
+ *   ask resolves `'rejected'` deterministically. Mandatory security
+ *   confirmations use {@link ApprovalService.requestMandatory} instead.
  */
 export type ApprovalPolicy = 'ask' | 'never'
 ```
@@ -3211,9 +3211,13 @@ export interface Config {
 ```ts config-catalog
 /** Browser runtime configuration. */
 export interface Config {
-  /** Dedicated persistent profile directory; never point this at a person's normal browser profile. */
+  /** Dedicated persistent Edge profile directory; never point this at a person's normal browser profile. */
   profileDir: string
-  /** Explicit Chromium executable used by tests or a controlled deployment when Microsoft Edge is unavailable. */
+  /** Dedicated persistent Chrome profile directory. Defaults to a sibling of `profileDir`. */
+  chromeProfileDir?: string
+  /** Default browser when a task does not name one. The durable user setting may replace it. */
+  browser?: BrowserKind
+  /** Explicit selected-browser executable used only by tests or a controlled deployment. */
   executablePath?: string
   /** Whether to hide the controlled browser window. Xiaojing ships with this disabled. */
   headless?: boolean
@@ -3232,9 +3236,12 @@ export interface Config {
   /** Whether private and loopback destinations are allowed without approval. Intended only for tests. */
   allowPrivateHosts?: boolean
 }
+
+/** Browser selected for one automation operation. */
+export type BrowserKind = typeof BROWSER_KINDS[number]
 ```
 
-来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts:42`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts:63`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
 <a id="deepseek-aidsh-xiaojing-computer-control"></a>
 
@@ -3273,6 +3280,44 @@ export interface Config {
 ```
 
 来源：[`packages/xiaojing/xiaojing-computer-control/src/index.ts:41`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
+
+<a id="deepseek-aidsh-xiaojing-weixin-channel"></a>
+
+## `@deepseek-ai/dsh-xiaojing-weixin-channel`
+
+需要：`connection` · `credentials` · `apiProxy` · `agents` · `systemPrompt` · `tools` · `commands` · `permissionPresets`
+
+```ts config-catalog
+/** Deployment tunables for network deadlines and reply delivery. */
+export interface Config {
+  /** Private state directory; defaults to `$DSH_HOME/weixin-channel`. */
+  stateDir?: string
+  /** Ordinary iLink request timeout in milliseconds. */
+  requestTimeoutMs?: number
+  /** Long-poll deadline in milliseconds. */
+  longPollTimeoutMs?: number
+  /** Delay after one transient poll failure. */
+  retryDelayMs?: number
+  /** Delay after three consecutive poll failures. */
+  backoffDelayMs?: number
+  /** Deadline for one Tencent CDN upload or download. */
+  mediaTransferTimeoutMs?: number
+  /** Expiry for one Weixin approval code. */
+  approvalTimeoutMs?: number
+  /** Interval between visible long-running-task notices. */
+  progressHeartbeatMs?: number
+  /** Maximum Unicode code points in one outbound text message. */
+  maxReplyChars?: number
+  /** Shared local upload directory; defaults to `$DSH_HOME/uploads`. */
+  mediaDir?: string
+  /** Maximum decrypted bytes accepted or sent for one file. */
+  maxMediaBytes?: number
+  /** Maximum aggregate bytes retained in the shared upload directory. */
+  totalMediaBytes?: number
+}
+```
+
+来源：[`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:57`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
 
 ## 无配置的可加载插件
 
@@ -3316,9 +3361,11 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-trajectory`（[`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-usage-accounting`（[`packages/client/ui-usage-accounting/src/index.ts`](../packages/client/ui-usage-accounting/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-user-questions`（[`packages/client/ui-user-questions/src/index.ts`](../packages/client/ui-user-questions/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-weixin-channel`（[`packages/client/ui-weixin-channel/src/index.ts`](../packages/client/ui-weixin-channel/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-workflow-run`（[`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-workspace`（[`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts)）
-- `@deepseek-ai/dsh-client-xiaojing-product` — 需要 `systemPrompt`（[`packages/client/xiaojing-product/src/index.ts`](../packages/client/xiaojing-product/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-xiaojing-browser-control`（[`packages/client/ui-xiaojing-browser-control/src/index.ts`](../packages/client/ui-xiaojing-browser-control/src/index.ts)）
+- `@deepseek-ai/dsh-client-xiaojing-product` — 需要 `systemPrompt` · `tools` · `approval`（[`packages/client/xiaojing-product/src/index.ts`](../packages/client/xiaojing-product/src/index.ts)）
 - `@deepseek-ai/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts)）
 - `@deepseek-ai/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
 - `@deepseek-ai/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）

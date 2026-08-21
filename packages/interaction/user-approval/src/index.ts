@@ -87,9 +87,9 @@ const OUTCOMES: readonly ApprovalOutcome[] = ['allowed-once', 'rejected', 'cance
  *
  * - `'ask'` (the default) — delegate to the composed answerers; with none
  *   composed the chain falls through to the fail-closed `'unavailable'`.
- * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
- *   deterministically. The strict headless stance (CI, unattended runs) and
- *   the policy whose outcome is knowable without asking.
+ * - `'never'` — never prompt anyone for an ordinary request: every ordinary
+ *   ask resolves `'rejected'` deterministically. Mandatory security
+ *   confirmations use {@link ApprovalService.requestMandatory} instead.
  */
 export type ApprovalPolicy = 'ask' | 'never'
 
@@ -97,7 +97,7 @@ export type ApprovalPolicy = 'ask' | 'never'
 export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never']
 
 /** Model-facing statement for the deterministic `'never'` policy. */
-const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
+const NEVER_SENTENCE = 'Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.'
 /** Model-facing statement for an interactive policy that may still fail closed. */
 const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
 
@@ -255,10 +255,31 @@ export class ApprovalService extends Service {
    *   append commit point.
    */
   async request(req: ApprovalRequest): Promise<ApprovalOutcome> {
+    return await this.requestWithPolicy(req, true)
+  }
+
+  /**
+   * Ask for a security confirmation that the session's ordinary approval
+   * policy cannot suppress. This method is reserved for product security
+   * invariants such as deletion confirmation; it does not grant the action
+   * and still fails closed when no answerer is available, the user rejects,
+   * or the request is cancelled. Audit and turn-enclosure behavior are the
+   * same as {@link request}.
+   * @param req - the mandatory decision (agent, tool identity, reason, signal).
+   * @returns the closed outcome; `'allowed-once'` is the only grant.
+   * @throws when no turn is open or either audit event fails before the session
+   *   append commit point.
+   */
+  async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome> {
+    return await this.requestWithPolicy(req, false)
+  }
+
+  /** Run one audited request with or without the ordinary session-policy gate. */
+  private async requestWithPolicy(req: ApprovalRequest, respectSessionPolicy: boolean): Promise<ApprovalOutcome> {
     const session = req.agent.session
     if (!hasOpenTurn(session.events)) {
       throw new Error(
-        'approval.request() outside an open turn: the approval/asked + approval/decided audit pair '
+        'approval request outside an open turn: the approval/asked + approval/decided audit pair '
         + 'must be turn-enclosed (a bare event between turns is crash-tail garbage on reload). '
         + 'Ask from inside the turn that needs the decision.',
       )
@@ -270,7 +291,7 @@ export class ApprovalService extends Service {
       ...req.callId !== undefined ? { callId: req.callId } : {},
       ...req.reason !== undefined ? { reason: req.reason } : {},
     })
-    const outcome = await this.decide(req, session)
+    const outcome = await this.decide(req, session, respectSessionPolicy)
     session.append('approval/decided', { id, outcome })
     return outcome
   }
@@ -301,7 +322,11 @@ export class ApprovalService extends Service {
    * @param session - the request agent's session used for policy lookup.
    * @returns the normalized closed outcome.
    */
-  private async decide(req: ApprovalRequest, session: Session): Promise<ApprovalOutcome> {
+  private async decide(
+    req: ApprovalRequest,
+    session: Session,
+    respectSessionPolicy: boolean,
+  ): Promise<ApprovalOutcome> {
     const signal = req.signal
     if (signal?.aborted) return 'cancelled'
     // The 'never' policy is decided HERE, before any dispatch: a listener
@@ -309,7 +334,7 @@ export class ApprovalService extends Service {
     // ahead of any gate LISTENER, so a listener-shaped gate cannot keep the
     // documented promise that 'never' rejects deterministically regardless
     // of registration order — only the service's own request path can.
-    if (this.effectivePolicy(session) === 'never') return 'rejected'
+    if (respectSessionPolicy && this.effectivePolicy(session) === 'never') return 'rejected'
     // Enter the promise chain BEFORE dispatching: a listener that throws
     // SYNCHRONOUSLY (before its first await) must land in the same rejection
     // path as an async one — `Promise.resolve(call())` would let it escape

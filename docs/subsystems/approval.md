@@ -2,7 +2,7 @@
 
 English | [中文](approval.zh.md)
 
-The user-approval seam of [dsh-user-approval](../../packages/interaction/user-approval) answers one question: may this specific action proceed? It owns the shared request/outcome vocabulary, the `ctx.approval` dispatch service, the `approval/request` answerer waterfall, the log-only audit pair, and the per-session `ask`/`never` policy. UI channels may provide human answerers; the [ACP automation bridge](../../packages/acp/acp) provides one-shot machine decisions for its own agents. Callers such as [dsh-tools](../../packages/core/tools) and [dsh-tool-bash](../../packages/shell/tool-bash) consume the closed outcome and fail closed unless it is `allowed-once`.
+The user-approval seam of [dsh-user-approval](../../packages/interaction/user-approval) answers one question: may this specific action proceed? It owns the shared request/outcome vocabulary, the `ctx.approval` dispatch service, the `approval/request` answerer waterfall, the log-only audit pair, and the per-session `ask`/`never` policy. Ordinary requests follow that policy; mandatory security requests deliberately bypass only the `never` suppression and still require a live one-shot answer. UI channels may provide human answerers; the [ACP automation bridge](../../packages/acp/acp) provides one-shot machine decisions for its own agents. Callers consume the closed outcome and fail closed unless it is `allowed-once`.
 
 Source: [`packages/interaction/user-approval/src/index.ts`](../../packages/interaction/user-approval/src/index.ts)
 
@@ -30,7 +30,7 @@ type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
 
 ## Per-session policy
 
-`ApprovalPolicy` determines what happens before interactive answerers run. `ask` delegates to the composed answerer chain, whose no-answer default is `unavailable`; `never` deterministically returns `rejected` without dispatching any answerer. The effective value is the last `approval/policy` event in the session log, falling back to the service config. `setApprovalPolicy(session, policy)` is the single write path, so replay reconstructs the override.
+`ApprovalPolicy` determines what happens before interactive answerers run for `request()`. `ask` delegates to the composed answerer chain, whose no-answer default is `unavailable`; `never` deterministically returns `rejected` without dispatching any answerer. `requestMandatory()` is reserved for security invariants and dispatches regardless of that ordinary policy, while retaining the same cancellation, audit, and fail-closed behavior. The effective value is the last `approval/policy` event in the session log, falling back to the service config. `setApprovalPolicy(session, policy)` is the single write path, so replay reconstructs the override.
 
 ```ts type-equiv
 /**
@@ -39,9 +39,9 @@ type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
  *
  * - `'ask'` (the default) — delegate to the composed answerers; with none
  *   composed the chain falls through to the fail-closed `'unavailable'`.
- * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
- *   deterministically. The strict headless stance (CI, unattended runs) and
- *   the policy whose outcome is knowable without asking.
+ * - `'never'` — never prompt anyone for an ordinary request: every ordinary
+ *   ask resolves `'rejected'` deterministically. Mandatory security
+ *   confirmations use {@link ApprovalService.requestMandatory} instead.
  */
 type ApprovalPolicy = 'ask' | 'never'
 ```
@@ -83,7 +83,7 @@ interface ApprovalRequest {
 
 ## Dispatch and audit
 
-`ctx.approval.request(req)` requires the requesting session to be inside an open turn. It appends `approval/asked`, obtains one outcome, appends the matching `approval/decided`, and resolves with that outcome. The `never` policy is enforced inside the service before waterfall dispatch, so even an answerer registered later with `prepend` cannot bypass it. Answerers return an outcome when they own the request or call `next()` to delegate; the first answer occupies the single decision slot.
+`ctx.approval.request(req)` and `ctx.approval.requestMandatory(req)` require the requesting session to be inside an open turn. Each appends `approval/asked`, obtains one outcome, appends the matching `approval/decided`, and resolves with that outcome. The `never` policy is enforced inside ordinary `request()` before waterfall dispatch, so even an answerer registered later with `prepend` cannot bypass it. Mandatory requests intentionally reach the same answerers under `never`; they do not imply permission and become `unavailable` when no answerer exists. Answerers return an outcome when they own the request or call `next()` to delegate; the first answer occupies the single decision slot.
 
 The audit events are log-only and do not enter the model transcript. Model-visible behavior is the caller's derived tool result plus the current runtime-context snapshot. Service disposal removes its context contribution; answerer listeners are independently effect-bound to their owning plugins.
 
@@ -130,6 +130,20 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  *   append commit point.
  */
 async request(req: ApprovalRequest): Promise<ApprovalOutcome>
+
+/**
+ * Ask for a security confirmation that the session's ordinary approval
+ * policy cannot suppress. This method is reserved for product security
+ * invariants such as deletion confirmation; it does not grant the action
+ * and still fails closed when no answerer is available, the user rejects,
+ * or the request is cancelled. Audit and turn-enclosure behavior are the
+ * same as {@link request}.
+ * @param req - the mandatory decision (agent, tool identity, reason, signal).
+ * @returns the closed outcome; `'allowed-once'` is the only grant.
+ * @throws when no turn is open or either audit event fails before the session
+ *   append commit point.
+ */
+async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
  * Read the session override without applying the configured default.

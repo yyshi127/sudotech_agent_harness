@@ -413,6 +413,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['when no turn is open or either audit event fails before the session append commit point.'],
       },
       {
+        signature: 'async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>',
+        description: 'Ask for a security confirmation that the session\'s ordinary approval policy cannot suppress. This method is reserved for product security invariants such as deletion confirmation; it does not grant the action and still fails closed when no answerer is available, the user rejects, or the request is cancelled. Audit and turn-enclosure behavior are the same as request.',
+        parameters: [{ name: 'req', description: 'the mandatory decision (agent, tool identity, reason, signal).' }],
+        returns: 'the closed outcome; `\'allowed-once\'` is the only grant.',
+        throws: ['when no turn is open or either audit event fails before the session append commit point.'],
+      },
+      {
         signature: 'overrideOf(session: Session): ApprovalPolicy | undefined',
         description: 'Read the session override without applying the configured default.',
         parameters: [{ name: 'session', description: 'session whose log supplies the override.' }],
@@ -2293,10 +2300,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Execute one validated browser operation for an owning session.',
         parameters: [{ name: 'owner', description: 'Agent session that owns the browser page.' }, { name: 'request', description: 'Browser operation to execute.' }, { name: 'signal', description: 'Cancellation signal for the operation.' }],
         returns: 'The bounded browser observation produced by the operation.',
+        throws: ['When the operation is cancelled, the browser is closing, or the plugin has unloaded.'],
       },
       {
         signature: 'async close(): Promise<void>',
-        description: 'Close the persistent browser context and clear all opaque handles.',
+        description: 'Close the persistent browser, cancel queued work, and wait until every accepted operation settles.',
         parameters: [],
       },
     ],
@@ -2843,7 +2851,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ApprovalService',
-    declaration: 'export class ApprovalService extends Service {\n    static Config: z<Config>;\n    constructor(ctx: Context, public config: Config);\n    setPolicy(agent: Agent, policy: ApprovalPolicy): void;\n    async request(req: ApprovalRequest): Promise<ApprovalOutcome>;\n    overrideOf(session: Session): ApprovalPolicy | undefined;\n}',
+    declaration: 'export class ApprovalService extends Service {\n    static Config: z<Config>;\n    constructor(ctx: Context, public config: Config);\n    setPolicy(agent: Agent, policy: ApprovalPolicy): void;\n    async request(req: ApprovalRequest): Promise<ApprovalOutcome>;\n    async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>;\n    overrideOf(session: Session): ApprovalPolicy | undefined;\n}',
   },
   {
     name: 'AskUserQuestionAnswer',
@@ -2919,11 +2927,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserActionRequest',
-    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly url?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n}',
+    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly browser?: BrowserKind;\n    readonly url?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n}',
   },
   {
     name: 'BrowserActionResult',
-    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly pageId?: BrowserPageId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly truncated?: boolean;\n}',
+    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly browser?: BrowserKind;\n    readonly pageId?: BrowserPageId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly truncated?: boolean;\n}',
   },
   {
     name: 'BrowserObservationId',
@@ -2935,7 +2943,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserPageSummary',
-    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
+    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly browser: BrowserKind;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
   },
   {
     name: 'BrowserTarget',

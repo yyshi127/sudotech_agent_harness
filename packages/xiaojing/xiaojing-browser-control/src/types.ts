@@ -2,6 +2,12 @@
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
 
+/** Browsers supported by the Xiaojing automation profile. */
+export const BROWSER_KINDS = ['edge', 'chrome'] as const
+
+/** Browser selected for one automation operation. */
+export type BrowserKind = typeof BROWSER_KINDS[number]
+
 /** Opaque identifier for one session-owned browser page. */
 export type BrowserPageId = Branded<'BrowserPageId'>
 
@@ -60,6 +66,8 @@ export type BrowserAction = typeof BROWSER_ACTIONS[number]
 export interface BrowserActionRequest {
   /** Operation to perform. */
   readonly action: BrowserAction
+  /** Per-task browser override for `open` or `tabs`; omission uses the saved default. */
+  readonly browser?: BrowserKind
   /** HTTP or HTTPS destination for `open`. */
   readonly url?: string
   /** Observation that issued `targetId`. */
@@ -100,6 +108,8 @@ export interface BrowserTarget {
 export interface BrowserPageSummary {
   /** Opaque page identifier. */
   readonly id: BrowserPageId
+  /** Browser that owns this page. */
+  readonly browser: BrowserKind
   /** Current page URL. */
   readonly url: string
   /** Current document title. */
@@ -114,6 +124,8 @@ export interface BrowserActionResult {
   readonly action: BrowserAction
   /** Short operational summary. */
   readonly summary: string
+  /** Browser that produced the active-page result. */
+  readonly browser?: BrowserKind
   /** Active page identifier, when a page exists. */
   readonly pageId?: BrowserPageId
   /** Current page URL. */

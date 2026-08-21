@@ -43,7 +43,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
-| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`、`ctx.approval for protected actions`、`an owning Agent at execution time`、`Microsoft Edge at execution time` | `tool/call`、`isolated persistent browser profile`、`tool/result` | - | 产品层的 browser_control 工具按需启动 Edge，因此目录生成过程只记录 schema，不会启动浏览器或修改用户配置目录。 |
+| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`、`ctx.approval for protected actions`、`an owning Agent at execution time`、`selected Edge or Chrome at execution time` | `tool/call`、`isolated persistent browser profile`、`tool/result` | - | 产品层的 browser_control 工具按需启动所选浏览器，因此目录生成过程只记录 schema，不会启动浏览器或修改用户配置目录。 |
 | `@deepseek-ai/dsh-xiaojing-computer-control` | `computer_control` | `ctx.tools`、`ctx.subprocess`、`ctx.approval for protected actions`、`an owning Agent at execution time`、`Windows UI Automation at execution time` | `tool/call`、`native Windows UI state`、`tool/result` | - | 产品层的 computer_control 工具按需启动有界 PowerShell helper，因此目录生成过程只记录 schema，不会读取或修改 Windows 桌面。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
@@ -2232,7 +2232,7 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
 
 ### `browser_control`
 
-通过语义页面观察控制一个专用的可见浏览器。先使用 open，再仅操作最新观察中的不透明 ID。动作会自动返回新的观察，禁止猜测目标 ID。网站操作使用本工具，而不是 computer_control。访问内网、上传文件、提交、支付、删除、发送以及类似高影响动作需要用户一次性授权。
+通过语义页面观察控制专用的可见 Edge 或 Chrome。省略 browser 时使用保存的默认值；用户明确指定 Edge 或 Chrome 时，为本次任务在 open 或 tabs 中传入该浏览器。如果所选浏览器无法启动，应直接报告失败；除非用户明确要求，否则不得切换到另一浏览器。创建标签页前，open 会在该浏览器中发现并复用现有的同源标签页。后续步骤继续在活动页面上使用 observe 和不透明目标 ID，而不是再次调用 open。禁止猜测目标 ID。网站操作应优先使用本工具，不要另行构建 Shell、PowerShell 或 CDP 浏览器控制器。访问内网、上传文件、提交、支付、删除、发送以及类似高影响动作需要用户一次性授权。
 
 ```json
 {
@@ -2254,9 +2254,17 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
         "close_tab"
       ]
     },
+    "browser": {
+      "type": "string",
+      "description": "Optional per-task Edge or Chrome override for open and tabs. Omit to use the saved default.",
+      "enum": [
+        "edge",
+        "chrome"
+      ]
+    },
     "url": {
       "type": "string",
-      "description": "HTTP(S) URL for open."
+      "description": "HTTP(S) URL for open. Existing same-origin tabs are reused before a new tab is created."
     },
     "observation_id": {
       "type": "string",
@@ -2298,7 +2306,7 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
 
 来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
-产品层的 browser_control 工具按需启动 Edge，因此目录生成过程只记录 schema，不会启动浏览器或修改用户配置目录。
+产品层的 browser_control 工具按需启动所选浏览器，因此目录生成过程只记录 schema，不会启动浏览器或修改用户配置目录。
 
 <a id="deepseek-aidsh-xiaojing-computer-control"></a>
 

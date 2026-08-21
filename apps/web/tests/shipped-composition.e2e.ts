@@ -86,6 +86,24 @@ afterEach(async () => {
 it('assembles the shipped Web catalog, file-reference guidance, retry policy, and confined access default', async () => {
   scaffold = await launchWebScaffold({ deepSeekMissingCredential: true })
   const ctx = scaffold.ctx
+  const channelResponse = await fetch(`${scaffold.baseUrl}/xiaojing-weixin/status`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      type: 'client-request', rpcId: 'shipped-weixin-status', method: 'status', payload: {},
+    }),
+  })
+  expect(channelResponse.status).toBe(200)
+  const channelStatus: unknown = await channelResponse.json()
+  expect(channelStatus).toMatchObject({
+    type: 'server-response',
+    rpcId: 'shipped-weixin-status',
+    result: {
+      ok: true,
+      value: { state: 'disconnected', online: false, verificationRequired: false },
+    },
+  })
+  expect(JSON.stringify(channelStatus)).not.toMatch(/token|context/i)
   expect(ctx.llm.providerRetryPolicy('deepseek-official')).toMatchInlineSnapshot(`
     {
       "initialDelayMs": 500,
@@ -169,10 +187,11 @@ it('assembles the shipped Web catalog, file-reference guidance, retry policy, an
     expect(automationContext?.text).toMatchInlineSnapshot(`
       "Built-in Xiaojing automation capabilities:
       - Choose the shortest deterministic route. Use direct file, data, editing, and command tools when they can complete the task without driving a visible application.
-      - Use browser_control for websites. Observe first, use only target IDs from the latest observation, and re-observe after state changes.
+      - Use browser_control for websites. When the user explicitly names Chrome or Edge, pass that browser on open or tabs for the task; otherwise omit it so the saved default is used. If that browser cannot start, report the failure and do not switch browsers unless the user explicitly requests another browser. Reuse a suitable existing tab before creating one, continue later steps on the active page with observe and the latest target IDs, and do not build a separate shell, PowerShell, or CDP controller merely to automate the website.
       - Use computer_control only when the task requires a visible native Windows application. If it is closed, search with list_apps and launch the returned app ID; then select a listed window, observe it, and invoke only actions advertised by each target.
       - Do not automate a website through computer_control when browser_control can operate it.
-      - High-impact actions may require one-time user approval; a rejection means do not perform the action."
+      - High-impact actions may require one-time user approval; a rejection means do not perform the action.
+      - Deletion is always a mandatory-confirmation action. This remains true under Full access or the never-approval policy; never evade, obscure, split, or replace a deletion command to avoid that confirmation."
     `)
   } finally {
     await handle.dispose()

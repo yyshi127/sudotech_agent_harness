@@ -350,7 +350,7 @@ describe('ApprovalService.request', () => {
 })
 
 describe('approval policy (the approval/policy fold)', () => {
-  const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
+  const NEVER_SENTENCE = 'Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.'
   const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
 
   /**
@@ -411,6 +411,37 @@ describe('approval policy (the approval/policy fold)', () => {
     // The audit pair still lands on the session log.
     expect(session.events.filter(e => e.type === 'approval/asked')).toHaveLength(1)
     expect(session.events.filter(e => e.type === 'approval/decided')).toHaveLength(1)
+  })
+
+  it('a mandatory request consults the answerer and audits the decision under never', async () => {
+    const ctx = new Context()
+    await ctx.plugin(ApprovalService, { policy: 'never' })
+    const consulted = vi.fn()
+    ctx.on('approval/request', () => {
+      consulted()
+      return Promise.resolve<ApprovalOutcome>('allowed-once')
+    })
+    const { agent, session } = sessionAgent('sess-mandatory-never')
+
+    await expect(ctx.approval.requestMandatory({
+      agent,
+      toolName: 'pwsh',
+      reason: 'Delete one file',
+    })).resolves.toBe('allowed-once')
+
+    expect(consulted).toHaveBeenCalledOnce()
+    const asked = session.events.find((event): event is SessionEvent<'approval/asked'> => event.type === 'approval/asked')
+    const decided = session.events.find((event): event is SessionEvent<'approval/decided'> => event.type === 'approval/decided')
+    expect(asked?.data).toMatchObject({ toolName: 'pwsh', reason: 'Delete one file' })
+    expect(decided?.data).toMatchObject({ id: asked?.data.id, outcome: 'allowed-once' })
+  })
+
+  it('a mandatory request still fails closed under never when no answerer exists', async () => {
+    const ctx = new Context()
+    await ctx.plugin(ApprovalService, { policy: 'never' })
+    const { agent } = sessionAgent('sess-mandatory-unavailable')
+
+    await expect(ctx.approval.requestMandatory({ agent, toolName: 'pwsh' })).resolves.toBe('unavailable')
   })
 
   it('the gate decides FIRST even against an answerer registered before the service (prepend)', async () => {

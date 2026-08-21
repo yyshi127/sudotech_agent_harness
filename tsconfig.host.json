@@ -172,6 +172,7 @@
     { "path": "./packages/client/xiaojing-product/tsconfig.host.json" },
     { "path": "./packages/xiaojing/xiaojing-browser-control" },
     { "path": "./packages/xiaojing/xiaojing-computer-control" },
+    { "path": "./packages/xiaojing/xiaojing-weixin-channel" },
     { "path": "./packages/core/agent" },
     { "path": "./packages/core/agent-default-model" },
     { "path": "./packages/interaction/commands" },

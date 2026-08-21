@@ -22,5 +22,12 @@
     "apps/desktop/identity.json",
     "apps/desktop/integration-patches.json",
     "apps/desktop/user-data-contract.json"
+  ],
+  "featurePackages": [
+    "@deepseek-ai/dsh-xiaojing-browser-control",
+    "@deepseek-ai/dsh-xiaojing-computer-control",
+    "@deepseek-ai/dsh-xiaojing-weixin-channel",
+    "@deepseek-ai/dsh-client-ui-weixin-channel",
+    "@deepseek-ai/dsh-client-ui-xiaojing-browser-control"
   ]
 }

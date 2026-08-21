@@ -13,6 +13,7 @@
     "harness/uploads",
     "harness/usage-accounting",
     "harness/browser-control",
+    "harness/weixin-channel",
     "Local Storage"
   ]
 }

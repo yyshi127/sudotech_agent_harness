@@ -60,10 +60,7 @@ for (const slot of manifest.slots) {
 if (!composition.includes("name: '@deepseek-ai/dsh-client-xiaojing-product'")) {
   errors.push('web-app composition does not load @deepseek-ai/dsh-client-xiaojing-product')
 }
-for (const capability of [
-  '@deepseek-ai/dsh-xiaojing-browser-control',
-  '@deepseek-ai/dsh-xiaojing-computer-control',
-]) {
+for (const capability of manifest.featurePackages) {
   if (!composition.includes(`name: '${capability}'`)) {
     errors.push(`web-app composition does not load ${capability}`)
   }
@@ -71,6 +68,23 @@ for (const capability of [
 const productClient = await readFile(join(root, 'packages', 'client', 'xiaojing-product', 'src', 'client', 'index.ts'), 'utf8')
 if (!productClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")) {
   errors.push('xiaojing product client is not gated by the xiaojing build profile')
+}
+const weixinClient = await readFile(join(root, 'packages', 'client', 'ui-weixin-channel', 'src', 'client', 'index.ts'), 'utf8')
+if (!weixinClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")
+  || !weixinClient.includes('connection.isLoopback')) {
+  errors.push('Weixin channel client is not gated by the xiaojing build profile and loopback origin')
+}
+const browserControlClient = await readFile(join(
+  root, 'packages', 'client', 'ui-xiaojing-browser-control', 'src', 'client', 'index.ts',
+), 'utf8')
+if (!browserControlClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")
+  || !browserControlClient.includes('connection.isLoopback')
+  || !browserControlClient.includes("id: 'browser-control'")) {
+  errors.push('browser-control settings are not isolated to a standalone Xiaojing loopback section')
+}
+const userDataContract = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'user-data-contract.json'), 'utf8'))
+if (!userDataContract.protectedPaths.includes('harness/weixin-channel')) {
+  errors.push('Weixin channel durable state is missing from the desktop user-data contract')
 }
 const buildEnvironment = await readFile(join(root, 'scripts', 'client-build-environment.ts'), 'utf8')
 if (!buildEnvironment.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {

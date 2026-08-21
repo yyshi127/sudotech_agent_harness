@@ -8,6 +8,8 @@ The Xiaojing Accounting product layer over DeepSeek Harness. Its Host half suppl
 
 The browser plugin registers `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.brand.content`, and `onboarding.content` only in the `xiaojing` Client build profile. Product copy, palette overrides, and the default persona live in this package. The build profile selects the inventoried SUDO logo for the pre-plugin loading page through generic boot metadata; the shell retains its `HARNESS` fallback when that metadata is absent. `product.json` records the official rc.8 baseline, generic slots, browser asset paths, and desktop product manifests. `scripts/verify-xiaojing-product-layer.mjs` rejects Xiaojing brand marks written back into the official UI source roots.
 
+The Host product plugin also owns Xiaojing's mandatory deletion policy. Explicit deletion tools and shell deletion commands request one-use confirmation through the shared approval channel even when the session policy is `never`. A monotonic tool guard denies any matching call that did not pass through that exact confirmation. Browser and Windows controls classify delete/remove/uninstall targets and the Delete key as mandatory confirmations inside their own tool providers.
+
 The product identifies itself as “小兢会计，您的AI办公搭子” and accurately describes its technical origin as based on DeepSeek Harness with internal branding and configuration. It does not claim that SUDO Tech developed the underlying framework.
 
 ## Upstream upgrade contract
@@ -17,6 +19,20 @@ An upstream upgrade starts from stable `main` on a `codex/upgrade-rcX` branch an
 The upgraded branch may merge only after the product-layer verifier, focused behavior tests, built Web replay, fresh Windows install, and previous-release in-place upgrade checks pass. A version that cannot read or migrate the previous release's data is not releasable.
 
 ## Model Experience
+
+### Mandatory deletion instruction
+
+#### What the model sees
+
+When either built-in automation provider is composed, the stable automation context states that deletion always requires confirmation under Full access and the `never` approval policy, and prohibits evasion by changing or obscuring the deletion command.
+
+#### Token effect
+
+One fixed sentence in the existing built-in automation context; it is not repeated per tool call.
+
+#### KV Cache effect
+
+The sentence is prefix-stable while the product capability composition remains unchanged.
 
 ### Default deployment persona system prompt
 
@@ -42,3 +58,4 @@ The text is prefix-stable while the product version and working directory stay u
 
 - The product layer relies on five generic UI slots on the rc.8 integration baseline; a future official release that changes those owners requires an adapter update before merge.
 - Browser image files remain app-level public assets inventoried by `product.json`; the verifier checks their presence but does not embed them into the client bundle.
+- Shell classification recognizes explicit deletion commands. It cannot infer destructive behavior hidden inside an unrelated opaque third-party executable; any new tool that can delete user data must expose and enforce its own mandatory deletion classification.

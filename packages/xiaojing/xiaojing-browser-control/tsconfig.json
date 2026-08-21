@@ -21,13 +21,22 @@
       "path": "../../util/brand"
     },
     {
+      "path": "../../util/native-command"
+    },
+    {
       "path": "../../core/agent"
     },
     {
       "path": "../../core/session"
     },
     {
+      "path": "../../settings/settings"
+    },
+    {
       "path": "../../core/tools"
+    },
+    {
+      "path": "../../interaction/user-approval"
     },
     {
       "path": "../../core/system-prompt"

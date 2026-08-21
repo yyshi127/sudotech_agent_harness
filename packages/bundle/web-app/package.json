@@ -64,6 +64,8 @@
     "@deepseek-ai/dsh-client-ui-directory-picker-native": "workspace:^",
     "@deepseek-ai/dsh-client-ui-message-feedback": "workspace:^",
     "@deepseek-ai/dsh-client-ui-usage-accounting": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-weixin-channel": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-xiaojing-browser-control": "workspace:^",
     "@deepseek-ai/dsh-client-ui-goal": "workspace:^",
     "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
     "@deepseek-ai/dsh-client-ui-model-selection": "workspace:^",
@@ -115,6 +117,7 @@
     "@deepseek-ai/dsh-workspace": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-weixin-channel": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "commander": "^15.0.0",
     "open": "^11.0.0"

@@ -25,11 +25,11 @@
 
 Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudotech\xiaojing-accounting-desktop`。随包 Host 使用其 `harness` 子目录作为 `DSH_HOME`，用户工作区位于 `%USERPROFILE%\Documents\小兢会计工作区`。
 
-`user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、上传文件、用量统计、专用浏览器操控 profile、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和 rc.8 reader；除精确移除 ModLens 的安装程序默认 Web profile 迁移外，所有受保护数据必须保持字节不变，并验证会话、凭据、预设、设置、上传、storage 和用量兼容。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
+`user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、上传文件、用量统计、专用浏览器操控 profile、微信频道状态、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和 rc.8 reader；除精确移除 ModLens 的安装程序默认 Web profile 迁移外，所有受保护数据必须保持字节不变，并验证会话、凭据、预设、设置、上传、storage 和用量兼容。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
 
 ## 内置自动化运行环境
 
-浏览器操控使用独立的 `harness/browser-control/profile` 启动系统已安装的 Microsoft Edge；应用不捆绑 Chrome for Testing，也不复用用户日常使用的 Edge profile。Windows 应用操控使用 Windows PowerShell 5.1 和操作系统自带的 `System.Windows.Automation` API。终端用户无需安装 Node、浏览器驱动、PowerShell 模块或独立自动化服务。
+浏览器操控以可见方式启动所选的本机 Edge 或 Chrome。Edge 使用 `harness/browser-control/profile`，Chrome 使用 `harness/browser-control/chrome-profile`，二者都不复用用户日常浏览器 profile。应用默认选择 Edge，不捆绑 Chrome for Testing，并且所选浏览器不可用时不会回退到另一款浏览器。Windows 应用操控使用 Windows PowerShell 5.1 和操作系统自带的 `System.Windows.Automation` API。终端用户无需安装 Node、浏览器驱动、PowerShell 模块或独立自动化服务。
 
 两项能力分别位于独立 Cordis 配置行中。开发 overlay 可以单独禁用任意一项，小兢产品组合则默认启用二者，并在每个新 agent 会话中说明当前可用能力。浏览器和 Windows 观察都使用会话独占的不透明 ID，并在状态变化后过期。访问内网、上传文件、提交、支付、删除、发送及同类原生操作需要一次性授权。
 
@@ -39,12 +39,12 @@ Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudo
 
 ## 发布检查
 
-准备随包运行时前，先运行身份、用户数据、产品层检查，以及真实 Edge 和 Windows UI Automation 测试。正式发布还必须在默认路径与自定义路径分别完成全新 Windows 安装，以及从上一安装包覆盖升级。安装后确认会话、凭据、预设、插件、附件、工作区、用量数据和专用浏览器 profile 全部保留，才能发布安装器。
+准备随包运行时前，先运行身份、用户数据、产品层检查，以及真实 Edge 和 Windows UI Automation 测试。正式发布还必须在默认路径与自定义路径分别完成全新 Windows 安装，以及从上一安装包覆盖升级。安装后确认会话、凭据、预设、插件、附件、工作区、用量数据、专用浏览器 profile 和微信频道状态全部保留，才能发布安装器。
 
 ## 已知限制
 
 - 更新方式是下载并运行新版安装包，目前没有应用内自动更新。
 - 安装包尚未进行 Authenticode 数字签名，因此 Windows 可能显示未知发布者或 SmartScreen 提示。
 - 覆盖升级只适用于同一 Windows 用户，且不能在升级过程中迁移安装目录。
-- 浏览器操控依赖 Microsoft Edge；如果 Edge 被移除或被设备策略阻止，能力会返回明确的启动错误。
+- 浏览器操控依赖所选的 Edge 或 Chrome；如果该浏览器未安装或被设备策略阻止，能力会返回明确的启动错误。
 - 内置自动化依赖语义而不是视觉，不能操作纯像素控件、验证码、UAC、安全桌面或管理员权限应用。

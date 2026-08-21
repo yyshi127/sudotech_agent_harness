@@ -6,11 +6,14 @@
     "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
   },
   "files": [
+    "src/deletion-guard.ts",
     "src/index.ts",
     "src/invariant.ts"
   ],
   "references": [
     { "path": "../../../vendor/cordis" },
+    { "path": "../../core/tools" },
+    { "path": "../../interaction/user-approval" },
     { "path": "../../core/system-prompt" },
     { "path": "../../xiaojing/xiaojing-browser-control" },
     { "path": "../../xiaojing/xiaojing-computer-control" },

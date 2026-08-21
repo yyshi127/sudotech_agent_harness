@@ -41,7 +41,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
-| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Microsoft Edge at execution time` | `tool/call`, `isolated persistent browser profile`, `tool/result` | - | The product-owned browser_control tool starts Edge lazily, so catalog generation records its schema without launching a browser or changing a user profile. |
+| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `selected Edge or Chrome at execution time` | `tool/call`, `isolated persistent browser profile`, `tool/result` | - | The product-owned browser_control tool starts the selected browser lazily, so catalog generation records its schema without launching a browser or changing a user profile. |
 | `@deepseek-ai/dsh-xiaojing-computer-control` | `computer_control` | `ctx.tools`, `ctx.subprocess`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Windows UI Automation at execution time` | `tool/call`, `native Windows UI state`, `tool/result` | - | The product-owned computer_control tool starts its bounded PowerShell helper lazily, so catalog generation records its schema without reading or changing the Windows desktop. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
@@ -2228,7 +2228,7 @@ web_search and web_fetch keep provider selection behind ctx.web so model-visible
 
 ### `browser_control`
 
-Control a dedicated visible browser using semantic page observations. Use open, then target only opaque IDs from the latest observation. Actions return a fresh observation automatically. Never guess target IDs. Use this tool for websites instead of computer_control. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.
+Control dedicated visible Edge or Chrome through semantic page observations. Omit browser to use the saved default; when the user explicitly names Edge or Chrome, pass that browser on open or tabs for this task. If the selected browser cannot start, report that failure and do not switch browsers unless the user explicitly requests another browser. Before creating a tab, open discovers and reuses an existing same-origin tab in that browser. Continue later steps on the active page with observe and opaque target IDs instead of calling open again. Never guess target IDs. Prefer this tool for websites; do not build a separate shell, PowerShell, or CDP browser controller. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.
 
 ```json
 {
@@ -2250,9 +2250,17 @@ Control a dedicated visible browser using semantic page observations. Use open, 
         "close_tab"
       ]
     },
+    "browser": {
+      "type": "string",
+      "description": "Optional per-task Edge or Chrome override for open and tabs. Omit to use the saved default.",
+      "enum": [
+        "edge",
+        "chrome"
+      ]
+    },
     "url": {
       "type": "string",
-      "description": "HTTP(S) URL for open."
+      "description": "HTTP(S) URL for open. Existing same-origin tabs are reused before a new tab is created."
     },
     "observation_id": {
       "type": "string",
@@ -2294,7 +2302,7 @@ Control a dedicated visible browser using semantic page observations. Use open, 
 
 Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
-The product-owned browser_control tool starts Edge lazily, so catalog generation records its schema without launching a browser or changing a user profile.
+The product-owned browser_control tool starts the selected browser lazily, so catalog generation records its schema without launching a browser or changing a user profile.
 
 <a id="deepseek-aidsh-xiaojing-computer-control"></a>
 

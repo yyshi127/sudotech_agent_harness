@@ -32,7 +32,7 @@ flowchart LR
   Upstream["Upstream rc.8 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
-  Adapters --> Browser["Edge browser-control plugin"]
+  Adapters --> Browser["Edge/Chrome browser-control plugin"]
   Adapters --> Computer["Windows UIA control plugin"]
   Product --> Bundle["Web app composition"]
   Usage --> Bundle
@@ -52,8 +52,10 @@ The lowest layer that can own a change owns it. Official packages expose neutral
 | Xiaojing product layer | Brand components, palette, product copy, onboarding, and default deployment persona | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.md) |
 | Usage Host plugin | Provider usage observation, API-key fingerprinting, built-in pricing, immutable ledger, Remote, and update event | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.md) |
 | Usage Client plugin | Sidebar summary and detail panel, Settings entry, monthly calendar, formatting, and refresh controller | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.md) |
-| Browser-control plugin | Dedicated Edge lifecycle, bounded semantic page observations, opaque targets, and high-impact approval | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.md) |
+| Browser-control plugins | Selectable Edge/Chrome lifecycle, standalone settings page, bounded semantic page observations, opaque targets, and high-impact approval | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.md), [`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.md) |
 | Computer-control plugin | Windows PowerShell helper lifecycle, UI Automation observations, semantic native actions, and high-impact approval | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.md) |
+| Weixin Host plugin | Tencent iLink pairing, private credentials and state, durable Agent session bridge, approvals, and mobile text delivery | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.md) |
+| Weixin Client plugin | Loopback-only channel settings, QR pairing, verification, and sanitized connection state | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.md) |
 | Web composition | Host and browser plugin roster and load order | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | Independent integration patches | API-key post-configuration, profile runtime-shadow protection, and file-upload composer repair | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
 | Desktop and installer | Electron lifecycle, bundled Node runtime, icons, splash, fixed window identity, NSIS configuration, and release checks | [`apps/desktop/`](../apps/desktop/README.md) |
@@ -104,11 +106,19 @@ The built-in Flash and Pro table in [`pricing.ts`](../packages/llm/usage-account
 
 ### Built-in browser and Windows automation
 
-`@deepseek-ai/dsh-xiaojing-browser-control` and `@deepseek-ai/dsh-xiaojing-computer-control` are independent Cordis capability plugins and do not modify `agent-loop` or official UI packages. The Web composition enables both by default; a development overlay can disable either row. Their tools are deployment-global by design, so every new session, including a user-authored preset that suppresses runtime context, receives both schemas and their routing descriptions. Sessions that accept runtime context also receive the Xiaojing Host product contribution: direct file, data, editing, and command tools remain primary when no visible UI is required; websites use `browser_control`; native visible applications use `computer_control`.
+`@deepseek-ai/dsh-xiaojing-browser-control` and `@deepseek-ai/dsh-xiaojing-computer-control` are independent Cordis capability plugins and do not modify `agent-loop` or official UI packages. The Web composition enables both by default; a development overlay can disable either row. `@deepseek-ai/dsh-client-ui-xiaojing-browser-control` independently contributes the loopback-only “Browser Control” settings section and disappears when its composition row is removed. Their tools are deployment-global by design, so every new session, including a user-authored preset that suppresses runtime context, receives both schemas and their routing descriptions. Sessions that accept runtime context also receive the Xiaojing Host product contribution: direct file, data, editing, and command tools remain primary when no visible UI is required; websites use `browser_control`; native visible applications use `computer_control`.
 
-Browser control starts Microsoft Edge with a dedicated persistent profile, returns bounded page, text, and semantic-target results, and accepts only opaque IDs from the latest session-owned observation. It does not accept CSS selectors, JavaScript, CDP commands, arbitrary profile paths, or password values. The product does not bundle Chrome for Testing; an explicit Chromium executable is reserved for tests or controlled deployment. Windows control keeps one bounded JSON-line helper running through the subprocess capability, discovers and launches only Windows Start catalog entries, and uses Windows PowerShell 5.1 plus `System.Windows.Automation`. It returns opaque, bounded application, window, and control results without exposing registration IDs or executable paths, and it does not accept coordinates, screenshots, OCR, PowerShell source, or arbitrary shell commands.
+Browser control starts the selected installed Edge or Chrome visibly with a browser-specific dedicated persistent profile. The default is Edge; a durable live setting changes subsequent work only after accepted operations settle, and a missing selected browser never falls back to the other browser. Users may minimize the controlled window after login; ordinary DOM actions continue through Playwright without physical mouse or keyboard input. Results contain bounded page text and semantic targets, and actions accept only opaque IDs bound to the exact DOM nodes from the latest session-owned observation. A detached or replaced node fails and requires a new observation instead of retargeting by position. The tool does not accept CSS selectors, JavaScript, CDP commands, arbitrary profile paths, or password values. The product does not bundle Chrome for Testing; an explicit executable is reserved for tests or controlled deployment. Windows control keeps one bounded JSON-line helper running through the subprocess capability, discovers and launches only Windows Start catalog entries, and uses Windows PowerShell 5.1 plus `System.Windows.Automation`. It returns opaque, bounded application, window, and control results without exposing registration IDs or executable paths, and it does not accept coordinates, screenshots, OCR, PowerShell source, or arbitrary shell commands.
 
-Both plugins invalidate observations after state changes, reject IDs owned by another session, recover after an interrupted owned process, stop owned processes on plugin disposal, and fail closed when a protected action has no approval channel. Browser cancellation preserves a replacement blank tab when the failed tab was the last page, so recovery does not close the visible Edge window. Browser operations serialize per session; the single Windows helper serializes all Windows operations. Private or loopback browser destinations, uploads, submissions, payments, deletions, sends, high-impact application launches, and comparable native actions require one-use approval. Password fields, UAC, secure desktop, elevated applications, pixel-only controls, CAPTCHAs, and canvas-only sites are outside this semantic capability.
+Both capability plugins invalidate observations after state changes, reject IDs owned by another session, recover after an interrupted owned process, stop owned processes on plugin disposal, and fail closed when a protected action has no approval channel. Browser cancellation preserves a replacement blank tab when the failed tab was the last page, so recovery does not close the visible browser window. Browser operations serialize per session; the single Windows helper serializes all Windows operations. Private or loopback browser destinations, uploads, submissions, payments, deletions, sends, high-impact application launches, and comparable native actions require one-use approval. Password fields, native browser or operating-system dialogs, UAC, secure desktop, elevated applications, pixel-only controls, CAPTCHAs, and canvas-only sites are outside this semantic capability.
+
+### Weixin channel
+
+`@deepseek-ai/dsh-xiaojing-weixin-channel` and `@deepseek-ai/dsh-client-ui-weixin-channel` implement the direct task channel without modifying `agent-loop` or official UI owners. The Host adapts Tencent iLink and its encrypted media CDN through fixed official addresses, stores the bot token in the credential service, maintains schema-versioned state below `DSH_HOME/weixin-channel`, and receives messages by outbound HTTPS long polling only while Xiaojing is open. The Client registers the Xiaojing-only “Channels” settings section on loopback and receives sanitized pairing state through `/xiaojing-weixin`; tokens, message context, polling cursors, local paths, encryption keys, and queue contents do not enter that browser interface.
+
+One paired scanner owns one durable “微信助手” session. Accepted direct text, image, and document messages run FIFO through `sessions.prompt()` with stable inbound and RPC IDs; images and documents decrypt into `$DSH_HOME/uploads` and enter the logged user message as local name, type, size, and path rather than model image blocks. Desktop-originated messages are never sent to Weixin. Durable enqueue sends a visible started or queued receipt, active work reports progress every minute, and a transient failure reports one interruption while retaining the task for retry. The dedicated Agent reuses existing browser and Windows risk classification and the approval waterfall, while `weixin_send_file` adds mandatory in-chat confirmation before encrypting and uploading any requested local file. Missing, rejected, expired, disconnected, replaced-file, or undeliverable approval fails closed. The session prompt requests concise, structured phone answers and forbids guessing image contents without OCR or vision; a deterministic formatter converts Markdown headings, lists, links, code, and tables to mobile plain text, splits long results, and leaves the desktop transcript unchanged.
+
+Protocol, media, and state tests use a fake iLink/CDN server and never contact Weixin. Real phone pairing and phone-side media interoperability are separate manual preview steps. The package preserves Tencent's MIT notice and reviewed upstream commit in its `NOTICE.md`; OpenClaw and the Hermes Python runtime are not dependencies.
 
 ### Bundled third-party plugin
 
@@ -138,7 +148,7 @@ These contracts are neither branding nor claimed upstream behavior. Keep their i
 1. Electron reads `identity.json`, pins `userData`, obtains the single-instance lock, fixes the AppUserModelId and window title, and displays the desktop splash.
 2. The desktop starts its bundled `runtime/node.exe`; an end-user Node installation is neither required nor selected.
 3. The child process runs `dsh web --port 0` from `%USERPROFILE%\Documents\小兢会计工作区`, with `DSH_HOME` set to the permanent `harness` data directory and inherited DeepSeek API-key environment variables removed.
-4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Edge browser-control, Windows computer-control, and ordinary rc.8 Harness UI plugins.
+4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Weixin channel, Edge/Chrome browser control with its standalone settings page, Windows computer control, and ordinary rc.8 Harness UI plugins.
 5. The API gateway exposes generated Remotes to the isolated renderer. Electron denies permission requests and externalizes new-window URLs to the operating-system browser.
 6. When the Host announces its dynamically assigned local URL, Electron replaces the splash with the assembled Web application while retaining the fixed taskbar title and icon.
 
@@ -152,10 +162,11 @@ The packaged desktop intentionally uses an ephemeral local port. Port `3090` is 
 |---|---|---|
 | Electron state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop` | `app.setPath('userData', ...)` before the single-instance lock |
 | Harness state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness` | `DSH_HOME` passed to the bundled Host |
-| Browser-control profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control\profile` | Browser-control plugin; dedicated Edge profile only |
+| Browser-control profiles | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control` | Browser-control plugin; separate `profile` (Edge) and `chrome-profile` directories |
+| Weixin channel state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\weixin-channel` | Weixin Host plugin; non-token state and one-instance lease |
 | User workspace | `%USERPROFILE%\Documents\小兢会计工作区` | Desktop working directory |
 
-[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, uploads, usage accounting, the browser-control profile, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
+[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, uploads, usage accounting, the browser-control profile, Weixin channel state, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
 
 ### Immutable installer identity
 
@@ -202,7 +213,7 @@ The bare `apps/web` Vite server is not a valid product preview because it lacks 
 Run the focused product checks before broader repository checks:
 
 ```sh
-pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests
+pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/client/ui-xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests packages/xiaojing/xiaojing-weixin-channel/tests packages/client/ui-weixin-channel/tests
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:identity
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:user-data
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:product-layer
@@ -243,13 +254,14 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 - API-key creation and replacement work after launch, and no plaintext key enters usage records or browser snapshots.
 - Usage accounting settles each provider request once, applies Beijing peak windows and the built-in model table, preserves historical request-time costs, and displays two decimal places.
 - ModLens and the visual bridge are absent; file upload, attachment layout, composer caret behavior, exact default-profile migration, and profile runtime-shadow protection pass focused checks.
-- Real Edge tests cover page observation, fill, protected submit, cross-session and stale-target rejection, bounded tabs, interrupted-navigation recovery, and browser relaunch. Real Windows UI Automation tests cover bounded window discovery, cross-session rejection, observation, edit, protected native action classification, invoke, wait, interruption recovery, and helper relaunch.
+- Real browser tests cover page observation, exact-node stale-target rejection, fill, protected submit, cross-session rejection, bounded tabs, interrupted-navigation recovery, persisted Edge-to-Chrome switching, and browser relaunch. Real Windows UI Automation tests cover bounded window discovery, cross-session rejection, observation, edit, protected native action classification, invoke, wait, interruption recovery, and helper relaunch.
 - Every assembled agent receives `browser_control` and `computer_control` with routing descriptions; presets that accept runtime context also receive the combined capability prompt. A development composition can remove either Cordis row without changing Harness core.
+- Fake-iLink tests cover pairing, verification, reconnect, FIFO delivery, deduplication, session correlation, Weixin approval, encrypted image/document receive and send, structured mobile text, and durable recovery without exposing credentials or contacting Tencent. Manual preview confirms real phone pairing and media interoperability before release.
 - Both startup surfaces, expanded and collapsed sidebar, hero, onboarding, taskbar title, and taskbar/shortcut icons show the intended product identity.
 - Desktop identity and user-data verifiers pass with the incremented version.
 - A clean installation works at the default and a custom parent path, automatically appending `xiaojing-agent-desktop`.
 - An in-place upgrade retains the existing installation path and leaves only one Control Panel entry and one application identity.
-- Sessions, messages, selected and user-created personas, settings, credentials, plugins, attachments, workspaces, Local Storage, and usage data remain available after upgrade.
+- Sessions, messages, selected and user-created personas, settings, credentials, plugins, attachments, workspaces, Local Storage, usage data, and Weixin channel state remain available after upgrade.
 
 Failure of any applicable item blocks publication. Do not treat successful installer generation as proof of an upgrade or data-preservation result that was not exercised.
 
@@ -260,8 +272,9 @@ Failure of any applicable item blocks publication. Do not treat successful insta
 - Local accounting starts when the plugin first creates its ledger, exposes only the current key and current Beijing month, and does not reconstruct old conversations.
 - Local cost is calculated from provider usage and the built-in public tariff; it is not an official platform bill, balance, or server-side reconciliation.
 - Tariff changes require a product release because runtime pricing has no remote source or cache.
-- Browser automation requires Microsoft Edge and uses a dedicated profile; the application does not bundle a second browser runtime.
+- Browser automation requires the selected Edge or Chrome installation and uses a separate dedicated profile for each; the application does not bundle a browser runtime or fall back across browsers.
 - Browser and Windows control are semantic, not visual. They cannot handle pixel-only or canvas-only interfaces without a separate future vision capability.
+- The Weixin channel supports one iLink bot's direct text messages only while Xiaojing is open. It does not take over a personal account, process ordinary groups or media, or guarantee exactly-once final-reply delivery across a crash after the remote send succeeds.
 - A future upstream release can require changes to generic slots, the rc adapter, integration patches, or data migration, but it must not require reimplementing the product and feature layers.
 
 ## Quick handoff for a new session

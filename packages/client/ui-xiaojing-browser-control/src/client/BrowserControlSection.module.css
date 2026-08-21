@@ -1,0 +1,243 @@
+.root {
+  width: 100%;
+  max-width: 760px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.heading {
+  margin-bottom: 24px;
+}
+
+.heading h2 {
+  margin: 0 0 7px;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.heading p,
+.notice,
+.infoGrid p {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.block {
+  padding: 20px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
+  box-shadow: 0 8px 28px rgb(12 80 67 / 5%);
+}
+
+.block > h3,
+.infoGrid h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.choice {
+  position: relative;
+  display: grid;
+  min-height: 96px;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 9px;
+  outline: none;
+  background: var(--dsw-alias-bg-layer-1);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.choice:focus-visible {
+  box-shadow: 0 0 0 3px var(--dsw-alias-state-business-tertiary);
+}
+
+.choice:disabled {
+  cursor: default;
+  opacity: .7;
+}
+
+.choiceSelected {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-state-business-tertiary);
+}
+
+.mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 10px;
+  background: white;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 6%);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.edgeMark {
+  color: #087f8c;
+  font-family: Arial, sans-serif;
+  font-style: italic;
+}
+
+.chromeMark {
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+  background: conic-gradient(#e94235 0 33%, #fabb05 0 66%, #34a853 0);
+}
+
+.chromeMark::after {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #4285f4;
+  content: '';
+}
+
+.chromeMark i {
+  display: none;
+}
+
+.choiceCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.choiceCopy > span:last-child {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.choiceTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+}
+
+.choiceTitle small {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-state-business-primary);
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.radio {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-base);
+}
+
+.choiceSelected .radio {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.choiceSelected .radio i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.selectedText {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 10px;
+}
+
+.notice {
+  margin-top: 14px;
+}
+
+.saving {
+  margin: 12px 0 0;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 12px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.infoGrid article {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 9px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.infoGrid h3 {
+  margin-bottom: 5px;
+}
+
+.infoIcon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.status,
+.error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 12px;
+}
+
+.error {
+  background: rgb(210 66 66 / 8%);
+  color: #b52d2d;
+}
+
+@media (max-width: 760px) {
+  .choices,
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}

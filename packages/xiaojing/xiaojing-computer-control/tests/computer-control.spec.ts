@@ -1,11 +1,14 @@
 import { Buffer } from 'node:buffer'
 import { spawn } from 'node:child_process'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import { CallId } from '@deepseek-ai/dsh-llm'
+import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import ComputerControl, { parseComputerResult, type ComputerWindowId } from '../src/index.ts'
 
 const cleanup: Array<() => Promise<void>> = []
@@ -91,6 +94,10 @@ describe('Windows UI Automation provider', () => {
         $window = $this.FindForm()
         $window.Controls['ResultLabel'].Text = 'Applied ' + $window.Controls['InputBox'].Text
       })
+      $delete.Add_Click({
+        $window = $this.FindForm()
+        $window.Controls['ResultLabel'].Text = 'Deleted Fixture'
+      })
       $form.Controls.AddRange(@($input, $button, $delete, $label))
       [void]$form.ShowDialog()
     `
@@ -109,6 +116,7 @@ describe('Windows UI Automation provider', () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
+    await ctx.plugin(ApprovalService, { policy: 'never' })
     await ctx.plugin(LocalSubprocess)
     const fiber = await ctx.plugin(ComputerControl, {
       requestTimeoutMs: 10_000,
@@ -180,7 +188,38 @@ describe('Windows UI Automation provider', () => {
     setTimeout(() => { interrupted.abort(new Error('fixture helper interruption')) }, 100)
     await expect(waiting).rejects.toThrow(/fixture helper interruption/u)
     const recovered = await ctx.xiaojingComputerControl.run(sessionA, { action: 'list_windows' }, signal)
-    expect(recovered.windows?.some(window => window.title === title)).toBe(true)
+    const recoveredWindowId = recovered.windows?.find(window => window.title === title)?.id
+    expect(recoveredWindowId).toBeDefined()
+    if (recoveredWindowId === undefined) throw new Error('WinForms fixture window was not recovered')
+    expect(recoveredWindowId).not.toBe(windowId)
+    await expect(ctx.xiaojingComputerControl.run(sessionA, { action: 'observe', windowId }, signal))
+      .rejects.toThrow(/missing|stale/u)
+
+    const finalObservation = await ctx.xiaojingComputerControl.run(sessionA, {
+      action: 'observe', windowId: recoveredWindowId,
+    }, signal)
+    const finalDelete = finalObservation.targets?.find(target => target.name === 'Delete Fixture')
+    if (finalObservation.observationId === undefined || finalDelete === undefined) {
+      throw new Error('WinForms fixture delete control was not re-observed')
+    }
+    const session = Session.create(sessionA)
+    session.append('turn/start', { turn: 1 })
+    const agent = { id: sessionA, session } as unknown as Agent
+    const answered = vi.fn(() => Promise.resolve<'allowed-once'>('allowed-once'))
+    ctx.on('approval/request', answered)
+    const deleted = await ctx.tools.execute({
+      signal,
+      callId: CallId('computer-delete-under-never'),
+      name: 'computer_control',
+      arguments: {
+        action: 'invoke',
+        observation_id: finalObservation.observationId,
+        target_id: finalDelete.id,
+      },
+      agent,
+    })
+    expect(deleted.isError).toBe(false)
+    expect(answered).toHaveBeenCalledOnce()
 
     await ctx.xiaojingComputerControl.close()
     await expect(ctx.xiaojingComputerControl.run(sessionA, { action: 'observe', windowId }, signal))

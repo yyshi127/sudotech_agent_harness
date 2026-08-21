@@ -14,6 +14,7 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.Windows.Forms
 
+$script:instanceId = [Guid]::NewGuid().ToString('N')
 $script:windowCounter = 0
 $script:appCounter = 0
 $script:observationCounter = 0
@@ -123,7 +124,7 @@ function List-Apps($Query) {
     if ($queryText.Length -gt 0 -and $name.IndexOf($queryText, [StringComparison]::OrdinalIgnoreCase) -lt 0) { continue }
     if ($items.Count -ge $script:maxApps) { $truncated = $true; break }
     $script:appCounter += 1
-    $id = 'wa-' + [string]$script:appCounter
+    $id = 'wa-' + $script:instanceId + '-' + [string]$script:appCounter
     $script:appTargets[$id] = [pscustomobject]@{ name = $name; registration = $registration }
     $items.Add([ordered]@{ id = $id; name = $name })
   }
@@ -223,7 +224,7 @@ function List-Windows {
       if ($title.Length -eq 0 -or $processId -le 0 -or $window.Current.IsOffscreen) { continue }
       if ($items.Count -ge $script:maxWindows) { $truncated = $true; break }
       $script:windowCounter += 1
-      $id = 'ww-' + [string]$script:windowCounter
+      $id = 'ww-' + $script:instanceId + '-' + [string]$script:windowCounter
       $script:windowTargets[$id] = $window
       $items.Add([ordered]@{ id = $id; title = $title; processId = $processId })
     } catch {
@@ -245,7 +246,7 @@ function Observe-Window($WindowId) {
   $script:currentWindowId = $WindowId
   $script:controlTargets = @{}
   $script:observationCounter += 1
-  $script:currentObservationId = 'wo-' + [string]$script:observationCounter
+  $script:currentObservationId = 'wo-' + $script:instanceId + '-' + [string]$script:observationCounter
   $targets = New-Object System.Collections.Generic.List[object]
   $queue = New-Object System.Collections.Generic.Queue[object]
   $queue.Enqueue([pscustomobject]@{ element = $window; depth = 0 })
@@ -266,7 +267,7 @@ function Observe-Window($WindowId) {
         $controlType = ([string]$element.Current.ControlType.ProgrammaticName) -replace '^ControlType\.', ''
         if ($name.Length -gt 0 -or ($null -ne $value -and $value.Length -gt 0) -or $actions.Length -gt 0) {
           $script:targetCounter += 1
-          $targetId = 'wt-' + [string]$script:targetCounter
+          $targetId = 'wt-' + $script:instanceId + '-' + [string]$script:targetCounter
           $script:controlTargets[$targetId] = $element
           $target = [ordered]@{
             id = $targetId

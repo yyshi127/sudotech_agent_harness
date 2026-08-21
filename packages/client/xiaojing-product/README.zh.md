@@ -8,6 +8,8 @@
 
 浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content` 和 `onboarding.content`。产品文案、配色覆盖和默认人格位于本包。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 rc.8 基线、通用 slot、浏览器资源路径和桌面产品清单。`scripts/verify-xiaojing-product-layer.mjs` 会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。
 
+Host 产品插件还拥有小兢会计的强制删除策略。显式删除工具和 shell 删除命令即使在会话策略为 `never` 时，也会通过共享审批通道请求一次性确认。单调工具 guard 会拒绝任何未通过该次确认的匹配调用。浏览器和 Windows 控制提供方在各自工具内部，将删除／移除／卸载目标以及 Delete 键归类为强制确认。
+
 产品将自己称为“小兢会计，您的AI办公搭子”，并准确说明技术来源是基于 DeepSeek Harness 进行内部品牌与配置，不声称底层框架由数豆科技开发。
 
 ## 上游升级约定
@@ -17,6 +19,20 @@
 只有产品层检查、聚焦行为测试、构建后 Web 回放、全新 Windows 安装和上一正式版覆盖升级检查全部通过，升级分支才能合并。无法读取或迁移上一版本数据的版本不得发布。
 
 ## Model Experience
+
+### 强制删除指令
+
+#### 模型看到的内容
+
+只要组合了任一内置自动化提供方，稳定的自动化上下文就会说明：即使在 Full access 和 `never` 审批策略下，删除也始终需要确认，并禁止通过更换或混淆删除命令来规避确认。
+
+#### Token 影响
+
+在现有内置自动化上下文中增加一个固定句子；不会按工具调用重复。
+
+#### KV Cache 影响
+
+产品能力组合不变时，该句子保持稳定前缀。
 
 ### Default deployment persona system prompt
 
@@ -42,3 +58,4 @@ You are 小兢会计, an AI office companion configured for internal use. Your w
 
 - 产品层依赖 rc.8 集成基线上的五个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
 - 浏览器图片仍是由 `product.json` 登记的应用级 public 资源；检查脚本验证其存在，但不会将其嵌入客户端 bundle。
+- Shell 分类会识别显式删除命令，但无法推断无关且不透明的第三方可执行文件内部隐藏的破坏行为；任何新增且能删除用户数据的工具都必须公开并强制执行自己的删除分类。

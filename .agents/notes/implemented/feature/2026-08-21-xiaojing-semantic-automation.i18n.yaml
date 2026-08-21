@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-xiaojing-semantic-automation.md
-2026-08-21-xiaojing-semantic-automation.md: 6b34a1e3f4a225ff3a5410d8e944d15d66a29e80
-2026-08-21-xiaojing-semantic-automation.zh.md: d20bad8ac3b66f315d9190f5ba854c636ecac9b4
+2026-08-21-xiaojing-semantic-automation.md: b87217e5813e3e245d424a39f435ac51dbde5b4e
+2026-08-21-xiaojing-semantic-automation.zh.md: ba918e42c866d7122e6aca7bd62e003f72ce9900

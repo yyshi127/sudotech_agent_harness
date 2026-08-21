@@ -594,16 +594,17 @@ async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<s
  * @param request - Browser operation to execute.
  * @param signal - Cancellation signal for the operation.
  * @returns The bounded browser observation produced by the operation.
+ * @throws When the operation is cancelled, the browser is closing, or the plugin has unloaded.
  */
 run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>
 
-/** Close the persistent browser context and clear all opaque handles. */
+/** Close the persistent browser, cancel queued work, and wait until every accepted operation settles. */
 async close(): Promise<void>
 ```
 
 Types: [SessionId](core.md)
 
-Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts:306`](../../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts:448`](../../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
 <a id="ctxxiaojingcomputercontrol--computercontrol"></a>
 
@@ -635,7 +636,7 @@ async close(): Promise<void>
 
 Types: [SessionId](core.md)
 
-Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:238`](../../packages/xiaojing/xiaojing-computer-control/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:244`](../../packages/xiaojing/xiaojing-computer-control/src/index.ts)
 
 <a id="tools-events"></a>
 

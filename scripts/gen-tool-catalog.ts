@@ -613,7 +613,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@deepseek-ai/dsh-xiaojing-browser-control',
     dir: 'xiaojing-browser-control',
     source: 'packages/xiaojing/xiaojing-browser-control/src/index.ts',
-    requires: ['ctx.tools', 'ctx.approval for protected actions', 'an owning Agent at execution time', 'Microsoft Edge at execution time'],
+    requires: ['ctx.tools', 'ctx.approval for protected actions', 'an owning Agent at execution time', 'selected Edge or Chrome at execution time'],
     writes: ['tool/call', 'isolated persistent browser profile', 'tool/result'],
     async mount(ctx) {
       await ctx.plugin(XiaojingBrowserControl, {
@@ -621,7 +621,7 @@ const TOOL_PACKAGES: ToolPackage[] = [
       })
     },
     note:
-      'The product-owned browser_control tool starts Edge lazily, so catalog generation records its schema without launching a browser or changing a user profile.',
+      'The product-owned browser_control tool starts the selected browser lazily, so catalog generation records its schema without launching a browser or changing a user profile.',
   },
   {
     pkg: '@deepseek-ai/dsh-xiaojing-computer-control',

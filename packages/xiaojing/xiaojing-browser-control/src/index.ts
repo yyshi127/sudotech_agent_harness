@@ -8,25 +8,32 @@ import { randomUUID } from 'node:crypto'
 import { lookup } from 'node:dns/promises'
 import { access, mkdir, readdir } from 'node:fs/promises'
 import { isIP } from 'node:net'
-import { isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { SessionId } from '@deepseek-ai/dsh-session'
+import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { chromium } from 'playwright-core'
-import type { BrowserContext, Locator, Page, Route, Worker } from 'playwright-core'
-import { BROWSER_ACTIONS, BrowserObservationId, BrowserPageId, BrowserTargetId } from './types.ts'
+import type { BrowserContext, ElementHandle, Page, Route, Worker } from 'playwright-core'
+import { hasForcedChromeUserDataDir } from './chrome-policy.ts'
+import {
+  BROWSER_ACTIONS, BROWSER_KINDS, BrowserObservationId, BrowserPageId, BrowserTargetId,
+} from './types.ts'
 import type {
   BrowserActionRequest,
   BrowserActionResult,
+  BrowserKind,
   BrowserPageSummary,
   BrowserTarget,
 } from './types.ts'
 
-export { BROWSER_ACTIONS, BrowserObservationId, BrowserPageId, BrowserTargetId } from './types.ts'
+export {
+  BROWSER_ACTIONS, BROWSER_KINDS, BrowserObservationId, BrowserPageId, BrowserTargetId,
+} from './types.ts'
 export type {
-  BrowserAction,
+  BrowserAction, BrowserKind,
   BrowserActionRequest,
   BrowserActionResult,
   BrowserPageSummary,
@@ -39,11 +46,29 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+/** Durable user-editable browser preference. */
+export interface BrowserControlSettings {
+  /** Default installed browser when a task does not explicitly name one. */
+  browser: BrowserKind
+}
+
+/** Settings namespace owned by this browser-control plugin. */
+export const BROWSER_CONTROL_SETTINGS_NAMESPACE = settingsNamespace('xiaojing-browser-control')
+
+/** User-editable subset of the deployment configuration. */
+export const BrowserControlSettingsSchema: z<BrowserControlSettings> = z.object({
+  browser: z.union([...BROWSER_KINDS]).default('edge'),
+})
+
 /** Browser runtime configuration. */
 export interface Config {
-  /** Dedicated persistent profile directory; never point this at a person's normal browser profile. */
+  /** Dedicated persistent Edge profile directory; never point this at a person's normal browser profile. */
   profileDir: string
-  /** Explicit Chromium executable used by tests or a controlled deployment when Microsoft Edge is unavailable. */
+  /** Dedicated persistent Chrome profile directory. Defaults to a sibling of `profileDir`. */
+  chromeProfileDir?: string
+  /** Default browser when a task does not name one. The durable user setting may replace it. */
+  browser?: BrowserKind
+  /** Explicit selected-browser executable used only by tests or a controlled deployment. */
   executablePath?: string
   /** Whether to hide the controlled browser window. Xiaojing ships with this disabled. */
   headless?: boolean
@@ -64,7 +89,8 @@ export interface Config {
 }
 
 interface ResolvedConfig {
-  profileDir: string
+  edgeProfileDir: string
+  chromeProfileDir: string
   executablePath?: string
   headless: boolean
   actionTimeoutMs: number
@@ -79,12 +105,19 @@ interface ResolvedConfig {
 interface PageRecord {
   readonly id: BrowserPageId
   readonly owner: SessionId
+  readonly browser: BrowserKind
   readonly page: Page
+}
+
+interface BrowserRuntime {
+  context: BrowserContext | undefined
+  launch: Promise<BrowserContext> | undefined
+  generation: number
 }
 
 interface StoredTarget {
   readonly target: BrowserTarget
-  readonly locator: Locator
+  readonly element: ElementHandle
   readonly inputType: string
 }
 
@@ -97,7 +130,6 @@ interface Observation {
 }
 
 interface ElementProjection {
-  readonly index: number
   readonly role: string
   readonly name: string
   readonly value?: string
@@ -105,11 +137,6 @@ interface ElementProjection {
   readonly checked?: boolean
   readonly inputType: string
   readonly actions: string[]
-}
-
-interface ProjectionResult {
-  readonly targets: ElementProjection[]
-  readonly truncated: boolean
 }
 
 const INTERACTIVE_SELECTOR = [
@@ -134,13 +161,21 @@ const HIGH_IMPACT_PATTERN = new RegExp(
   + '|删除|移除|卸载|支付|购买|提交|发送|发布|转账|签署|注销)',
   'iu',
 )
+const DELETION_PATTERN = /(?:delete|remove|uninstall|删除|移除|卸载)/iu
 
-/** Locate an installed Edge executable when Playwright's channel lookup misses a system or EdgeCore installation. */
-async function findWindowsEdgeExecutable(): Promise<string | undefined> {
+interface ApprovalRequirement {
+  readonly reason: string
+  readonly mandatory: boolean
+}
+
+/** Locate an installed browser when Playwright's channel lookup misses its fixed Windows locations. */
+async function findWindowsBrowserExecutable(browser: BrowserKind): Promise<string | undefined> {
   if (process.platform !== 'win32') return undefined
   const roots = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA]
     .filter((root): root is string => root !== undefined && root !== '')
-  const standard = roots.map(root => join(root, 'Microsoft', 'Edge', 'Application', 'msedge.exe'))
+  const standard = browser === 'edge'
+    ? roots.map(root => join(root, 'Microsoft', 'Edge', 'Application', 'msedge.exe'))
+    : roots.map(root => join(root, 'Google', 'Chrome', 'Application', 'chrome.exe'))
   for (const candidate of standard) {
     try {
       await access(candidate)
@@ -149,6 +184,7 @@ async function findWindowsEdgeExecutable(): Promise<string | undefined> {
       // Missing or inaccessible candidates are expected while checking the fixed Windows installation locations.
     }
   }
+  if (browser === 'chrome') return undefined
   for (const root of roots) {
     const edgeCore = join(root, 'Microsoft', 'EdgeCore')
     let versions
@@ -177,6 +213,8 @@ async function findWindowsEdgeExecutable(): Promise<string | undefined> {
 /** Schemastery configuration for the browser-control capability. */
 export const Config: z<Config> = z.object({
   profileDir: z.string().required(),
+  chromeProfileDir: z.string(),
+  browser: z.union([...BROWSER_KINDS]).default('edge'),
   executablePath: z.string(),
   headless: z.boolean().default(false),
   actionTimeoutMs: z.number().min(100).max(120_000).default(15_000),
@@ -198,6 +236,37 @@ function requireText(value: string | undefined, field: string): string {
   const resolved = value?.trim()
   if (resolved === undefined || resolved === '') throw new Error(`browser_control ${field} must be a non-empty string`)
   return resolved
+}
+
+/** Whether one existing page already represents the requested destination. */
+function samePageDestination(current: string, requested: URL): boolean {
+  try {
+    const parsed = new URL(current)
+    parsed.hash = ''
+    const target = new URL(requested.href)
+    target.hash = ''
+    return parsed.href === target.href
+  } catch {
+    return false
+  }
+}
+
+/** Whether one existing page belongs to the same HTTP origin as the requested destination. */
+function samePageOrigin(current: string, requested: URL): boolean {
+  try {
+    const parsed = new URL(current)
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.origin === requested.origin
+  } catch {
+    return false
+  }
+}
+
+/** Whether one browser-owned page is an unused new-tab surface. */
+function isBlankBrowserPage(current: string): boolean {
+  return current === 'about:blank'
+    || current === 'chrome://newtab/'
+    || current === 'chrome://new-tab-page/'
+    || current === 'edge://newtab/'
 }
 
 /** Reject a browser action omitted from a closed action switch. */
@@ -272,9 +341,11 @@ async function closeBrowserPage(page: Page): Promise<void> {
 async function withPageCancellation<T>(page: Page, signal: AbortSignal, operation: () => Promise<T>): Promise<T> {
   throwIfAborted(signal)
   let remove = () => {}
+  let closing: Promise<void> | undefined
   const aborted = new Promise<never>((_resolve, reject) => {
     const onAbort = () => {
-      void closeBrowserPage(page).then(() => {
+      closing = closeBrowserPage(page)
+      void closing.then(() => {
         reject(signal.reason instanceof Error ? signal.reason : new Error('browser operation cancelled'))
       })
     }
@@ -285,6 +356,7 @@ async function withPageCancellation<T>(page: Page, signal: AbortSignal, operatio
     return await Promise.race([operation(), aborted])
   } catch (error) {
     if (signal.aborted) {
+      if (closing !== undefined) await closing
       throw signal.reason instanceof Error ? signal.reason : new Error('browser operation cancelled')
     }
     throw error
@@ -302,15 +374,87 @@ async function closeBrowserContext(context: BrowserContext): Promise<void> {
   }
 }
 
+/** Read one exact interactive DOM node into a model-safe semantic projection. */
+async function projectInteractiveElement(
+  handle: ElementHandle,
+): Promise<ElementProjection | undefined> {
+  return await handle.evaluate((element): ElementProjection | undefined => {
+    if (!(element instanceof HTMLElement)) return undefined
+    const style = getComputedStyle(element)
+    const bounds = element.getBoundingClientRect()
+    if (style.visibility === 'hidden' || style.display === 'none' || bounds.width <= 0 || bounds.height <= 0) {
+      return undefined
+    }
+    const excludedFillTypes = new Set([
+      'button', 'checkbox', 'color', 'file', 'hidden', 'image', 'password', 'radio', 'range', 'reset', 'submit',
+    ])
+    const explicitRole = element.getAttribute('role')
+    const tag = element.tagName.toLowerCase()
+    const input = element instanceof HTMLInputElement ? element : undefined
+    const inputType = input?.type.toLowerCase() ?? ''
+    let role = explicitRole ?? ''
+    if (role === '') {
+      if (tag === 'a') role = 'link'
+      else if (tag === 'textarea') role = 'textbox'
+      else if (tag === 'select') role = 'combobox'
+      else if (tag !== 'input') role = tag === 'button' ? 'button' : tag
+      else if (inputType === 'checkbox' || inputType === 'radio' || inputType === 'button') role = inputType
+      else if (inputType === 'submit') role = 'button'
+      else if (inputType === 'file') role = 'file'
+      else role = 'textbox'
+    }
+    let labelled = ''
+    const labelledBy = element.getAttribute('aria-labelledby')
+    if (labelledBy !== null) {
+      for (const id of labelledBy.split(/\s+/u)) {
+        const labelledText = document.getElementById(id)?.textContent
+        if (labelledText !== undefined) labelled += ` ${labelledText}`
+      }
+    }
+    let name = ''
+    const candidates = [
+      element.getAttribute('aria-label'), labelled, element.getAttribute('alt'), element.getAttribute('title'),
+      element.getAttribute('placeholder'), element.innerText, element.textContent,
+    ]
+    for (const candidate of candidates) {
+      const value = (candidate ?? '').replace(/\s+/gu, ' ').trim().slice(0, 160)
+      if (value === '') continue
+      name = value
+      break
+    }
+    const actions = inputType === 'file' ? [] : ['click']
+    if ((element instanceof HTMLInputElement && !excludedFillTypes.has(inputType))
+      || element instanceof HTMLTextAreaElement || element.isContentEditable) actions.push('fill')
+    if (element instanceof HTMLSelectElement) actions.push('select')
+    if (inputType === 'file') actions.push('upload')
+    const value = inputType === 'password' ? undefined
+      : element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement
+        ? element.value.replace(/\s+/gu, ' ').trim().slice(0, 160)
+        : undefined
+    const checked = inputType === 'checkbox' || inputType === 'radio' ? Boolean(input?.checked) : undefined
+    return {
+      role,
+      name,
+      ...value !== undefined && value !== '' ? { value } : {},
+      disabled: 'disabled' in element && Boolean(element.disabled),
+      ...checked !== undefined ? { checked } : {},
+      inputType,
+      actions,
+    }
+  })
+}
+
 /** Semantic browser automation provider and model-facing tool consumer. */
 export class BrowserControl extends Service {
   static inject = ['tools']
   static Config = Config
 
   private readonly options: ResolvedConfig
-  private context: BrowserContext | undefined
-  private launch: Promise<BrowserContext> | undefined
-  private launchGeneration = 0
+  private settingsSource: () => BrowserControlSettings
+  private readonly runtimes = new Map<BrowserKind, BrowserRuntime>([
+    ['edge', { context: undefined, launch: undefined, generation: 0 }],
+    ['chrome', { context: undefined, launch: undefined, generation: 0 }],
+  ])
   private readonly closedContexts = new WeakSet<BrowserContext>()
   private readonly pages = new Map<BrowserPageId, PageRecord>()
   private readonly pageIds = new WeakMap<Page, BrowserPageId>()
@@ -319,12 +463,18 @@ export class BrowserControl extends Service {
   private readonly approvedPrivateHosts = new WeakMap<Page, ReadonlySet<string>>()
   private readonly destinationChecks = new WeakMap<Page | Worker, Map<string, Promise<string | undefined>>>()
   private readonly operationTails = new Map<SessionId, Promise<void>>()
+  private lifecycle = new AbortController()
+  private closeTask: Promise<void> | undefined
+  private closing = false
+  private disposed = false
 
   /** Create the lazy browser provider and register `browser_control`. */
   constructor(ctx: Context, config: Config) {
     super(ctx, 'xiaojingBrowserControl')
+    const settingsEntry: BrowserControlSettings = { browser: config.browser ?? 'edge' }
     this.options = {
-      profileDir: config.profileDir,
+      edgeProfileDir: config.profileDir,
+      chromeProfileDir: config.chromeProfileDir ?? join(dirname(config.profileDir), 'chrome-profile'),
       ...config.executablePath !== undefined && config.executablePath.trim() !== ''
         ? { executablePath: config.executablePath }
         : {},
@@ -337,7 +487,19 @@ export class BrowserControl extends Service {
       maxTextChars: config.maxTextChars ?? 20_000,
       allowPrivateHosts: config.allowPrivateHosts ?? false,
     }
-    ctx.effect(() => async () => this.close(), 'xiaojingBrowserControl.close')
+    this.settingsSource = () => settingsEntry
+    installSettingsSection(ctx, BROWSER_CONTROL_SETTINGS_NAMESPACE, BrowserControlSettingsSchema, settingsEntry, {
+      setSource: (current) => {
+        this.settingsSource = current
+      },
+      onChange: () => {
+        this.ctx.logger.info(
+          'browser-control default changed to %s; explicit task instructions may still override it',
+          this.browserLabel(this.settingsSource().browser),
+        )
+      },
+    })
+    ctx.effect(() => async () => this.shutdown(), 'xiaojingBrowserControl.close')
     this.installTool(ctx)
   }
 
@@ -348,30 +510,50 @@ export class BrowserControl extends Service {
    * @returns The approval reason, or undefined when the operation may proceed directly.
    */
   async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined> {
+    return (await this.approvalRequirement(owner, request))?.reason
+  }
+
+  /** Resolve the ordinary or mandatory approval needed by one browser action. */
+  private async approvalRequirement(
+    owner: SessionId,
+    request: BrowserActionRequest,
+  ): Promise<ApprovalRequirement | undefined> {
     switch (request.action) {
       case 'open': {
         if (this.options.allowPrivateHosts) return undefined
         const destination = await privateDestination(requireText(request.url, 'url'))
-        return destination === undefined ? undefined : `Open private or local browser destination ${destination}`
+        return destination === undefined ? undefined : {
+          reason: `Open private or local browser destination ${destination}`,
+          mandatory: false,
+        }
       }
       case 'upload': {
         const paths = this.uploadPaths(request)
         const target = this.resolveTarget(owner, request)
         if (target.inputType !== 'file') throw new Error('browser_control upload target must be a file input')
-        return `Upload ${String(paths.length)} local file(s) to the current website`
+        return {
+          reason: `Upload ${String(paths.length)} local file(s) to the current website`,
+          mandatory: false,
+        }
       }
       case 'press': {
         this.activePage(owner)
         const key = requireText(request.key, 'key').toLowerCase()
         return key === 'enter' || key === 'delete' || key === 'backspace'
-          ? `Send the potentially committing browser key ${request.key as string}`
+          ? {
+            reason: `Send the potentially committing browser key ${request.key as string}`,
+            mandatory: key === 'delete',
+          }
           : undefined
       }
       case 'click': {
         const stored = this.resolveTarget(owner, request)
         const label = `${stored.target.name} ${stored.inputType}`
         return stored.inputType === 'submit' || HIGH_IMPACT_PATTERN.test(label)
-          ? `Activate potentially high-impact browser control “${stored.target.name || stored.target.role}”`
+          ? {
+            reason: `Activate potentially high-impact browser control “${stored.target.name || stored.target.role}”`,
+            mandatory: DELETION_PATTERN.test(label),
+          }
           : undefined
       }
       case 'observe':
@@ -392,25 +574,30 @@ export class BrowserControl extends Service {
    * @param request - Browser operation to execute.
    * @param signal - Cancellation signal for the operation.
    * @returns The bounded browser observation produced by the operation.
+   * @throws When the operation is cancelled, the browser is closing, or the plugin has unloaded.
    */
   run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult> {
-    return this.enqueue(owner, signal, async () => {
+    if (this.disposed) return Promise.reject(new Error('browser_control is unavailable because its plugin was unloaded'))
+    if (this.closing) return Promise.reject(new Error('browser_control is closing; retry after the browser has closed'))
+    const operationSignal = AbortSignal.any([signal, this.lifecycle.signal])
+    return this.enqueue(owner, operationSignal, async () => {
+      throwIfAborted(operationSignal)
       switch (request.action) {
-        case 'open': return await this.open(owner, request, signal)
-        case 'observe': return await this.observeActive(owner, request.action, signal, 'Observed current page')
-        case 'click': return await this.targetAction(owner, request, signal, async target => target.locator.click())
+        case 'open': return await this.open(owner, request, operationSignal)
+        case 'observe': return await this.observeActive(owner, request.action, operationSignal, 'Observed current page')
+        case 'click': return await this.targetAction(owner, request, operationSignal, async target => target.element.click())
         case 'fill': {
           const value = request.value ?? ''
-          return await this.targetAction(owner, request, signal, async target => target.locator.fill(value))
+          return await this.targetAction(owner, request, operationSignal, async target => target.element.fill(value))
         }
         case 'select': {
           const value = requireText(request.value, 'value')
-          return await this.targetAction(owner, request, signal, async (target) => {
+          return await this.targetAction(owner, request, operationSignal, async (target) => {
             try {
-              await target.locator.selectOption({ label: value })
+              await target.element.selectOption({ label: value })
             } catch (labelError) {
               try {
-                await target.locator.selectOption(value)
+                await target.element.selectOption(value)
               } catch {
                 throw labelError
               }
@@ -420,56 +607,87 @@ export class BrowserControl extends Service {
         case 'press': {
           const page = this.activePage(owner)
           const key = requireText(request.key, 'key')
-          await withPageCancellation(page.page, signal, () => page.page.keyboard.press(key))
+          await withPageCancellation(page.page, operationSignal, () => page.page.keyboard.press(key))
           return await this.observePage(owner, page, request.action, `Pressed ${key}`)
         }
         case 'scroll': {
           const page = this.activePage(owner)
           const deltaY = request.deltaY ?? 640
           if (!Number.isFinite(deltaY) || deltaY === 0) throw new Error('browser_control delta_y must be a finite non-zero number')
-          await withPageCancellation(page.page, signal, () => page.page.mouse.wheel(0, deltaY))
+          await withPageCancellation(page.page, operationSignal, () => page.page.mouse.wheel(0, deltaY))
           return await this.observePage(owner, page, request.action, `Scrolled ${String(deltaY)} pixels`)
         }
         case 'upload': {
           const paths = this.uploadPaths(request)
-          return await this.targetAction(owner, request, signal, async target => target.locator.setInputFiles([...paths]))
+          return await this.targetAction(owner, request, operationSignal, async target => target.element.setInputFiles([...paths]))
         }
-        case 'tabs': return await this.tabResult(owner, request.action, 'Listed browser tabs')
-        case 'switch_tab': return await this.switchTab(owner, request, signal)
-        case 'close_tab': return await this.closeTab(owner, request, signal)
+        case 'tabs': return await this.listTabs(owner, request, operationSignal)
+        case 'switch_tab': return await this.switchTab(owner, request, operationSignal)
+        case 'close_tab': return await this.closeTab(owner, request, operationSignal)
         default: return assertNever(request.action)
       }
     })
   }
 
-  /** Close the persistent browser context and clear all opaque handles. */
+  /** Close the persistent browser, cancel queued work, and wait until every accepted operation settles. */
   async close(): Promise<void> {
-    const context = this.context
-    const launch = this.launch
-    this.launchGeneration += 1
-    this.context = undefined
-    this.launch = undefined
-    this.clearSessionState()
+    if (this.closeTask !== undefined) {
+      await this.closeTask
+      return
+    }
+    this.closing = true
+    const closeTask = this.closeNow()
+    this.closeTask = closeTask
+    try {
+      await closeTask
+    } finally {
+      if (this.closeTask === closeTask) {
+        this.closeTask = undefined
+        this.closing = false
+        if (!this.disposed) this.lifecycle = new AbortController()
+      }
+    }
+  }
+
+  private async closeNow(): Promise<void> {
+    const runtimes = [...this.runtimes.values()]
+    const contexts = runtimes.map(runtime => runtime.context).filter((context): context is BrowserContext => context !== undefined)
+    const launches = runtimes.map(runtime => runtime.launch).filter((launch): launch is Promise<BrowserContext> => launch !== undefined)
+    const operations = [...new Set(this.operationTails.values())]
+    this.lifecycle.abort(new Error('browser_control operation cancelled because the browser was closed'))
+    for (const runtime of runtimes) {
+      runtime.generation += 1
+      runtime.context = undefined
+      runtime.launch = undefined
+    }
     this.operationTails.clear()
-    if (context !== undefined) await closeBrowserContext(context)
-    if (launch !== undefined) {
+    await Promise.allSettled(operations)
+    this.clearSessionState()
+    await Promise.allSettled(contexts.map(closeBrowserContext))
+    for (const launch of launches) {
       let launched: BrowserContext | undefined
       try {
         launched = await launch
       } catch {
         // The caller awaiting this launch owns its startup error; disposal only waits for quiescence.
       }
-      if (launched !== undefined && launched !== context) await closeBrowserContext(launched)
+      if (launched !== undefined && !contexts.includes(launched)) await closeBrowserContext(launched)
     }
+  }
+
+  private async shutdown(): Promise<void> {
+    this.disposed = true
+    await this.close()
   }
 
   private installTool(ctx: Context): void {
     ctx.tools.register(defineTool({
       name: 'browser_control',
-      description: 'Control a dedicated visible browser using semantic page observations. Use open, then target only opaque IDs from the latest observation. Actions return a fresh observation automatically. Never guess target IDs. Use this tool for websites instead of computer_control. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.',
+      description: 'Control dedicated visible Edge or Chrome through semantic page observations. Omit browser to use the saved default; when the user explicitly names Edge or Chrome, pass that browser on open or tabs for this task. If the selected browser cannot start, report that failure and do not switch browsers unless the user explicitly requests another browser. Before creating a tab, open discovers and reuses an existing same-origin tab in that browser. Continue later steps on the active page with observe and opaque target IDs instead of calling open again. Never guess target IDs. Prefer this tool for websites; do not build a separate shell, PowerShell, or CDP browser controller. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.',
       parameters: {
         action: { type: 'string', enum: [...BROWSER_ACTIONS], required: true },
-        url: { type: 'string', description: 'HTTP(S) URL for open.' },
+        browser: { type: 'string', enum: [...BROWSER_KINDS], description: 'Optional per-task Edge or Chrome override for open and tabs. Omit to use the saved default.' },
+        url: { type: 'string', description: 'HTTP(S) URL for open. Existing same-origin tabs are reused before a new tab is created.' },
         observation_id: { type: 'string', description: 'Latest observation ID for a target action.' },
         target_id: { type: 'string', description: 'Opaque target ID from that observation.' },
         value: { type: 'string', description: 'Text for fill or option label/value for select.' },
@@ -485,6 +703,7 @@ export class BrowserControl extends Service {
           properties: {
             action: { type: 'string', enum: [...BROWSER_ACTIONS], required: true },
             summary: { type: 'string', required: true },
+            browser: { type: 'string', enum: [...BROWSER_KINDS] },
             pageId: { type: 'string' },
             url: { type: 'string' },
             title: { type: 'string' },
@@ -513,6 +732,7 @@ export class BrowserControl extends Service {
                 additionalProperties: false,
                 properties: {
                   id: { type: 'string', required: true },
+                  browser: { type: 'string', enum: [...BROWSER_KINDS], required: true },
                   url: { type: 'string', required: true },
                   title: { type: 'string', required: true },
                   active: { type: 'boolean', required: true },
@@ -528,6 +748,7 @@ export class BrowserControl extends Service {
         if (exec.agent === undefined) throw new Error('browser_control requires an owning agent session')
         const request: BrowserActionRequest = {
           action: args.action,
+          ...args.browser !== undefined ? { browser: args.browser } : {},
           ...args.url !== undefined ? { url: args.url } : {},
           ...args.observation_id !== undefined ? { observationId: BrowserObservationId(args.observation_id) } : {},
           ...args.target_id !== undefined ? { targetId: BrowserTargetId(args.target_id) } : {},
@@ -538,8 +759,8 @@ export class BrowserControl extends Service {
           ...args.page_id !== undefined ? { pageId: BrowserPageId(args.page_id) } : {},
         }
         const owner = exec.agent.id
-        const reason = await this.approvalReason(owner, request)
-        if (reason !== undefined) await this.requireApproval(ctx, exec, reason)
+        const approval = await this.approvalRequirement(owner, request)
+        if (approval !== undefined) await this.requireApproval(ctx, exec, approval)
         return await this.run(owner, request, exec.signal)
       },
       presentCall: args => ({
@@ -554,18 +775,22 @@ export class BrowserControl extends Service {
   private async requireApproval(
     ctx: Context,
     exec: ToolRunContext,
-    reason: string,
+    requirement: ApprovalRequirement,
   ): Promise<void> {
+    const { reason, mandatory } = requirement
     const approval = ctx.get('approval')
     if (approval === undefined) throw new Error(`${reason} requires approval, but no approval service is composed`)
     if (exec.agent === undefined) throw new Error(`${reason} requires an owning agent session`)
-    const outcome = await approval.request({
+    const request = {
       agent: exec.agent,
       toolName: exec.name,
       callId: exec.callId,
       reason,
       signal: exec.signal,
-    })
+    }
+    const outcome = mandatory
+      ? await approval.requestMandatory(request)
+      : await approval.request(request)
     if (outcome === 'allowed-once') return
     if (outcome === 'rejected') throw new Error(`the user rejected: ${reason}`)
     if (outcome === 'cancelled') throw new Error(`approval was cancelled: ${reason}`)
@@ -576,7 +801,9 @@ export class BrowserControl extends Service {
     const previous = this.operationTails.get(owner) ?? Promise.resolve()
     const result = previous.then(async () => {
       throwIfAborted(signal)
-      return await operation()
+      const value = await operation()
+      throwIfAborted(signal)
+      return value
     })
     const tail = result.then(() => {}, () => {})
     this.operationTails.set(owner, tail)
@@ -586,28 +813,65 @@ export class BrowserControl extends Service {
     return result
   }
 
-  private async browser(): Promise<BrowserContext> {
-    if (this.context !== undefined) return this.context
-    if (this.launch !== undefined) return await this.launch
-    const generation = this.launchGeneration
-    const launch = this.launchBrowser().then(async (context) => {
-      if (generation !== this.launchGeneration || this.closedContexts.has(context)) {
+  private async browser(browser: BrowserKind): Promise<BrowserContext> {
+    const runtime = this.runtime(browser)
+    if (runtime.context !== undefined) return runtime.context
+    if (runtime.launch !== undefined) return await runtime.launch
+    const generation = runtime.generation
+    const launch = this.launchBrowser(browser).then(async (context) => {
+      if (generation !== runtime.generation || this.closedContexts.has(context)) {
         await closeBrowserContext(context)
         throw new Error('browser-control browser launch was cancelled or closed during startup')
       }
-      this.context = context
+      runtime.context = context
       return context
     })
-    this.launch = launch
+    runtime.launch = launch
     try {
       return await launch
     } finally {
-      if (this.launch === launch) this.launch = undefined
+      if (runtime.launch === launch) runtime.launch = undefined
     }
   }
 
-  private async launchBrowser(): Promise<BrowserContext> {
-    await mkdir(this.options.profileDir, { recursive: true })
+  private runtime(browser: BrowserKind): BrowserRuntime {
+    const runtime = this.runtimes.get(browser)
+    if (runtime === undefined) throw new Error(`unsupported browser runtime: ${browser}`)
+    return runtime
+  }
+
+  private browserLabel(browser: BrowserKind): string {
+    return browser === 'edge' ? 'Microsoft Edge' : 'Google Chrome'
+  }
+
+  private profileDir(browser: BrowserKind): string {
+    return browser === 'edge' ? this.options.edgeProfileDir : this.options.chromeProfileDir
+  }
+
+  private async launchBrowser(browser: BrowserKind): Promise<BrowserContext> {
+    const profileDir = this.profileDir(browser)
+    const label = this.browserLabel(browser)
+    const channel = browser === 'edge' ? 'msedge' : 'chrome'
+    const configuredExecutable = this.options.executablePath
+    if (browser === 'chrome' && configuredExecutable === undefined) {
+      let forcedProfile: boolean
+      try {
+        forcedProfile = await hasForcedChromeUserDataDir(this.lifecycle.signal)
+      } catch (error) {
+        throw new Error(
+          'browser-control could not verify whether Google Chrome can use its isolated automation profile. '
+          + 'No browser was opened. Report this failure without switching browsers unless the user explicitly requests another browser.',
+          { cause: error },
+        )
+      }
+      if (forcedProfile) {
+        throw new Error(
+          'browser-control cannot start Google Chrome because Windows policy UserDataDir forces automation into the live personal Chrome profile. '
+          + 'No browser was opened. Report this failure without switching to Edge unless the user explicitly requests Edge.',
+        )
+      }
+    }
+    await mkdir(profileDir, { recursive: true })
     const common = {
       headless: this.options.headless,
       viewport: null,
@@ -615,42 +879,47 @@ export class BrowserControl extends Service {
       timeout: this.options.navigationTimeoutMs,
     } as const
     let context: BrowserContext | undefined
-    try {
-      context = await chromium.launchPersistentContext(this.options.profileDir, { ...common, channel: 'msedge' })
-      this.ctx.logger.info('browser-control started Microsoft Edge')
-    } catch (channelError) {
-      const errors: unknown[] = [channelError]
-      const installedEdge = await findWindowsEdgeExecutable()
-      if (installedEdge !== undefined) {
-        try {
-          context = await chromium.launchPersistentContext(this.options.profileDir, {
-            ...common,
-            executablePath: installedEdge,
-          })
-          this.ctx.logger.info('browser-control started Microsoft Edge from %s', installedEdge)
-        } catch (edgeError) {
-          errors.push(edgeError)
-        }
-      }
-      const configuredExecutable = this.options.executablePath
-      if (context === undefined && configuredExecutable === undefined) {
-        throw new AggregateError(errors, 'browser-control could not start the installed Microsoft Edge')
-      }
-      if (context === undefined && configuredExecutable !== undefined) {
-        try {
-          context = await chromium.launchPersistentContext(this.options.profileDir, {
-            ...common,
-            executablePath: configuredExecutable,
-          })
-          this.ctx.logger.info('browser-control started configured Chromium')
-        } catch (chromiumError) {
-          errors.push(chromiumError)
-          throw new AggregateError(errors, 'browser-control could not start Microsoft Edge or the configured Chromium runtime')
-        }
+    if (configuredExecutable !== undefined) {
+      try {
+        context = await chromium.launchPersistentContext(profileDir, {
+          ...common,
+          executablePath: configuredExecutable,
+        })
+        this.ctx.logger.info('browser-control started configured %s runtime', label)
+      } catch (configuredError) {
+        throw new AggregateError(
+          [configuredError],
+          `browser-control could not start the configured ${label} runtime; report this failure without switching browsers unless the user explicitly requests another browser`,
+        )
       }
     }
-    if (context === undefined) throw new Error('browser-control launch completed without a browser context')
-    context.on('close', () => { this.browserClosed(context) })
+    try {
+      if (context === undefined) {
+        context = await chromium.launchPersistentContext(profileDir, { ...common, channel })
+        this.ctx.logger.info('browser-control started %s', label)
+      }
+    } catch (channelError) {
+      const errors: unknown[] = [channelError]
+      const installedBrowser = await findWindowsBrowserExecutable(browser)
+      if (installedBrowser !== undefined) {
+        try {
+          context = await chromium.launchPersistentContext(profileDir, {
+            ...common,
+            executablePath: installedBrowser,
+          })
+          this.ctx.logger.info('browser-control started %s from %s', label, installedBrowser)
+        } catch (browserError) {
+          errors.push(browserError)
+        }
+      }
+      if (context === undefined) {
+        throw new AggregateError(
+          errors,
+          `browser-control could not start the selected ${label}; report this failure without switching browsers unless the user explicitly requests another browser`,
+        )
+      }
+    }
+    context.on('close', () => { this.browserClosed(browser, context) })
     try {
       context.setDefaultTimeout(this.options.actionTimeoutMs)
       context.setDefaultNavigationTimeout(this.options.navigationTimeoutMs)
@@ -678,17 +947,37 @@ export class BrowserControl extends Service {
     }
   }
 
-  private browserClosed(context: BrowserContext): void {
+  private browserClosed(browser: BrowserKind, context: BrowserContext): void {
     this.closedContexts.add(context)
-    if (this.context !== context) return
-    this.context = undefined
-    this.clearSessionState()
+    const runtime = this.runtime(browser)
+    if (runtime.context !== context) return
+    runtime.context = undefined
+    for (const record of [...this.pages.values()]) {
+      if (record.browser === browser && record.page.context() === context) this.dropPage(record.page)
+    }
   }
 
   private clearSessionState(): void {
     this.pages.clear()
     this.activePageByOwner.clear()
-    this.observations.clear()
+    for (const id of this.observations.keys()) this.dropObservation(id)
+  }
+
+  /** Remove one observation and release the exact DOM handles it owns. */
+  private dropObservation(id: BrowserObservationId): void {
+    const observation = this.observations.get(id)
+    if (observation === undefined) return
+    this.observations.delete(id)
+    this.releaseObservation(observation)
+  }
+
+  /** Release exact DOM handles after their opaque IDs stop being valid. */
+  private releaseObservation(observation: Observation): void {
+    for (const target of observation.targets.values()) {
+      void target.element.dispose().catch(() => {
+        // A page teardown may dispose the handle first; no live browser resource remains in that case.
+      })
+    }
   }
 
   private async guardRoute(route: Route): Promise<void> {
@@ -744,20 +1033,59 @@ export class BrowserControl extends Service {
       throw new Error('browser_control open accepts only http:// and https:// URLs')
     }
     const destination = this.options.allowPrivateHosts ? undefined : await privateDestination(parsed.href)
-    const context = await this.browser()
-    const page = context.pages().find(candidate => candidate.url() === 'about:blank'
-      && this.pageIds.get(candidate) === undefined) ?? await context.newPage()
+    const browser = request.browser ?? this.settingsSource().browser
+    throwIfAborted(signal)
+    const context = await this.browser(browser)
+    throwIfAborted(signal)
+    this.adoptAvailablePages(owner, browser, context)
+    const owned = [...this.pages.values()].filter(record => record.owner === owner
+      && record.browser === browser && !record.page.isClosed())
+    const activeId = this.activePageByOwner.get(owner)
+    const active = activeId === undefined ? undefined : this.pages.get(activeId)
+    const activeInBrowser = active?.owner === owner && active.browser === browser && !active.page.isClosed()
+      ? active
+      : undefined
+    let record = activeInBrowser !== undefined && samePageDestination(activeInBrowser.page.url(), parsed)
+      ? activeInBrowser
+      : owned.find(candidate => samePageDestination(candidate.page.url(), parsed))
+    record ??= activeInBrowser !== undefined && samePageOrigin(activeInBrowser.page.url(), parsed)
+      ? activeInBrowser
+      : owned.find(candidate => samePageOrigin(candidate.page.url(), parsed))
+    record ??= activeInBrowser !== undefined && isBlankBrowserPage(activeInBrowser.page.url())
+      ? activeInBrowser
+      : owned.find(candidate => isBlankBrowserPage(candidate.page.url()))
+    let created = false
+    if (record === undefined) {
+      const page = await context.newPage()
+      record = this.trackPage(owner, browser, page)
+      created = true
+    }
+    for (const candidate of owned) {
+      if (candidate.id === record.id || !isBlankBrowserPage(candidate.page.url())) continue
+      await closeBrowserPage(candidate.page)
+      this.dropPage(candidate.page)
+    }
+    throwIfAborted(signal)
+    const page = record.page
     this.approvedPrivateHosts.set(page, destination === undefined
       ? new Set()
       : new Set([parsed.hostname.toLowerCase()]))
-    const record = this.trackPage(owner, page)
     this.activePageByOwner.set(owner, record.id)
+    this.dropOwnerObservations(owner)
     try {
-      await withPageCancellation(page, signal, () => page.goto(parsed.href, { waitUntil: 'domcontentloaded' }).then(() => {}))
+      const alreadyOpen = samePageDestination(page.url(), parsed)
+      if (!alreadyOpen) {
+        await withPageCancellation(page, signal, () => page.goto(parsed.href, { waitUntil: 'domcontentloaded' }).then(() => {}))
+      }
       await page.bringToFront()
-      return await this.observePage(owner, record, request.action, `Opened ${page.url()}`)
+      const summary = alreadyOpen
+        ? `Using existing ${this.browserLabel(browser)} tab ${page.url()}`
+        : created
+          ? `Opened ${page.url()} in a new ${this.browserLabel(browser)} tab`
+          : `Navigated existing ${this.browserLabel(browser)} tab to ${page.url()}`
+      return await this.observePage(owner, record, request.action, summary)
     } catch (error) {
-      await closeBrowserPage(page)
+      if (created) await closeBrowserPage(page)
       throw error
     }
   }
@@ -784,9 +1112,23 @@ export class BrowserControl extends Service {
       throw new Error(`browser target does not support ${request.action}; use one of: ${target.target.actions.join(', ')}`)
     }
     const page = this.activePage(owner)
-    this.observations.delete(BrowserObservationId(requireText(request.observationId, 'observation_id')))
-    await withPageCancellation(page.page, signal, () => action(target))
-    return await this.observePage(owner, page, request.action, `${request.action} completed on ${target.target.name || target.target.role}`)
+    const observationId = BrowserObservationId(requireText(request.observationId, 'observation_id'))
+    const observation = this.observations.get(observationId)
+    this.observations.delete(observationId)
+    try {
+      const connected = await target.element.evaluate(element => element.isConnected).catch(() => false)
+      if (!connected) throw new Error('browser target changed after it was observed; observe again')
+      try {
+        await withPageCancellation(page.page, signal, () => action(target))
+      } catch (error) {
+        const stillConnected = await target.element.evaluate(element => element.isConnected).catch(() => false)
+        if (!stillConnected) throw new Error('browser target changed after it was observed; observe again')
+        throw error
+      }
+      return await this.observePage(owner, page, request.action, `${request.action} completed on ${target.target.name || target.target.role}`)
+    } finally {
+      if (observation !== undefined) this.releaseObservation(observation)
+    }
   }
 
   private resolveTarget(owner: SessionId, request: BrowserActionRequest): StoredTarget {
@@ -797,11 +1139,11 @@ export class BrowserControl extends Service {
       throw new Error('browser observation is missing or belongs to another session; observe again')
     }
     if (observation.expiresAt < Date.now()) {
-      this.observations.delete(observationId)
+      this.dropObservation(observationId)
       throw new Error('browser observation expired; observe again')
     }
     if (this.activePageByOwner.get(owner) !== observation.pageId) {
-      this.observations.delete(observationId)
+      this.dropObservation(observationId)
       throw new Error('browser observation is stale because the active tab changed; observe again')
     }
     const target = observation.targets.get(targetId)
@@ -817,95 +1159,26 @@ export class BrowserControl extends Service {
   ): Promise<BrowserActionResult> {
     if (record.page.isClosed()) throw new Error('active browser tab closed; open or switch to another tab')
     const all = record.page.locator(INTERACTIVE_SELECTOR)
-    const projection = await all.evaluateAll((elements, limit): ProjectionResult => {
-      const output: ElementProjection[] = []
-      const excludedFillTypes = new Set([
-        'button', 'checkbox', 'color', 'file', 'hidden', 'image', 'password', 'radio', 'range', 'reset', 'submit',
-      ])
-      let truncated = false
-      for (let index = 0; index < elements.length && output.length < limit; index += 1) {
-        const element = elements[index]
-        if (!(element instanceof HTMLElement)) continue
-        const style = getComputedStyle(element)
-        const bounds = element.getBoundingClientRect()
-        if (style.visibility === 'hidden' || style.display === 'none' || bounds.width <= 0 || bounds.height <= 0) continue
-        const explicitRole = element.getAttribute('role')
-        const tag = element.tagName.toLowerCase()
-        const input = element instanceof HTMLInputElement ? element : undefined
-        const inputType = input?.type.toLowerCase() ?? ''
-        let role = explicitRole ?? ''
-        if (role === '') {
-          if (tag === 'a') role = 'link'
-          else if (tag === 'textarea') role = 'textbox'
-          else if (tag === 'select') role = 'combobox'
-          else if (tag !== 'input') role = tag === 'button' ? 'button' : tag
-          else if (inputType === 'checkbox' || inputType === 'radio' || inputType === 'button') role = inputType
-          else if (inputType === 'submit') role = 'button'
-          else if (inputType === 'file') role = 'file'
-          else role = 'textbox'
-        }
-        let labelled = ''
-        const labelledBy = element.getAttribute('aria-labelledby')
-        if (labelledBy !== null) {
-          for (const id of labelledBy.split(/\s+/u)) {
-            const labelledElement = document.getElementById(id)
-            const labelledText = labelledElement?.textContent
-            if (labelledText !== undefined) {
-              labelled += ` ${labelledText}`
-            }
-          }
-        }
-        let name = ''
-        const candidates = [
-          element.getAttribute('aria-label'), labelled, element.getAttribute('alt'), element.getAttribute('title'),
-          element.getAttribute('placeholder'), element.innerText, element.textContent,
-        ]
-        for (const candidate of candidates) {
-          const value = (candidate ?? '').replace(/\s+/gu, ' ').trim().slice(0, 160)
-          if (value !== '') {
-            name = value
-            break
-          }
-        }
-        const actions = inputType === 'file' ? [] : ['click']
-        if ((element instanceof HTMLInputElement && !excludedFillTypes.has(inputType))
-          || element instanceof HTMLTextAreaElement || element.isContentEditable) actions.push('fill')
-        if (element instanceof HTMLSelectElement) actions.push('select')
-        if (inputType === 'file') actions.push('upload')
-        const value = inputType === 'password' ? undefined
-          : element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement
-            ? element.value.replace(/\s+/gu, ' ').trim().slice(0, 160)
-            : undefined
-        const checked = inputType === 'checkbox' || inputType === 'radio' ? Boolean(input?.checked) : undefined
-        output.push({
-          index,
-          role,
-          name,
-          ...value !== undefined && value !== '' ? { value } : {},
-          disabled: 'disabled' in element && Boolean(element.disabled),
-          ...checked !== undefined ? { checked } : {},
-          inputType,
-          actions,
-        })
+    const handles = await all.elementHandles()
+    const candidates = await Promise.all(handles.map(async (element) => {
+      try {
+        return { element, projection: await projectInteractiveElement(element) }
+      } catch {
+        return { element, projection: undefined }
       }
-      if (output.length === limit) {
-        for (let index = (output[output.length - 1]?.index ?? -1) + 1; index < elements.length; index += 1) {
-          const element = elements[index]
-          if (!(element instanceof HTMLElement)) continue
-          const style = getComputedStyle(element)
-          const bounds = element.getBoundingClientRect()
-          if (style.visibility !== 'hidden' && style.display !== 'none' && bounds.width > 0 && bounds.height > 0) {
-            truncated = true
-            break
-          }
-        }
-      }
-      return { targets: output, truncated }
-    }, this.options.maxTargets)
-    const projected = projection.targets
+    }))
+    const visible = candidates.filter((candidate): candidate is {
+      element: ElementHandle
+      projection: ElementProjection
+    } => candidate.projection !== undefined)
+    const selected = visible.slice(0, this.options.maxTargets)
+    const selectedHandles = new Set(selected.map(candidate => candidate.element))
+    for (const handle of handles) {
+      if (!selectedHandles.has(handle)) void handle.dispose().catch(() => {})
+    }
     const observationId = BrowserObservationId(`bo-${randomUUID()}`)
     const targetMap = new Map<BrowserTargetId, StoredTarget>()
-    const targets = projected.map((projection): BrowserTarget => {
+    const targets = selected.map(({ element, projection }): BrowserTarget => {
       const id = BrowserTargetId(`bt-${randomUUID()}`)
       const target: BrowserTarget = {
         id,
@@ -916,12 +1189,10 @@ export class BrowserControl extends Service {
         ...projection.checked !== undefined ? { checked: projection.checked } : {},
         actions: projection.actions,
       }
-      targetMap.set(id, { target, locator: all.nth(projection.index), inputType: projection.inputType })
+      targetMap.set(id, { target, element, inputType: projection.inputType })
       return target
     })
-    for (const [id, observation] of this.observations) {
-      if (observation.owner === owner) this.observations.delete(id)
-    }
+    this.dropOwnerObservations(owner)
     this.observations.set(observationId, {
       id: observationId,
       owner,
@@ -934,13 +1205,14 @@ export class BrowserControl extends Service {
     return {
       action,
       summary,
+      browser: record.browser,
       pageId: record.id,
       url: record.page.url(),
       title: await record.page.title().catch(() => ''),
       observationId,
       text,
       targets,
-      truncated: rawText.length > this.options.maxTextChars || projection.truncated,
+      truncated: rawText.length > this.options.maxTextChars || visible.length > this.options.maxTargets,
     }
   }
 
@@ -948,24 +1220,39 @@ export class BrowserControl extends Service {
     owner: SessionId,
     action: BrowserActionRequest['action'],
     summary: string,
+    browser?: BrowserKind,
   ): Promise<BrowserActionResult> {
     const tabs: BrowserPageSummary[] = []
     let truncated = false
     const active = this.activePageByOwner.get(owner)
     for (const record of this.pages.values()) {
-      if (record.owner !== owner || record.page.isClosed()) continue
+      if (record.owner !== owner || record.page.isClosed() || (browser !== undefined && record.browser !== browser)) continue
       if (tabs.length >= this.options.maxTabs) {
         truncated = true
         break
       }
       tabs.push({
         id: record.id,
+        browser: record.browser,
         url: record.page.url(),
         title: await record.page.title().catch(() => ''),
         active: record.id === active,
       })
     }
-    return { action, summary, tabs, truncated }
+    return { action, summary, ...browser !== undefined ? { browser } : {}, tabs, truncated }
+  }
+
+  private async listTabs(
+    owner: SessionId,
+    request: BrowserActionRequest,
+    signal: AbortSignal,
+  ): Promise<BrowserActionResult> {
+    const browser = request.browser ?? this.settingsSource().browser
+    throwIfAborted(signal)
+    const context = await this.browser(browser)
+    throwIfAborted(signal)
+    this.adoptAvailablePages(owner, browser, context)
+    return await this.tabResult(owner, request.action, `Listed ${this.browserLabel(browser)} tabs`, browser)
   }
 
   private async switchTab(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult> {
@@ -985,11 +1272,34 @@ export class BrowserControl extends Service {
     if (record === undefined || record.owner !== owner) throw new Error('browser tab is missing or belongs to another session')
     await withPageCancellation(record.page, signal, () => record.page.close({ runBeforeUnload: false }))
     this.dropPage(record.page)
-    return await this.tabResult(owner, request.action, 'Closed browser tab')
+    return await this.tabResult(owner, request.action, 'Closed browser tab', record.browser)
   }
 
-  private trackPage(owner: SessionId, page: Page): PageRecord {
-    const record: PageRecord = { id: BrowserPageId(`bp-${randomUUID()}`), owner, page }
+  /** Attach pages opened manually in a controlled browser without crossing another session's ownership. */
+  private adoptAvailablePages(owner: SessionId, browser: BrowserKind, context: BrowserContext): void {
+    const adopted: PageRecord[] = []
+    for (const page of context.pages()) {
+      if (page.isClosed() || this.pageIds.has(page)) continue
+      adopted.push(this.trackPage(owner, browser, page))
+    }
+    if (this.activePageByOwner.has(owner)) return
+    const active = adopted.at(-1)
+      ?? [...this.pages.values()].find(record => record.owner === owner && record.browser === browser && !record.page.isClosed())
+    if (active !== undefined) this.activePageByOwner.set(owner, active.id)
+  }
+
+  /** Invalidate every semantic target issued to one session before navigation changes its document. */
+  private dropOwnerObservations(owner: SessionId): void {
+    for (const [id, observation] of this.observations) {
+      if (observation.owner === owner) this.dropObservation(id)
+    }
+  }
+
+  private trackPage(owner: SessionId, browser: BrowserKind, page: Page): PageRecord {
+    const existingId = this.pageIds.get(page)
+    const existing = existingId === undefined ? undefined : this.pages.get(existingId)
+    if (existing !== undefined) return existing
+    const record: PageRecord = { id: BrowserPageId(`bp-${randomUUID()}`), owner, browser, page }
     this.pages.set(record.id, record)
     this.pageIds.set(page, record.id)
     page.on('close', () => { this.dropPage(page) })
@@ -999,10 +1309,10 @@ export class BrowserControl extends Service {
   private async trackPopup(page: Page): Promise<void> {
     const opener = await page.opener()
     const openerId = opener === null ? undefined : this.pageIds.get(opener)
-    const owner = openerId === undefined ? undefined : this.pages.get(openerId)?.owner
-    if (owner === undefined || this.pageIds.has(page)) return
-    const record = this.trackPage(owner, page)
-    this.activePageByOwner.set(owner, record.id)
+    const openerRecord = openerId === undefined ? undefined : this.pages.get(openerId)
+    if (openerRecord === undefined || this.pageIds.has(page)) return
+    const record = this.trackPage(openerRecord.owner, openerRecord.browser, page)
+    this.activePageByOwner.set(openerRecord.owner, record.id)
   }
 
   private dropPage(page: Page): void {
@@ -1012,7 +1322,7 @@ export class BrowserControl extends Service {
     this.pages.delete(pageId)
     if (record === undefined) return
     for (const [id, observation] of this.observations) {
-      if (observation.pageId === pageId) this.observations.delete(id)
+      if (observation.pageId === pageId) this.dropObservation(id)
     }
     if (this.activePageByOwner.get(record.owner) !== pageId) return
     const replacement = [...this.pages.values()].find(candidate => candidate.owner === record.owner && !candidate.page.isClosed())

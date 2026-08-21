@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-xiaojing-weixin-channel.md
+2026-08-21-xiaojing-weixin-channel.md: fd24547f2e10b5c3bb833bd58025c48ed9fedfac
+2026-08-21-xiaojing-weixin-channel.zh.md: 95922f9bd865855a576db6b75d92273399fada26

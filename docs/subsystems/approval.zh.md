@@ -2,7 +2,7 @@
 
 [English](approval.md) | 中文
 
-[dsh-user-approval](../../packages/interaction/user-approval) 的用户审批 seam 回答一个问题：这个具体操作是否可以继续？它拥有共享的请求/结果词汇、`ctx.approval` 分发服务、`approval/request` 应答者 waterfall（瀑布式事件）、仅记录日志的审计事件对，以及按会话的 `ask`/`never` 策略。UI 通道可以提供人类应答者；[ACP（Agent Client Protocol）自动化桥接层](../../packages/acp/acp)为其拥有的 agent（智能体）提供一次性机器决策。调用方如 [dsh-tools](../../packages/core/tools) 和 [dsh-tool-bash](../../packages/shell/tool-bash) 消费闭合的结果，除非结果为 `allowed-once`，否则一律拒绝。
+[dsh-user-approval](../../packages/interaction/user-approval) 的用户审批 seam 回答一个问题：这个具体操作是否可以继续？它拥有共享的请求/结果词汇、`ctx.approval` 分发服务、`approval/request` 应答者 waterfall（瀑布式事件）、仅记录日志的审计事件对，以及按会话的 `ask`/`never` 策略。普通请求遵循该策略；强制安全请求仅绕过 `never` 对提问的抑制，仍然要求存在可用的一次性应答。UI 通道可以提供人类应答者；[ACP（Agent Client Protocol）自动化桥接层](../../packages/acp/acp)为其拥有的 agent（智能体）提供一次性机器决策。调用方消费闭合的结果，除非结果为 `allowed-once`，否则一律拒绝。
 
 源码：[`packages/interaction/user-approval/src/index.ts`](../../packages/interaction/user-approval/src/index.ts)
 
@@ -30,7 +30,7 @@ type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
 
 ## 按会话策略
 
-`ApprovalPolicy` 决定在交互式应答者运行之前发生什么。`ask` 委托给组合的应答者链，链的无应答默认值为 `unavailable`；`never` 确定性地返回 `rejected`，不分发任何应答者。生效值为会话日志中最后一条 `approval/policy` 事件，回退到服务配置。`setApprovalPolicy(session, policy)` 是唯一的写入路径，因此回放能重建覆盖值。
+`ApprovalPolicy` 决定 `request()` 在交互式应答者运行之前发生什么。`ask` 委托给组合的应答者链，链的无应答默认值为 `unavailable`；`never` 确定性地返回 `rejected`，不分发任何应答者。`requestMandatory()` 仅供安全不变量使用，不受该普通策略抑制，但保留相同的取消、审计与失败时拒绝行为。生效值为会话日志中最后一条 `approval/policy` 事件，回退到服务配置。`setApprovalPolicy(session, policy)` 是唯一的写入路径，因此回放能重建覆盖值。
 
 ```ts type-equiv
 /**
@@ -39,9 +39,9 @@ type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
  *
  * - `'ask'` (the default) — delegate to the composed answerers; with none
  *   composed the chain falls through to the fail-closed `'unavailable'`.
- * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
- *   deterministically. The strict headless stance (CI, unattended runs) and
- *   the policy whose outcome is knowable without asking.
+ * - `'never'` — never prompt anyone for an ordinary request: every ordinary
+ *   ask resolves `'rejected'` deterministically. Mandatory security
+ *   confirmations use {@link ApprovalService.requestMandatory} instead.
  */
 type ApprovalPolicy = 'ask' | 'never'
 ```
@@ -83,7 +83,7 @@ interface ApprovalRequest {
 
 ## 分发与审计
 
-`ctx.approval.request(req)` 要求发起请求的会话处于一个尚未结束的轮次内。它追加 `approval/asked`，获取一个结果，追加对应的 `approval/decided`，然后以该结果完成。`never` 策略在服务内部、waterfall 分发之前强制执行，因此即使后来以 `prepend` 注册的应答者也无法绕过它。应答者在负责处理该请求时返回结果，否则调用 `next()` 委托；第一个应答占据唯一的决策槽位。
+`ctx.approval.request(req)` 和 `ctx.approval.requestMandatory(req)` 都要求发起请求的会话处于一个尚未结束的轮次内。两者都会追加 `approval/asked`，获取一个结果，追加对应的 `approval/decided`，然后以该结果完成。`never` 策略在普通 `request()` 内部、waterfall 分发之前强制执行，因此即使后来以 `prepend` 注册的应答者也无法绕过它。强制请求在 `never` 下会有意到达同一组应答者；它本身不代表授权，缺少应答者时会得到 `unavailable`。应答者在负责处理该请求时返回结果，否则调用 `next()` 委托；第一个应答占据唯一的决策槽位。
 
 审计事件仅写入日志，不进入模型 transcript（文本记录）。模型可见的行为是调用方派生的工具结果与当前运行时上下文快照。服务 dispose（资源释放）时会移除其上下文贡献；应答者监听器独立地通过 effect 绑定到其所属插件。
 
@@ -130,6 +130,20 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  *   append commit point.
  */
 async request(req: ApprovalRequest): Promise<ApprovalOutcome>
+
+/**
+ * Ask for a security confirmation that the session's ordinary approval
+ * policy cannot suppress. This method is reserved for product security
+ * invariants such as deletion confirmation; it does not grant the action
+ * and still fails closed when no answerer is available, the user rejects,
+ * or the request is cancelled. Audit and turn-enclosure behavior are the
+ * same as {@link request}.
+ * @param req - the mandatory decision (agent, tool identity, reason, signal).
+ * @returns the closed outcome; `'allowed-once'` is the only grant.
+ * @throws when no turn is open or either audit event fails before the session
+ *   append commit point.
+ */
+async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
  * Read the session override without applying the configured default.

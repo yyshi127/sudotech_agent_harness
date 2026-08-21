@@ -125,12 +125,18 @@ const HIGH_IMPACT_PATTERN = new RegExp(
   + '|转账|签署|注销|安装|运行|打开|保存|导出|上传|附件|下载)',
   'iu',
 )
+const DELETION_PATTERN = /(?:delete|remove|uninstall|删除|移除|卸载)/iu
 const HIGH_IMPACT_APP_PATTERN = new RegExp(
   '(?:\\buninstall\\b|\\binstaller?\\b|\\bsetup\\b|\\bpowershell\\b|\\bterminal\\b|\\bcommand prompt\\b'
   + '|\\bcmd\\b|\\bregistry\\b|\\bregedit\\b|卸载|安装|终端|命令提示符|注册表|管理工具|安全策略|防火墙|恢复驱动器|磁盘清理|计算机管理)',
   'iu',
 )
 const SAFE_KEYS = new Set(['{TAB}', '+{TAB}', '{ESC}', '{UP}', '{DOWN}', '{LEFT}', '{RIGHT}', '{PGUP}', '{PGDN}', '{HOME}', '{END}'])
+
+interface ApprovalRequirement {
+  readonly reason: string
+  readonly mandatory: boolean
+}
 
 /** Schemastery configuration for Windows computer control. */
 export const Config: z<Config> = z.object({
@@ -281,24 +287,38 @@ export class ComputerControl extends Service {
    * @returns The approval reason, or undefined when the operation may proceed directly.
    */
   approvalReason(owner: SessionId, request: ComputerActionRequest): string | undefined {
+    return this.approvalRequirement(owner, request)?.reason
+  }
+
+  /** Resolve the ordinary or mandatory approval needed by one Windows action. */
+  private approvalRequirement(owner: SessionId, request: ComputerActionRequest): ApprovalRequirement | undefined {
     if (request.action === 'launch_app') {
       this.validateRequest(owner, request)
       const app = this.resolveApp(owner, request.appId)
       return HIGH_IMPACT_APP_PATTERN.test(app.name)
-        ? `Launch potentially high-impact Windows application “${app.name}”`
+        ? {
+          reason: `Launch potentially high-impact Windows application “${app.name}”`,
+          mandatory: DELETION_PATTERN.test(app.name),
+        }
         : undefined
     }
     if (request.action === 'press_key') {
       this.validateRequest(owner, request)
       const key = requireText(request.key, 'key').toUpperCase()
-      return SAFE_KEYS.has(key) ? undefined : `Send keyboard input ${request.key as string} to another Windows application`
+      return SAFE_KEYS.has(key) ? undefined : {
+        reason: `Send keyboard input ${request.key as string} to another Windows application`,
+        mandatory: /(?:DELETE|DEL)/u.test(key),
+      }
     }
     if (request.action !== 'invoke' && request.action !== 'toggle' && request.action !== 'select') return undefined
     this.validateRequest(owner, request)
     const target = this.resolveTarget(owner, request)
     const label = `${target.name} ${target.controlType}`
     return HIGH_IMPACT_PATTERN.test(label)
-      ? `Activate potentially high-impact Windows control “${target.name || target.controlType}”`
+      ? {
+        reason: `Activate potentially high-impact Windows control “${target.name || target.controlType}”`,
+        mandatory: DELETION_PATTERN.test(label),
+      }
       : undefined
   }
 
@@ -452,8 +472,8 @@ export class ComputerControl extends Service {
           ...args.timeout_ms !== undefined ? { timeoutMs: args.timeout_ms } : {},
         }
         const owner = exec.agent.id
-        const reason = this.approvalReason(owner, request)
-        if (reason !== undefined) await this.requireApproval(ctx, exec, reason)
+        const approval = this.approvalRequirement(owner, request)
+        if (approval !== undefined) await this.requireApproval(ctx, exec, approval)
         return await this.run(owner, request, exec.signal)
       },
       presentCall: args => ({
@@ -465,17 +485,25 @@ export class ComputerControl extends Service {
     }))
   }
 
-  private async requireApproval(ctx: Context, exec: ToolRunContext, reason: string): Promise<void> {
+  private async requireApproval(
+    ctx: Context,
+    exec: ToolRunContext,
+    requirement: ApprovalRequirement,
+  ): Promise<void> {
+    const { reason, mandatory } = requirement
     const approval = ctx.get('approval')
     if (approval === undefined) throw new Error(`${reason} requires approval, but no approval service is composed`)
     if (exec.agent === undefined) throw new Error(`${reason} requires an owning agent session`)
-    const outcome = await approval.request({
+    const request = {
       agent: exec.agent,
       toolName: exec.name,
       callId: exec.callId,
       reason,
       signal: exec.signal,
-    })
+    }
+    const outcome = mandatory
+      ? await approval.requestMandatory(request)
+      : await approval.request(request)
     if (outcome === 'allowed-once') return
     if (outcome === 'rejected') throw new Error(`the user rejected: ${reason}`)
     if (outcome === 'cancelled') throw new Error(`approval was cancelled: ${reason}`)

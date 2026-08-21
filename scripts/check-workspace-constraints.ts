@@ -173,6 +173,9 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-session-persistence-sqlite': ['resources/sql/**/*.sql'],
   '@deepseek-ai/dsh-skill-badge': ['assets'],
   '@deepseek-ai/dsh-subprocess-local': ['scripts/ensure-spawn-helper.mjs'],
+  // The Weixin channel adapts the MIT-licensed Tencent iLink implementation;
+  // the attribution notice ships with every published copy.
+  '@deepseek-ai/dsh-xiaojing-weixin-channel': ['NOTICE.md'],
 }
 
 function sameStringList(actual: readonly string[] | undefined, expected: readonly string[]): boolean {

@@ -6,5 +6,6 @@ This group contains optional Xiaojing product capabilities. Each package is a no
 
 | Package | Role | ctx key |
 |---|---|---|
-| [`xiaojing-browser-control/`](xiaojing-browser-control/README.md) | Semantic browser automation backed by Microsoft Edge | `ctx.xiaojingBrowserControl` |
+| [`xiaojing-browser-control/`](xiaojing-browser-control/README.md) | Selectable Edge/Chrome semantic browser automation | `ctx.xiaojingBrowserControl` |
 | [`xiaojing-computer-control/`](xiaojing-computer-control/README.md) | Semantic Windows UI Automation control | `ctx.xiaojingComputerControl` |
+| [`xiaojing-weixin-channel/`](xiaojing-weixin-channel/README.md) | Tencent iLink pairing, text task delivery, and durable Weixin Agent session | none |

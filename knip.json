@@ -252,6 +252,36 @@
         "tests/**/*.tsx"
       ]
     },
+    "packages/client/ui-weixin-channel": {
+      "entry": [
+        "tests/**/*.spec.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
+      ]
+    },
+    "packages/client/ui-xiaojing-browser-control": {
+      "entry": [
+        "tests/**/*.spec.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
+      ]
+    },
+    "packages/xiaojing/xiaojing-browser-control": {
+      "entry": [
+        "tests/**/*.spec.ts",
+        "tests/fixtures/source-launch-smoke.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
     "packages/llm/usage-accounting": {
       "entry": [
         "tests/**/*.spec.ts"

@@ -92,6 +92,8 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-directory-picker-native': { kind: 'none', reason: 'Browser-side surface driving the host OS chooser; registers nothing model-facing.' },
   'packages/client/ui-theme': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-usage-accounting': { kind: 'none', reason: 'Browser-side local usage presentation; registers nothing model-facing.' },
+  'packages/client/ui-weixin-channel': { kind: 'none', reason: 'Browser-side Weixin connection presentation; registers nothing model-facing.' },
+  'packages/client/ui-xiaojing-browser-control': { kind: 'none', reason: 'Browser-side browser preference presentation; registers nothing model-facing.' },
   'packages/client/ui-settings': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-settings-general': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-settings-models': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },

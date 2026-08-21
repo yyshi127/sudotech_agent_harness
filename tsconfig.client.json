@@ -81,6 +81,8 @@
     { "path": "./packages/client/ui-goal" },
     { "path": "./packages/client/ui-message-feedback" },
     { "path": "./packages/client/ui-usage-accounting" },
+    { "path": "./packages/client/ui-weixin-channel" },
+    { "path": "./packages/client/ui-xiaojing-browser-control" },
     { "path": "./packages/client/xiaojing-product/tsconfig.client.json" },
     { "path": "./packages/client/ui-model-selection" },
     { "path": "./packages/client/ui-agent-preset" },
