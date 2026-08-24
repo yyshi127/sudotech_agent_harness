@@ -209,21 +209,31 @@ interface StartupFixture {
 /**
  * A custom profile whose ordinary provider plugin injects `cmdlineArgs`, plus
  * a row that reads its app-owned service through a `!!js` config expression.
- * Both plugin modules resolve
- * `@deepseek-ai/dsh-cmdline` and `commander` through the profile module
- * fallback, exactly as an installed out-of-tree bundle does.
+ * Both plugin modules resolve `@deepseek-ai/dsh-cmdline` and `commander`
+ * through the app installation, exactly as an installed out-of-tree bundle
+ * does. A copied legacy fallback directory reproduces the Windows startup
+ * failure that must not block or shadow this resolution.
  */
 function createStartupFixture(): StartupFixture {
   const home = mkdtempSync(join(tmpdir(), 'dsh-profile-startup-'))
   const profileDir = join(home, 'profiles', 'startup')
-  // Written straight into the installed location: a row module resolves its
-  // own imports from where it is installed, and only inside the profile does
-  // Node's parent walk reach the installation fallback these plugins need.
+  const legacyFallback = join(home, 'profiles', 'node_modules', '@deepseek-ai', 'dsh-cmdline')
+  mkdirSync(legacyFallback, { recursive: true })
+  writeFileSync(join(legacyFallback, 'package.json'), JSON.stringify({
+    name: '@deepseek-ai/dsh-cmdline',
+    version: '0.0.0-stale',
+    type: 'module',
+    exports: './index.js',
+  }))
+  writeFileSync(join(legacyFallback, 'index.js'), "throw new Error('stale shared fallback loaded')\n")
+  // Written straight into the profile installation: its missing app-owned
+  // dependencies must resolve without a shared node_modules link farm.
   const bundleDir = join(profileDir, 'node_modules', 'dsh-startup-bundle')
   mkdirSync(bundleDir, { recursive: true })
   writeFileSync(join(bundleDir, 'startup.mjs'), [
     "import { Command } from 'commander'",
     "import { parseCmdline } from '@deepseek-ai/dsh-cmdline'",
+    "import '@deepseek-ai/dsh-typert-registry'",
     "export const name = 'fixture-startup'",
     "export const inject = ['cmdlineArgs']",
     'export function apply(ctx) {',
@@ -554,6 +564,9 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
       // The consumer started once, already carrying the flag value: the
       // launcher never saw --generation, and the app provider resolved it first.
       expect(readFileSync(fixture.echo, 'utf8')).toBe('flagged')
+      expect(existsSync(join(
+        fixture.home, 'profiles', 'node_modules', '@deepseek-ai', 'dsh-cmdline', 'index.js',
+      ))).toBe(true)
       requestProfileShutdown(child, fixture)
       expect((await child).exitCode).toBe(0)
     } finally {

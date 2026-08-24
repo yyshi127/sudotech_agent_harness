@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
-import { boot, healProfilesModuleFallback, loadOverlayPatches, loadProfile } from '@deepseek-ai/dsh-app-boot'
+import { boot, loadOverlayPatches, loadProfile, registerProfileModuleFallback } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -28,7 +28,7 @@ const BASE_PATCH = join(REPO_ROOT, 'packages/bundle/base/cordis.patch.yml')
 const WEB_PATCH = join(REPO_ROOT, 'packages/bundle/web-app/cordis.patch.yml')
 const CODEX_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-codex')
 const CLAUDE_CODE_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-claude-code')
-/** The installation anchor whose dependency surface the preset module fallback mirrors. */
+/** The installation anchor whose dependency closure supplies profile imports. */
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
 const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
 const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
@@ -110,11 +110,9 @@ async function bootWeb(
     ...extra,
   ]
   // The surface is patch layers over an empty preset root, so the root sits
-  // outside this workspace and bare plugin names cannot resolve by Node's
-  // upward walk. The flat fallback the preset boot maintains is what makes
-  // them resolvable — the same mechanism, not a test-only shim.
+  // outside this workspace. Use the launcher's scoped installation resolver,
+  // not a test-only dependency shim.
   const home = dirname(settingsFile)
-  healProfilesModuleFallback(INSTALL_ANCHOR, home)
   const profileDir = join(home, 'profiles', 'spec')
   await mkdir(profileDir, { recursive: true })
   // Product Bundles are installed into the Profile, not the dsh app. Model
@@ -142,9 +140,16 @@ async function bootWeb(
   }
   const rootConfig = join(profileDir, 'cordis.yml')
   await writeFile(rootConfig, '[]\n')
-  return await boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], (bootCtx) => {
-    provideCmdline(bootCtx, { args: [], exit: () => {} })
-  })
+  const unregisterModuleFallback = registerProfileModuleFallback(INSTALL_ANCHOR, home)
+  try {
+    return await boot('dsh-test', rootConfig, [...bundlePatches, ...overrides], (bootCtx) => {
+      bootCtx.effect(() => unregisterModuleFallback)
+      provideCmdline(bootCtx, { args: [], exit: () => {} })
+    })
+  } catch (error) {
+    unregisterModuleFallback()
+    throw error
+  }
 }
 
 const toolNames = (ctx: Context, agent?: Agent): string[] =>

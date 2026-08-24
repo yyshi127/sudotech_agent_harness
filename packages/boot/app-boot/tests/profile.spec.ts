@@ -4,7 +4,7 @@
  * empty-root composition, and the installation module-fallback healing.
  */
 
-import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -12,12 +12,12 @@ import {
   assertNoProfileRuntimeShadows,
   composeEntries,
   findProfileRuntimeShadows,
-  healProfilesModuleFallback,
   initProfile,
   loadProfile,
   PROFILE_PATCH_FILENAME,
   PROFILE_TEMPLATES,
   readProfileManifest,
+  registerProfileModuleFallback,
   resolveBundleDir,
   resolveProfileDir,
   writeProfileManifest,
@@ -288,62 +288,20 @@ describe('composeEntries', () => {
   })
 })
 
-describe('healProfilesModuleFallback', () => {
-  it('links the app and bundle dependency surface flat under profiles/node_modules', () => {
-    const anchor = stageInstallation({
-      'bundle-a': { patch: '[]\n', deps: { 'dep-of-a': '0.0.0', 'ghost-dep': '0.0.0' } },
-      'plain-lib': {},
-    })
-    // An app dependency that is declared but not installed: skipped, not fatal.
-    const appManifest = JSON.parse(readFileSync(anchor, 'utf8')) as { dependencies: Record<string, string> }
-    appManifest.dependencies['never-installed'] = '0.0.0'
-    writeFileSync(anchor, JSON.stringify(appManifest))
-    // dep-of-a lives in the installation's node_modules too.
-    const modules = join(anchor, '..', 'node_modules')
-    mkdirSync(join(modules, 'dep-of-a'), { recursive: true })
-    writeFileSync(join(modules, 'dep-of-a', 'package.json'), JSON.stringify({ name: 'dep-of-a', version: '0.0.0' }))
+describe('registerProfileModuleFallback', () => {
+  it('leaves a legacy shared module directory untouched', () => {
+    const anchor = stageInstallation({})
     const home = tmp()
-    healProfilesModuleFallback(anchor, home)
-    const fallback = join(home, 'profiles', 'node_modules')
-    // App deps, the bundle's own deps, and the bundle itself are linked; the
-    // plain library is linked as an app dep (harmless), the app itself too.
-    for (const name of ['bundle-a', 'plain-lib', 'dep-of-a', 'dsh-app']) {
-      expect(lstatSync(join(fallback, name)).isSymbolicLink(), name).toBe(true)
+    const legacy = join(home, 'profiles', 'node_modules')
+    mkdirSync(join(legacy, 'copied-package'), { recursive: true })
+    writeFileSync(join(legacy, 'copied-package', 'marker'), 'preserved')
+
+    const unregister = registerProfileModuleFallback(anchor, home)
+    try {
+      expect(readFileSync(join(legacy, 'copied-package', 'marker'), 'utf8')).toBe('preserved')
+    } finally {
+      unregister()
+      unregister()
     }
-    // Idempotent, and a moved target is re-pointed.
-    healProfilesModuleFallback(anchor, home)
-    const before = readlinkSync(join(fallback, 'dep-of-a'))
-    expect(before).toContain('dep-of-a')
-  })
-
-  it('throws when a fallback entry is a real directory', () => {
-    const anchor = stageInstallation({})
-    const home = tmp()
-    mkdirSync(join(home, 'profiles', 'node_modules', 'dsh-app'), { recursive: true })
-    expect(() => { healProfilesModuleFallback(anchor, home) }).toThrow('is not a symlink')
-  })
-
-  it('replaces a wrong symlink', () => {
-    const anchor = stageInstallation({})
-    const home = tmp()
-    const fallback = join(home, 'profiles', 'node_modules')
-    mkdirSync(fallback, { recursive: true })
-    symlinkSync(tmp(), join(fallback, 'dsh-app'), 'junction')
-    healProfilesModuleFallback(anchor, home)
-    expect(readlinkSync(join(fallback, 'dsh-app'))).toContain('app')
-  })
-
-  it('tolerates losing the concurrent-heal race to an identical link and rejects a different one', () => {
-    // The EEXIST arm: a second process wrote the link between our lstat miss
-    // and symlinkSync. Simulated by pre-creating the correct link and calling
-    // the internal path through a stale-lstat shim is not possible from
-    // outside, so probe the observable contract: healing twice concurrently
-    // is a no-op, and a foreign REAL directory still fails loud.
-    const anchor = stageInstallation({})
-    const home = tmp()
-    healProfilesModuleFallback(anchor, home)
-    healProfilesModuleFallback(anchor, home) // second healer sees the correct link
-    const fallback = join(home, 'profiles', 'node_modules')
-    expect(lstatSync(join(fallback, 'dsh-app')).isSymbolicLink()).toBe(true)
   })
 })

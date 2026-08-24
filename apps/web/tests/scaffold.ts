@@ -41,8 +41,8 @@ import {
 import {
   assertEntriesLoaded,
   composeEntries,
-  healProfilesModuleFallback,
   loadOverlayPatches,
+  registerProfileModuleFallback,
 } from '@deepseek-ai/dsh-app-boot'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
@@ -569,10 +569,11 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
   let replayHandle: ReplayHandle | undefined
   try {
     process.chdir(workspaceCwd)
-    // The production module-resolution setup: an empty profile root inside the temp
-    // harness home, with bare plugin names resolving through the flat module
-    // fallback the launcher heals under <home>/profiles.
-    healProfilesModuleFallback(INSTALL_ANCHOR, harnessHome)
+    // The production module-resolution setup: an empty profile root inside
+    // the temp Harness home, with missing app-owned imports resolved through
+    // the launcher's scoped installation fallback.
+    const unregisterModuleFallback = registerProfileModuleFallback(INSTALL_ANCHOR, harnessHome)
+    ctx.effect(() => unregisterModuleFallback)
     const profileDir = join(harnessHome, 'profiles', 'scaffold')
     await mkdir(profileDir, { recursive: true })
     const rootConfig = join(profileDir, 'cordis.yml')

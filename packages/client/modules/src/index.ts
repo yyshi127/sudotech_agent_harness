@@ -27,6 +27,7 @@ import { readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
@@ -300,15 +301,23 @@ export class ClientModuleRegistry extends Service {
    */
   constructor(ctx: Context) {
     super(ctx, 'clientModules')
-    // Resolution anchor: the config tree's baseUrl (the cordis.yml directory,
-    // whose package declares every composed plugin as a dependency). The
-    // modules package's own URL would miss sibling packages under pnpm's
-    // isolated node_modules.
+    // Use the Loader's ESM resolver so entry imports and metadata choose the
+    // same profile package or installed-app fallback. Hand-built contexts
+    // without Node's internal Loader retain ordinary config-anchor resolution.
     if (ctx.baseUrl === undefined) {
       throw new Error('client-modules: ctx.baseUrl is unset — the node half needs the config-tree anchor to resolve plugin packages')
     }
-    const require = createRequire(ctx.baseUrl)
-    this.resolvePkgJson = spec => require.resolve(`${spec}/package.json`)
+    const baseUrl = ctx.baseUrl
+    const require = createRequire(baseUrl)
+    this.resolvePkgJson = (spec) => {
+      const request = `${spec}/package.json`
+      const internal = ctx.loader.internal
+      if (internal === undefined) return require.resolve(request)
+      const resolved = internal.version === 'v1'
+        ? internal.resolveSync(request, baseUrl, { type: 'json' })
+        : internal.resolveSync(baseUrl, { specifier: request, attributes: { type: 'json' } })
+      return fileURLToPath(resolved.url)
+    }
 
     // Subscribe before seeding so a fiber arriving mid-activation lands in the
     // same dirty set (Set idempotence makes the overlap harmless). An entry-less

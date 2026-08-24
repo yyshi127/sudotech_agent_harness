@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { Context } from '@deepseek-ai/cordis'
+import type { ModuleLoader } from '@deepseek-ai/cordis-plugin-loader'
 import { afterEach, describe, expect, it } from 'vitest'
 import { renderIndexInjections, type WebServer, type WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import * as modulesClient from '../src/client/index.ts'
@@ -51,10 +52,19 @@ function writeBuiltPackage(packageName: string, client: Record<string, unknown>)
 }
 
 /** Construct the node-half service and capture its plugin-bundle route. */
-function constructWithRoute(packageNames: string[]): { service: ClientModuleRegistry; route: WebRoute } {
+interface ConstructOptions {
+  baseUrl?: string
+  internal?: ModuleLoader
+}
+
+function constructWithRoute(
+  packageNames: string[],
+  options: ConstructOptions = {},
+): { service: ClientModuleRegistry; route: WebRoute } {
   const ctx = new Context()
-  ctx.baseUrl = pathToFileURL(root!).href + '/'
+  ctx.baseUrl = options.baseUrl ?? pathToFileURL(root!).href + '/'
   ctx.provide('loader', {
+    internal: options.internal,
     *entries() {
       for (const packageName of packageNames) {
         yield { options: { name: packageName }, fiber: {}, disabled: false }
@@ -77,8 +87,8 @@ function constructWithRoute(packageNames: string[]): { service: ClientModuleRegi
 }
 
 /** Construct the node-half service over the enabled fixture entries. */
-function construct(packageNames: string[]): ClientModuleRegistry {
-  return constructWithRoute(packageNames).service
+function construct(packageNames: string[], options?: ConstructOptions): ClientModuleRegistry {
+  return constructWithRoute(packageNames, options).service
 }
 
 /** Execute the exact first inline script emitted by the Host boot rows. */
@@ -164,6 +174,36 @@ describe('HTML bootstrap facade', () => {
 })
 
 describe('client bundle activation', () => {
+  it.each(['v1', 'v2'] as const)('uses the Loader %s resolver for package metadata', (version) => {
+    const packageName = '@fixture/loader-resolved'
+    writeBuiltPackage(packageName, {})
+    const packageJsonPath = join(root!, 'node_modules', ...packageName.split('/'), 'package.json')
+    const packageJsonUrl = pathToFileURL(packageJsonPath).href
+    const profileDir = join(root!, 'profile')
+    mkdirSync(profileDir)
+    const baseUrl = pathToFileURL(profileDir).href + '/'
+    const calls: string[] = []
+    const internal = (version === 'v1'
+      ? {
+        version,
+        resolveSync(specifier: string, parentURL: string) {
+          calls.push(`${specifier} from ${parentURL}`)
+          return { format: 'json' as const, url: packageJsonUrl }
+        },
+      }
+      : {
+        version,
+        resolveSync(parentURL: string, request: { specifier: string }) {
+          calls.push(`${request.specifier} from ${parentURL}`)
+          return { format: 'json' as const, url: packageJsonUrl }
+        },
+      }) as ModuleLoader
+
+    expect(construct([packageName], { baseUrl, internal }).graph().entries.map(entry => entry.id))
+      .toEqual([packageName])
+    expect(calls).toEqual([`${packageName}/package.json from ${baseUrl}`])
+  })
+
   it('allows sibling dsh roles', () => {
     const currentName = '@fixture/current-client-field'
     const clientPath = writePackage(currentName, {

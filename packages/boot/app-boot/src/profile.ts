@@ -15,20 +15,19 @@
  * Module resolution is two-anchor by construction: a bundle name resolves
  * first from the dsh installation (the launcher's own package), then from the
  * profile directory. The Loader's `baseUrl` is the profile directory, whose
- * `node_modules` pnpm manages for out-of-tree plugins, while the maintained
- * flat fallback directory `$DSH_HOME/profiles/node_modules` (one symlink per
- * package the installation's app and bundles depend on) makes every in-box
- * plugin Node-resolvable from any profile through the ordinary parent-walk.
+ * `node_modules` pnpm manages for out-of-tree plugins. A scoped Node module
+ * hook falls back to the installation for missing imports issued by those
+ * profile modules, including their Harness and Cordis peer dependencies.
  * @module @deepseek-ai/dsh-app-boot/profile
  */
 
 import { randomBytes } from 'node:crypto'
-import { createRequire } from 'node:module'
+import { createRequire, registerHooks } from 'node:module'
 import {
-  existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync,
-  unlinkSync, writeFileSync,
+  existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync,
 } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import { applyEntryPatches, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
@@ -105,7 +104,8 @@ export interface Profile {
  */
 export function resolveProfileDir(name: string, home: string = resolveDshHome()): string {
   if (name === '' || name.includes('/') || name.includes('\\') || name === '.' || name === '..'
-    // The launcher-maintained flat module fallback lives at this sibling path.
+    // Reserved for the retired launcher fallback from releases before the
+    // scoped module resolver.
     || name === 'node_modules') {
     throw new Error(`dsh: invalid profile name ${JSON.stringify(name)}`)
   }
@@ -136,10 +136,10 @@ const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this dsh profile, applied
 []
 `
 
-// The hoisted linker gives out-of-tree plugins a flat node_modules whose
-// missing peers (cordis and friends) fall through to the healed
-// profiles/node_modules installation fallback, so every plugin shares the
-// installation's single cordis instance instead of a duplicate. pnpm ≥10
+// The hoisted linker gives out-of-tree plugins a flat node_modules; missing
+// app-owned peers (Cordis and friends) fall through to the launcher's scoped
+// installation resolver, so every plugin shares the installation's single
+// Cordis instance instead of a duplicate. pnpm ≥10
 // reads its settings from pnpm-workspace.yaml, not .npmrc.
 const PROFILE_PNPM_WORKSPACE = `packages:
   - .
@@ -252,67 +252,76 @@ export function assertNoProfileRuntimeShadows(
   )
 }
 
-/** Ensure `link` is a symlink to `target`, replacing a wrong or dangling link; a real directory throws. */
-function ensureSymlink(link: string, target: string): void {
-  let stat
-  try {
-    stat = lstatSync(link)
-  } catch {
-    // Missing link (first run) — created below. Any other lstat failure on a
-    // path we just created the parent of would resurface on symlinkSync.
-    stat = undefined
+function isPathInside(parentUrl: string | undefined, directory: string): boolean {
+  if (parentUrl === undefined || !parentUrl.startsWith('file:')) return false
+  const path = relative(directory, fileURLToPath(parentUrl))
+  return path === '' || (!isAbsolute(path) && path !== '..' && !path.startsWith(`..${sep}`))
+}
+
+function isBarePackageSpecifier(specifier: string): boolean {
+  return specifier !== ''
+    && !specifier.startsWith('.')
+    && !specifier.startsWith('#')
+    && !isAbsolute(specifier)
+    && !specifier.includes(':')
+}
+
+function packageNameFromSpecifier(specifier: string): string {
+  const firstSlash = specifier.indexOf('/')
+  if (firstSlash === -1 || !specifier.startsWith('@')) {
+    return firstSlash === -1 ? specifier : specifier.slice(0, firstSlash)
   }
-  if (stat !== undefined) {
-    if (!stat.isSymbolicLink()) {
-      throw new Error(`dsh: ${link} exists and is not a symlink; remove it so dsh can manage the installation fallback`)
-    }
-    if (readlinkSync(link) === target) return
-    // unlink deletes the reparse point itself on Windows too; rmSync treats a
-    // junction as a directory and throws EISDIR unless recursive.
-    unlinkSync(link)
-  }
-  try {
-    symlinkSync(target, link, 'junction')
-  } catch (error) {
-    // Concurrent launches heal the same fallback; losing the race to a
-    // process writing the identical link is success, anything else is not.
-    // The window between the lstat miss above and this write cannot be
-    // staged deterministically from the public API.
-    /* v8 ignore next 4 */
-    if ((error as NodeJS.ErrnoException).code !== 'EEXIST'
-      || !lstatSync(link).isSymbolicLink() || readlinkSync(link) !== target) {
-      throw error
-    }
-  }
+  const secondSlash = specifier.indexOf('/', firstSlash + 1)
+  return secondSlash === -1 ? specifier : specifier.slice(0, secondSlash)
+}
+
+function packageResolutionParent(packageName: string, packageDir: string): string {
+  const modulesDir = packageName.startsWith('@') ? dirname(dirname(packageDir)) : dirname(packageDir)
+  return pathToFileURL(join(modulesDir, '.dsh-profile-module-fallback.mjs')).href
 }
 
 /**
- * Maintain the flat module fallback `$DSH_HOME/profiles/node_modules`: one
- * symlink per package in the dsh app's resolvable dependency CLOSURE (BFS
- * over `dependencies` from the app manifest), each resolved from its own
- * real location. Node's parent-directory walk from any profile finds this
- * directory after the profile's own `node_modules`, so every in-box plugin
- * resolves without pnpm ever managing it — the exact "bundles come from the
- * installation" contract. The closure (not just direct dependencies) is
- * required for out-of-tree plugins: their peer dependencies name Service
- * Definition packages (`dsh-compaction`, `dsh-invariants`, ...) that the app
- * reaches only through its Service Provider packages. Symlinked packages
- * resolve their own dependencies from their real directories (Node's default
- * symlink-following), so each package needs only its one flat link.
- * Idempotent: correct links are kept and moved installations are
- * re-pointed; a stale link to a vanished package stays until its name is
- * reused (dangling links are invisible to resolution).
+ * Register the profile-only module fallback used by the dsh launcher.
+ * Imports resolve normally from a profile first; a missing bare package
+ * imported by code under `$DSH_HOME/profiles` retries from the dsh
+ * installation. App-owned packages resolved from the deprecated shared link
+ * directory are ignored, so copied directories and stale links cannot shadow
+ * the current installation; the legacy directory itself remains untouched.
  * @param installAnchor - absolute path of the dsh app's package.json.
  * @param home - the Harness home; defaults to {@link resolveDshHome}.
+ * @returns an idempotent disposer that unregisters the process-wide hook.
  */
-export function healProfilesModuleFallback(installAnchor: string, home: string = resolveDshHome()): void {
+export function registerProfileModuleFallback(
+  installAnchor: string,
+  home: string = resolveDshHome(),
+): () => void {
   const profilesDir = join(home, PROFILES_DIR)
-  const modulesDir = join(profilesDir, 'node_modules')
-  mkdirSync(modulesDir, { recursive: true })
-  for (const [packageName, target] of installationPackageDirs(installAnchor)) {
-    const link = join(modulesDir, packageName)
-    mkdirSync(dirname(link), { recursive: true })
-    ensureSymlink(link, target)
+  const legacyModules = join(profilesDir, 'node_modules')
+  const installationPackages = installationPackageDirs(installAnchor)
+  const hooks = registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (!isBarePackageSpecifier(specifier) || !isPathInside(context.parentURL, profilesDir)) {
+        return nextResolve(specifier, context)
+      }
+      const packageName = packageNameFromSpecifier(specifier)
+      const packageDir = installationPackages.get(packageName)
+      try {
+        const resolved = nextResolve(specifier, context)
+        if (packageDir === undefined || !isPathInside(resolved.url, legacyModules)) return resolved
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND' || packageDir === undefined) throw error
+      }
+      return nextResolve(specifier, {
+        ...context,
+        parentURL: packageResolutionParent(packageName, packageDir),
+      })
+    },
+  })
+  let active = true
+  return () => {
+    if (!active) return
+    active = false
+    hooks.deregister()
   }
 }
 

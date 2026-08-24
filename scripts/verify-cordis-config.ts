@@ -251,12 +251,12 @@ function validateAppResolution(): string[] {
   const violations: string[] = []
   const bundleManifests = bundleManifestPaths()
   // App overlays (and any config left under apps/cli/config) resolve from the
-  // dsh app's own dependency surface — the profile module fallback mirrors it.
+  // dsh app's own dependency closure, which the profile resolver exposes.
   const appDependencies = {
     ...readManifest('apps/cli/package.json').dependencies,
-    // The fallback also links every in-box bundle's own dependencies
-    // (healProfilesModuleFallback). Optional Profile bundles stay outside the
-    // app installation until that Profile installs them.
+    // The resolver also exposes every in-box bundle's own dependencies.
+    // Optional Profile bundles stay outside the app installation until that
+    // Profile installs them.
     ...Object.fromEntries(globSync('packages/bundle/*/package.json', { cwd: root })
       .flatMap(file => Object.entries(readManifest(file).dependencies ?? {}))),
   }
