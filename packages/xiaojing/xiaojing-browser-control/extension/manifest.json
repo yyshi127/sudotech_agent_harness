@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "小兢会计 Edge 连接器",
+  "description": "经本机配对后，让小兢会计接管您明确选择的个人 Edge 标签页。",
+  "version": "0.2.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwORZJ+v2dnZ/QLCo77w5zJW+qAzKawYUkhRM60egcJFYbd16Uu7fXbJjbWN4vPR6JGZf1ZDqR7gVYqMlcc1XHf02dwxnw9GY/+KUQlJ5VjD/QWS8C2ILt08X9+8i4MaknGxA2Bk/tgTYowZU8khaOFjW60PA8UNL358k/p5yO/KEVBCb+ex119Aekrpw+WwE8RYiWUkjsKGXBfXOavkaUoj12+l5RTWrLHNI9FbXsy59YYmfyTbNQ9xakcchFG+M3dRdp68pU15r+z5ZU5rEwecGjSNF5L2FbplWgxP+m6Ne86m2iPQEyxG2yBV/Y6S3V64brVRNwvv6k+FL08HhnwIDAQAB",
+  "permissions": [
+    "alarms",
+    "debugger",
+    "scripting",
+    "storage",
+    "tabs",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "小兢会计 Edge 连接器",
+    "default_popup": "popup.html"
+  },
+  "incognito": "not_allowed",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src ws://127.0.0.1:*"
+  }
+}

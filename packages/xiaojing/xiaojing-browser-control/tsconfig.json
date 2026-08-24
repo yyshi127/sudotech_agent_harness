@@ -30,7 +30,10 @@
       "path": "../../core/session"
     },
     {
-      "path": "../../settings/settings"
+      "path": "../../client/connection/tsconfig.host.json"
+    },
+    {
+      "path": "../../credentials/credentials"
     },
     {
       "path": "../../core/tools"

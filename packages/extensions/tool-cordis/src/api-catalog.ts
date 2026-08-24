@@ -2383,25 +2383,30 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'xiaojingBrowserControl',
-    summary: 'Semantic browser automation provider and model-facing tool consumer.',
-    description: 'Semantic browser automation provider and model-facing tool consumer.',
+    summary: 'DOM-first Edge automation coordinator and model-facing tool consumer.',
+    description: 'DOM-first Edge automation coordinator and model-facing tool consumer.',
     methods: [
+      {
+        signature: 'status(): BrowserControlStatus',
+        description: 'Return the current managed and personal Edge status without exposing credentials.',
+        parameters: [],
+        returns: 'Sanitized route and extension state.',
+      },
       {
         signature: 'async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined>',
         description: 'Explain whether one request requires a one-shot user approval.',
-        parameters: [{ name: 'owner', description: 'Agent session that owns the browser page.' }, { name: 'request', description: 'Validated browser operation.' }],
-        returns: 'The approval reason, or undefined when the operation may proceed directly.',
+        parameters: [{ name: 'owner', description: 'Agent session making the request.' }, { name: 'request', description: 'Validated semantic browser operation.' }],
+        returns: 'Approval reason, or undefined for a read or low-risk edit.',
       },
       {
-        signature: 'run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>',
-        description: 'Execute one validated browser operation for an owning session.',
-        parameters: [{ name: 'owner', description: 'Agent session that owns the browser page.' }, { name: 'request', description: 'Browser operation to execute.' }, { name: 'signal', description: 'Cancellation signal for the operation.' }],
-        returns: 'The bounded browser observation produced by the operation.',
-        throws: ['When the operation is cancelled, the browser is closing, or the plugin has unloaded.'],
+        signature: 'async run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>',
+        description: 'Execute one unprotected browser operation for an owning session; protected requests must use the registered tool.',
+        parameters: [{ name: 'owner', description: 'Agent session making the request.' }, { name: 'request', description: 'Browser operation.' }, { name: 'signal', description: 'Cancellation signal.' }],
+        returns: 'Bounded semantic result.',
       },
       {
         signature: 'async close(): Promise<void>',
-        description: 'Close the persistent browser, cancel queued work, and wait until every accepted operation settles.',
+        description: 'Close the dedicated Edge process while leaving the optional extension bridge available.',
         parameters: [],
       },
     ],
@@ -3100,11 +3105,27 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserActionRequest',
-    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly url?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n}',
+    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly url?: string;\n    readonly surface?: BrowserSurfacePreference;\n    readonly disposition?: BrowserDisposition;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly target?: BrowserSemanticTarget;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n    readonly steps?: readonly BrowserActStep[];\n    readonly expectedText?: string;\n    readonly timeoutMs?: number;\n}',
   },
   {
     name: 'BrowserActionResult',
-    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly pageId?: BrowserPageId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly truncated?: boolean;\n}',
+    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly surface?: BrowserSurface;\n    readonly pageId?: BrowserPageId;\n    readonly windowId?: BrowserWindowId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly completedSteps?: number;\n    readonly failedStep?: BrowserFailedStep;\n    readonly truncated?: boolean;\n}',
+  },
+  {
+    name: 'BrowserActStep',
+    declaration: 'export interface BrowserActStep {\n    readonly action: BrowserStepAction;\n    readonly targetId?: BrowserTargetId;\n    readonly target?: BrowserSemanticTarget;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly expectedUrl?: string;\n    readonly expectedText?: string;\n    readonly timeoutMs?: number;\n}',
+  },
+  {
+    name: 'BrowserControlStatus',
+    declaration: 'export interface BrowserControlStatus {\n    readonly managed: {\n        readonly enabled: true;\n        readonly running: boolean;\n    };\n    readonly personal: {\n        readonly state: PersonalEdgeState;\n        readonly extensionId: string;\n        readonly connected: boolean;\n        readonly paired: boolean;\n        readonly version?: string;\n        readonly pairingCode?: string;\n        readonly pairingExpiresAt?: number;\n        readonly error?: string;\n    };\n}',
+  },
+  {
+    name: 'BrowserDisposition',
+    declaration: 'export type BrowserDisposition = \'reuse\' | \'new_window\';',
+  },
+  {
+    name: 'BrowserFailedStep',
+    declaration: 'export interface BrowserFailedStep {\n    readonly index: number;\n    readonly action: BrowserStepAction;\n    readonly error: string;\n}',
   },
   {
     name: 'BrowserObservationId',
@@ -3116,15 +3137,35 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserPageSummary',
-    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
+    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly surface: BrowserSurface;\n    readonly windowId: BrowserWindowId;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
+  },
+  {
+    name: 'BrowserSemanticTarget',
+    declaration: 'export interface BrowserSemanticTarget {\n    readonly role?: string;\n    readonly name?: string;\n    readonly context?: string;\n}',
+  },
+  {
+    name: 'BrowserStepAction',
+    declaration: 'export type BrowserStepAction = typeof BROWSER_STEP_ACTIONS[number];',
+  },
+  {
+    name: 'BrowserSurface',
+    declaration: 'export type BrowserSurface = \'managed\' | \'personal\';',
+  },
+  {
+    name: 'BrowserSurfacePreference',
+    declaration: 'export type BrowserSurfacePreference = \'auto\' | BrowserSurface;',
   },
   {
     name: 'BrowserTarget',
-    declaration: 'export interface BrowserTarget {\n    readonly id: BrowserTargetId;\n    readonly role: string;\n    readonly name: string;\n    readonly value?: string;\n    readonly disabled: boolean;\n    readonly checked?: boolean;\n    readonly actions: string[];\n}',
+    declaration: 'export interface BrowserTarget {\n    readonly id: BrowserTargetId;\n    readonly role: string;\n    readonly name: string;\n    readonly context?: string;\n    readonly value?: string;\n    readonly disabled: boolean;\n    readonly checked?: boolean;\n    readonly actions: BrowserStepAction[];\n}',
   },
   {
     name: 'BrowserTargetId',
     declaration: 'export type BrowserTargetId = Branded<\'BrowserTargetId\'>;',
+  },
+  {
+    name: 'BrowserWindowId',
+    declaration: 'export type BrowserWindowId = Branded<\'BrowserWindowId\'>;',
   },
   {
     name: 'CancelOptions',
@@ -3957,6 +3998,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PermissionSelect',
     declaration: 'export interface PermissionSelect {\n    options: PresetOption[];\n    currentValue: string;\n}',
+  },
+  {
+    name: 'PersonalEdgeState',
+    declaration: 'export type PersonalEdgeState = \'not-connected\' | \'pairing\' | \'connected\' | \'incompatible\' | \'error\';',
   },
   {
     name: 'PostToolDecision',

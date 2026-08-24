@@ -127,6 +127,9 @@ describe('Windows UI Automation provider', () => {
     const sessionA = SessionId('session-a')
     const sessionB = SessionId('session-b')
 
+    await expect(ctx.xiaojingComputerControl.run(sessionA, {
+      action: 'list_apps', query: 'Microsoft Edge',
+    }, signal)).rejects.toThrow(/excluded.*browser_control/u)
     const applications = await ctx.xiaojingComputerControl.run(sessionA, {
       action: 'list_apps', query: 'PowerShell',
     }, signal)

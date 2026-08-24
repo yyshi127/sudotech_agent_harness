@@ -3675,6 +3675,9 @@ importers:
       '@deepseek-ai/dsh-client-runtime':
         specifier: workspace:^
         version: link:../runtime
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:^
+        version: link:../../test-support/client-runtime
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: workspace:^
         version: link:../ui-settings
@@ -3684,6 +3687,9 @@ importers:
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-xiaojing-browser-control':
+        specifier: workspace:^
+        version: link:../../xiaojing/xiaojing-browser-control
       '@testing-library/react':
         specifier: ^16.1.0
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -9293,12 +9299,18 @@ importers:
 
   packages/xiaojing/xiaojing-browser-control:
     dependencies:
+      '@deepseek-ai/dsh-native-command':
+        specifier: workspace:^
+        version: link:../../util/native-command
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
       playwright-core:
         specifier: 1.61.1
         version: 1.61.1
+      ws:
+        specifier: ^8.18.3
+        version: 8.21.0
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -9309,6 +9321,12 @@ importers:
       '@deepseek-ai/dsh-brand':
         specifier: workspace:^
         version: link:../../util/brand
+      '@deepseek-ai/dsh-client-connection':
+        specifier: workspace:^
+        version: link:../../client/connection
+      '@deepseek-ai/dsh-credentials':
+        specifier: workspace:^
+        version: link:../../credentials/credentials
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -9327,6 +9345,9 @@ importers:
       '@deepseek-ai/dsh-user-approval':
         specifier: workspace:^
         version: link:../../interaction/user-approval
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
 
   packages/xiaojing/xiaojing-computer-control:
     dependencies:

@@ -23,6 +23,15 @@ if (address === null || typeof address === 'string') throw new Error('source-lau
 
 const profileDir = await mkdtemp(join(tmpdir(), 'xiaojing-browser-source-launch-'))
 const ctx = new Context()
+const secrets = new Map<string, string>()
+ctx.provide('credentials', {
+  resolve: async (ref: string) => secrets.has(ref) ? { value: secrets.get(ref) as string, source: 'memory' } : undefined,
+  set: async (ref: string, value: string) => { secrets.set(ref, value) },
+  unset: async (ref: string) => { secrets.delete(ref) },
+} as never)
+ctx.provide('connection', {
+  rpc: { handle: () => () => Promise.resolve() },
+} as never)
 let fiber: Awaited<ReturnType<typeof ctx.plugin>> | undefined
 try {
   await ctx.plugin(SystemPrompt)

@@ -617,6 +617,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   Translate: 'service-local bound translator is owned by packages/client/i18n/src/index.ts',
   BrowserActionRequest: 'browser automation request is owned by packages/xiaojing/xiaojing-browser-control/README.md',
   BrowserActionResult: 'browser automation result is owned by packages/xiaojing/xiaojing-browser-control/README.md',
+  BrowserControlStatus: 'browser automation settings status is owned by packages/xiaojing/xiaojing-browser-control/README.md',
   ComputerActionRequest: 'Windows automation request is owned by packages/xiaojing/xiaojing-computer-control/README.md',
   ComputerActionResult: 'Windows automation result is owned by packages/xiaojing/xiaojing-computer-control/README.md',
   WebUpgradeRoute:

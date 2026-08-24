@@ -25,7 +25,7 @@
 
 Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudotech\xiaojing-accounting-desktop`。随包 Host 使用其 `harness` 子目录作为 `DSH_HOME`，用户工作区位于 `%USERPROFILE%\Documents\小兢会计工作区`。
 
-桌面端通过临时 loopback 端口和 `--no-open` 启动 Host，因此只有 Electron 窗口会加载应用，Host 不会额外打开系统浏览器窗口。
+桌面端通过临时 loopback 端口和 `--no-open` 启动 Host，并固定 `DSH_CLIENT_BUILD_PROFILE=xiaojing`，因此只有 Electron 窗口会加载应用，Host 不会额外打开系统浏览器窗口，打包后的小兢专属 Host 插件也会保持启用。
 
 `user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、专用浏览器操控 profile、微信频道状态、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和 rc.2 reader；除精确移除 ModLens 的安装程序默认 Web profile 迁移外，所有受保护数据必须保持字节不变。它还会在私有副本上验证扁平凭据到 version 1 的原子迁移不会生成明文备份，并检查会话、凭据、预设、设置、上传、storage 和用量兼容。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
 
@@ -35,7 +35,7 @@ Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudo
 
 ## 内置自动化运行环境
 
-浏览器操控以可见方式启动本机 Microsoft Edge，并使用专用的 `harness/browser-control/profile`；它不会复用用户日常浏览器 profile。Windows 应用操控使用 Windows PowerShell 5.1 和操作系统自带的 `System.Windows.Automation` API。终端用户无需安装 Node、浏览器驱动、PowerShell 模块或独立自动化服务。
+浏览器操控通过两条互相独立的 Microsoft Edge 路线工作。默认专用路线以可见方式启动 Edge，并使用 `harness/browser-control/profile`；可选个人路线通过单独配对的扩展，只附加用户日常 Edge 中明确选中的 HTTP(S) 标签页。桌面构建会把解压扩展复制到 `resources/xiaojing-edge-extension`，并将其绝对路径传给 Host；源码预览则使用插件包中的 `extension/` 目录。Windows 应用操控使用 Windows PowerShell 5.1 和操作系统自带的 `System.Windows.Automation` API。终端用户无需安装 Node、浏览器驱动、PowerShell 模块或独立自动化服务。
 
 两项能力分别位于独立 Cordis 配置行中。开发 overlay 可以单独禁用任意一项，小兢产品组合则默认启用二者，并在每个新 agent 会话中说明当前可用能力。浏览器和 Windows 观察都使用会话独占的不透明 ID，并在状态变化后过期。访问内网、上传文件、提交、支付、删除、发送及同类原生操作需要一次性授权。
 

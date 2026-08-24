@@ -1,6 +1,6 @@
 {
   "name": "@sudotech/xiaojing-accounting-desktop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "小兢会计 Windows desktop application",
   "type": "module",
@@ -163,6 +163,13 @@
       {
         "from": "build/node.exe",
         "to": "runtime/node.exe"
+      },
+      {
+        "from": "../../packages/xiaojing/xiaojing-browser-control/extension",
+        "to": "xiaojing-edge-extension",
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "../../LICENSE",

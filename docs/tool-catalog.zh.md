@@ -45,7 +45,7 @@
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
-| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`、`ctx.approval for protected actions`、`an owning Agent at execution time`、`Microsoft Edge at execution time` | `tool/call`、`isolated persistent browser profile`、`tool/result` | - | 产品层的 browser_control 工具按需启动专用 Microsoft Edge profile，因此目录生成过程只记录 schema，不会启动 Edge 或修改用户配置目录。 |
+| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`、`ctx.credentials`、`ctx.connection`、`ctx.approval for protected actions`、`an owning Agent at execution time`、`Microsoft Edge at execution time` | `tool/call`、`isolated persistent browser profile`、`tool/result` | - | 产品层的 browser_control 工具按需启动专用 Microsoft Edge profile，因此目录生成过程只记录 schema，不会启动 Edge 或修改用户配置目录。 |
 | `@deepseek-ai/dsh-xiaojing-computer-control` | `computer_control` | `ctx.tools`、`ctx.subprocess`、`ctx.approval for protected actions`、`an owning Agent at execution time`、`Windows UI Automation at execution time` | `tool/call`、`native Windows UI state`、`tool/result` | - | 产品层的 computer_control 工具按需启动有界 PowerShell helper，因此目录生成过程只记录 schema，不会读取或修改 Windows 桌面。 |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
@@ -2236,7 +2236,7 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
 
 ### `browser_control`
 
-通过语义页面观察控制专用的可见 Microsoft Edge profile。创建标签页前，open 会发现并复用现有的同源标签页。后续步骤继续在活动页面上使用 observe 和不透明目标 ID，而不是再次调用 open。禁止猜测目标 ID。网站操作应优先使用本工具，不要另行构建 Shell、PowerShell、CDP 或 computer-control 浏览器控制器。访问内网、上传文件、提交、支付、删除、发送以及类似高影响动作需要用户一次性授权。
+通过 DOM 语义控制 Microsoft Edge。只调用一次 open：它会先在专用 Edge 与已配对的个人 Edge 中复用匹配页面，仅在没有匹配页面时启动专用 Edge。表单或菜单操作使用 act，让浏览器在一次调用中完成多个经过校验的步骤。使用 observe 返回的不透明目标 ID；对于前一步 act 新显示的控件，也可使用精确的 role、name 和 context 语义。禁止猜测 ID、反复打开同一网站、使用截图坐标或在网页操作失败后自动改用 computer_control。只有用户明确要求个人 Edge 时才能使用 surface=personal。
 
 ```json
 {
@@ -2247,12 +2247,19 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
       "enum": [
         "open",
         "observe",
+        "act",
         "click",
         "fill",
+        "type",
         "select",
+        "check",
+        "uncheck",
+        "hover",
         "press",
         "scroll",
         "upload",
+        "wait_for",
+        "show",
         "tabs",
         "switch_tab",
         "close_tab"
@@ -2260,23 +2267,55 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
     },
     "url": {
       "type": "string",
-      "description": "HTTP(S) URL for open. Existing same-origin tabs are reused before a new tab is created."
+      "description": "HTTP(S) destination for open, or expected URL for wait_for."
+    },
+    "surface": {
+      "type": "string",
+      "description": "Default auto. Force only from an explicit user request.",
+      "enum": [
+        "auto",
+        "managed",
+        "personal"
+      ]
+    },
+    "disposition": {
+      "type": "string",
+      "description": "Default reuse. Use new_window only when explicitly requested.",
+      "enum": [
+        "reuse",
+        "new_window"
+      ]
     },
     "observation_id": {
       "type": "string",
-      "description": "Latest observation ID for a target action."
+      "description": "Latest observation ID for opaque target IDs."
     },
     "target_id": {
       "type": "string",
       "description": "Opaque target ID from that observation."
     },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        }
+      }
+    },
     "value": {
       "type": "string",
-      "description": "Text for fill or option label/value for select."
+      "description": "Text for fill/type/select."
     },
     "key": {
       "type": "string",
-      "description": "Playwright key such as Enter, Tab, or Control+L."
+      "description": "Playwright key such as Enter, Tab, or Escape."
     },
     "delta_y": {
       "type": "number",
@@ -2284,14 +2323,93 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
     },
     "paths": {
       "type": "array",
-      "description": "Absolute local file paths for upload.",
+      "description": "Absolute local paths for upload.",
       "items": {
         "type": "string"
       }
     },
     "page_id": {
       "type": "string",
-      "description": "Opaque page ID for switch_tab or close_tab."
+      "description": "Session-scoped page ID for switch_tab or close_tab."
+    },
+    "steps": {
+      "type": "array",
+      "description": "Bounded ordered semantic actions for act.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "click",
+              "fill",
+              "type",
+              "select",
+              "check",
+              "uncheck",
+              "hover",
+              "press",
+              "scroll",
+              "upload",
+              "wait_for"
+            ]
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "context": {
+                "type": "string"
+              }
+            }
+          },
+          "value": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "delta_y": {
+            "type": "number"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_url": {
+            "type": "string"
+          },
+          "expected_text": {
+            "type": "string"
+          },
+          "timeout_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    "expected_text": {
+      "type": "string",
+      "description": "Visible text expected by wait_for."
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "description": "Per-operation wait bound in milliseconds."
     }
   },
   "required": [
@@ -2310,7 +2428,7 @@ web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可�
 
 ### `computer_control`
 
-当文件、命令或数据工具无法更高效地完成任务时，通过语义 UI Automation 控制可见的原生 Windows 应用。网站使用 browser_control。如果所需应用尚未打开，先按名称调用 list_apps，再用返回的不透明应用 ID 调用 launch_app。随后使用返回的窗口或重新列出窗口，观察一个窗口，并且只执行目标声明的动作。禁止猜测 ID，也不要为了执行直接工具可以完成的任务而启动应用。本工具不能控制 UAC、安全桌面、登录界面、管理员权限应用、纯像素 Canvas 或未提供 UI Automation 语义的控件。
+当文件、命令或数据工具无法更高效地完成任务时，通过语义 UI Automation 控制可见的原生 Windows 应用。网页浏览器不在支持范围内：所有网站都使用 browser_control；如果浏览器语义存在限制，应直接报告，而不是在此搜索 Edge、Chrome 或其他浏览器。如果所需原生应用尚未打开，先按名称调用 list_apps，再用返回的不透明应用 ID 调用 launch_app。随后使用返回的窗口或重新列出窗口，观察一个窗口，并且只执行目标声明的动作。禁止猜测 ID，也不要为了执行直接工具可以完成的任务而启动应用。本工具不能控制 UAC、安全桌面、登录界面、管理员权限应用、纯像素 Canvas 或未提供 UI Automation 语义的控件。
 
 ```json
 {

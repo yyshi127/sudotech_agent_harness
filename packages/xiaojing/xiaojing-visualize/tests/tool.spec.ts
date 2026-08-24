@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
+import type { JsonValue } from '@deepseek-ai/dsh-tools'
 import { visualizeTool } from '../src/tool.ts'
 
 /**
@@ -174,5 +175,67 @@ describe('visualizeTool sandbox policy', () => {
       { agent: { session: { header: { cwd: '/work/session' } } } } as never,
     )
     expect(calls.writePolicy).toBeUndefined()
+  })
+
+  it('uses defaults and an ASCII-safe fallback file name without an agent session', async () => {
+    const written: { path?: string } = {}
+    const policyRequests: unknown[] = []
+    const ctx = {
+      get: (name: string) => name === 'sandboxPolicy'
+        ? { resolve: (request: unknown) => { policyRequests.push(request); return undefined } }
+        : undefined,
+      fs: {
+        resolve: async (path: string) => ({ displayPath: path }),
+        writeText: async (target: { displayPath: string }) => {
+          written.path = target.displayPath
+          return { version: 1 }
+        },
+      },
+    } as unknown as Context
+    const tool = visualizeTool(ctx, 1000)
+    const value = await tool.execute(
+      { fragment: '<div>x</div>', title: '你好', mode: 'wide' },
+      { signal: new AbortController().signal } as never,
+    ) as { mode: string; path: string; title: string }
+    expect(value).toMatchObject({ mode: 'wide', title: '你好' })
+    expect(value.path).toMatch(/^viz\/visualization-[0-9a-f]{8}\.html$/)
+    expect(written.path).toBe(value.path)
+    expect(policyRequests).toEqual([{}])
+  })
+
+  it('renders and presents create, update, error, and malformed outcomes', () => {
+    const ctx = { get: () => undefined, fs: {} } as unknown as Context
+    const tool = visualizeTool(ctx, 1000)
+    const create = {
+      action: 'create',
+      path: 'viz/a.html',
+      title: 'A',
+      mode: 'inline',
+      sizeBytes: 12,
+      fragment: '<div>A</div>',
+    } as const satisfies Record<string, JsonValue>
+    const update = { ...create, action: 'update' } as const satisfies Record<string, JsonValue>
+    const createContent = tool.output.render({}, create)
+    const updateContent = tool.output.render({}, update)
+    const createText = createContent[0]
+    const updateText = updateContent[0]
+    if (createText?.type !== 'text' || updateText?.type !== 'text') throw new Error('visualize render was not text')
+    expect(createText.text).toContain('Rendered "A" inline')
+    expect(updateText.text).toContain('Patched "A" in place')
+    const meta = tool.output.presentationMeta?.({}, create)
+    expect(meta).toEqual({
+      kind: 'visualize',
+      fragment: create.fragment,
+      title: create.title,
+      mode: create.mode,
+      path: create.path,
+    })
+    expect(tool.presentCall?.({})).toEqual({ card: 'generic', title: 'Visualize', kind: 'other' })
+    expect(tool.presentResult?.({}, { isError: true } as never)).toBeUndefined()
+    expect(tool.presentResult?.({}, { isError: false, meta: undefined } as never)).toBeUndefined()
+    expect(tool.presentResult?.({}, {
+      isError: false,
+      meta,
+    } as never)).toEqual({ card: 'generic', title: 'Visualization · A' })
   })
 })

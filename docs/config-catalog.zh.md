@@ -300,7 +300,7 @@ export interface GoalConfig {
 
 ## `@deepseek-ai/dsh-agent-tool-presentation`
 
-需要：`tools`
+需要：`tools` · `credentials` · `connection`
 
 ```ts config-catalog
 /** Plugin config. */
@@ -3245,11 +3245,13 @@ export interface Config {
 ```ts config-catalog
 /** Browser runtime configuration. */
 export interface Config {
-  /** Dedicated persistent Microsoft Edge profile directory; never point this at a person's normal browser profile. */
+  /** Dedicated persistent Microsoft Edge profile directory; never use a person's normal browser profile. */
   profileDir: string
-  /** Explicit Edge-compatible executable used only by tests or a controlled deployment. */
+  /** Explicit Edge-compatible executable used by tests or a controlled deployment. */
   executablePath?: string
-  /** Whether to hide the controlled browser window. Xiaojing ships with this disabled. */
+  /** Absolute unpacked personal Edge extension directory exposed by the settings action. */
+  extensionDir?: string
+  /** Whether to hide the dedicated Edge window. Xiaojing ships with this disabled. */
   headless?: boolean
   /** Playwright operation timeout. */
   actionTimeoutMs?: number
@@ -3259,16 +3261,18 @@ export interface Config {
   observationTtlMs?: number
   /** Maximum semantic targets returned per observation. */
   maxTargets?: number
-  /** Maximum session-owned pages returned by `tabs`. */
+  /** Maximum discoverable pages returned by `tabs`. */
   maxTabs?: number
-  /** Maximum visible page characters returned per observation. */
+  /** Maximum visible page characters returned per explicit observation. */
   maxTextChars?: number
+  /** Maximum ordered operations in one `act` request. */
+  maxActSteps?: number
   /** Whether private and loopback destinations are allowed without approval. Intended only for tests. */
   allowPrivateHosts?: boolean
 }
 ```
 
-来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts:47`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts:93`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
 <a id="deepseek-aidsh-xiaojing-computer-control"></a>
 

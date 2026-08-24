@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.2.0 / dsh-v0.1.1-rc.2）
+# 小兢会计产品开发基线（0.2.1 / dsh-v0.1.1-rc.2）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.0 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)与 [rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.1 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)与 [rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)负责记录原因和被否决的替代方案。
 
 ## 开始前必读
 
@@ -17,7 +17,7 @@
 
 | 项目 | 当前值 | 真源 |
 |---|---|---|
-| 桌面产品版本 | `0.2.0` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| 桌面产品版本 | `0.2.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
 | 官方 Harness 基线 | `dsh-v0.1.1-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 官方基线 commit | `b150a551b8d465e31e418e1b2eaf5e79bbb7d28` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 产品集成基准 | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
@@ -56,7 +56,7 @@ flowchart LR
 | 小兢产品层 | 品牌组件、配色、产品文案、初次使用说明和默认部署人格 | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.zh.md) |
 | 用量 Host 插件 | 提供方用量观察、API Key 指纹、内置计价、不可变账本、Remote 和更新事件 | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.zh.md) |
 | 用量 Client 插件 | 侧边栏摘要和明细浮层、设置入口、月度日历、格式化和刷新控制器 | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.zh.md) |
-| 浏览器操控插件 | Microsoft Edge 生命周期、独立状态页面、有界语义页面观察、不透明目标和高影响操作授权 | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.zh.md)、[`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.zh.md) |
+| 浏览器操控插件 | 专用及可选个人 Edge 适配器、全局页面发现、逐轮租约、有界语义 DOM 操作、扩展配对及高影响操作授权 | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.zh.md)、[`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.zh.md) |
 | 电脑操控插件 | Windows PowerShell helper 生命周期、UI Automation 观察、原生语义动作和高影响操作授权 | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.zh.md) |
 | 微信 Host 插件 | 腾讯 iLink 绑定、私有凭据与状态、持久化 Agent 会话桥接、审批和手机端文字回传 | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.zh.md) |
 | 微信 Client 插件 | 仅限 loopback 的频道设置、二维码绑定、验证码和脱敏连接状态 | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.zh.md) |
@@ -113,9 +113,13 @@ flowchart LR
 
 `@deepseek-ai/dsh-xiaojing-browser-control` 与 `@deepseek-ai/dsh-xiaojing-computer-control` 是两个独立 Cordis 能力插件，不修改 `agent-loop` 或官方 UI 包。Web 组合默认启用二者，开发 overlay 可以单独禁用任意配置行。`@deepseek-ai/dsh-client-ui-xiaojing-browser-control` 独立提供仅回环地址可见的“浏览器控制”设置分区，移除其组合行后入口即消失。两项工具有意注册为部署级全局工具，因此每个新会话，包括关闭 runtime context 的用户预设，都会获得两个 schema 及其路由说明。允许 runtime context 的会话还会获得小兢 Host 产品提示：无需可见界面时优先使用文件、数据、编辑和命令工具；网站使用 `browser_control`；原生应用可见界面使用 `computer_control`。
 
-浏览器操控以可见方式启动本机 Microsoft Edge，并使用一个独立的专用持久 profile。用户登录后可以最小化受控窗口，普通 DOM 操作仍通过 Playwright 继续执行，不占用物理鼠标或键盘。结果包含有界页面文本和语义目标，动作只接受绑定到当前会话最新观察中准确 DOM 节点的不透明 ID；节点脱离或被替换时会失败并要求重新观察，不会按位置重新定位。工具不接受 CSS 选择器、JavaScript、CDP 命令、任意 profile 路径、密码值或浏览器选择参数。显式 Edge 兼容可执行文件只保留给测试或受控部署。Windows 操控通过 subprocess 能力维护一个有界换行 JSON helper，只从 Windows“开始”应用目录发现和启动条目，并使用 Windows PowerShell 5.1 与 `System.Windows.Automation`。它返回不暴露注册 ID 或可执行文件路径的有界应用、窗口和控件结果，也不接受坐标、截图、OCR、PowerShell 源码或任意 Shell 命令。
+浏览器操控在同一个可移除 Cordis 工具后提供两种适配器。默认专用适配器以可见方式启动本机 Microsoft Edge，使用独立持久 profile，并通过 Playwright 控制。可选个人适配器只会连接到已明确配对的 Manifest V3 侧载扩展，因此可以操作用户在个人 Edge 中打开的普通 HTTP 或 HTTPS 标签页。设置插件提供专用路线状态、扩展目录、Edge 扩展管理页入口、一次性配对、撤销授权、协议版本及脱敏连接状态。扩展桥接只监听 `127.0.0.1` 的 `53170–53179` 端口，校验固定扩展身份和协议，把长期密钥分别保存在 Harness 凭据服务及扩展本地存储中，并在日常重连时使用随机 nonce 绑定的 HMAC 证明，而不是再次传输密钥。
 
-两个能力插件都会在状态变化后使观察失效、拒绝其他会话持有的 ID、在自有进程中断后恢复，并在插件卸载时停止自有进程；受保护动作缺少授权通道时会关闭式失败。浏览器取消失败页时，如果该页是最后一个页面，会先保留一个空白替代页，因此恢复过程不会关闭可见浏览器窗口。浏览器操作按会话串行，Windows 操作则由单个 helper 全局串行。访问私有或回环地址、上传、提交、支付、删除、发送、高风险应用启动及同类原生动作需要一次性授权。密码字段、浏览器或操作系统原生对话框、UAC、安全桌面、管理员权限应用、纯像素控件、验证码和仅 Canvas 网站不属于这项语义能力。
+浏览器协调器维护进程级全局页面注册表，并按一次 Agent 轮次把页面租给一个会话。它依次复用当前会话已绑定的匹配页面、当前激活且匹配的个人页面、其他精确 URL 页面、合适的同源页面或专用空白页；只有没有可复用目标时才创建专用标签页。只有调用方明确要求时才新建顶层窗口。个人 Edge 任务中途断线会直接停止，不会在专用 Edge 中重放已经执行的步骤；`turn/end`、取消和失败都会释放租约，避免桌面与微信任务同时操作同一页面。
+
+每次观察对每个 frame 只执行一次扫描，并覆盖嵌套 iframe 和开放 Shadow DOM。有界语义目标记录角色、无障碍名称、状态，以及附近对话框、表格行和区域上下文。执行前会根据语义指纹重新解析目标，因此 React 替换节点但身份保持不变时可以继续，语义上下文变化时则拒绝操作。`act` 动作可通过 Playwright 或扩展侧 DOM 等待批量执行 click、fill、type、select、check、uncheck、hover、press、scroll、upload 和 wait；每一步完成后校验，首个失败即停止，并返回已完成与失败步骤，不会重放。普通 DOM 操作保持后台执行，只有显式 `show` 才切到前台。截图坐标、UI Automation 和 `computer_control` 不会作为网页失败后的自动兜底。
+
+两个能力插件都会拒绝其他会话持有的 ID、在自有进程中断后恢复，并在插件卸载时停止自有进程；受保护动作缺少授权通道时会关闭式失败。访问私有或回环地址、上传、提交、支付、删除、发送、高风险应用启动及同类原生动作需要一次性授权；批量动作只会在首个产生外部影响的步骤前统一审批一次，删除在“从不审批”会话策略下仍强制确认。密码字段、浏览器或操作系统原生对话框、UAC、安全桌面、管理员权限应用、关闭的 Shadow DOM、纯像素控件、验证码和仅 Canvas 网站不属于这项语义能力。
 
 ### 微信频道
 
@@ -133,7 +137,7 @@ flowchart LR
 
 ### 随包第三方插件
 
-发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.0。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
+发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.1。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
 
 ### 增加功能
 
@@ -266,7 +270,7 @@ pnpm desktop:dist
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
 - ModLens 与视觉桥接不存在；rc.2 Files 请求路径与内联回退、文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
-- 真实浏览器测试覆盖 Microsoft Edge 启动、页面观察、准确节点过期目标拒绝、填写、受保护提交、跨会话拒绝、有界标签页、中断导航恢复和浏览器重启。真实 Windows UI Automation 测试覆盖有界窗口发现、跨会话拒绝、观察、编辑、受保护原生动作分类、调用、等待、中断恢复和 helper 重启。
+- 真实浏览器测试覆盖专用 Edge 启动、匹配页面复用、全局发现、逐轮租约隔离、跨 iframe 与开放 Shadow DOM 的有界 DOM 观察、React 目标重解析、表单批处理、受保护提交、部分失败不重放、中断导航恢复和浏览器重启。个人桥接测试覆盖配对过期与次数限制、扩展和协议身份、凭据撤销、附加／分离、取消及断线。真实 Windows UI Automation 测试覆盖有界窗口发现、跨会话拒绝、观察、编辑、受保护原生动作分类、调用、等待、中断恢复和 helper 重启。
 - 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 假 iLink 测试覆盖绑定、验证码、重连、FIFO 回传、去重、会话关联、微信审批、加密图片／文档收发、结构化手机端文字和持久化恢复，全程不暴露凭据也不联系腾讯。发布前由人工预览确认真实手机绑定和媒体互操作。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
@@ -284,7 +288,7 @@ pnpm desktop:dist
 - 本机用量从插件首次创建账本时开始，只公开当前 Key 和北京时间当前月份，不会根据旧会话反向重建。
 - 本机费用依据提供方 usage 和内置公开价格计算，不是官方平台账单、余额或服务器端对账结果。
 - 运行时没有远程价格源或缓存，因此价格变化需要发布产品版本。
-- 浏览器操控依赖 Microsoft Edge，并使用一个独立的专用 profile；应用不捆绑浏览器运行时。
+- 专用浏览器操控依赖已安装的 Microsoft Edge，并使用一个独立的专用 profile；应用不捆绑浏览器运行时。个人 Edge 操控在非受管 Windows 设备上还需要手工侧载并配对随附扩展，任务附加期间 Edge 会显示正常的调试提示。
 - 浏览器和 Windows 操控依赖语义而不是视觉；纯像素或仅 Canvas 界面需要未来独立的视觉能力。
 - 微信频道只在小兢会计打开时支持一个 iLink bot 的单聊文字、受支持图片和文档消息。它不会接管个人账号、处理普通群聊、语音或视频，也无法保证远程发送成功后崩溃场景下的最终回复严格只投递一次。
 - 可视化卡片只在 Web Client 中渲染，固定使用浅色配色，卡片内部暂时不能向主对话发送后续消息。

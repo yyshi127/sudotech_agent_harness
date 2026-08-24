@@ -27,7 +27,7 @@ export function apply(ctx: Context): void {
       const capabilities = [
         'Choose the shortest deterministic route. Use direct file, data, editing, and command tools when they can complete the task without driving a visible application.',
         ...browser
-          ? ['Use browser_control for websites. It controls Xiaojing\'s dedicated Microsoft Edge profile. Reuse a suitable existing tab before creating one, continue later steps on the active page with observe and the latest target IDs, and do not build a separate shell, PowerShell, CDP, or computer-control browser controller. If Edge cannot start, report the failure.']
+          ? ['Use browser_control for websites. It first reuses a matching page in the paired personal Edge or Xiaojing dedicated Edge, and starts the dedicated Edge only when no match exists. Keep later steps on the active page, use act for multi-field forms and menu sequences, and use observe only when fresh page semantics are needed. Use surface=personal or new_window only when the user explicitly requests it. Do not use screenshots, coordinates, UI Automation, shell, PowerShell, or computer_control as a webpage fallback. If the requested Edge route is unavailable, report the failure without silently switching routes.']
           : [],
         ...computer
           ? ['Use computer_control only when the task requires a visible native Windows application. If it is closed, search with list_apps and launch the returned app ID; then select a listed window, observe it, and invoke only actions advertised by each target.']

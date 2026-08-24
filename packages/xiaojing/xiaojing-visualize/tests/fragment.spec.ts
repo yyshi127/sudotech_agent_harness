@@ -97,9 +97,18 @@ describe('extractStreamingFragment', () => {
   it('decodes unicode escapes', () => {
     expect(extractStreamingFragment('{"fragment": "\\u4f60\\u597d"}')).toBe('你好')
   })
+
+  it('stops at malformed unicode and short escapes', () => {
+    expect(extractStreamingFragment('{"fragment": "ok\\uZZZZtail"}')).toBe('ok')
+    expect(extractStreamingFragment('{"fragment": "ok\\qtail"}')).toBe('ok')
+  })
 })
 
 describe('trimStreamingScripts', () => {
+  it('keeps markup without a script opener', () => {
+    expect(trimStreamingScripts('<div>plain</div>')).toBe('<div>plain</div>')
+  })
+
   it('keeps complete script blocks for on-arrival execution', () => {
     const markup = '<div></div><script>draw()</script><p>x</p>'
     expect(trimStreamingScripts(markup)).toBe(markup)

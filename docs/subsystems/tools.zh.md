@@ -577,28 +577,33 @@ Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index
 
 ### `ctx.xiaojingBrowserControl` — `BrowserControl`
 
-Semantic browser automation provider and model-facing tool consumer.
+DOM-first Edge automation coordinator and model-facing tool consumer.
 
 ```ts cordis-catalog
 /**
+ * Return the current managed and personal Edge status without exposing credentials.
+ * @returns Sanitized route and extension state.
+ */
+status(): BrowserControlStatus
+
+/**
  * Explain whether one request requires a one-shot user approval.
- * @param owner - Agent session that owns the browser page.
- * @param request - Validated browser operation.
- * @returns The approval reason, or undefined when the operation may proceed directly.
+ * @param owner - Agent session making the request.
+ * @param request - Validated semantic browser operation.
+ * @returns Approval reason, or undefined for a read or low-risk edit.
  */
 async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined>
 
 /**
- * Execute one validated browser operation for an owning session.
- * @param owner - Agent session that owns the browser page.
- * @param request - Browser operation to execute.
- * @param signal - Cancellation signal for the operation.
- * @returns The bounded browser observation produced by the operation.
- * @throws When the operation is cancelled, the browser is closing, or the plugin has unloaded.
+ * Execute one unprotected browser operation for an owning session; protected requests must use the registered tool.
+ * @param owner - Agent session making the request.
+ * @param request - Browser operation.
+ * @param signal - Cancellation signal.
+ * @returns Bounded semantic result.
  */
-run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>
+async run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>
 
-/** Close the persistent browser, cancel queued work, and wait until every accepted operation settles. */
+/** Close the dedicated Edge process while leaving the optional extension bridge available. */
 async close(): Promise<void>
 ```
 

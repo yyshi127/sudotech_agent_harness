@@ -10,6 +10,8 @@ import { globSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import type { ToolSchema } from '@deepseek-ai/dsh-llm'
+import type {} from '@deepseek-ai/dsh-client-connection'
+import type {} from '@deepseek-ai/dsh-credentials'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createScope } from '@deepseek-ai/dsh-scope'
@@ -613,9 +615,26 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@deepseek-ai/dsh-xiaojing-browser-control',
     dir: 'xiaojing-browser-control',
     source: 'packages/xiaojing/xiaojing-browser-control/src/index.ts',
-    requires: ['ctx.tools', 'ctx.approval for protected actions', 'an owning Agent at execution time', 'Microsoft Edge at execution time'],
+    requires: ['ctx.tools', 'ctx.credentials', 'ctx.connection', 'ctx.approval for protected actions', 'an owning Agent at execution time', 'Microsoft Edge at execution time'],
     writes: ['tool/call', 'isolated persistent browser profile', 'tool/result'],
     async mount(ctx) {
+      const credentials = new Map<string, string>()
+      ctx.provide('credentials', {
+        resolve: (ref: string) => Promise.resolve(credentials.has(ref)
+          ? { value: credentials.get(ref) as string, source: 'tool-catalog' }
+          : undefined),
+        set: (ref: string, value: string) => {
+          credentials.set(ref, value)
+          return Promise.resolve()
+        },
+        unset: (ref: string) => {
+          credentials.delete(ref)
+          return Promise.resolve()
+        },
+      } as never)
+      ctx.provide('connection', {
+        rpc: { handle: () => () => Promise.resolve() },
+      } as never)
       await ctx.plugin(XiaojingBrowserControl, {
         profileDir: resolve(root, '.tmp/tool-catalog/browser-control'),
       })

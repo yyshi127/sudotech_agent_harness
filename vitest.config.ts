@@ -271,6 +271,7 @@ export default defineConfig({
         'packages/client/ui-weixin-channel/src/client/index.ts',
         'packages/client/ui-xiaojing-browser-control/src/index.ts',
         'packages/client/ui-xiaojing-browser-control/src/client/BrowserControlSection.tsx',
+        'packages/client/ui-xiaojing-browser-control/src/client/controller.ts',
         'packages/client/ui-xiaojing-browser-control/src/client/index.ts',
         'packages/client/xiaojing-product/src/index.ts',
         'packages/client/xiaojing-product/src/client/OnboardingContent.tsx',
@@ -280,6 +281,9 @@ export default defineConfig({
         // behavior; pure policy, protocol, persistence, formatting, pricing,
         // and security modules remain inside the per-file 100% gate.
         'packages/xiaojing/xiaojing-browser-control/src/index.ts',
+        'packages/xiaojing/xiaojing-browser-control/src/managed-edge.ts',
+        'packages/xiaojing/xiaojing-browser-control/src/personal-edge.ts',
+        'packages/xiaojing/xiaojing-browser-control/src/semantic-dom.ts',
         'packages/xiaojing/xiaojing-computer-control/src/index.ts',
         'packages/xiaojing/xiaojing-weixin-channel/src/index.ts',
         'packages/extensions/*/src/**/*.ts',

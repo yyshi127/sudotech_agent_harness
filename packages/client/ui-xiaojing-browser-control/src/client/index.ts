@@ -4,6 +4,7 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import { BrowserControlController } from './controller.ts'
 import { BrowserControlSection, type BrowserControlSectionInjected } from './BrowserControlSection.tsx'
 import { en, zh, type BrowserControlKey } from './locales.ts'
 
@@ -25,6 +26,7 @@ export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
   if (!connection.isLoopback) return
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-xiaojing-browser-control: dictionaries')
+  const controller = new BrowserControlController(connection.rpc)
   const t = ctx.locale.bind(NS)
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
@@ -33,9 +35,12 @@ export function apply(ctx: ClientContext): void {
     label: () => t('nav'),
     locale: NS,
     inject: (): BrowserControlSectionInjected => ({
+      hooks: { browserControl: controller.store },
+      actions: controller,
       t,
     }),
   }, BrowserControlSection))
 }
 
+export type { BrowserControlView } from './controller.ts'
 export type { BrowserControlSectionInjected, BrowserControlSectionProps } from './BrowserControlSection.tsx'

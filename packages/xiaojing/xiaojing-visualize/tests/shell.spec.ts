@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { buildFrameDoc, FRAME_CSP, HEIGHT_MESSAGE_TYPE, sanitizeCssValue } from '../src/shell.ts'
+import {
+  buildFrameDoc,
+  buildStreamShellDoc,
+  FRAME_CSP,
+  HEIGHT_MESSAGE_TYPE,
+  sanitizeCssValue,
+  STREAM_MESSAGE_TYPE,
+} from '../src/shell.ts'
 
 const options = {
   fragment: '<div id="lab">hi</div>',
@@ -46,5 +53,19 @@ describe('sanitizeCssValue', () => {
     for (const hostile of ['red;', 'red }', 'url(x){', '<script>']) {
       expect(sanitizeCssValue(hostile)).toBe('')
     }
+  })
+})
+
+describe('buildStreamShellDoc', () => {
+  it('builds the persistent incremental preview shell', () => {
+    const doc = buildStreamShellDoc({
+      themeVars: options.themeVars,
+      colorScheme: options.colorScheme,
+      reportToken: options.reportToken,
+    })
+    expect(doc).toContain('id="dsh-viz-stream-root"')
+    expect(doc).toContain(STREAM_MESSAGE_TYPE)
+    expect(doc).toContain('dsh-viz-enter')
+    expect(doc).toContain(JSON.stringify(options.reportToken))
   })
 })

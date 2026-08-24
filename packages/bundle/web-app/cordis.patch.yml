@@ -94,6 +94,7 @@
       config:
         profileDir: !!js dshHomePath('browser-control', 'profile')
         executablePath: !!js process.env.XIAOJING_BROWSER_EXECUTABLE
+        extensionDir: !!js process.env.XIAOJING_EDGE_EXTENSION_DIR
         headless: false
 
     - id: xiaojing-computer-control

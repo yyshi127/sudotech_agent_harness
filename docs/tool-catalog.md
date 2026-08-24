@@ -41,7 +41,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`, `web_search` | `ctx.tools`, `ctx.web`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | web_search and web_fetch keep provider selection behind ctx.web so model-visible schemas stay stable across backend swaps. |
-| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Microsoft Edge at execution time` | `tool/call`, `isolated persistent browser profile`, `tool/result` | - | The product-owned browser_control tool starts its dedicated Microsoft Edge profile lazily, so catalog generation records its schema without launching Edge or changing a user profile. |
+| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`, `ctx.credentials`, `ctx.connection`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Microsoft Edge at execution time` | `tool/call`, `isolated persistent browser profile`, `tool/result` | - | The product-owned browser_control tool starts its dedicated Microsoft Edge profile lazily, so catalog generation records its schema without launching Edge or changing a user profile. |
 | `@deepseek-ai/dsh-xiaojing-computer-control` | `computer_control` | `ctx.tools`, `ctx.subprocess`, `ctx.approval for protected actions`, `an owning Agent at execution time`, `Windows UI Automation at execution time` | `tool/call`, `native Windows UI state`, `tool/result` | - | The product-owned computer_control tool starts its bounded PowerShell helper lazily, so catalog generation records its schema without reading or changing the Windows desktop. |
 
 <a id="deepseek-aidsh-tool-ask-user"></a>
@@ -2228,7 +2228,7 @@ web_search and web_fetch keep provider selection behind ctx.web so model-visible
 
 ### `browser_control`
 
-Control the dedicated visible Microsoft Edge profile through semantic page observations. Before creating a tab, open discovers and reuses an existing same-origin tab. Continue later steps on the active page with observe and opaque target IDs instead of calling open again. Never guess target IDs. Prefer this tool for websites; do not build a separate shell, PowerShell, CDP, or computer-control browser controller. Private-network navigation, file uploads, submissions, payments, deletions, sends, and similar high-impact actions require one-time user approval.
+Control Microsoft Edge through DOM semantics. Use open once: it first reuses a matching existing page across the managed and paired personal Edge routes, and starts the dedicated Edge only when no match exists. Use act for a form or menu sequence so the browser completes several validated steps in one call. Use opaque target IDs from observe, or exact role/name/context semantics for controls revealed by an earlier act step. Never guess IDs, repeatedly reopen the same site, use screenshot coordinates, or fall back to computer_control for webpage operations. surface=personal is valid only when the user explicitly asks for personal Edge.
 
 ```json
 {
@@ -2239,12 +2239,19 @@ Control the dedicated visible Microsoft Edge profile through semantic page obser
       "enum": [
         "open",
         "observe",
+        "act",
         "click",
         "fill",
+        "type",
         "select",
+        "check",
+        "uncheck",
+        "hover",
         "press",
         "scroll",
         "upload",
+        "wait_for",
+        "show",
         "tabs",
         "switch_tab",
         "close_tab"
@@ -2252,23 +2259,55 @@ Control the dedicated visible Microsoft Edge profile through semantic page obser
     },
     "url": {
       "type": "string",
-      "description": "HTTP(S) URL for open. Existing same-origin tabs are reused before a new tab is created."
+      "description": "HTTP(S) destination for open, or expected URL for wait_for."
+    },
+    "surface": {
+      "type": "string",
+      "description": "Default auto. Force only from an explicit user request.",
+      "enum": [
+        "auto",
+        "managed",
+        "personal"
+      ]
+    },
+    "disposition": {
+      "type": "string",
+      "description": "Default reuse. Use new_window only when explicitly requested.",
+      "enum": [
+        "reuse",
+        "new_window"
+      ]
     },
     "observation_id": {
       "type": "string",
-      "description": "Latest observation ID for a target action."
+      "description": "Latest observation ID for opaque target IDs."
     },
     "target_id": {
       "type": "string",
       "description": "Opaque target ID from that observation."
     },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        }
+      }
+    },
     "value": {
       "type": "string",
-      "description": "Text for fill or option label/value for select."
+      "description": "Text for fill/type/select."
     },
     "key": {
       "type": "string",
-      "description": "Playwright key such as Enter, Tab, or Control+L."
+      "description": "Playwright key such as Enter, Tab, or Escape."
     },
     "delta_y": {
       "type": "number",
@@ -2276,14 +2315,93 @@ Control the dedicated visible Microsoft Edge profile through semantic page obser
     },
     "paths": {
       "type": "array",
-      "description": "Absolute local file paths for upload.",
+      "description": "Absolute local paths for upload.",
       "items": {
         "type": "string"
       }
     },
     "page_id": {
       "type": "string",
-      "description": "Opaque page ID for switch_tab or close_tab."
+      "description": "Session-scoped page ID for switch_tab or close_tab."
+    },
+    "steps": {
+      "type": "array",
+      "description": "Bounded ordered semantic actions for act.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "click",
+              "fill",
+              "type",
+              "select",
+              "check",
+              "uncheck",
+              "hover",
+              "press",
+              "scroll",
+              "upload",
+              "wait_for"
+            ]
+          },
+          "target_id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "context": {
+                "type": "string"
+              }
+            }
+          },
+          "value": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "delta_y": {
+            "type": "number"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_url": {
+            "type": "string"
+          },
+          "expected_text": {
+            "type": "string"
+          },
+          "timeout_ms": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    "expected_text": {
+      "type": "string",
+      "description": "Visible text expected by wait_for."
+    },
+    "timeout_ms": {
+      "type": "integer",
+      "description": "Per-operation wait bound in milliseconds."
     }
   },
   "required": [
@@ -2302,7 +2420,7 @@ The product-owned browser_control tool starts its dedicated Microsoft Edge profi
 
 ### `computer_control`
 
-Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Use browser_control for websites. If the required application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.
+Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use browser_control for every website and report a browser semantic limitation instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.
 
 ```json
 {

@@ -84,6 +84,9 @@ if (!main.includes("const previewRoot = !app.isPackaged ? process.env.DSH_DESKTO
 if (!main.includes("[paths.cli, 'web', '--port', '0', '--no-open']")) {
   throw new Error('Electron must prevent the embedded Host from opening an external browser')
 }
+if (!main.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
+  throw new Error('Electron must activate Xiaojing-only Host plugins at runtime')
+}
 if (!main.includes('app.setAppUserModelId(identity.appId)')) {
   throw new Error('Electron AppUserModelId must come from identity.json')
 }

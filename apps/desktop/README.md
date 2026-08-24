@@ -25,7 +25,7 @@ A fresh installation shows the custom parent-directory picker and appends `xiaoj
 
 Electron pins `userData` before the single-instance lock to `%APPDATA%\@sudotech\xiaojing-accounting-desktop`. The bundled Host uses its `harness` child as `DSH_HOME`, while the user workspace is `%USERPROFILE%\Documents\小兢会计工作区`.
 
-The desktop launches its Host on an ephemeral loopback port with `--no-open`, so only the Electron window loads the application and the Host never opens a second system-browser window.
+The desktop launches its Host on an ephemeral loopback port with `--no-open` and pins `DSH_CLIENT_BUILD_PROFILE=xiaojing`, so only the Electron window loads the application, the Host never opens a second system-browser window, and Xiaojing-only Host plugins remain active in packaged builds.
 
 `user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, legacy uploads, native image attachments, usage accounting, the dedicated browser-control profile, Weixin channel state, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and rc.2 readers. It requires protected bytes to remain unchanged except for the exact installation-owned Web profile migration that removes ModLens, verifies the atomic flat-to-version-1 credential migration on a private copy without creating a plaintext backup, and checks session, credential, preset, settings, upload, storage, and accounting compatibility. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
 
@@ -35,7 +35,7 @@ Source-only Electron previews may set `DSH_DESKTOP_PREVIEW_ROOT` to an empty tem
 
 ## Built-in automation runtimes
 
-Browser automation starts installed Microsoft Edge visibly with the dedicated `harness/browser-control/profile`; it never reuses the user's normal browser profile. Windows application control uses Windows PowerShell 5.1 and the operating system's `System.Windows.Automation` API. End users do not install Node, a browser driver, PowerShell module, or a separate automation service.
+Browser automation uses installed Microsoft Edge through two independent routes. The default managed route starts Edge visibly with the dedicated `harness/browser-control/profile`; the optional personal route uses the separately paired extension to attach only to an explicitly selected HTTP(S) tab in the user's normal Edge. The desktop build copies that unpacked extension to `resources/xiaojing-edge-extension` and passes its absolute path to the Host, while source previews use the package's `extension/` directory. Windows application control uses Windows PowerShell 5.1 and the operating system's `System.Windows.Automation` API. End users do not install Node, a browser driver, PowerShell module, or a separate automation service.
 
 Both capabilities are independent Cordis rows. A development overlay can disable either row, while the Xiaojing product composition enables both and tells every new agent session when they are available. Browser and Windows observations use session-owned opaque identifiers and expire after state changes. Private-network browser navigation, file uploads, submissions, payments, deletions, sends, and comparable native actions require one-use approval.
 

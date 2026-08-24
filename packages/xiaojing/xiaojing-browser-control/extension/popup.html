@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>小兢会计 Edge 连接器</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="mark">兢</span>
+        <div><strong>小兢会计</strong><small>个人 Edge 连接器</small></div>
+      </header>
+      <p id="status" class="status">正在连接本机小兢会计…</p>
+      <form id="pairing" hidden>
+        <label for="code">输入“浏览器控制”设置页显示的 8 位配对码</label>
+        <input id="code" name="code" maxlength="8" autocomplete="one-time-code" spellcheck="false">
+        <button type="submit">配对</button>
+      </form>
+      <p class="notice">仅普通网页标签可被接管。执行期间 Edge 会显示扩展调试提示，这是浏览器的正常安全提示。</p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -120,8 +120,12 @@ function startBackend() {
   const log = createWriteStream(join(logs, 'backend.log'), { flags: 'a' })
   const environment = {
     ...process.env,
+    DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
     DSH_HOME: dataRoot,
     DSH_TELEMETRY_DISABLED: '1',
+    ...(app.isPackaged ? {
+      XIAOJING_EDGE_EXTENSION_DIR: join(process.resourcesPath, 'xiaojing-edge-extension'),
+    } : {}),
     NODE_USE_ENV_PROXY: process.env.NODE_USE_ENV_PROXY ?? '1',
     NO_COLOR: '1',
   }

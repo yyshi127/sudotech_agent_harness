@@ -1,0 +1,83 @@
+:root {
+  color: #102a26;
+  background: #f7fbfa;
+  font: 13px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+}
+
+main {
+  padding: 18px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+header div {
+  display: flex;
+  flex-direction: column;
+}
+
+header strong {
+  font-size: 15px;
+}
+
+header small,
+.notice {
+  color: #607873;
+}
+
+.mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  background: #0d917c;
+  color: white;
+  font-weight: 700;
+}
+
+.status {
+  margin: 16px 0 12px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #e6f5f1;
+}
+
+form {
+  display: grid;
+  gap: 8px;
+}
+
+input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #b9cec9;
+  border-radius: 6px;
+  font: inherit;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+button {
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #0d917c;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.notice {
+  margin: 14px 0 0;
+  font-size: 11px;
+}

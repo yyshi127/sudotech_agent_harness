@@ -126,6 +126,7 @@ const HIGH_IMPACT_PATTERN = new RegExp(
   'iu',
 )
 const DELETION_PATTERN = /(?:delete|remove|uninstall|删除|移除|卸载)/iu
+const WEB_BROWSER_QUERY_PATTERN = /(?:\bmicrosoft\s+edge\b|\bedge\b|\bgoogle\s+chrome\b|\bchrome\b|\bchromium\b|\bfirefox\b|\bbrave\b)/iu
 const HIGH_IMPACT_APP_PATTERN = new RegExp(
   '(?:\\buninstall\\b|\\binstaller?\\b|\\bsetup\\b|\\bpowershell\\b|\\bterminal\\b|\\bcommand prompt\\b'
   + '|\\bcmd\\b|\\bregistry\\b|\\bregedit\\b|卸载|安装|终端|命令提示符|注册表|管理工具|安全策略|防火墙|恢复驱动器|磁盘清理|计算机管理)',
@@ -388,7 +389,7 @@ export class ComputerControl extends Service {
   private installTool(ctx: Context): void {
     ctx.tools.register(defineTool({
       name: 'computer_control',
-      description: 'Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Use browser_control for websites. If the required application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.',
+      description: 'Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use browser_control for every website and report a browser semantic limitation instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.',
       parameters: {
         action: { type: 'string', enum: [...COMPUTER_ACTIONS], required: true },
         query: { type: 'string', description: 'Installed-application display name to search for with list_apps.' },
@@ -515,6 +516,9 @@ export class ComputerControl extends Service {
       case 'list_apps': {
         if (request.query !== undefined && request.query.trim() === '') {
           throw new Error('computer_control query must be omitted or contain text')
+        }
+        if (request.query !== undefined && WEB_BROWSER_QUERY_PATTERN.test(request.query)) {
+          throw new Error('web browsers are excluded from computer_control; continue with browser_control')
         }
         return
       }

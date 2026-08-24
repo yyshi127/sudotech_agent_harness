@@ -22,6 +22,10 @@
       "types": "./lib/types/invariant.d.ts",
       "default": "./lib/invariant.js"
     },
+    "./types": {
+      "types": "./lib/types/types.d.ts",
+      "default": "./lib/index.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -32,12 +36,16 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@deepseek-ai/dsh-native-command": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
-    "playwright-core": "1.61.1"
+    "playwright-core": "1.61.1",
+    "ws": "^8.18.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-client-connection": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
@@ -47,11 +55,14 @@
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-agent": "workspace:^",
     "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-client-connection": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/dsh-user-approval": "workspace:^"
+    "@deepseek-ai/dsh-user-approval": "workspace:^",
+    "@types/ws": "^8.18.1"
   }
 }

@@ -146,7 +146,7 @@ function Preview({ argsRaw }: { argsRaw: string }) {
 export function StreamingPreview({ session }: StreamingPreviewProps) {
   // Defensive guard mirroring the official dock rows: a host passing no
   // session must degrade to an empty dock instead of crashing.
-  const blocks = session?.partial?.blocks
+  const blocks = session.partial?.blocks
   if (blocks === undefined) return null
   // Last matching block: a turn can contain several visualize calls; only the
   // most recent one can still be streaming.
