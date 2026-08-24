@@ -3675,9 +3675,6 @@ importers:
       '@deepseek-ai/dsh-client-runtime':
         specifier: workspace:^
         version: link:../runtime
-      '@deepseek-ai/dsh-client-test-runtime':
-        specifier: workspace:^
-        version: link:../../test-support/client-runtime
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: workspace:^
         version: link:../ui-settings
@@ -9296,9 +9293,6 @@ importers:
 
   packages/xiaojing/xiaojing-browser-control:
     dependencies:
-      '@deepseek-ai/dsh-native-command':
-        specifier: workspace:^
-        version: link:../../util/native-command
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
@@ -9324,9 +9318,6 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: workspace:^
         version: link:../../core/session
-      '@deepseek-ai/dsh-settings':
-        specifier: workspace:^
-        version: link:../../settings/settings
       '@deepseek-ai/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../core/system-prompt

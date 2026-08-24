@@ -32,7 +32,7 @@ flowchart LR
   Upstream["Upstream dsh-v0.1.1-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
-  Adapters --> Browser["Edge/Chrome browser-control plugin"]
+  Adapters --> Browser["Microsoft Edge browser-control plugin"]
   Adapters --> Computer["Windows UIA control plugin"]
   Adapters --> Weixin["Weixin channel plugins"]
   Adapters --> Visualize["Isolated visualization plugin"]
@@ -56,7 +56,7 @@ flowchart LR
 | 小兢产品层 | 品牌组件、配色、产品文案、初次使用说明和默认部署人格 | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.zh.md) |
 | 用量 Host 插件 | 提供方用量观察、API Key 指纹、内置计价、不可变账本、Remote 和更新事件 | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.zh.md) |
 | 用量 Client 插件 | 侧边栏摘要和明细浮层、设置入口、月度日历、格式化和刷新控制器 | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.zh.md) |
-| 浏览器操控插件 | 可选 Edge/Chrome 生命周期、独立设置页面、有界语义页面观察、不透明目标和高影响操作授权 | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.zh.md)、[`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.zh.md) |
+| 浏览器操控插件 | Microsoft Edge 生命周期、独立状态页面、有界语义页面观察、不透明目标和高影响操作授权 | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.zh.md)、[`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.zh.md) |
 | 电脑操控插件 | Windows PowerShell helper 生命周期、UI Automation 观察、原生语义动作和高影响操作授权 | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.zh.md) |
 | 微信 Host 插件 | 腾讯 iLink 绑定、私有凭据与状态、持久化 Agent 会话桥接、审批和手机端文字回传 | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.zh.md) |
 | 微信 Client 插件 | 仅限 loopback 的频道设置、二维码绑定、验证码和脱敏连接状态 | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.zh.md) |
@@ -113,7 +113,7 @@ flowchart LR
 
 `@deepseek-ai/dsh-xiaojing-browser-control` 与 `@deepseek-ai/dsh-xiaojing-computer-control` 是两个独立 Cordis 能力插件，不修改 `agent-loop` 或官方 UI 包。Web 组合默认启用二者，开发 overlay 可以单独禁用任意配置行。`@deepseek-ai/dsh-client-ui-xiaojing-browser-control` 独立提供仅回环地址可见的“浏览器控制”设置分区，移除其组合行后入口即消失。两项工具有意注册为部署级全局工具，因此每个新会话，包括关闭 runtime context 的用户预设，都会获得两个 schema 及其路由说明。允许 runtime context 的会话还会获得小兢 Host 产品提示：无需可见界面时优先使用文件、数据、编辑和命令工具；网站使用 `browser_control`；原生应用可见界面使用 `computer_control`。
 
-浏览器操控以可见方式启动所选的本机 Edge 或 Chrome，并为两款浏览器使用各自独立的专用持久 profile。默认选择 Edge；持久实时设置会等待已接受的操作结束后再影响后续任务，缺少所选浏览器时不会回退到另一款浏览器。用户登录后可以最小化受控窗口，普通 DOM 操作仍通过 Playwright 继续执行，不占用物理鼠标或键盘。结果包含有界页面文本和语义目标，动作只接受绑定到当前会话最新观察中准确 DOM 节点的不透明 ID；节点脱离或被替换时会失败并要求重新观察，不会按位置重新定位。工具不接受 CSS 选择器、JavaScript、CDP 命令、任意 profile 路径或密码值。产品不捆绑 Chrome for Testing；显式可执行文件只保留给测试或受控部署。Windows 操控通过 subprocess 能力维护一个有界换行 JSON helper，只从 Windows“开始”应用目录发现和启动条目，并使用 Windows PowerShell 5.1 与 `System.Windows.Automation`。它返回不暴露注册 ID 或可执行文件路径的有界应用、窗口和控件结果，也不接受坐标、截图、OCR、PowerShell 源码或任意 Shell 命令。
+浏览器操控以可见方式启动本机 Microsoft Edge，并使用一个独立的专用持久 profile。用户登录后可以最小化受控窗口，普通 DOM 操作仍通过 Playwright 继续执行，不占用物理鼠标或键盘。结果包含有界页面文本和语义目标，动作只接受绑定到当前会话最新观察中准确 DOM 节点的不透明 ID；节点脱离或被替换时会失败并要求重新观察，不会按位置重新定位。工具不接受 CSS 选择器、JavaScript、CDP 命令、任意 profile 路径、密码值或浏览器选择参数。显式 Edge 兼容可执行文件只保留给测试或受控部署。Windows 操控通过 subprocess 能力维护一个有界换行 JSON helper，只从 Windows“开始”应用目录发现和启动条目，并使用 Windows PowerShell 5.1 与 `System.Windows.Automation`。它返回不暴露注册 ID 或可执行文件路径的有界应用、窗口和控件结果，也不接受坐标、截图、OCR、PowerShell 源码或任意 Shell 命令。
 
 两个能力插件都会在状态变化后使观察失效、拒绝其他会话持有的 ID、在自有进程中断后恢复，并在插件卸载时停止自有进程；受保护动作缺少授权通道时会关闭式失败。浏览器取消失败页时，如果该页是最后一个页面，会先保留一个空白替代页，因此恢复过程不会关闭可见浏览器窗口。浏览器操作按会话串行，Windows 操作则由单个 helper 全局串行。访问私有或回环地址、上传、提交、支付、删除、发送、高风险应用启动及同类原生动作需要一次性授权。密码字段、浏览器或操作系统原生对话框、UAC、安全桌面、管理员权限应用、纯像素控件、验证码和仅 Canvas 网站不属于这项语义能力。
 
@@ -159,7 +159,7 @@ flowchart LR
 1. Electron 读取 `identity.json`、固定 `userData`、获取单实例锁、固定 AppUserModelId 和窗口标题，然后显示桌面启动页。
 2. 桌面端启动随包提供的 `runtime/node.exe`，不要求也不会选择终端用户已经安装的 Node。
 3. 子进程以 `%USERPROFILE%\Documents\小兢会计工作区` 为工作目录运行 `dsh web --port 0`，将永久 `harness` 数据目录设为 `DSH_HOME`，并移除继承的 DeepSeek API Key 环境变量。
-4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、微信频道、独立可视化卡片、带独立设置页的 Edge/Chrome 浏览器操控、Windows 电脑操控及普通 rc.2 Harness UI 插件。
+4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、微信频道、独立可视化卡片、带独立设置页的 Microsoft Edge 浏览器操控、Windows 电脑操控及普通 rc.2 Harness UI 插件。
 5. API 网关向隔离 renderer 公开生成的 Remote。Electron 拒绝权限请求，并把新窗口 URL 交给操作系统浏览器打开。
 6. Host 公告动态分配的本地 URL 后，Electron 用组装后的 Web 应用替换启动页，同时保持固定的任务栏标题和图标。
 
@@ -174,7 +174,7 @@ flowchart LR
 | Electron 状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop` | 获取单实例锁前调用的 `app.setPath('userData', ...)` |
 | Harness 状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness` | 传给随包 Host 的 `DSH_HOME` |
 | 原生图片附件 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\attachments` | rc.2 附件存储；带版本的内容寻址图片对象和规范化提供方请求变体 |
-| 浏览器操控 profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control` | 浏览器操控插件；`profile`（Edge）与 `chrome-profile`（Chrome）相互独立 |
+| 浏览器操控 profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control\profile` | 浏览器操控插件；专用 Microsoft Edge 状态 |
 | 微信频道状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\weixin-channel` | 微信 Host 插件；非 token 状态和单实例租约 |
 | 用户工作区 | `%USERPROFILE%\Documents\小兢会计工作区` | 桌面端工作目录 |
 
@@ -266,7 +266,7 @@ pnpm desktop:dist
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
 - ModLens 与视觉桥接不存在；rc.2 Files 请求路径与内联回退、文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
-- 真实浏览器测试覆盖页面观察、准确节点过期目标拒绝、填写、受保护提交、跨会话拒绝、有界标签页、中断导航恢复、持久化 Edge 到 Chrome 切换和浏览器重启。真实 Windows UI Automation 测试覆盖有界窗口发现、跨会话拒绝、观察、编辑、受保护原生动作分类、调用、等待、中断恢复和 helper 重启。
+- 真实浏览器测试覆盖 Microsoft Edge 启动、页面观察、准确节点过期目标拒绝、填写、受保护提交、跨会话拒绝、有界标签页、中断导航恢复和浏览器重启。真实 Windows UI Automation 测试覆盖有界窗口发现、跨会话拒绝、观察、编辑、受保护原生动作分类、调用、等待、中断恢复和 helper 重启。
 - 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 假 iLink 测试覆盖绑定、验证码、重连、FIFO 回传、去重、会话关联、微信审批、加密图片／文档收发、结构化手机端文字和持久化恢复，全程不暴露凭据也不联系腾讯。发布前由人工预览确认真实手机绑定和媒体互操作。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
@@ -284,7 +284,7 @@ pnpm desktop:dist
 - 本机用量从插件首次创建账本时开始，只公开当前 Key 和北京时间当前月份，不会根据旧会话反向重建。
 - 本机费用依据提供方 usage 和内置公开价格计算，不是官方平台账单、余额或服务器端对账结果。
 - 运行时没有远程价格源或缓存，因此价格变化需要发布产品版本。
-- 浏览器操控依赖所选的 Edge 或 Chrome 安装，并为两款浏览器使用相互独立的专用 profile；应用不捆绑浏览器运行时，也不会跨浏览器回退。
+- 浏览器操控依赖 Microsoft Edge，并使用一个独立的专用 profile；应用不捆绑浏览器运行时。
 - 浏览器和 Windows 操控依赖语义而不是视觉；纯像素或仅 Canvas 界面需要未来独立的视觉能力。
 - 微信频道只在小兢会计打开时支持一个 iLink bot 的单聊文字、受支持图片和文档消息。它不会接管个人账号、处理普通群聊、语音或视频，也无法保证远程发送成功后崩溃场景下的最终回复严格只投递一次。
 - 可视化卡片只在 Web Client 中渲染，固定使用浅色配色，卡片内部暂时不能向主对话发送后续消息。

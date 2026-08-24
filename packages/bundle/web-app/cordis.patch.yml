@@ -93,8 +93,6 @@
       name: '@deepseek-ai/dsh-xiaojing-browser-control'
       config:
         profileDir: !!js dshHomePath('browser-control', 'profile')
-        chromeProfileDir: !!js dshHomePath('browser-control', 'chrome-profile')
-        browser: edge
         executablePath: !!js process.env.XIAOJING_BROWSER_EXECUTABLE
         headless: false
 

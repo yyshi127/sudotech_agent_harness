@@ -35,7 +35,7 @@ Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudo
 
 ## 内置自动化运行环境
 
-浏览器操控以可见方式启动所选的本机 Edge 或 Chrome。Edge 使用 `harness/browser-control/profile`，Chrome 使用 `harness/browser-control/chrome-profile`，二者都不复用用户日常浏览器 profile。应用默认选择 Edge，不捆绑 Chrome for Testing，并且所选浏览器不可用时不会回退到另一款浏览器。Windows 应用操控使用 Windows PowerShell 5.1 和操作系统自带的 `System.Windows.Automation` API。终端用户无需安装 Node、浏览器驱动、PowerShell 模块或独立自动化服务。
+浏览器操控以可见方式启动本机 Microsoft Edge，并使用专用的 `harness/browser-control/profile`；它不会复用用户日常浏览器 profile。Windows 应用操控使用 Windows PowerShell 5.1 和操作系统自带的 `System.Windows.Automation` API。终端用户无需安装 Node、浏览器驱动、PowerShell 模块或独立自动化服务。
 
 两项能力分别位于独立 Cordis 配置行中。开发 overlay 可以单独禁用任意一项，小兢产品组合则默认启用二者，并在每个新 agent 会话中说明当前可用能力。浏览器和 Windows 观察都使用会话独占的不透明 ID，并在状态变化后过期。访问内网、上传文件、提交、支付、删除、发送及同类原生操作需要一次性授权。
 
@@ -52,5 +52,5 @@ Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudo
 - 更新方式是下载并运行新版安装包，目前没有应用内自动更新。
 - 安装包尚未进行 Authenticode 数字签名，因此 Windows 可能显示未知发布者或 SmartScreen 提示。
 - 覆盖升级只适用于同一 Windows 用户，且不能在升级过程中迁移安装目录。
-- 浏览器操控依赖所选的 Edge 或 Chrome；如果该浏览器未安装或被设备策略阻止，能力会返回明确的启动错误。
+- 浏览器操控依赖 Microsoft Edge；如果 Edge 未安装或被设备策略阻止，能力会返回明确的启动错误。
 - 内置自动化依赖语义而不是视觉，不能操作纯像素控件、验证码、UAC、安全桌面或管理员权限应用。

@@ -3100,11 +3100,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserActionRequest',
-    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly browser?: BrowserKind;\n    readonly url?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n}',
+    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly url?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n}',
   },
   {
     name: 'BrowserActionResult',
-    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly browser?: BrowserKind;\n    readonly pageId?: BrowserPageId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly truncated?: boolean;\n}',
+    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly pageId?: BrowserPageId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly truncated?: boolean;\n}',
   },
   {
     name: 'BrowserObservationId',
@@ -3116,7 +3116,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'BrowserPageSummary',
-    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly browser: BrowserKind;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
+    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
   },
   {
     name: 'BrowserTarget',

@@ -3245,13 +3245,9 @@ export interface Config {
 ```ts config-catalog
 /** Browser runtime configuration. */
 export interface Config {
-  /** Dedicated persistent Edge profile directory; never point this at a person's normal browser profile. */
+  /** Dedicated persistent Microsoft Edge profile directory; never point this at a person's normal browser profile. */
   profileDir: string
-  /** Dedicated persistent Chrome profile directory. Defaults to a sibling of `profileDir`. */
-  chromeProfileDir?: string
-  /** Default browser when a task does not name one. The durable user setting may replace it. */
-  browser?: BrowserKind
-  /** Explicit selected-browser executable used only by tests or a controlled deployment. */
+  /** Explicit Edge-compatible executable used only by tests or a controlled deployment. */
   executablePath?: string
   /** Whether to hide the controlled browser window. Xiaojing ships with this disabled. */
   headless?: boolean
@@ -3270,12 +3266,9 @@ export interface Config {
   /** Whether private and loopback destinations are allowed without approval. Intended only for tests. */
   allowPrivateHosts?: boolean
 }
-
-/** Browser selected for one automation operation. */
-export type BrowserKind = typeof BROWSER_KINDS[number]
 ```
 
-来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts:63`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
+来源：[`packages/xiaojing/xiaojing-browser-control/src/index.ts:47`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
 <a id="deepseek-aidsh-xiaojing-computer-control"></a>
 

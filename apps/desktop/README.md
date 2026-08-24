@@ -35,7 +35,7 @@ Source-only Electron previews may set `DSH_DESKTOP_PREVIEW_ROOT` to an empty tem
 
 ## Built-in automation runtimes
 
-Browser automation starts the selected installed Edge or Chrome visibly. Edge uses `harness/browser-control/profile`, Chrome uses `harness/browser-control/chrome-profile`, and neither reuses the user's normal browser profile. The application defaults to Edge, does not bundle Chrome for Testing, and does not fall back to another browser when the selected browser is unavailable. Windows application control uses Windows PowerShell 5.1 and the operating system's `System.Windows.Automation` API. End users do not install Node, a browser driver, PowerShell module, or a separate automation service.
+Browser automation starts installed Microsoft Edge visibly with the dedicated `harness/browser-control/profile`; it never reuses the user's normal browser profile. Windows application control uses Windows PowerShell 5.1 and the operating system's `System.Windows.Automation` API. End users do not install Node, a browser driver, PowerShell module, or a separate automation service.
 
 Both capabilities are independent Cordis rows. A development overlay can disable either row, while the Xiaojing product composition enables both and tells every new agent session when they are available. Browser and Windows observations use session-owned opaque identifiers and expire after state changes. Private-network browser navigation, file uploads, submissions, payments, deletions, sends, and comparable native actions require one-use approval.
 
@@ -52,5 +52,5 @@ Run the identity, user-data, and product-layer verifiers plus real Edge and Wind
 - Updates are delivered by downloading and running a newer installer; there is no in-app automatic updater.
 - The installer is not Authenticode-signed, so Windows may show an unknown-publisher or SmartScreen warning.
 - In-place upgrades apply only to the same Windows user and cannot move the installation directory.
-- Browser automation requires the selected Edge or Chrome installation. It reports an explicit startup error if that browser is missing or blocked by device policy.
+- Browser automation requires Microsoft Edge. It reports an explicit startup error if Edge is missing or blocked by device policy.
 - The built-in automation is semantic, not visual: it cannot operate pixel-only controls, CAPTCHAs, UAC, the secure desktop, or elevated applications.

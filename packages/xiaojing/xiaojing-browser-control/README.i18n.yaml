@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-browser-control/README.md
-README.md: dc458251379e4300243574179776a4488a899e39
-README.zh.md: 8f011fc95796503e13f5e75cd5d05408c05446ca
+README.md: 870b544d1d675576dd9560cbf1686385f0e2350f
+README.zh.md: 7ebc440ad12d308340a69906074154e6c364580d

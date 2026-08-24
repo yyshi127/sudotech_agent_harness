@@ -7,6 +7,8 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { ModuleLoader } from '@deepseek-ai/cordis-plugin-loader'
 import { describe, expect, it } from 'vitest'
 import {
   assertNoProfileRuntimeShadows,
@@ -301,6 +303,37 @@ describe('registerProfileModuleFallback', () => {
       expect(readFileSync(join(legacy, 'copied-package', 'marker'), 'utf8')).toBe('preserved')
     } finally {
       unregister()
+      unregister()
+    }
+  })
+
+  it('ignores a dereferenced legacy link to an obsolete app package', () => {
+    const packageName = '@deepseek-ai/dsh-client-ui-shell'
+    const anchor = stageInstallation({ [packageName]: {} })
+    const installedDir = join(dirname(anchor), 'node_modules', packageName)
+    writeFileSync(join(installedDir, 'index.js'), "module.exports = { source: 'current' }\n")
+
+    const home = tmp()
+    const profileDir = join(home, 'profiles', 'web')
+    mkdirSync(profileDir, { recursive: true })
+    const obsoleteDir = join(tmp(), 'obsolete-client-ui-shell')
+    mkdirSync(obsoleteDir, { recursive: true })
+    writeFileSync(join(obsoleteDir, 'package.json'), JSON.stringify({ name: packageName, version: 'old', main: './index.js' }))
+    writeFileSync(join(obsoleteDir, 'index.js'), "module.exports = { source: 'obsolete' }\n")
+    const legacyLink = join(home, 'profiles', 'node_modules', packageName)
+    mkdirSync(dirname(legacyLink), { recursive: true })
+    symlinkSync(obsoleteDir, legacyLink, process.platform === 'win32' ? 'junction' : 'dir')
+    const unregister = registerProfileModuleFallback(anchor, home)
+    try {
+      const internal = ModuleLoader.fromInternal()
+      if (internal === undefined) throw new Error('Node internal module loader unavailable')
+      const parentUrl = pathToFileURL(profileDir).href + '/'
+      const specifier = `${packageName}/package.json`
+      const result = internal.version === 'v1'
+        ? internal.resolveSync(specifier, parentUrl, { type: 'json' })
+        : internal.resolveSync(parentUrl, { specifier, attributes: { type: 'json' } })
+      expect(fileURLToPath(result.url)).toBe(join(installedDir, 'package.json'))
+    } finally {
       unregister()
     }
   })

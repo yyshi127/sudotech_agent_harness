@@ -258,7 +258,7 @@ export default defineConfig({
         'packages/client/ui-settings-models/src/client/welcome-store.ts',
         // Xiaojing's interactive settings and branded composition use the
         // same browser-grade acceptance lane as the official Client GUI.
-        // Their controller/component behavior remains pinned by focused
+        // Their interactive component behavior remains pinned by focused
         // jsdom tests and assembled Xiaojing Web snapshots.
         'packages/client/ui-usage-accounting/src/index.ts',
         'packages/client/ui-usage-accounting/src/client/UsageSection.tsx',
@@ -271,7 +271,6 @@ export default defineConfig({
         'packages/client/ui-weixin-channel/src/client/index.ts',
         'packages/client/ui-xiaojing-browser-control/src/index.ts',
         'packages/client/ui-xiaojing-browser-control/src/client/BrowserControlSection.tsx',
-        'packages/client/ui-xiaojing-browser-control/src/client/controller.ts',
         'packages/client/ui-xiaojing-browser-control/src/client/index.ts',
         'packages/client/xiaojing-product/src/index.ts',
         'packages/client/xiaojing-product/src/client/OnboardingContent.tsx',

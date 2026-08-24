@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-browser-control",
-  "description": "Xiaojing semantic browser automation over Microsoft Edge or Google Chrome",
+  "description": "Xiaojing semantic browser automation over Microsoft Edge",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -32,7 +32,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@deepseek-ai/dsh-native-command": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "playwright-core": "1.61.1"
   },
@@ -41,7 +40,6 @@
     "@deepseek-ai/dsh-brand": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/dsh-user-approval": "workspace:^"
   },
@@ -52,7 +50,6 @@
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-settings": "workspace:^",
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/dsh-user-approval": "workspace:^"

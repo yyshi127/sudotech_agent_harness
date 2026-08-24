@@ -11,33 +11,13 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { CallId } from '@deepseek-ai/dsh-llm'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
-import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import { chromium } from 'playwright-core'
-import BrowserControl, {
-  BROWSER_CONTROL_SETTINGS_NAMESPACE, isPrivateAddress, privateDestination,
-} from '../src/index.ts'
+import BrowserControl, { isPrivateAddress, privateDestination } from '../src/index.ts'
 
 const cleanup: Array<() => Promise<void>> = []
 const execFileAsync = promisify(execFile)
-
-class MemorySettings extends SettingsProvider {
-  private readonly stored: Record<string, unknown> = {}
-
-  override get writable(): boolean {
-    return true
-  }
-
-  protected load(): Promise<Record<string, unknown>> {
-    return Promise.resolve(structuredClone(this.stored))
-  }
-
-  protected persist(namespace: SettingsNamespace, section: Record<string, unknown>): Promise<void> {
-    this.stored[namespace] = structuredClone(section)
-    return Promise.resolve()
-  }
-}
 
 afterEach(async () => {
   for (const dispose of cleanup.splice(0).reverse()) await dispose()
@@ -134,12 +114,8 @@ describe('Playwright browser provider', () => {
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
     await ctx.plugin(ApprovalService, { policy: 'never' })
-    await ctx.plugin(MemorySettings)
-    const chromeProfileDir = await mkdtemp(join(tmpdir(), 'xiaojing-chrome-browser-test-'))
-    cleanup.push(() => rm(chromeProfileDir, { recursive: true, force: true }))
     const fiber = await ctx.plugin(BrowserControl, {
       profileDir,
-      chromeProfileDir,
       ...existsSync(executable) ? { executablePath: executable } : {},
       headless: true,
       actionTimeoutMs: 5_000,
@@ -163,9 +139,9 @@ describe('Playwright browser provider', () => {
       newPage(): Promise<unknown>
       close(): Promise<void>
     }
-    const contextFor = (browser: 'edge' | 'chrome'): TestContext | undefined => (
-      service as unknown as { runtimes: Map<string, { context?: TestContext }> }
-    ).runtimes.get(browser)?.context
+    const browserContext = (): TestContext | undefined => (
+      service as unknown as { runtime: { context?: TestContext } }
+    ).runtime.context
     const firstInterrupted = new AbortController()
     const firstHanging = ctx.xiaojingBrowserControl.run(owner, {
       action: 'open', url: `http://127.0.0.1:${String(address.port)}/hang`,
@@ -176,7 +152,8 @@ describe('Playwright browser provider', () => {
     const firstOpened = await ctx.xiaojingBrowserControl.run(owner, {
       action: 'open', url: `http://127.0.0.1:${String(address.port)}`,
     }, signal)
-    const openedContext = contextFor('edge')
+    expect(firstOpened).not.toHaveProperty('browser')
+    const openedContext = browserContext()
     if (openedContext === undefined) throw new Error('browser fixture did not retain its persistent context')
     await openedContext.newPage()
     await ctx.xiaojingBrowserControl.run(owner, { action: 'close_tab' }, signal)
@@ -319,34 +296,13 @@ describe('Playwright browser provider', () => {
     }, signal)
     expect(recoveredAfterClose.text).toContain('Name')
 
-    const currentContext = contextFor('edge')
+    const currentContext = browserContext()
     if (currentContext === undefined) throw new Error('browser fixture did not retain its persistent context')
     await currentContext.close()
     const recoveredAfterExternalClose = await service.run(owner, {
       action: 'open', url: `http://127.0.0.1:${String(address.port)}`,
     }, signal)
     expect(recoveredAfterExternalClose.text).toContain('Name')
-
-    const edgeContext = contextFor('edge')
-    const chromeOverride = await service.run(owner, {
-      action: 'open', browser: 'chrome', url: `http://127.0.0.1:${String(address.port)}`,
-    }, signal)
-    expect(chromeOverride.browser).toBe('chrome')
-    const chromeContext = contextFor('chrome')
-    expect(chromeContext).toBeDefined()
-    expect(contextFor('edge')).toBe(edgeContext)
-    const defaultEdge = await service.run(owner, {
-      action: 'open', url: `http://127.0.0.1:${String(address.port)}`,
-    }, signal)
-    expect(defaultEdge.browser).toBe('edge')
-    expect(contextFor('edge')).toBe(edgeContext)
-    await ctx.settings.update(BROWSER_CONTROL_SETTINGS_NAMESPACE, { browser: 'chrome' })
-    const chromeOpened = await service.run(owner, {
-      action: 'open', url: `http://127.0.0.1:${String(address.port)}`,
-    }, signal)
-    expect(chromeOpened.text).toContain('Name')
-    expect(chromeOpened.browser).toBe('chrome')
-    expect(contextFor('chrome')).toBe(chromeContext)
 
     const expectedDisposalRequests = hangingRequests + 1
     const disposalActive = service.run(owner, {

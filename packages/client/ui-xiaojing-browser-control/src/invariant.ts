@@ -10,9 +10,9 @@ export const name = 'client-ui-xiaojing-browser-control-invariant'
 /** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** The Host settings namespace and slot registry own the observable relationships. */
+/** The slot registry owns the page contribution; the page has no mutable cross-service relationship. */
 const install: InvariantInstaller = () => {
-  // No runtime invariant: this package only projects a Host-owned settings namespace.
+  // No runtime invariant: this package contributes only static Edge guidance to a generic settings slot.
 }
 
 /** Register the package-owned empty invariant companion. */

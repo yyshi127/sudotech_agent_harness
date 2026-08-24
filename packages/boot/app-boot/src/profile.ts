@@ -280,6 +280,19 @@ function packageResolutionParent(packageName: string, packageDir: string): strin
   return pathToFileURL(join(modulesDir, '.dsh-profile-module-fallback.mjs')).href
 }
 
+/** Return whether Node resolved a package through the retired shared profile directory, including a dereferenced link. */
+function isLegacyProfileResolution(resolvedUrl: string, legacyModules: string, packageName: string): boolean {
+  if (isPathInside(resolvedUrl, legacyModules)) return true
+  if (!resolvedUrl.startsWith('file:')) return false
+  const legacyPackageDir = join(legacyModules, packageName)
+  try {
+    return isPathInside(resolvedUrl, realpathSync(legacyPackageDir))
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false
+    throw error
+  }
+}
+
 /**
  * Register the profile-only module fallback used by the dsh launcher.
  * Imports resolve normally from a profile first; a missing bare package
@@ -307,7 +320,9 @@ export function registerProfileModuleFallback(
       const packageDir = installationPackages.get(packageName)
       try {
         const resolved = nextResolve(specifier, context)
-        if (packageDir === undefined || !isPathInside(resolved.url, legacyModules)) return resolved
+        if (packageDir === undefined || !isLegacyProfileResolution(resolved.url, legacyModules, packageName)) {
+          return resolved
+        }
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ERR_MODULE_NOT_FOUND' || packageDir === undefined) throw error
       }
