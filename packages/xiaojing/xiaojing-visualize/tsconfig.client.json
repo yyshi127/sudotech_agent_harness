@@ -1,0 +1,24 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "files": [
+    "src/client/StreamingPreview.tsx",
+    "src/client/VisualizeCard.tsx",
+    "src/client/index.tsx",
+    "src/client/theme.ts",
+    "src/fragment.ts",
+    "src/frame-css.ts",
+    "src/shell.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../client/runtime" },
+    { "path": "../../client/ui-conversation" },
+    { "path": "../../client/ui-slots" },
+    { "path": "../../client/ui-tool" }
+  ]
+}

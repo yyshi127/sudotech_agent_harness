@@ -12,12 +12,12 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, profileGoldenPath, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/onboarding-usable-provider', import.meta.url))
-const DISMISSED_EXPECTED = join(SNAPSHOT_DIR, 'dismissed.expected.md')
+const DISMISSED_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'dismissed.expected.md'))
 const MODE = webSnapshotMode()
 const CREDENTIAL_STEP = '添加一个 API Key 开始使用'
 
@@ -124,6 +124,9 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
   }, 60_000)
 
   it('keeps the fixture inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['dismissed.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'dismissed.expected.md',
+      'dismissed.xiaojing.expected.md',
+    ])
   })
 })

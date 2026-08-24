@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.2.0 / dsh-v0.1.1-rc.1）
+# 小兢会计产品开发基线（0.2.0 / dsh-v0.1.1-rc.2）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.1` 的当前 0.2.0 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)与 [rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.0 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)与 [rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)负责记录原因和被否决的替代方案。
 
 ## 开始前必读
 
@@ -18,9 +18,9 @@
 | 项目 | 当前值 | 真源 |
 |---|---|---|
 | 桌面产品版本 | `0.2.0` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| 官方 Harness 基线 | `dsh-v0.1.1-rc.1` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 官方基线 commit | `528c682e061696f5a160f363f236ecbf53cbd006` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 产品集成基准 | `578ecb3359a91234181772639a4743d58aaad155` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 官方 Harness 基线 | `dsh-v0.1.1-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 官方基线 commit | `b150a551b8d465e31e418e1b2eaf5e79bbb7d28` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 产品集成基准 | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 源码仓库 | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
 `product.json` 显式记录上游基线，不能根据内容相似的源码推断基线。`@deepseek-ai/dsh-*` 包作用域继续遵循仓库级工作区约定，桌面包使用 `@sudotech/xiaojing-accounting-desktop`。产品文案和来源说明必须继续准确表述：小兢会计基于 DeepSeek Harness 进行内部品牌和配置定制，不能声称底层框架由数豆科技开发。
@@ -29,15 +29,19 @@
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream dsh-v0.1.1-rc.1 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream dsh-v0.1.1-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Usage["Usage host and client plugins"]
   Adapters --> Browser["Edge/Chrome browser-control plugin"]
   Adapters --> Computer["Windows UIA control plugin"]
+  Adapters --> Weixin["Weixin channel plugins"]
+  Adapters --> Visualize["Isolated visualization plugin"]
   Product --> Bundle["Web app composition"]
   Usage --> Bundle
   Browser --> Bundle
   Computer --> Bundle
+  Weixin --> Bundle
+  Visualize --> Bundle
   Bundle --> Desktop["Electron and NSIS desktop"]
   Desktop --> Data["Permanent user-data roots"]
 ```
@@ -56,6 +60,7 @@ flowchart LR
 | 电脑操控插件 | Windows PowerShell helper 生命周期、UI Automation 观察、原生语义动作和高影响操作授权 | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.zh.md) |
 | 微信 Host 插件 | 腾讯 iLink 绑定、私有凭据与状态、持久化 Agent 会话桥接、审批和手机端文字回传 | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.zh.md) |
 | 微信 Client 插件 | 仅限 loopback 的频道设置、二维码绑定、验证码和脱敏连接状态 | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.zh.md) |
+| 可视化插件 | 面向模型的可视化工具与 skill、沙箱化 Web 卡片，以及与宿主主题隔离的固定浅色配色 | [`packages/xiaojing/xiaojing-visualize/`](../packages/xiaojing/xiaojing-visualize/README.zh.md) |
 | Web 组合 | Host 与浏览器插件名录及加载顺序 | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | 独立集成补丁 | API Key 后配置、profile 运行时遮蔽防护，以及统一文档／原生图片上传桥接与输入区修复 | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
 | 桌面端与安装器 | Electron 生命周期、内置 Node 运行时、图标、启动页、固定窗口身份、NSIS 配置和发布检查 | [`apps/desktop/`](../apps/desktop/README.zh.md) |
@@ -73,7 +78,7 @@ flowchart LR
 
 ### 产品插件
 
-`@deepseek-ai/dsh-client-xiaojing-product` 同时包含 Host 半侧和浏览器半侧。Host 半侧只在 `deployment:persona` 为空时填入小兢身份，不会覆盖已选择或用户创建的 agent 人格。浏览器半侧把五个产品 slot、本地化文案和主题 CSS 注册为一个可卸载插件，而且这些注册只会由 `xiaojing` Client 构建 profile 编译进入产品客户端。
+`@deepseek-ai/dsh-client-xiaojing-product` 同时包含 Host 半侧和浏览器半侧。Host 半侧只在 `deployment:persona` 为空时填入小兢身份，不会覆盖已选择或用户创建的 agent 人格。浏览器半侧把五个产品 slot、本地化文案和主题 CSS 注册为一个可卸载插件，而且这些注册只会由 `xiaojing` Client 构建 profile 编译进入产品客户端。同一生命周期会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在产品插件卸载时恢复通用值。
 
 普通品牌修改都应从该包开始。在应用 public 资源中增加或替换资源，资源清单变化时更新 `product.json`，再由产品组件引用。不能为了补充产品展示而直接修改 `SidebarRoot`、`EmptyHero`、`WelcomeNotice` 或其他官方 owner。
 
@@ -98,7 +103,7 @@ flowchart LR
 
 ### 本机用量统计
 
-计费功能不修改 agent loop。`@deepseek-ai/dsh-usage-accounting` 通过 rc.1 的 `llm/stream` waterfall 观察真实 `deepseek-official` 调用。[`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) 是唯一导入 rc 专属 stream、token 用量、DeepSeek 设置、endpoint 和凭据 API 的文件。上游 API 变化应先在此处吸收，然后再考虑是否需要修改结算、存储、价格或界面逻辑。
+计费功能不修改 agent loop。`@deepseek-ai/dsh-usage-accounting` 通过 rc.2 的 `llm/stream` waterfall 观察真实 `deepseek-official` 调用。[`compat.ts`](../packages/llm/usage-accounting/src/compat.ts) 是唯一导入 rc 专属 stream、token 用量、DeepSeek 设置、endpoint 和凭据 API 的文件。上游 API 变化应先在此处吸收，然后再考虑是否需要修改结算、存储、价格或界面逻辑。
 
 每个请求只在首个提供方 `usage` 分片结算一次。对话、压缩、标题和重试请求互相独立。账本只保存 SHA-256 Key 指纹、请求元数据、互不重叠的 token bucket、请求时价格版本、整数纳元分类费用、总费用和未计价 token。浏览器只能获得 `usageAccounting.snapshot()` 和 `usage-accounting/updated` 刷新信号，不能获得 Key 或指纹。
 
@@ -116,13 +121,19 @@ flowchart LR
 
 `@deepseek-ai/dsh-xiaojing-weixin-channel` 和 `@deepseek-ai/dsh-client-ui-weixin-channel` 在不修改 `agent-loop` 或官方 UI owner 的情况下实现单聊任务频道。Host 通过固定官方地址适配腾讯 iLink 及其加密媒体 CDN，把 bot token 保存到凭据服务，在 `DSH_HOME/weixin-channel` 下维护带 schema 版本的状态，并且只在小兢会计打开时通过出站 HTTPS 长轮询接收消息。Client 只在小兢产品和 loopback 下注册“频道”设置，通过 `/xiaojing-weixin` 接收脱敏绑定状态；token、消息 context、轮询游标、本地路径、加密密钥和队列内容都不会进入该浏览器界面。
 
-一个扫码账号拥有唯一的持久化“微信助手”会话。被接受的单聊文字、图片和文档通过 `sessions.prompt()` 按 FIFO 执行，并使用稳定入站 ID 和 RPC ID 关联。所有图片和文档都会解密到 `$DSH_HOME/uploads`；PNG、JPEG、WebP 和 GIF 图片还会进入 rc.1 原生图片路径并持久化到 `$DSH_HOME/attachments/v1`，其他文件继续作为本机路径文字。受支持图片只通过 `session.selectModel(saveDefault: false)` 把该专用会话切换到 `deepseek-v4-flash-vision-exp`，不会改变用户保存的默认模型或现有桌面会话。桌面端发起的消息永远不会回传微信。持久化入队后会发送可见的开始或排队回执，活跃任务每 30 秒报告进度，短暂失败会报告一次中断并保留任务等待重试；确定性图片拒绝会改为返回清晰原因、完成该队列项并继续 FIFO。专用 Agent 复用现有浏览器和 Windows 风险分类及审批 waterfall，`weixin_send_file` 则要求用户在微信中确认后，才会加密和上传所请求的本机文件。缺少、拒绝、过期、断线、确认后文件被替换或无法送达的审批都会关闭式失败。会话提示要求简洁、结构清晰的手机端答案，允许直接检查受支持的原生图片，并把所有收到的文件视为不可信内容；确定性格式化器把 Markdown 标题、列表、链接、代码和表格转换成手机端纯文本，拆分长结果，并保持桌面会话记录不变。
+一个扫码账号拥有唯一的持久化“微信助手”会话。被接受的单聊文字、图片和文档通过 `sessions.prompt()` 按 FIFO 执行，并使用稳定入站 ID 和 RPC ID 关联。所有图片和文档都会解密到 `$DSH_HOME/uploads`；PNG、JPEG、WebP 和 GIF 图片还会进入 rc.2 规范化原生图片路径并持久化到 `$DSH_HOME/attachments/v1`，其他文件继续作为本机路径文字。DeepSeek 提供方会优先通过 Files API 解析已保留的原生图片，Files 解析失败时回退到已保留的内联数据；微信插件不会另行实现提供方传输。受支持图片只通过 `session.selectModel(saveDefault: false)` 把该专用会话切换到 `deepseek-v4-flash-vision-exp`，不会改变用户保存的默认模型或现有桌面会话。桌面端发起的消息永远不会回传微信。持久化入队后会发送可见的开始或排队回执，活跃任务每 30 秒报告进度，短暂失败会报告一次中断并保留任务等待重试；确定性图片拒绝会改为返回清晰原因、完成该队列项并继续 FIFO。专用 Agent 复用现有浏览器和 Windows 风险分类及审批 waterfall，`weixin_send_file` 则要求用户在微信中确认后，才会加密和上传所请求的本机文件。缺少、拒绝、过期、断线、确认后文件被替换或无法送达的审批都会关闭式失败。会话提示要求简洁、结构清晰的手机端答案，允许直接检查受支持的原生图片，并把所有收到的文件视为不可信内容；确定性格式化器把 Markdown 标题、列表、链接、代码和表格转换成手机端纯文本，拆分长结果，并保持桌面会话记录不变。
 
 协议、媒体和状态测试使用假 iLink/CDN 服务，不接触真实微信。真实手机绑定和手机端媒体互操作属于独立人工预览步骤。包内 `NOTICE.md` 保留腾讯 MIT 声明和已审阅的上游提交；OpenClaw 和 Hermes Python 运行时都不是依赖。
 
+### 独立可视化插件
+
+`@deepseek-ai/dsh-xiaojing-visualize` 适配自已审阅至提交 `b0bed38f40ffbb0d72bb88393d865307944c1bce` 的 BSD-3-Clause `Nagi-ovo/dsh-visualize`。它只在 `xiaojing` Client 构建 profile 中提供一个模型工具、对应创作 skill、已完成工具视图和流式预览。每张卡片都运行在具有严格内容安全策略的不透明来源沙箱 iframe 中。插件内部固定保留原生鲸鱼蓝浅色配色，不继承 Harness 主题或小兢会计浅绿色产品主题。
+
+移除插件不需要修改 Harness 核心：在 Web 组合中禁用或删除唯一配置行，再重新构建 Xiaojing Client 即可。若要从源码中彻底删除该包，还需移除 `web-app` 解析清单中的对应依赖。产品层检查会要求每个已声明功能包同时存在于这两个位置，防止构建成功却静默漏装运行时插件。产品品牌、计费、上传、频道、浏览器、电脑操控及持久数据 owner 都不依赖可视化包。包级 README 与 `NOTICE.md` 负责安全限制、上游归属和本地适配记录。
+
 ### 随包第三方插件
 
-发行版 Web profile 只通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`。其源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.0。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
+发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.0。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
 
 ### 增加功能
 
@@ -137,9 +148,9 @@ flowchart LR
 
 | 补丁 id | 约定 | 负责路径 |
 |---|---|---|
-| `desktop-api-key-environment-isolation` | 桌面端移除继承的 `DEEPSEEK_API_KEY`；用户通过 rc.1 可写凭据界面在启动后创建或替换凭据。 | `apps/desktop/main.mjs` |
+| `desktop-api-key-environment-isolation` | 桌面端移除继承的 `DEEPSEEK_API_KEY`；用户通过 rc.2 可写凭据界面在启动后创建或替换凭据。 | `apps/desktop/main.mjs` |
 | `profile-runtime-shadow-protection` | 用户安装插件不能替换应用自带的 Harness 或 Cordis 运行时并恢复成上游界面。 | CLI 与 app-boot profile 加载 |
-| `file-upload-composer-repair` | 唯一文件入口在普通、Goal 和 Plan 模式下把受支持图片路由到 rc.1 原生入口、其他文件路由到旧存储；待发送附件布局不能遮挡输入框，并且可见光标必须与文字插入位置一致。 | `patches/dsh-file-uploads@1.0.0.patch` |
+| `file-upload-composer-repair` | 唯一文件入口在普通、Goal 和 Plan 模式下把受支持图片路由到 rc.2 规范化原生图片入口、其他文件路由到旧存储；待发送附件布局不能遮挡输入框，并且可见光标必须与文字插入位置一致。 | `patches/dsh-file-uploads@1.0.0.patch` |
 
 这些约定既不属于品牌，也不冒充上游行为。必须在 `integration-patches.json` 中保留其 id 和路径。上游实现完全相同的约定时，应通过包含回归测试的显式改动移除或缩小补丁并更新清单，不能在合并中静默删除。
 
@@ -148,7 +159,7 @@ flowchart LR
 1. Electron 读取 `identity.json`、固定 `userData`、获取单实例锁、固定 AppUserModelId 和窗口标题，然后显示桌面启动页。
 2. 桌面端启动随包提供的 `runtime/node.exe`，不要求也不会选择终端用户已经安装的 Node。
 3. 子进程以 `%USERPROFILE%\Documents\小兢会计工作区` 为工作目录运行 `dsh web --port 0`，将永久 `harness` 数据目录设为 `DSH_HOME`，并移除继承的 DeepSeek API Key 环境变量。
-4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、微信频道、带独立设置页的 Edge/Chrome 浏览器操控、Windows 电脑操控及普通 rc.1 Harness UI 插件。
+4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、微信频道、独立可视化卡片、带独立设置页的 Edge/Chrome 浏览器操控、Windows 电脑操控及普通 rc.2 Harness UI 插件。
 5. API 网关向隔离 renderer 公开生成的 Remote。Electron 拒绝权限请求，并把新窗口 URL 交给操作系统浏览器打开。
 6. Host 公告动态分配的本地 URL 后，Electron 用组装后的 Web 应用替换启动页，同时保持固定的任务栏标题和图标。
 
@@ -162,7 +173,7 @@ flowchart LR
 |---|---|---|
 | Electron 状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop` | 获取单实例锁前调用的 `app.setPath('userData', ...)` |
 | Harness 状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness` | 传给随包 Host 的 `DSH_HOME` |
-| 原生图片附件 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\attachments` | rc.1 附件存储；带版本的内容寻址图片对象 |
+| 原生图片附件 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\attachments` | rc.2 附件存储；带版本的内容寻址图片对象和规范化提供方请求变体 |
 | 浏览器操控 profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control` | 浏览器操控插件；`profile`（Edge）与 `chrome-profile`（Chrome）相互独立 |
 | 微信频道状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\weixin-channel` | 微信 Host 插件；非 token 状态和单实例租约 |
 | 用户工作区 | `%USERPROFILE%\Documents\小兢会计工作区` | 桌面端工作目录 |
@@ -182,7 +193,7 @@ flowchart LR
 3. 用上一正式版的真实结构数据替换合成升级 fixture，并覆盖全部受保护路径。
 4. 旧会话、凭据、人格、插件、附件、工作区文件、界面状态和计费数据在迁移后均可使用，才能解除打包阻断。
 
-`verify-user-data-contract.mjs` 会从合成的 0.1.9 fixture 还原真实 Zstandard 会话，模拟应用文件替换，并要求所有受保护数据保持字节不变。随后只允许一个由安装程序拥有的数据变化：移除 ModLens 的 Web profile 清单迁移。同一检查通过 rc.1 打开旧会话并验证标题、消息和人格绑定，验证用户预设与未变化的设置，核对当前 Key 的用量合计与分类费用，并在私有副本上检查官方扁平凭据迁移。凭据探针要求迁移前后 API Key 的 SHA-256 指纹一致、version 1 文件仍可编辑、无效旧文件失败时保持原样，而且不能生成明文备份或半迁移旁路文件。该检查不能代替真实 Windows 覆盖升级测试。
+`verify-user-data-contract.mjs` 会从合成的 0.1.9 fixture 还原真实 Zstandard 会话，模拟应用文件替换，并要求所有受保护数据保持字节不变。随后只允许一个由安装程序拥有的数据变化：移除 ModLens 的 Web profile 清单迁移。同一检查通过 rc.2 打开旧会话并验证标题、消息和人格绑定，验证用户预设与未变化的设置，核对当前 Key 的用量合计与分类费用，并在私有副本上检查官方扁平凭据迁移。凭据探针要求迁移前后 API Key 的 SHA-256 指纹一致、version 1 文件仍可编辑、无效旧文件失败时保持原样，而且不能生成明文备份或半迁移旁路文件。该检查不能代替真实 Windows 覆盖升级测试。
 
 ## 开发流程
 
@@ -214,7 +225,7 @@ pnpm run dev:web
 先运行聚焦产品检查，再运行更广的仓库检查：
 
 ```sh
-pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/client/ui-xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests packages/xiaojing/xiaojing-weixin-channel/tests packages/client/ui-weixin-channel/tests
+pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/client/ui-xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests packages/xiaojing/xiaojing-weixin-channel/tests packages/client/ui-weixin-channel/tests packages/xiaojing/xiaojing-visualize/tests
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:identity
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:user-data
 pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:product-layer
@@ -251,10 +262,10 @@ pnpm desktop:dist
 ## 发布阻断检查
 
 - `scripts/verify-xiaojing-product-layer.mjs` 通过，官方 UI 源码根目录不包含产品标记。
-- 组装应用加载 `xiaojing-product`、用量 Host 和用量 Client 插件；移除产品插件后通用 fallback 仍可运行。
+- 组装应用加载 `xiaojing-product`、用量 Host、用量 Client 和独立可视化插件；移除产品插件后通用 fallback 仍可运行，移除可视化组合行只会移除可视化卡片。
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
-- ModLens 与视觉桥接不存在；文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
+- ModLens 与视觉桥接不存在；rc.2 Files 请求路径与内联回退、文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
 - 真实浏览器测试覆盖页面观察、准确节点过期目标拒绝、填写、受保护提交、跨会话拒绝、有界标签页、中断导航恢复、持久化 Edge 到 Chrome 切换和浏览器重启。真实 Windows UI Automation 测试覆盖有界窗口发现、跨会话拒绝、观察、编辑、受保护原生动作分类、调用、等待、中断恢复和 helper 重启。
 - 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 假 iLink 测试覆盖绑定、验证码、重连、FIFO 回传、去重、会话关联、微信审批、加密图片／文档收发、结构化手机端文字和持久化恢复，全程不暴露凭据也不联系腾讯。发布前由人工预览确认真实手机绑定和媒体互操作。
@@ -275,7 +286,8 @@ pnpm desktop:dist
 - 运行时没有远程价格源或缓存，因此价格变化需要发布产品版本。
 - 浏览器操控依赖所选的 Edge 或 Chrome 安装，并为两款浏览器使用相互独立的专用 profile；应用不捆绑浏览器运行时，也不会跨浏览器回退。
 - 浏览器和 Windows 操控依赖语义而不是视觉；纯像素或仅 Canvas 界面需要未来独立的视觉能力。
-- 微信频道只在小兢会计打开时支持一个 iLink bot 的单聊文字消息。它不会接管个人账号、处理普通群聊或媒体，也无法保证远程发送成功后崩溃场景下的最终回复严格只投递一次。
+- 微信频道只在小兢会计打开时支持一个 iLink bot 的单聊文字、受支持图片和文档消息。它不会接管个人账号、处理普通群聊、语音或视频，也无法保证远程发送成功后崩溃场景下的最终回复严格只投递一次。
+- 可视化卡片只在 Web Client 中渲染，固定使用浅色配色，卡片内部暂时不能向主对话发送后续消息。
 - 后续上游版本可能要求调整通用 slot、rc 适配器、集成补丁或数据迁移，但不能要求重新实现产品层和功能层。
 
 ## 新会话快速交接

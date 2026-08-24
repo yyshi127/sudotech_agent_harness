@@ -23,6 +23,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 const NS = 'xiaojing.product'
 
+function syncThemeColor(): void {
+  const metadata = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+  if (metadata !== null) metadata.content = getComputedStyle(document.body).backgroundColor
+}
+
 /** Product UI requires only generic slots and locale. */
 export const inject = ['slots', 'locale']
 
@@ -33,7 +38,11 @@ export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
   ctx.effect(() => {
     document.body.dataset.xiaojingProduct = ''
-    return () => { delete document.body.dataset.xiaojingProduct }
+    syncThemeColor()
+    return () => {
+      delete document.body.dataset.xiaojingProduct
+      syncThemeColor()
+    }
   }, 'xiaojing-product: theme scope')
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
     name: 'sidebar.brand.mark',

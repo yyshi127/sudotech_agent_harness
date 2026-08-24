@@ -3313,6 +3313,26 @@ export interface Config {
 
 Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:55`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
 
+<a id="deepseek-aidsh-xiaojing-visualize"></a>
+
+## `@deepseek-ai/dsh-xiaojing-visualize`
+
+Requires: `tools` · `skills` · `fs`
+
+```ts config-catalog
+/** Deployment configuration. */
+export interface Config {
+  /**
+   * Size ceiling in bytes for one fragment file. Oversized fragments are
+   * rejected at execute time with guidance to downsample inline data; the
+   * same ceiling bounds what one call adds to the session log.
+   */
+  maxFragmentBytes: number
+}
+```
+
+Source: [`packages/xiaojing/xiaojing-visualize/src/index.ts:26`](../packages/xiaojing/xiaojing-visualize/src/index.ts)
+
 <a id="deepseek-aidsh-xiaojing-weixin-channel"></a>
 
 ## `@deepseek-ai/dsh-xiaojing-weixin-channel`

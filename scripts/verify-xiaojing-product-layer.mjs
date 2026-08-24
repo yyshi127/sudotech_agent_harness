@@ -8,8 +8,8 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: 'dsh-v0.1.1-rc.1',
-  commit: '528c682e061696f5a160f363f236ecbf53cbd006',
+  release: 'dsh-v0.1.1-rc.2',
+  commit: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {
@@ -46,6 +46,7 @@ for (const directory of coreRoots) {
 }
 
 const composition = await readFile(join(root, 'packages', 'bundle', 'web-app', 'cordis.patch.yml'), 'utf8')
+const webAppManifest = JSON.parse(await readFile(join(root, 'packages', 'bundle', 'web-app', 'package.json'), 'utf8'))
 for (const path of [...manifest.assets, ...manifest.desktopManifests]) {
   await readFile(join(root, path))
 }
@@ -63,6 +64,9 @@ if (!composition.includes("name: '@deepseek-ai/dsh-client-xiaojing-product'")) {
 for (const capability of manifest.featurePackages) {
   if (!composition.includes(`name: '${capability}'`)) {
     errors.push(`web-app composition does not load ${capability}`)
+  }
+  if (webAppManifest.dependencies?.[capability] === undefined) {
+    errors.push(`web-app resolver manifest does not depend on ${capability}`)
   }
 }
 const productClient = await readFile(join(root, 'packages', 'client', 'xiaojing-product', 'src', 'client', 'index.ts'), 'utf8')

@@ -1,4 +1,4 @@
-/** Harness 0.1.1-rc.1 compatibility adapter for DeepSeek request observation. */
+/** Harness 0.1.1-rc.2 compatibility adapter for DeepSeek request observation. */
 
 import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'

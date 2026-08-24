@@ -17,6 +17,8 @@ const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
 afterEach(() => {
   cleanup()
   document.getElementById('root')?.remove()
+  document.querySelectorAll('meta[name="theme-color"]').forEach((node) => { node.remove() })
+  document.body.style.removeProperty('background-color')
   delete document.body.dataset.xiaojingProduct
   vi.unstubAllEnvs()
 })
@@ -70,14 +72,22 @@ describe('Xiaojing product UI', () => {
     await official.ctx.fiber.dispose()
 
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    const themeColor = document.createElement('meta')
+    themeColor.name = 'theme-color'
+    themeColor.content = 'rgb(255, 255, 255)'
+    document.head.append(themeColor)
+    document.body.style.backgroundColor = 'rgb(251, 253, 253)'
     const product = await bench()
     const fiber = product.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     for (const hole of HOLES) expect(product.slots.entries(hole)).toHaveLength(1)
     expect(document.body.dataset.xiaojingProduct).toBe('')
+    expect(themeColor.content).toBe('rgb(251, 253, 253)')
+    document.body.style.backgroundColor = 'rgb(255, 255, 255)'
     await fiber.dispose()
     for (const hole of HOLES) expect(product.slots.entries(hole)).toHaveLength(0)
     expect(document.body.dataset.xiaojingProduct).toBeUndefined()
+    expect(themeColor.content).toBe('rgb(255, 255, 255)')
     await product.ctx.fiber.dispose()
   })
 

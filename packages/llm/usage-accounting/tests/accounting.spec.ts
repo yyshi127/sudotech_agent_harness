@@ -108,7 +108,7 @@ afterEach(async () => {
   await Promise.all(homes.splice(0).map(home => rm(home, { recursive: true, force: true })))
 })
 
-describe('Harness 0.1.1-rc.1 usage observer', () => {
+describe('Harness 0.1.1-rc.2 usage observer', () => {
   it('resolves the default DeepSeek connection when settings have no provider section', async () => {
     const ctx = new Context()
     contexts.push(ctx)

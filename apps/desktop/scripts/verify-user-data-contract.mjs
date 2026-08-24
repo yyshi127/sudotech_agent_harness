@@ -102,7 +102,7 @@ async function verifySessionData(appData) {
   try {
     const snapshots = await ctx.sessionPersistence.listSnapshots()
     assert(snapshots.length === 1 && snapshots[0]?.header.id === SESSION_ID,
-      '0.1.9 session fixture is not discoverable through the rc.1 persistence backend')
+      '0.1.9 session fixture is not discoverable through the rc.2 persistence backend')
     const session = await ctx.sessionPersistence.inspect(SESSION_ID)
     assert(session.meta.version === 0 && session.meta.agentPreset === 'fixture-persona',
       '0.1.9 session metadata or persona binding changed')
@@ -137,21 +137,21 @@ async function verifyCredentialData(appData, scratch) {
     await fiber
     const info = await ctx.credentials.describe(CURRENT_KEY_REF)
     assert(info.configured && info.source === 'file' && info.writable,
-      '0.1.9 API key is not readable and replaceable through the rc.1 credential provider')
+      '0.1.9 API key is not readable and replaceable through the rc.2 credential provider')
     const resolved = await ctx.credentials.resolve(CURRENT_KEY_REF)
     assert(resolved?.value.length > 0, '0.1.9 API key resolved as empty')
     const fingerprint = createHash('sha256').update(resolved.value).digest('hex')
     assert(fingerprint === sourceFingerprint,
-      'rc.1 flat credential migration changed the API key fingerprint')
+      'rc.2 flat credential migration changed the API key fingerprint')
     const migrated = await readFile(probe, 'utf8')
     assert(migrated === `version: 1\nrefs:\n  ${sourceText}`,
-      'rc.1 credential migration did not preserve the flat document value exactly')
+      'rc.2 credential migration did not preserve the flat document value exactly')
     assert(JSON.stringify(await readdir(probeDir)) === JSON.stringify(['.credentials.yaml']),
-      'rc.1 credential migration created a plaintext backup or unexpected side file')
+      'rc.2 credential migration created a plaintext backup or unexpected side file')
     await ctx.credentials.set(CURRENT_KEY_REF, 'fixture-replacement-not-a-real-key')
     const replaced = await ctx.credentials.resolve(CURRENT_KEY_REF)
     assert(replaced?.value === 'fixture-replacement-not-a-real-key' && replaced.source === 'file',
-      'rc.1 credential provider could not replace the copied 0.1.9 API key')
+      'rc.2 credential provider could not replace the copied 0.1.9 API key')
 
     const rejectedDir = join(scratch, 'credential-rejected-probe')
     const rejectedPath = join(rejectedDir, '.credentials.yaml')
@@ -168,11 +168,11 @@ async function verifyCredentialData(appData, scratch) {
     } finally {
       await rejectedCtx.fiber.dispose()
     }
-    assert(rejected, 'rc.1 credential provider accepted an ambiguous legacy document')
+    assert(rejected, 'rc.2 credential provider accepted an ambiguous legacy document')
     assert(await readFile(rejectedPath, 'utf8') === rejectedText,
-      'failed rc.1 credential migration changed the original document')
+      'failed rc.2 credential migration changed the original document')
     assert(JSON.stringify(await readdir(rejectedDir)) === JSON.stringify(['.credentials.yaml']),
-      'failed rc.1 credential migration created a plaintext backup or partial file')
+      'failed rc.2 credential migration created a plaintext backup or partial file')
     return fingerprint
   } finally {
     await fiber.dispose()
@@ -188,7 +188,7 @@ async function verifyPresetData(appData) {
   }])
   const fixture = presets.find(preset => preset.id === 'fixture-persona')
   assert(fixture !== undefined && fixture.broken === undefined && fixture.name === '升级样本人格',
-    '0.1.9 user-created agent preset is not readable by rc.1')
+    '0.1.9 user-created agent preset is not readable by rc.2')
   const settings = await readFile(join(appData, 'harness', 'settings.yaml'), 'utf8')
   assert(settings.includes('agent-presets:\n  default: fixture-persona'),
     '0.1.9 default agent preset selection is missing')
@@ -286,9 +286,9 @@ try {
   await verifyUsageData(appData, currentKeyFingerprint)
   const afterReadChecks = await hashes(appData)
   assert(JSON.stringify(afterReadChecks) === JSON.stringify(profileAfter),
-    'rc.1 compatibility reads unexpectedly rewrote protected user data')
+    'rc.2 compatibility reads unexpectedly rewrote protected user data')
   assert(JSON.stringify(await hashes(documents)) === JSON.stringify(before.documents),
-    'rc.1 compatibility checks changed the Documents workspace')
+    'rc.2 compatibility checks changed the Documents workspace')
 } finally {
   await rm(scratch, { recursive: true, force: true })
 }

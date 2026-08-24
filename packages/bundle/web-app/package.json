@@ -117,6 +117,7 @@
     "@deepseek-ai/dsh-workspace": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-visualize": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-weixin-channel": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "commander": "^15.0.0",

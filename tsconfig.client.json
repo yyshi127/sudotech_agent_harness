@@ -84,6 +84,7 @@
     { "path": "./packages/client/ui-weixin-channel" },
     { "path": "./packages/client/ui-xiaojing-browser-control" },
     { "path": "./packages/client/xiaojing-product/tsconfig.client.json" },
+    { "path": "./packages/xiaojing/xiaojing-visualize/tsconfig.client.json" },
     { "path": "./packages/client/ui-model-selection" },
     { "path": "./packages/client/ui-agent-preset" },
     { "path": "./packages/client/ui-permission-presets" },

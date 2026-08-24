@@ -17,7 +17,7 @@
   config:
     includeHarnessIdentity: false
 
-# Xiaojing's fresh-install default follows the rc.1 native vision route. A
+# Xiaojing's fresh-install default follows the rc.2 native vision route. A
 # saved agent-default-model settings section still wins, so upgrades preserve
 # the user's existing default and every session-local model selection.
 - id: agent-default-model
@@ -75,6 +75,12 @@
 
     - id: usage-accounting
       name: '@deepseek-ai/dsh-usage-accounting'
+
+    # Optional Xiaojing visualization cards. The row is inert for the
+    # official build and can be removed as one independent product layer.
+    - id: xiaojing-visualize
+      name: '@deepseek-ai/dsh-xiaojing-visualize'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
 
     - id: xiaojing-weixin-channel
       name: '@deepseek-ai/dsh-xiaojing-weixin-channel'

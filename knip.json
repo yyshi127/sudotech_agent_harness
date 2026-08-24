@@ -246,6 +246,16 @@
         "tests/**/*.ts"
       ]
     },
+    "packages/xiaojing/xiaojing-visualize": {
+      "entry": [
+        "tests/**/*.spec.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.ts"
+      ]
+    },
     "packages/llm/usage-accounting": {
       "entry": [
         "tests/**/*.spec.ts"

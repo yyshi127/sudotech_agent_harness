@@ -176,6 +176,9 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // The Weixin channel adapts the MIT-licensed Tencent iLink implementation;
   // the attribution notice ships with every published copy.
   '@deepseek-ai/dsh-xiaojing-weixin-channel': ['NOTICE.md'],
+  // The visualization package reads its bundled authoring skill and examples
+  // at runtime and preserves the adapted BSD source notice in distributions.
+  '@deepseek-ai/dsh-xiaojing-visualize': ['assets', 'NOTICE.md'],
 }
 
 function sameStringList(actual: readonly string[] | undefined, expected: readonly string[]): boolean {
