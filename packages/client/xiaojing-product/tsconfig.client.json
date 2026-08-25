@@ -7,6 +7,8 @@
   },
   "files": [
     "src/css-modules.d.ts",
+    "src/client/AboutSection.tsx",
+    "src/client/application-info.ts",
     "src/client/HeroBrand.tsx",
     "src/client/OnboardingContent.tsx",
     "src/client/SidebarBrand.tsx",
@@ -20,6 +22,7 @@
     { "path": "../runtime" },
     { "path": "../ui-conversation" },
     { "path": "../ui-primitives" },
+    { "path": "../ui-settings" },
     { "path": "../ui-settings-models" },
     { "path": "../ui-sidebar" },
     { "path": "../ui-slots" }

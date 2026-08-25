@@ -44,6 +44,20 @@ export { formatWeixinText, splitWeixinText } from './formatter.ts'
 export { IlinkClient } from './protocol.ts'
 export { WeixinStateStore } from './state.ts'
 
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    xiaojingWeixinChannel: XiaojingWeixinChannel
+  }
+  interface Events {
+    /**
+     * Publishes the sanitized iLink connection status after each transition.
+     * @param status - Browser-safe connection state without credentials or message content.
+     * @mode emit
+     */
+    'xiaojing-weixin/status'(status: WeixinChannelStatus): void
+  }
+}
+
 const TOKEN_REF = credentialRef('XIAOJING_WEIXIN_TOKEN')
 const QR_TTL_MS = 5 * 60_000
 const STALE_TOKEN_CODE = -14
@@ -423,8 +437,16 @@ export class XiaojingWeixinChannel {
   private readonly rpcOperations = new Set<Promise<RpcResult<unknown>>>()
   private readonly interruptionNotifiedTasks = new Set<string>()
 
-  /** @param ctx - Host Cordis context. @param config - resolved deployment configuration. */
-  constructor(private readonly ctx: Context, private readonly config: ResolvedConfig) {
+  /**
+   * @param ctx - Host Cordis context.
+   * @param config - resolved deployment configuration.
+   * @param publishStatus - optional sanitized status observer owned by the assembled plugin.
+   */
+  constructor(
+    private readonly ctx: Context,
+    private readonly config: ResolvedConfig,
+    private readonly publishStatus?: (status: WeixinChannelStatus) => void,
+  ) {
     this.store = new WeixinStateStore(join(config.stateDir, 'state.json'))
     this.lease = new WeixinInstanceLease(join(config.stateDir, 'channel.lock'))
     this.ilink = new IlinkClient({
@@ -541,6 +563,7 @@ export class XiaojingWeixinChannel {
       ...(this.state.accountId === undefined ? {} : { accountLabel: maskAccount(this.state.accountId) }),
       ...(error === undefined ? {} : { error }),
     }
+    this.publishStatus?.(this.snapshot())
   }
 
   private account(): ConnectedAccount | undefined {
@@ -1513,7 +1536,7 @@ export class XiaojingWeixinChannel {
     delete this.state.baseUrl
     this.state.updatesCursor = ''
     await this.persist()
-    this.status = { state: 'disconnected', online: false, verificationRequired: false }
+    this.setStatus('disconnected', false)
   }
 }
 
@@ -1524,7 +1547,12 @@ export class XiaojingWeixinChannel {
  * @returns async disposer that waits for channel work to reach quiescence.
  */
 export async function apply(ctx: Context, config: Config = {}): Promise<() => Promise<void>> {
-  const channel = new XiaojingWeixinChannel(ctx, resolveConfig(config))
+  const channel = new XiaojingWeixinChannel(
+    ctx,
+    resolveConfig(config),
+    (status) => { ctx.emit('xiaojing-weixin/status', status) },
+  )
+  ctx.provide('xiaojingWeixinChannel', channel)
   channel.install()
   await channel.start()
   return () => channel.dispose()

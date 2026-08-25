@@ -2435,6 +2435,47 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
     ],
   },
+  {
+    key: 'xiaojingDesktopCompanion',
+    summary: 'Aggregate task lifecycle events and expose a loopback-only snapshot stream.',
+    description: 'Aggregate task lifecycle events and expose a loopback-only snapshot stream.',
+    methods: [
+      {
+        signature: 'snapshot(): CompanionSnapshot',
+        description: 'Return the current content-free aggregate state.',
+        parameters: [],
+        returns: 'The current redacted snapshot.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingWeixinChannel',
+    summary: 'Stateful Host adapter; exported for assembled integration tests.',
+    description: 'Stateful Host adapter; exported for assembled integration tests.',
+    methods: [
+      {
+        signature: 'async start(): Promise<void>',
+        description: 'Load private state, acquire the single-consumer lease, and auto-reconnect.',
+        parameters: [],
+      },
+      {
+        signature: 'install(): void',
+        description: 'Register the loopback RPC surface and session/approval correlations.',
+        parameters: [],
+      },
+      {
+        signature: 'async dispose(): Promise<void>',
+        description: 'Stop network work, fail pending approvals closed, and release process ownership.',
+        parameters: [],
+      },
+      {
+        signature: 'snapshot(): WeixinChannelStatus',
+        description: 'Sanitized state suitable for the local settings page.',
+        parameters: [],
+        returns: 'connection state without the bot token or message context values.',
+      },
+    ],
+  },
 ]
 
 /** Every harness event, sorted by name. */
@@ -2919,6 +2960,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     description: 'A workflow run started — the script\'s meta block validated, the body about to execute. Paired with Events[\'workflow/end\'].',
     parameters: [{ name: 'info', description: 'the run\'s identity snapshot (id + meta).' }],
   },
+  {
+    name: 'xiaojing-weixin/status',
+    mode: 'emit',
+    signature: '\'xiaojing-weixin/status\'(status: WeixinChannelStatus): void',
+    summary: 'Publishes the sanitized iLink connection status after each transition.',
+    description: 'Publishes the sanitized iLink connection status after each transition.',
+    parameters: [{ name: 'status', description: 'Browser-safe connection state without credentials or message content.' }],
+  },
 ]
 
 /** Shapes of every exported type the Service and Event signatures reference (transitively), sorted by name. */
@@ -3254,6 +3303,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CompactionTrigger',
     declaration: 'export type CompactionTrigger = \'pressure\' | \'context-overflow\';',
+  },
+  {
+    name: 'CompanionSnapshot',
+    declaration: 'export interface CompanionSnapshot {\n    state: CompanionState;\n    activeTaskCount: number;\n    approvalCount: number;\n    weixinOnline: boolean;\n    revision: number;\n}',
+  },
+  {
+    name: 'CompanionState',
+    declaration: 'export type CompanionState = \'idle\' | \'thinking\' | \'executing\' | \'approval\' | \'success\' | \'failure\';',
   },
   {
     name: 'ComputerAction',
@@ -5206,6 +5263,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WebUpgradeRoute',
     declaration: 'export interface WebUpgradeRoute {\n    path: string;\n    handler: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>;\n}',
+  },
+  {
+    name: 'WeixinChannelStatus',
+    declaration: 'export interface WeixinChannelStatus {\n    state: WeixinConnectionState;\n    online: boolean;\n    accountLabel?: string;\n    qrCodeDataUrl?: string;\n    qrExpiresAt?: number;\n    verificationRequired: boolean;\n    error?: string;\n}',
+  },
+  {
+    name: 'WeixinConnectionState',
+    declaration: 'export type WeixinConnectionState = \'disconnected\' | \'pairing\' | \'scanned\' | \'verification-required\' | \'connected\' | \'reconnecting\' | \'expired\' | \'token-expired\' | \'instance-busy\' | \'error\';',
   },
   {
     name: 'WorkflowAgentEndInfo',

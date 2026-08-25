@@ -87,6 +87,10 @@
       config:
         stateDir: !!js dshHomePath('weixin-channel')
 
+    - id: xiaojing-desktop-companion
+      name: '@deepseek-ai/dsh-xiaojing-desktop-companion'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+
     # Xiaojing product capabilities stay in independent Cordis rows so a
     # development overlay can disable either one without changing Harness core.
     - id: xiaojing-browser-control
@@ -312,6 +316,9 @@
 
     - id: ui-weixin-channel
       name: '@deepseek-ai/dsh-client-ui-weixin-channel'
+
+    - id: ui-desktop-companion
+      name: '@deepseek-ai/dsh-client-ui-desktop-companion'
 
     - id: ui-xiaojing-browser-control
       name: '@deepseek-ai/dsh-client-ui-xiaojing-browser-control'

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { XiaojingProductKey } from './locales.ts'
+import { useApplicationVersion } from './application-info.ts'
 import css from './HeroBrand.module.css'
 
 /** Product copy injected into the hero. */
@@ -32,10 +33,11 @@ export function HeroBrandMark({ size, className, t }: HeroBrandMarkProps): React
 
 /** Render the Xiaojing product title and internal-beta badge. */
 export function HeroBrandContent({ t }: HeroBrandContentProps): ReactNode {
+  const version = useApplicationVersion()
   return (
     <>
       <span className={css.title}>{t('heroTitle')}</span>
-      <span className={css.badge}>{t('beta')}</span>
+      <span className={css.badge}>{t('beta')} v{version}</span>
     </>
   )
 }

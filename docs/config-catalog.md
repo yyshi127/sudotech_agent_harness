@@ -3366,7 +3366,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:60`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:74`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
 
 ## Loadable plugins with no config
 
@@ -3386,6 +3386,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-deliverables` — requires `systemPrompt` ([`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-desktop-companion` ([`packages/client/ui-desktop-companion/src/index.ts`](../packages/client/ui-desktop-companion/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-browse` ([`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-directory-picker-native` ([`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-goal` ([`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts))
@@ -3446,6 +3447,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
 - `@deepseek-ai/dsh-user-questions` ([`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts))
 - `@deepseek-ai/dsh-workspace` — requires `storageDomain` · `sessionPersistence` ([`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts))
+- `@deepseek-ai/dsh-xiaojing-desktop-companion` — requires `webServer` ([`packages/xiaojing/xiaojing-desktop-companion/src/index.ts`](../packages/xiaojing/xiaojing-desktop-companion/src/index.ts))
 
 ## Seam packages (not directly loadable)
 

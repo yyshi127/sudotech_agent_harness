@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { AboutSection } from '../src/client/AboutSection.tsx'
 import { HeroBrandContent, HeroBrandMark } from '../src/client/HeroBrand.tsx'
 import { OnboardingContent } from '../src/client/OnboardingContent.tsx'
 import { SidebarBrandMark, SidebarBrandName } from '../src/client/SidebarBrand.tsx'
@@ -20,6 +22,7 @@ afterEach(() => {
   document.querySelectorAll('meta[name="theme-color"]').forEach((node) => { node.remove() })
   document.body.style.removeProperty('background-color')
   delete document.body.dataset.xiaojingProduct
+  Reflect.deleteProperty(window, 'xiaojingDesktop')
   vi.unstubAllEnvs()
 })
 
@@ -29,6 +32,7 @@ const HOLES = [
   'conversation.hero.brand.mark',
   'conversation.hero.brand.content',
   'onboarding.content',
+  'settings.section',
 ] as const
 
 async function bench() {
@@ -39,7 +43,9 @@ async function bench() {
   ctx.provide('locale', locale)
   const disposeHoles = slots.register({
     name: 'root',
-    children: Object.fromEntries(HOLES.map(name => [name, { kind: 'single', scope: 'root' }])),
+    children: Object.fromEntries(HOLES.map(name => [name, {
+      kind: name === 'settings.section' ? 'list' : 'single', scope: 'root',
+    }])),
   } as never, () => null)
   return { ctx, slots, disposeHoles }
 }
@@ -51,7 +57,7 @@ describe('Xiaojing product UI', () => {
     expect(screen.getByRole('img', { name: '小兢会计' }).getAttribute('style')).toContain('width: 34px')
     render(<HeroBrandContent {...kit} t={t} />)
     expect(screen.getByText('小兢会计，您的AI办公搭子')).toBeTruthy()
-    expect(screen.getByText('内测版')).toBeTruthy()
+    expect(screen.getByText('内测版 v0.2.2')).toBeTruthy()
   })
 
   it('renders independent sidebar mark and name occupants', () => {
@@ -60,6 +66,17 @@ describe('Xiaojing product UI', () => {
     render(<SidebarBrandName {...kit} t={t} />)
     expect(screen.getByRole('img', { name: '数豆科技' }).getAttribute('src')).toBe('/sudo-logo-gray.png')
     expect(screen.getByText('用AI重新定义财务')).toBeTruthy()
+    const css = readFileSync('packages/client/xiaojing-product/src/client/SidebarBrand.module.css', 'utf8')
+    expect(css).toContain('padding-right: 4px')
+  })
+
+  it('renders the current desktop release and its feature list', () => {
+    render(<AboutSection {...kit} close={vi.fn()} t={t} />)
+    expect(screen.getByRole('heading', { name: '小兢会计' })).toBeTruthy()
+    expect(screen.getByText('当前版本 v0.2.2')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'v0.2.2 版本新特性' })).toBeTruthy()
+    expect(screen.getByText(/桌面小兢通过动作和表情/)).toBeTruthy()
+    expect(screen.getAllByRole('listitem')).toHaveLength(6)
   })
 
   it('activates every product occupant and theme only for the Xiaojing build profile', async () => {

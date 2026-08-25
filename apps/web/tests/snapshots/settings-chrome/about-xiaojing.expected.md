@@ -1,0 +1,27 @@
+- img "小兢会计"
+- paragraph: 数豆科技
+- heading "小兢会计" [level=2]
+- paragraph: 小兢会计，您的AI办公搭子
+- text: 当前版本 v0.2.2
+- paragraph: CURRENT RELEASE
+- heading "v0.2.2 版本新特性" [level=3]
+- text: 6 项功能亮点
+- list:
+  - listitem:
+    - text: "01"
+    - paragraph: 原生视觉模型与统一上传入口，图片和文档自动选择正确处理方式。
+  - listitem:
+    - text: "02"
+    - paragraph: 微信频道支持远程任务、进度反馈、文件收发与高风险操作确认。
+  - listitem:
+    - text: "03"
+    - paragraph: Edge 浏览器控制支持专用浏览器和可选的个人网页接管。
+  - listitem:
+    - text: "04"
+    - paragraph: 本机用量按日统计 Token 与费用，并按官方峰谷价格计算。
+  - listitem:
+    - text: "05"
+    - paragraph: Visualize 将适合的结果呈现为独立配色的精美交互卡片。
+  - listitem:
+    - text: "06"
+    - paragraph: 桌面小兢通过动作和表情显示任务状态，并支持系统托盘常驻。

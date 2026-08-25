@@ -1,0 +1,8 @@
+- heading "桌面小兢" [level=2]
+- paragraph: 让小兢会计常驻桌面，通过动作和表情提示任务执行状态。
+- article:
+  - img "桌面小兢"
+  - paragraph: 桌面小兢仅在 Windows 桌面版中可用。
+  - list:
+    - listitem: 桌面小兢会通过动作和表情提示任务执行状态。
+    - listitem: 收起桌面小兢不会退出应用或中断任务。

@@ -256,6 +256,47 @@ Types: [Agent](core.zh.md)
 
 Source: [`packages/extensions/cordis-host-runner/src/index.ts`](../../packages/extensions/cordis-host-runner/src/index.ts)
 
+<a id="ctxxiaojingdesktopcompanion--xiaojingdesktopcompanion"></a>
+
+### `ctx.xiaojingDesktopCompanion` — `XiaojingDesktopCompanion`
+
+Aggregate task lifecycle events and expose a loopback-only snapshot stream.
+
+```ts cordis-catalog
+/**
+ * Return the current content-free aggregate state.
+ * @returns The current redacted snapshot.
+ */
+snapshot(): CompanionSnapshot
+```
+
+Source: [`packages/xiaojing/xiaojing-desktop-companion/src/index.ts`](../../packages/xiaojing/xiaojing-desktop-companion/src/index.ts)
+
+<a id="ctxxiaojingweixinchannel--xiaojingweixinchannel"></a>
+
+### `ctx.xiaojingWeixinChannel` — `XiaojingWeixinChannel`
+
+Stateful Host adapter; exported for assembled integration tests.
+
+```ts cordis-catalog
+/** Load private state, acquire the single-consumer lease, and auto-reconnect. */
+async start(): Promise<void>
+
+/** Register the loopback RPC surface and session/approval correlations. */
+install(): void
+
+/** Stop network work, fail pending approvals closed, and release process ownership. */
+async dispose(): Promise<void>
+
+/**
+ * Sanitized state suitable for the local settings page.
+ * @returns connection state without the bot token or message context values.
+ */
+snapshot(): WeixinChannelStatus
+```
+
+Source: [`packages/xiaojing/xiaojing-weixin-channel/src/index.ts`](../../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
+
 <a id="cordis-events"></a>
 
 ### `cordis/*` events
@@ -361,4 +402,25 @@ A pending Client activation request left the answerable state.
 ```
 
 Source: [`packages/extensions/cordis-host-runner/src/types.ts`](../../packages/extensions/cordis-host-runner/src/types.ts)
+
+<a id="xiaojing-weixin-events"></a>
+
+### `xiaojing-weixin/*` events
+
+<a id="xiaojing-weixinstatus--emit"></a>
+
+#### `xiaojing-weixin/status` — emit
+
+Publishes the sanitized iLink connection status after each transition.
+
+```ts cordis-catalog
+/**
+ * Publishes the sanitized iLink connection status after each transition.
+ * @param status - Browser-safe connection state without credentials or message content.
+ * @mode emit
+ */
+'xiaojing-weixin/status'(status: WeixinChannelStatus): void
+```
+
+Source: [`packages/xiaojing/xiaojing-weixin-channel/src/index.ts`](../../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
 <!-- END GENERATED cordis-surface -->

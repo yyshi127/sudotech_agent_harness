@@ -217,6 +217,8 @@
       "@deepseek-ai/dsh-client-ui-goal": ["./packages/client/ui-goal/src"],
       "@deepseek-ai/dsh-client-ui-message-feedback": ["./packages/client/ui-message-feedback/src"],
       "@deepseek-ai/dsh-client-ui-usage-accounting": ["./packages/client/ui-usage-accounting/src"],
+      "@deepseek-ai/dsh-client-ui-desktop-companion": ["./packages/client/ui-desktop-companion/src"],
+      "@deepseek-ai/dsh-client-ui-desktop-companion/client": ["./packages/client/ui-desktop-companion/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-weixin-channel": ["./packages/client/ui-weixin-channel/src"],
       "@deepseek-ai/dsh-client-ui-weixin-channel/client": ["./packages/client/ui-weixin-channel/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-xiaojing-browser-control": ["./packages/client/ui-xiaojing-browser-control/src"],

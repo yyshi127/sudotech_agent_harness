@@ -1,8 +1,8 @@
-# Xiaojing Accounting product development baseline (0.2.1)
+# Xiaojing Accounting product development baseline (0.2.2)
 
 English | [中文](xiaojing-product-development.zh.md)
 
-This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.1 source baseline on official `dsh-v0.1.1-rc.2`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), and [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md) own the rationale and rejected alternatives.
+This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.2 source baseline on official `dsh-v0.1.1-rc.2`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md), and [desktop companion and tray decision](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md) own the rationale and rejected alternatives.
 
 ## Read this first
 
@@ -17,7 +17,7 @@ Before editing product code, identify the owning layer instead of starting from 
 
 | Item | Current value | Source of truth |
 |---|---|---|
-| Desktop product version | `0.2.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| Desktop product version | `0.2.2` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
 | Official Harness baseline | `dsh-v0.1.1-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Official baseline commit | `b150a551b8d465e31e418e1b2eaf5e79bbb7d28` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Product integration base | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
@@ -60,6 +60,8 @@ The lowest layer that can own a change owns it. Official packages expose neutral
 | Computer-control plugin | Windows PowerShell helper lifecycle, UI Automation observations, semantic native actions, and high-impact approval | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.md) |
 | Weixin Host plugin | Tencent iLink pairing, private credentials and state, durable Agent session bridge, approvals, and mobile text delivery | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.md) |
 | Weixin Client plugin | Loopback-only channel settings, QR pairing, verification, and sanitized connection state | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.md) |
+| Desktop-companion Host plugin | Content-free task-state aggregation and loopback-only snapshot/SSE transport | [`packages/xiaojing/xiaojing-desktop-companion/`](../packages/xiaojing/xiaojing-desktop-companion/README.md) |
+| Desktop-companion Client plugin | Xiaojing-only settings section and validated restricted preload calls | [`packages/client/ui-desktop-companion/`](../packages/client/ui-desktop-companion/README.md) |
 | Visualization plugin | Model-facing visualization tool and skill, sandboxed Web cards, and a fixed light palette isolated from the host theme | [`packages/xiaojing/xiaojing-visualize/`](../packages/xiaojing/xiaojing-visualize/README.md) |
 | Web composition | Host and browser plugin roster and load order | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | Independent integration patches | API-key post-configuration, profile runtime-shadow protection, and the unified document/native-image upload bridge with composer repair | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
@@ -129,6 +131,16 @@ One paired scanner owns one durable “微信助手” session. Accepted direct 
 
 Protocol, media, and state tests use a fake iLink/CDN server and never contact Weixin. Real phone pairing and phone-side media interoperability are separate manual preview steps. The package preserves Tencent's MIT notice and reviewed upstream commit in its `NOTICE.md`; OpenClaw and the Hermes Python runtime are not dependencies.
 
+### Desktop companion and tray
+
+`@deepseek-ai/dsh-xiaojing-desktop-companion` observes logged session lifecycle, approval, and sanitized Weixin status events and reduces them to a content-free global snapshot. Its priority is approval, failure, execution, thinking, success, then idle. It exposes only `state`, active-task and approval counts, Weixin online state, and a revision through loopback-only snapshot and SSE endpoints; session titles, user instructions, files, tool arguments, model replies, and credentials never enter this interface. The plugin does not change `agent-loop`, model prompts, tools, or session persistence.
+
+`@deepseek-ai/dsh-client-ui-desktop-companion` contributes the near-final Xiaojing-only “Desktop Xiaojing” Settings section and validates every companion result from the restricted Electron preload bridge. In an ordinary browser it renders a Windows-desktop-only notice and no inactive controls. Electron owns the transparent companion BrowserWindow, key-pose animation, 50% default visual scale, 30%–100% size preference, nearby status bubble, drag and multi-display recovery, main-window-interior default and reset placement, tray menu, main-window hide behavior, single-instance restoration, true application exit, and atomic `preferences-v1.json` writes. Tucking the companion destroys only its renderer; the Host, active tasks, and Weixin channel continue running.
+
+The Xiaojing product plugin contributes the final “About Xiaojing” Settings section after Desktop Xiaojing. It displays the current release and its feature list, and the empty-session beta badge includes the same version. Electron returns the packaged version through a read-only preload call; Web previews use a checked fallback that the product-layer gate requires to match `apps/desktop/package.json`.
+
+The feature remains removable as three explicit composition pieces: the Host row, the Client row, and the Electron assets/lifecycle. Removing the Cordis rows removes task-state observation and the settings section without changing Harness core. The Electron bridge exposes no Node, filesystem, arbitrary IPC, or BrowserWindow object to either renderer.
+
 ### Isolated visualization plugin
 
 `@deepseek-ai/dsh-xiaojing-visualize` adapts the BSD-3-Clause `Nagi-ovo/dsh-visualize` source reviewed at commit `b0bed38f40ffbb0d72bb88393d865307944c1bce`. It contributes one model tool, its authoring skill, a settled tool view, and a streaming preview only in the `xiaojing` Client build profile. Each card runs in a sandboxed opaque-origin iframe with a restrictive content security policy. Its original light whale-blue palette is deliberately fixed inside the plugin and does not inherit either the Harness theme or the Xiaojing pale-green product theme.
@@ -137,7 +149,7 @@ The plugin is removable without editing Harness core: disable or remove its sing
 
 ### Bundled third-party plugins
 
-The shipped profile includes `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts), while the Web composition includes the isolated visualization plugin only for the Xiaojing build. The file-upload source commit is pinned by the application dependency graph, and a local pnpm patch keeps one visible picker: supported PNG/JPEG/WebP/GIF files call the generic session-scoped `conversation.addImages()` intake and become native images, while documents and unsupported image formats use the legacy file store with an explicit no-direct-vision label. The same picker remains enabled for ordinary, Goal, and Plan input, and preserves the attachment layout and caret repairs. ModLens and its visual bridge are not part of 0.2.1. Only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
+The shipped profile includes `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts), while the Web composition includes the isolated visualization plugin only for the Xiaojing build. The file-upload source commit is pinned by the application dependency graph, and a local pnpm patch keeps one visible picker: supported PNG/JPEG/WebP/GIF files call the generic session-scoped `conversation.addImages()` intake and become native images, while documents and unsupported image formats use the legacy file store with an explicit no-direct-vision label. The same picker remains enabled for ordinary, Goal, and Plan input, and preserves the attachment layout and caret repairs. ModLens and its visual bridge are not part of 0.2.2. Only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
 
 ### Adding a capability
 
@@ -160,14 +172,16 @@ These contracts are neither branding nor claimed upstream behavior. Keep their i
 
 ## Runtime composition
 
-1. Electron reads `identity.json`, pins `userData`, obtains the single-instance lock, fixes the AppUserModelId and window title, and displays the desktop splash.
+1. Electron reads `identity.json`, pins `userData`, obtains the single-instance lock, fixes the AppUserModelId and window title, creates the system tray and optional companion window, and displays the desktop splash.
 2. The desktop starts its bundled `runtime/node.exe`; an end-user Node installation is neither required nor selected.
 3. The child process runs `dsh web --port 0` from `%USERPROFILE%\Documents\小兢会计工作区`, with `DSH_HOME` set to the permanent `harness` data directory and inherited DeepSeek API-key environment variables removed.
-4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Weixin channel, isolated visualization cards, Microsoft Edge browser control with its standalone settings page, Windows computer control, and ordinary rc.2 Harness UI plugins.
+4. The `web` profile composes the base bundle, Web application bundle, and file uploads. The Web bundle loads usage, Xiaojing product, Weixin channel, desktop-companion state and settings, isolated visualization cards, Microsoft Edge browser control with its standalone settings page, Windows computer control, and ordinary rc.2 Harness UI plugins.
 5. The API gateway exposes generated Remotes to the isolated renderer. Electron denies permission requests and externalizes new-window URLs to the operating-system browser.
-6. When the Host announces its dynamically assigned local URL, Electron replaces the splash with the assembled Web application while retaining the fixed taskbar title and icon.
+6. When the Host announces its dynamically assigned local URL, Electron replaces the splash with the assembled Web application while retaining the fixed taskbar title and icon, subscribes to the content-free companion state stream, and keeps the Host alive when the main window is hidden to the tray.
 
 The packaged desktop intentionally uses an ephemeral local port. Port `3090` is a development-preview convention, not a desktop identity or runtime constant.
+
+The main-window minimize button remains a normal taskbar minimize action. The close button hides the main window to the tray and shows one local notice the first time; a second application launch restores the existing window. Only the tray exit command stops the application, and it asks for confirmation when active tasks, Weixin connectivity, or unreadable task state indicate interruption risk.
 
 ## Data and in-place upgrades
 
@@ -180,9 +194,10 @@ The packaged desktop intentionally uses an ephemeral local port. Port `3090` is 
 | Native image attachments | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\attachments` | rc.2 attachment store; versioned content-addressed image objects and canonical provider request variants |
 | Browser-control profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control\profile` | Browser-control plugin; dedicated Microsoft Edge state |
 | Weixin channel state | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\weixin-channel` | Weixin Host plugin; non-token state and one-instance lease |
+| Desktop-companion preferences | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\desktop-companion` | Electron; schema-versioned visibility, visual scale, clamped display position, and one-time tray notice flag |
 | User workspace | `%USERPROFILE%\Documents\小兢会计工作区` | Desktop working directory |
 
-[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, legacy uploads, native image attachments, usage accounting, the browser-control profile, Weixin channel state, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
+[`user-data-contract.json`](../apps/desktop/user-data-contract.json) inventories sessions, settings, credentials, agent presets, profiles, storages, legacy uploads, native image attachments, usage accounting, the browser-control profile, Weixin channel state, desktop-companion preferences, Local Storage, and the Documents workspace. The installer owns only application files. It must not read, rewrite, or delete these data paths during an ordinary upgrade or uninstall.
 
 ### Immutable installer identity
 
@@ -266,7 +281,7 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 ## Release-blocking checks
 
 - `scripts/verify-xiaojing-product-layer.mjs` passes and official UI source roots contain no product marks.
-- The assembled application loads `xiaojing-product`, usage Host, usage Client, and isolated visualization plugins; generic fallbacks still work without the product plugin, and removing the visualization composition row removes only visualization cards.
+- The assembled application loads `xiaojing-product`, usage Host, usage Client, desktop-companion Host and Client, and isolated visualization plugins; generic fallbacks still work without the product plugin, removing the desktop-companion rows removes only its state/settings integration, and removing the visualization composition row removes only visualization cards.
 - API-key creation and replacement work after launch, and no plaintext key enters usage records or browser snapshots.
 - Usage accounting settles each provider request once, applies Beijing peak windows and the built-in model table, preserves historical request-time costs, and displays two decimal places.
 - ModLens and the visual bridge are absent; the rc.2 Files request path and inline fallback, file upload, attachment layout, composer caret behavior, exact default-profile migration, and profile runtime-shadow protection pass focused checks.
@@ -274,10 +289,11 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 - Every assembled agent receives `browser_control` and `computer_control` with routing descriptions; presets that accept runtime context also receive the combined capability prompt. A development composition can remove either Cordis row without changing Harness core.
 - Fake-iLink tests cover pairing, verification, reconnect, FIFO delivery, deduplication, session correlation, Weixin approval, encrypted image/document receive and send, structured mobile text, and durable recovery without exposing credentials or contacting Tencent. Manual preview confirms real phone pairing and media interoperability before release.
 - Both startup surfaces, expanded and collapsed sidebar, hero, onboarding, taskbar title, and taskbar/shortcut icons show the intended product identity.
+- Desktop-companion tests cover six states, terminal-state timers, concurrent tasks, approval priority, content-free snapshots, settings controls, bridge validation, the 50% default and size range, atomic preferences, drag bounds, main-window-interior initial/reset placement, display recovery, tuck/wake/reset consistency, tray restoration, second-instance restoration, close-to-tray, and risk-confirmed true exit. Product tests and Web snapshots cover the v0.2.2 beta badge, About-page release list, and version parity gate. Electron preview confirms that the focusless transparent window remains interactive only on the scaled character and nearby status bubble and releases its renderer when tucked.
 - Desktop identity and user-data verifiers pass with the incremented version.
 - A clean installation works at the default and a custom parent path, automatically appending `xiaojing-agent-desktop`.
 - An in-place upgrade retains the existing installation path and leaves only one Control Panel entry and one application identity.
-- Sessions, messages, selected and user-created personas, settings, credentials, plugins, attachments, workspaces, Local Storage, usage data, and Weixin channel state remain available after upgrade.
+- Sessions, messages, selected and user-created personas, settings, credentials, plugins, attachments, workspaces, Local Storage, usage data, Weixin channel state, and desktop-companion preferences remain available after upgrade.
 
 Failure of any applicable item blocks publication. Do not treat successful installer generation as proof of an upgrade or data-preservation result that was not exercised.
 

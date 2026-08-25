@@ -22,6 +22,12 @@
     - button "Browser Control":
       - img
       - text: Browser Control
+    - button "Desktop Xiaojing":
+      - img
+      - text: Desktop Xiaojing
+    - button "About Xiaojing":
+      - img
+      - text: About Xiaojing
   - button "Open configuration file"
   - button "Close":
     - img

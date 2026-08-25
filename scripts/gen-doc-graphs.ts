@@ -535,6 +535,20 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns the bounded PowerShell UI Automation helper, observation identities, approval checks, and computer_control tool registration in one removable product plugin.',
   },
   {
+    key: 'xiaojingDesktopCompanion',
+    pkg: 'xiaojing-desktop-companion',
+    title: 'Xiaojing desktop-companion state',
+    mode: 'core',
+    note: 'Aggregates session, approval, and sanitized Weixin lifecycle signals into the content-free snapshot consumed by the removable desktop companion integration.',
+  },
+  {
+    key: 'xiaojingWeixinChannel',
+    pkg: 'xiaojing-weixin-channel',
+    title: 'Xiaojing Weixin channel',
+    mode: 'core',
+    note: 'Owns iLink pairing, polling, durable queueing, Agent session delivery, and sanitized status for the removable Xiaojing channel integration.',
+  },
+  {
     key: 'spillStore',
     pkg: 'spill',
     title: 'Spill storage seam',

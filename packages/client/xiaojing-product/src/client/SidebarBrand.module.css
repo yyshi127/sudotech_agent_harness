@@ -7,13 +7,16 @@
 .name {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+  padding-right: 4px;
+  box-sizing: border-box;
   overflow: hidden;
 }
 
 .wordmark {
   display: block;
+  min-width: 0;
   width: auto;
   max-width: 122px;
   height: 22px;

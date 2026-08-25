@@ -22,6 +22,12 @@
     - button "浏览器控制":
       - img
       - text: 浏览器控制
+    - button "桌面小兢":
+      - img
+      - text: 桌面小兢
+    - button "关于小兢":
+      - img
+      - text: 关于小兢
   - button "打开配置文件"
   - button "关闭":
     - img

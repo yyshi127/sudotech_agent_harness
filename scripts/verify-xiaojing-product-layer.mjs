@@ -20,6 +20,7 @@ const coreRoots = [
   'packages/client/ui-sidebar/src',
   'packages/client/ui-conversation/src',
   'packages/client/ui-settings-models/src',
+  'packages/client/ui-settings/src',
   'packages/client/ui-theme/src',
   'packages/client/ui-renderer/src',
   'packages/client/web/src',
@@ -73,10 +74,28 @@ const productClient = await readFile(join(root, 'packages', 'client', 'xiaojing-
 if (!productClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")) {
   errors.push('xiaojing product client is not gated by the xiaojing build profile')
 }
+if (!productClient.includes("id: 'about-xiaojing'") || !productClient.includes('order: 1010')) {
+  errors.push('Xiaojing About settings are missing or no longer follow desktop-companion settings')
+}
+const productRelease = await readFile(join(
+  root, 'packages', 'client', 'xiaojing-product', 'src', 'client', 'application-info.ts',
+), 'utf8')
+const desktopPackage = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'package.json'), 'utf8'))
+if (!productRelease.includes(`export const XIAOJING_PRODUCT_VERSION = '${desktopPackage.version}'`)) {
+  errors.push('Xiaojing Web fallback version does not match the desktop application version')
+}
 const weixinClient = await readFile(join(root, 'packages', 'client', 'ui-weixin-channel', 'src', 'client', 'index.ts'), 'utf8')
 if (!weixinClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")
   || !weixinClient.includes('connection.isLoopback')) {
   errors.push('Weixin channel client is not gated by the xiaojing build profile and loopback origin')
+}
+const companionClient = await readFile(join(
+  root, 'packages', 'client', 'ui-desktop-companion', 'src', 'client', 'index.ts',
+), 'utf8')
+if (!companionClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'")
+  || !companionClient.includes("id: 'desktop-companion'")
+  || !companionClient.includes('order: 1000')) {
+  errors.push('desktop-companion settings are not isolated to the Xiaojing profile and expected settings position')
 }
 const browserControlClient = await readFile(join(
   root, 'packages', 'client', 'ui-xiaojing-browser-control', 'src', 'client', 'index.ts',
@@ -95,6 +114,15 @@ if (!usageAccountingClient.includes("process.env.DSH_CLIENT_BUILD_PROFILE !== 'x
 const userDataContract = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'user-data-contract.json'), 'utf8'))
 if (!userDataContract.protectedPaths.includes('harness/weixin-channel')) {
   errors.push('Weixin channel durable state is missing from the desktop user-data contract')
+}
+if (!userDataContract.protectedPaths.includes('desktop-companion')) {
+  errors.push('desktop-companion preferences are missing from the desktop user-data contract')
+}
+const desktopMain = await readFile(join(root, 'apps', 'desktop', 'main.mjs'), 'utf8')
+if (!desktopMain.includes("window.on('close'")
+  || !desktopMain.includes("label: '退出小兢会计'")
+  || !desktopMain.includes("app.on('window-all-closed'")) {
+  errors.push('desktop tray lifecycle no longer keeps close, tray exit, and window-all-closed behavior explicit')
 }
 const buildEnvironment = await readFile(join(root, 'scripts', 'client-build-environment.ts'), 'utf8')
 if (!buildEnvironment.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {

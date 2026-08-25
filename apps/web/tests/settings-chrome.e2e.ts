@@ -17,7 +17,7 @@ import { join } from 'node:path'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, profileGoldenPath, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, profileGoldenPath, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
@@ -27,6 +27,8 @@ const PLUGINS_EXPECTED = join(SNAPSHOT_DIR, 'plugins.expected.md')
 // The English fallback surface: a browser naming no shipped language.
 const DIALOG_EN_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'dialog-en.expected.md'))
 const PLUGIN_ROW_SELECTOR = '[data-plugin-entry$="ui-settings"]'
+const DESKTOP_COMPANION_EXPECTED = join(SNAPSHOT_DIR, 'desktop-companion.xiaojing.expected.md')
+const ABOUT_XIAOJING_EXPECTED = join(SNAPSHOT_DIR, 'about-xiaojing.expected.md')
 const MODE = webSnapshotMode()
 
 describe('web e2e: settings modal and General preferences', () => {
@@ -92,6 +94,26 @@ describe('web e2e: settings modal and General preferences', () => {
     // Golden of the freshly opened dialog (default zh, General active).
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(DIALOG_EXPECTED, snapshot, MODE)
+    if (webClientProfile() === 'xiaojing') {
+      await dialog.getByRole('button', { name: '桌面小兢' }).click()
+      await dialog.getByText('桌面小兢仅在 Windows 桌面版中可用。', { exact: true }).waitFor({ timeout: 10_000 })
+      expect(await dialog.getByRole('button', { name: '唤醒桌面小兢' }).count()).toBe(0)
+      expect(await dialog.getByRole('button', { name: '收起桌面小兢' }).count()).toBe(0)
+      const companionSnapshot = await captureStableAria(
+        page,
+        '[data-desktop-companion-settings]',
+        scaffold.workspaceCwd,
+      )
+      await compareOrRefreshGolden(DESKTOP_COMPANION_EXPECTED, companionSnapshot, MODE)
+      await dialog.getByRole('button', { name: '关于小兢' }).click()
+      await dialog.getByText('当前版本 v0.2.2', { exact: true }).waitFor({ timeout: 10_000 })
+      const aboutSnapshot = await captureStableAria(
+        page,
+        '[data-xiaojing-about]',
+        scaffold.workspaceCwd,
+      )
+      await compareOrRefreshGolden(ABOUT_XIAOJING_EXPECTED, aboutSnapshot, MODE)
+    }
     // Section switch: aria-current moves (the Models page itself has its own scenario file).
     await dialog.getByRole('button', { name: '模型' }).click()
     await expect.poll(() => dialog.getByRole('button', { name: '模型' }).getAttribute('aria-current'), { timeout: 5_000 }).toBe('true')
@@ -529,6 +551,8 @@ describe('web e2e: settings modal and General preferences', () => {
       'dialog-en.xiaojing.expected.md',
       'dialog.expected.md',
       'dialog.xiaojing.expected.md',
+      'about-xiaojing.expected.md',
+      'desktop-companion.xiaojing.expected.md',
       'plugins.expected.md',
     ])
   })

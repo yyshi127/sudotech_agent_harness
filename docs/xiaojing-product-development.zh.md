@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.2.1 / dsh-v0.1.1-rc.2）
+# 小兢会计产品开发基线（0.2.2 / dsh-v0.1.1-rc.2）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.1 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)与 [rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.2 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
 
 ## 开始前必读
 
@@ -17,7 +17,7 @@
 
 | 项目 | 当前值 | 真源 |
 |---|---|---|
-| 桌面产品版本 | `0.2.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| 桌面产品版本 | `0.2.2` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
 | 官方 Harness 基线 | `dsh-v0.1.1-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 官方基线 commit | `b150a551b8d465e31e418e1b2eaf5e79bbb7d28` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 产品集成基准 | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
@@ -60,6 +60,8 @@ flowchart LR
 | 电脑操控插件 | Windows PowerShell helper 生命周期、UI Automation 观察、原生语义动作和高影响操作授权 | [`packages/xiaojing/xiaojing-computer-control/`](../packages/xiaojing/xiaojing-computer-control/README.zh.md) |
 | 微信 Host 插件 | 腾讯 iLink 绑定、私有凭据与状态、持久化 Agent 会话桥接、审批和手机端文字回传 | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/README.zh.md) |
 | 微信 Client 插件 | 仅限 loopback 的频道设置、二维码绑定、验证码和脱敏连接状态 | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/README.zh.md) |
+| 桌面小兢 Host 插件 | 不含任务内容的任务状态聚合，以及仅限 loopback 的快照和 SSE 传输 | [`packages/xiaojing/xiaojing-desktop-companion/`](../packages/xiaojing/xiaojing-desktop-companion/README.zh.md) |
+| 桌面小兢 Client 插件 | 小兢专属设置栏目和经过校验的受限 preload 调用 | [`packages/client/ui-desktop-companion/`](../packages/client/ui-desktop-companion/README.zh.md) |
 | 可视化插件 | 面向模型的可视化工具与 skill、沙箱化 Web 卡片，以及与宿主主题隔离的固定浅色配色 | [`packages/xiaojing/xiaojing-visualize/`](../packages/xiaojing/xiaojing-visualize/README.zh.md) |
 | Web 组合 | Host 与浏览器插件名录及加载顺序 | [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | 独立集成补丁 | API Key 后配置、profile 运行时遮蔽防护，以及统一文档／原生图片上传桥接与输入区修复 | [`apps/desktop/integration-patches.json`](../apps/desktop/integration-patches.json) |
@@ -129,6 +131,16 @@ flowchart LR
 
 协议、媒体和状态测试使用假 iLink/CDN 服务，不接触真实微信。真实手机绑定和手机端媒体互操作属于独立人工预览步骤。包内 `NOTICE.md` 保留腾讯 MIT 声明和已审阅的上游提交；OpenClaw 和 Hermes Python 运行时都不是依赖。
 
+### 桌面小兢与系统托盘
+
+`@deepseek-ai/dsh-xiaojing-desktop-companion` 观察已经记录的会话生命周期、审批和脱敏微信状态事件，并将其归并为不含任务内容的全局快照。优先级依次为等待确认、失败、执行、思考、成功和待机。它通过仅限 loopback 的快照和 SSE 端点，只公开 `state`、活动任务和审批数量、微信在线状态及 revision；会话标题、用户指令、文件、工具参数、模型回复和凭据都不会进入该接口。插件不修改 `agent-loop`、模型提示、工具或会话持久化。
+
+`@deepseek-ai/dsh-client-ui-desktop-companion` 提供接近设置导航底部、仅限小兢产品的“桌面小兢”栏目，并校验受限 Electron preload bridge 返回的每一份宠物状态。在普通浏览器中，它只显示 Windows 桌面版可用提示，不渲染无效操作。Electron 独立拥有透明宠物 BrowserWindow、关键姿态动画、50% 默认视觉尺寸、30%–100% 大小偏好、邻近状态提示、拖动与多屏恢复、主窗口内部的默认及重置位置、托盘菜单、主窗口隐藏、单实例恢复、整个应用真正退出和 `preferences-v1.json` 原子写入。收起桌面小兢只销毁其 renderer；Host、活动任务和微信频道继续运行。
+
+小兢产品插件在“桌面小兢”之后提供最终的“关于小兢”设置栏目，显示当前版本和功能清单；空会话首页的内测标签使用同一个版本号。Electron 通过只读 preload 调用返回打包应用版本；Web 预览使用受检 fallback，产品层门禁要求它与 `apps/desktop/package.json` 一致。
+
+该功能由三项显式组合保持可移除：Host 配置行、Client 配置行和 Electron 素材／生命周期。移除两个 Cordis 配置行即可移除任务状态观察和设置栏目，不需要修改 Harness 核心。Electron bridge 不向任一 renderer 暴露 Node、文件系统、任意 IPC 或 BrowserWindow 对象。
+
 ### 独立可视化插件
 
 `@deepseek-ai/dsh-xiaojing-visualize` 适配自已审阅至提交 `b0bed38f40ffbb0d72bb88393d865307944c1bce` 的 BSD-3-Clause `Nagi-ovo/dsh-visualize`。它只在 `xiaojing` Client 构建 profile 中提供一个模型工具、对应创作 skill、已完成工具视图和流式预览。每张卡片都运行在具有严格内容安全策略的不透明来源沙箱 iframe 中。插件内部固定保留原生鲸鱼蓝浅色配色，不继承 Harness 主题或小兢会计浅绿色产品主题。
@@ -137,7 +149,7 @@ flowchart LR
 
 ### 随包第三方插件
 
-发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.1。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
+发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.2。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
 
 ### 增加功能
 
@@ -160,14 +172,16 @@ flowchart LR
 
 ## 运行时组合
 
-1. Electron 读取 `identity.json`、固定 `userData`、获取单实例锁、固定 AppUserModelId 和窗口标题，然后显示桌面启动页。
+1. Electron 读取 `identity.json`、固定 `userData`、获取单实例锁、固定 AppUserModelId 和窗口标题，创建系统托盘和可选宠物窗口，然后显示桌面启动页。
 2. 桌面端启动随包提供的 `runtime/node.exe`，不要求也不会选择终端用户已经安装的 Node。
 3. 子进程以 `%USERPROFILE%\Documents\小兢会计工作区` 为工作目录运行 `dsh web --port 0`，将永久 `harness` 数据目录设为 `DSH_HOME`，并移除继承的 DeepSeek API Key 环境变量。
-4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、微信频道、独立可视化卡片、带独立设置页的 Microsoft Edge 浏览器操控、Windows 电脑操控及普通 rc.2 Harness UI 插件。
+4. `web` profile 组合 base bundle、Web 应用 bundle和文件上传。Web bundle 加载用量、小兢产品、微信频道、桌面小兢状态与设置、独立可视化卡片、带独立设置页的 Microsoft Edge 浏览器操控、Windows 电脑操控及普通 rc.2 Harness UI 插件。
 5. API 网关向隔离 renderer 公开生成的 Remote。Electron 拒绝权限请求，并把新窗口 URL 交给操作系统浏览器打开。
-6. Host 公告动态分配的本地 URL 后，Electron 用组装后的 Web 应用替换启动页，同时保持固定的任务栏标题和图标。
+6. Host 公告动态分配的本地 URL 后，Electron 用组装后的 Web 应用替换启动页，同时保持固定的任务栏标题和图标，订阅不含任务内容的桌面小兢状态流，并在主窗口隐藏到托盘后继续保持 Host 运行。
 
 封装后的桌面端有意使用动态本地端口。`3090` 只是开发预览约定，不属于桌面身份或运行时常量。
+
+主窗口最小化按钮继续执行普通任务栏最小化。关闭按钮会把主窗口隐藏到托盘，并在第一次操作时显示本地提示；第二次启动应用会恢复已有窗口。只有托盘退出命令会停止整个应用；活动任务、微信在线或任务状态无法读取表示存在中断风险时，该命令会要求确认。
 
 ## 数据与覆盖升级
 
@@ -180,9 +194,10 @@ flowchart LR
 | 原生图片附件 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\attachments` | rc.2 附件存储；带版本的内容寻址图片对象和规范化提供方请求变体 |
 | 浏览器操控 profile | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\browser-control\profile` | 浏览器操控插件；专用 Microsoft Edge 状态 |
 | 微信频道状态 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\harness\weixin-channel` | 微信 Host 插件；非 token 状态和单实例租约 |
+| 桌面小兢偏好 | `%APPDATA%\@sudotech\xiaojing-accounting-desktop\desktop-companion` | Electron；带 schema 版本的可见性、视觉尺寸、受限显示位置和一次性托盘提示标记 |
 | 用户工作区 | `%USERPROFILE%\Documents\小兢会计工作区` | 桌面端工作目录 |
 
-[`user-data-contract.json`](../apps/desktop/user-data-contract.json) 登记会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、浏览器操控 profile、微信频道状态、Local Storage 和“文档”工作区。安装器只负责应用文件，普通升级或卸载时不能读取、重写或删除这些数据路径。
+[`user-data-contract.json`](../apps/desktop/user-data-contract.json) 登记会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、浏览器操控 profile、微信频道状态、桌面小兢偏好、Local Storage 和“文档”工作区。安装器只负责应用文件，普通升级或卸载时不能读取、重写或删除这些数据路径。
 
 ### 不可变安装器身份
 
@@ -266,7 +281,7 @@ pnpm desktop:dist
 ## 发布阻断检查
 
 - `scripts/verify-xiaojing-product-layer.mjs` 通过，官方 UI 源码根目录不包含产品标记。
-- 组装应用加载 `xiaojing-product`、用量 Host、用量 Client 和独立可视化插件；移除产品插件后通用 fallback 仍可运行，移除可视化组合行只会移除可视化卡片。
+- 组装应用加载 `xiaojing-product`、用量 Host、用量 Client、桌面小兢 Host 与 Client 和独立可视化插件；移除产品插件后通用 fallback 仍可运行，移除桌面小兢组合行只会移除其状态／设置集成，移除可视化组合行只会移除可视化卡片。
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
 - ModLens 与视觉桥接不存在；rc.2 Files 请求路径与内联回退、文件上传、附件布局、输入区光标行为、精确默认 profile 迁移和 profile 运行时遮蔽防护通过聚焦检查。
@@ -274,10 +289,11 @@ pnpm desktop:dist
 - 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 假 iLink 测试覆盖绑定、验证码、重连、FIFO 回传、去重、会话关联、微信审批、加密图片／文档收发、结构化手机端文字和持久化恢复，全程不暴露凭据也不联系腾讯。发布前由人工预览确认真实手机绑定和媒体互操作。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
+- 桌面小兢测试覆盖六种状态、终态计时、并发任务、审批优先级、无任务内容快照、设置操作、bridge 校验、50% 默认尺寸和调节范围、偏好原子写入、拖动边界、主窗口内部的初始／重置位置、显示器恢复、收起／唤醒／重置一致性、托盘恢复、第二实例恢复、关闭到托盘和带风险确认的真正退出。产品测试和 Web 快照覆盖 v0.2.2 内测标签、“关于小兢”版本清单及版本一致性门禁。Electron 预览确认不抢焦点的透明窗口只在缩放后的角色和邻近状态提示区域响应交互，且收起后释放 renderer。
 - 桌面身份和用户数据检查在版本递增后通过。
 - 全新安装可在默认路径和自定义父路径完成，并自动补齐 `xiaojing-agent-desktop`。
 - 覆盖升级沿用已有安装路径，控制面板中只保留一个条目，并维持同一个应用身份。
-- 升级后仍能访问会话、消息、已选和用户创建的人格、设置、凭据、插件、附件、工作区、Local Storage、用量数据和微信频道状态。
+- 升级后仍能访问会话、消息、已选和用户创建的人格、设置、凭据、插件、附件、工作区、Local Storage、用量数据、微信频道状态和桌面小兢偏好。
 
 任一适用检查失败都会阻止发布。安装包成功生成不能证明尚未实际执行的升级或数据保留测试已经通过。
 

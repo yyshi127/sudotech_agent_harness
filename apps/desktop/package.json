@@ -1,12 +1,17 @@
 {
   "name": "@sudotech/xiaojing-accounting-desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "小兢会计 Windows desktop application",
   "type": "module",
   "main": "main.mjs",
   "files": [
     "main.mjs",
+    "desktop-companion.mjs",
+    "preload.cjs",
+    "companion.html",
+    "companion.css",
+    "companion.js",
     "identity.json",
     "integration-patches.json",
     "user-data-contract.json",
@@ -51,6 +56,7 @@
     "@deepseek-ai/dsh-client-ui-attachment": "workspace:^",
     "@deepseek-ai/dsh-client-ui-commands": "workspace:^",
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-desktop-companion": "workspace:^",
     "@deepseek-ai/dsh-client-ui-directory-picker-browse": "workspace:^",
     "@deepseek-ai/dsh-client-ui-directory-picker-native": "workspace:^",
     "@deepseek-ai/dsh-client-ui-input-trigger": "workspace:^",
@@ -126,6 +132,7 @@
     "@deepseek-ai/dsh-workflow": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-desktop-companion": "workspace:^",
     "@deepseek-ai/dsh-xiaojing-weixin-channel": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",
     "@earendil-works/pi-ai": "0.82.1"
@@ -152,11 +159,17 @@
     },
     "files": [
       "main.mjs",
+      "desktop-companion.mjs",
+      "preload.cjs",
+      "companion.html",
+      "companion.css",
+      "companion.js",
       "identity.json",
       "integration-patches.json",
       "user-data-contract.json",
       "loading.html",
       "assets/**/*",
+      "!assets/desktop-companion/masters/**/*",
       "package.json"
     ],
     "extraResources": [

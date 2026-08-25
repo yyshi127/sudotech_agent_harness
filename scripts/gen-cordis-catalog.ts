@@ -116,6 +116,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   workspaceRegistry: 'workspace.md',
   xiaojingBrowserControl: 'tools.md',
   xiaojingComputerControl: 'tools.md',
+  xiaojingDesktopCompanion: 'extensions.md',
+  xiaojingWeixinChannel: 'extensions.md',
 }
 
 /**
@@ -196,6 +198,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'usage-accounting': 'usage-accounting.md',
   'webserver': 'web-server.md',
   'workflow': 'workflow.md',
+  'xiaojing-weixin': 'extensions.md',
 }
 
 /**
@@ -620,6 +623,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   BrowserControlStatus: 'browser automation settings status is owned by packages/xiaojing/xiaojing-browser-control/README.md',
   ComputerActionRequest: 'Windows automation request is owned by packages/xiaojing/xiaojing-computer-control/README.md',
   ComputerActionResult: 'Windows automation result is owned by packages/xiaojing/xiaojing-computer-control/README.md',
+  CompanionSnapshot: 'content-free desktop companion state is owned by packages/xiaojing/xiaojing-desktop-companion/README.md',
+  WeixinChannelStatus: 'sanitized channel state is owned by packages/xiaojing/xiaojing-weixin-channel/README.md',
   WebUpgradeRoute:
     'upgrade route registration contract is owned by packages/host/webserver/src/index.ts',
   InvariantRegistration: 'service-local lifecycle handle is owned by packages/runtime-diagnostics/invariants/README.md',

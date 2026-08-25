@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>桌面小兢</title>
+    <link rel="stylesheet" href="companion.css" />
+  </head>
+  <body>
+    <main id="companion" class="companion state-idle">
+      <section id="bubble" class="bubble" aria-live="polite" data-companion-interactive data-companion-drag>
+        <span id="bubbleText"></span><span id="thinkingDots" class="dots" aria-hidden="true">•••</span>
+      </section>
+      <div class="stage" data-companion-interactive data-companion-drag>
+        <div class="progressRing" aria-hidden="true"></div>
+        <div class="approvalPulse" aria-hidden="true"></div>
+        <div class="successStars" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i></div>
+        <img id="character" src="assets/desktop-companion/runtime/idle.webp" alt="桌面小兢" draggable="false" />
+      </div>
+    </main>
+    <script type="module" src="companion.js"></script>
+  </body>
+</html>

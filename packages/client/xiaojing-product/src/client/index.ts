@@ -4,7 +4,10 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-models/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import { AboutSection } from './AboutSection.tsx'
+import type { AboutSectionInjected } from './AboutSection.tsx'
 import { HeroBrandContent, HeroBrandMark } from './HeroBrand.tsx'
 import type { HeroBrandInjected } from './HeroBrand.tsx'
 import { OnboardingContent } from './OnboardingContent.tsx'
@@ -67,4 +70,12 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): OnboardingContentInjected => ({ t }),
   }, OnboardingContent))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'about-xiaojing',
+    order: 1010,
+    label: () => t('aboutNav'),
+    locale: NS,
+    inject: (): AboutSectionInjected => ({ t }),
+  }, AboutSection))
 }

@@ -181,6 +181,10 @@ flowchart LR
   svc_xiaojingBrowserControl["ctx.xiaojingBrowserControl<br/>Xiaojing browser automation"]
   pkg_xiaojing_computer_control["xiaojing-computer-control"]
   svc_xiaojingComputerControl["ctx.xiaojingComputerControl<br/>Xiaojing Windows automation"]
+  pkg_xiaojing_desktop_companion["xiaojing-desktop-companion"]
+  svc_xiaojingDesktopCompanion["ctx.xiaojingDesktopCompanion<br/>Xiaojing desktop-companion state"]
+  pkg_xiaojing_weixin_channel["xiaojing-weixin-channel"]
+  svc_xiaojingWeixinChannel["ctx.xiaojingWeixinChannel<br/>Xiaojing Weixin channel"]
   pkg_spill["spill"]
   svc_spillStore["ctx.spillStore<br/>Spill storage seam"]
   pkg_spill_local["spill-local"]
@@ -315,6 +319,8 @@ flowchart LR
   pkg_workspace --> svc_workspaceRegistry
   pkg_xiaojing_browser_control --> svc_xiaojingBrowserControl
   pkg_xiaojing_computer_control --> svc_xiaojingComputerControl
+  pkg_xiaojing_desktop_companion --> svc_xiaojingDesktopCompanion
+  pkg_xiaojing_weixin_channel --> svc_xiaojingWeixinChannel
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
   svc_agentLoop --> pkg_agent_spine_demo
@@ -487,6 +493,8 @@ flowchart LR
 | `ctx.web` | `seam` | [`web`](../packages/web/web) | [`web-search-exa`](../packages/web/web-search-exa), [`web-search-perplexity`](../packages/web/web-search-perplexity), [`web-search-deepseek`](../packages/web/web-search-deepseek), [`web-fetch-http`](../packages/web/web-fetch-http) | [`tool-web`](../packages/web/tool-web) | - | Search and fetch providers register into one ctx.web seam; tool-web owns the stable model-facing names. |
 | `ctx.xiaojingBrowserControl` | `core` | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | - | - | Owns the isolated Edge lifecycle, bounded semantic observations, approval checks, and browser_control tool registration in one removable product plugin. |
 | `ctx.xiaojingComputerControl` | `core` | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | - | - | Owns the bounded PowerShell UI Automation helper, observation identities, approval checks, and computer_control tool registration in one removable product plugin. |
+| `ctx.xiaojingDesktopCompanion` | `core` | [`xiaojing-desktop-companion`](../packages/xiaojing/xiaojing-desktop-companion) | - | - | - | Aggregates session, approval, and sanitized Weixin lifecycle signals into the content-free snapshot consumed by the removable desktop companion integration. |
+| `ctx.xiaojingWeixinChannel` | `core` | [`xiaojing-weixin-channel`](../packages/xiaojing/xiaojing-weixin-channel) | - | - | - | Owns iLink pairing, polling, durable queueing, Agent session delivery, and sanitized status for the removable Xiaojing channel integration. |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | The backend saves oversized tool text and returns a model-facing locator plus retrieval hint; spill-policy is the tools/post-execute consumer that decides when to spill. |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`, `directory-picker-browse` | `apiproxy` | - | Discriminated interaction capability: the native backend opens one OS chooser on the host display, the browse backend serves listing/creation primitives for the in-app browser; dual-face backends fill ui-workspace directory-flow slots from their browser halves (no wire advertisement). |
 | `ctx.webServer` | `core` | `webserver` | - | `connection`, `modules`, `hmr` | - | Plain node:http carrier: named-route registry, index transform taps, and the static dist fallback; web-transport plugins register their own routes. |

@@ -3368,7 +3368,7 @@ export interface Config {
 }
 ```
 
-来源：[`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:60`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
+来源：[`packages/xiaojing/xiaojing-weixin-channel/src/index.ts:74`](../packages/xiaojing/xiaojing-weixin-channel/src/index.ts)
 
 ## 无配置的可加载插件
 
@@ -3388,6 +3388,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-conversation`（[`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-cordis`（[`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-deliverables` — 需要 `systemPrompt`（[`packages/client/ui-deliverables/src/index.ts`](../packages/client/ui-deliverables/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-desktop-companion`（[`packages/client/ui-desktop-companion/src/index.ts`](../packages/client/ui-desktop-companion/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-directory-picker-browse`（[`packages/client/ui-directory-picker-browse/src/index.ts`](../packages/client/ui-directory-picker-browse/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-directory-picker-native`（[`packages/client/ui-directory-picker-native/src/index.ts`](../packages/client/ui-directory-picker-native/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-goal`（[`packages/client/ui-goal/src/index.ts`](../packages/client/ui-goal/src/index.ts)）
@@ -3448,6 +3449,7 @@ export interface Config {
 - `@deepseek-ai/dsh-tool-subagent-control` — 需要 `tools` · `subagents`（[`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts)）
 - `@deepseek-ai/dsh-user-questions`（[`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts)）
 - `@deepseek-ai/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
+- `@deepseek-ai/dsh-xiaojing-desktop-companion` — 需要 `webServer`（[`packages/xiaojing/xiaojing-desktop-companion/src/index.ts`](../packages/xiaojing/xiaojing-desktop-companion/src/index.ts)）
 
 ## Seam 包（不可直接加载）
 
