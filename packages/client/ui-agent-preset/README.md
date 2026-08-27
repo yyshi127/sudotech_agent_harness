@@ -28,6 +28,8 @@ A locally authored preset is exactly as privileged as the plugins it names, so t
 
 Preset files publish one unlocalized `name` and `description`, which Web uses for every `user` row and unknown `system` row. For the four shipped ids (`standard`, `code`, `minimal`, and `cordis`), Web resolves both fields from its active locale only when the roster marks the row `system`; an identically named `user` preset keeps its file metadata.
 
+`AgentPresetDisplayRegistry` is the product-neutral extension point for display copy on additional `system` ids. A product Client plugin may register localized text for an id, and disposing that registration restores the preset file metadata. The registry never overrides a `user` row, even when it has the same id, so installing or removing product copy cannot relabel a user-authored preset.
+
 The row re-reads on `settings/changed` for its own namespace and on `connection/reset`: the roster is a live directory and the default is a settings field, so an external edit or a reconnect can both move it.
 
 ## The management section

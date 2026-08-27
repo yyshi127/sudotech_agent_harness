@@ -102,10 +102,18 @@ describe('the shipped shell composition (real bundle layers)', () => {
 
 describe('shipped agent presets gate both shell tools by platform', () => {
   const presetRoot = resolve(fileURLToPath(new URL('../package.json', import.meta.url)), '..', 'config', 'agent-presets')
+  const productPresetRoot = resolve(
+    fileURLToPath(new URL('../package.json', import.meta.url)), '..', 'config', 'xiaojing-agent-presets',
+  )
 
-  it.each(['standard', 'code', 'cordis'])('preset %s gates its shell tool rows by platform', (preset) => {
+  it.each([
+    ['standard', presetRoot],
+    ['code', presetRoot],
+    ['cordis', presetRoot],
+    ['finance', productPresetRoot],
+  ])('preset %s gates its shell tool rows by platform', (preset, root) => {
     const entries: unknown = yaml.load(
-      readFileSync(join(presetRoot, preset, 'agent.cordis.yml'), 'utf8'),
+      readFileSync(join(root, preset, 'agent.cordis.yml'), 'utf8'),
       { schema: entryListSchema },
     )
     if (!Array.isArray(entries)) throw new TypeError(`preset ${preset} must parse to an entry array`)

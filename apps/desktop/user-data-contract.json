@@ -15,6 +15,7 @@
     "harness/usage-accounting",
     "harness/browser-control",
     "harness/weixin-channel",
+    "harness/finance",
     "desktop-companion",
     "Local Storage"
   ]

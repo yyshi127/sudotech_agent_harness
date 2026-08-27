@@ -5,12 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { AgentPresetDisplayRegistry } from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import { AboutSection } from '../src/client/AboutSection.tsx'
 import { HeroBrandContent, HeroBrandMark } from '../src/client/HeroBrand.tsx'
 import { OnboardingContent } from '../src/client/OnboardingContent.tsx'
 import { SidebarBrandMark, SidebarBrandName } from '../src/client/SidebarBrand.tsx'
 import { apply, inject } from '../src/client/index.ts'
-import { zh } from '../src/client/locales.ts'
+import { en, zh } from '../src/client/locales.ts'
 
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by Xiaojing product components') }) as never
@@ -41,6 +42,7 @@ async function bench() {
   const slots = ctx.get('slots') as SlotRegistry
   const locale = new LocaleRuntime(ctx)
   ctx.provide('locale', locale)
+  ctx.provide('agentPresetDisplay', new AgentPresetDisplayRegistry())
   const disposeHoles = slots.register({
     name: 'root',
     children: Object.fromEntries(HOLES.map(name => [name, {
@@ -80,7 +82,7 @@ describe('Xiaojing product UI', () => {
   })
 
   it('activates every product occupant and theme only for the Xiaojing build profile', async () => {
-    expect(inject).toEqual(['slots', 'locale'])
+    expect(inject).toEqual(['slots', 'locale', 'agentPresetDisplay'])
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'official')
     const official = await bench()
     await official.ctx.plugin({ inject: [...inject], apply }).await()
@@ -100,6 +102,8 @@ describe('Xiaojing product UI', () => {
     for (const hole of HOLES) expect(product.slots.entries(hole)).toHaveLength(1)
     expect(document.body.dataset.xiaojingProduct).toBe('')
     expect(themeColor.content).toBe('rgb(251, 253, 253)')
+    expect(product.ctx.agentPresetDisplay.resolve({ id: 'finance', trust: 'system' }, key => key))
+      .toEqual({ name: 'Finance模式', description: en.financePresetDescription })
     document.body.style.backgroundColor = 'rgb(255, 255, 255)'
     await fiber.dispose()
     for (const hole of HOLES) expect(product.slots.entries(hole)).toHaveLength(0)

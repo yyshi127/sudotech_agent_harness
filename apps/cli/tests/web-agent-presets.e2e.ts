@@ -22,6 +22,8 @@ import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-token-meter'
 
 const CONFIG_DIR = fileURLToPath(new URL('../config/', import.meta.url))
+const OFFICIAL_PRESET_ROOT = join(CONFIG_DIR, 'agent-presets')
+const XIAOJING_PRESET_ROOT = join(CONFIG_DIR, 'xiaojing-agent-presets')
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url))
 /** The shipped Web surface: the dsh-base and dsh-web-app bundle patches over an empty preset root. */
 const BASE_PATCH = join(REPO_ROOT, 'packages/bundle/base/cordis.patch.yml')
@@ -31,6 +33,7 @@ const CLAUDE_CODE_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-clau
 /** The installation anchor whose dependency closure supplies profile imports. */
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
 const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
+const FINANCE_PROMPT = 'You are 小兢会计, an AI office companion configured for internal use, operating in Finance模式. Your working directory is {{cwd}}. Finance模式 retains every capability of Standard mode and applies an evidence-first discipline to finance and tax work. Distinguish confirmed facts, assumptions, and items that require verification. Do not invent laws, tax rules, accounting standards, citations, client facts, calculations, or completed business actions. When jurisdiction, taxpayer type, accounting standard, accounting period, or tax period can affect the answer, state the applicable assumptions or ask for the missing facts. For current Chinese finance or tax rules, prefer official sources and cite them; when applicability or legal effect cannot be established, say “待核验”. Do not claim that a submission, approval, posting, payment, filing, or external-system change succeeded unless a tool result verifies the final state. For a simple identity question, answer concisely as “我是小兢会计，当前处于 Finance模式。” in Chinese, or the equivalent in the user\'s language. Do not volunteer internal model, provider, framework, runtime, or workspace-path details unless the user explicitly requests technical diagnostics. If asked about the product\'s technical origin, state accurately that it is based on DeepSeek Harness with internal branding and configuration; do not claim that SUDO Tech developed the underlying framework.'
 const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
 * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
 * You don't have access to the internet via this tool.
@@ -43,7 +46,7 @@ const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
 /**
  * Boot the shipped Web composition, minus the rows that would bind a port,
  * touch the network, or write outside the test. Everything that decides an
- * agent's capabilities is the real thing, including both shipped presets.
+ * agent's capabilities is the real thing, including every shipped preset.
  */
 async function bootWeb(
   settingsFile: string,
@@ -84,6 +87,11 @@ async function bootWeb(
     { id: 'skill-badge', disabled: false },
     { id: 'modules', disabled: true },
     { id: 'connection', disabled: true },
+    // These Xiaojing Host plugins consume the connection service. This
+    // composition lane deliberately disables that service and asserts agent
+    // presets only, so keep its consumers out of the side-effect-free boot.
+    { id: 'xiaojing-weixin-channel', disabled: true },
+    { id: 'xiaojing-browser-control', disabled: true },
     // The always-on reload chain waits for the browser roster and bound port
     // disabled above.
     { id: 'client-hmr', disabled: true },
@@ -95,7 +103,7 @@ async function bootWeb(
       { id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' },
       { id: 'ui-directory-picker-browse', name: '@deepseek-ai/dsh-client-ui-directory-picker-browse' },
     ] },
-    // The roster AppCLIEntry would patch in; only the shipped root, so a
+    // The roster AppCLIEntry would patch in; only Xiaojing's shipped roots, so a
     // developer's own `~/.dsh/.preset` cannot change this test's outcome.
     // `default` here is the COMPOSITION default — the base layer the settings
     // document overrides.
@@ -103,7 +111,10 @@ async function bootWeb(
       id: 'agent-presets',
       config: {
         default: 'standard',
-        roots: [{ path: join(CONFIG_DIR, 'agent-presets'), trust: 'system' }],
+        roots: [
+          { path: OFFICIAL_PRESET_ROOT, trust: 'system' },
+          { path: XIAOJING_PRESET_ROOT, trust: 'system' },
+        ],
         includeUserRoot: false,
       },
     },
@@ -221,10 +232,10 @@ describe('the shipped Web composition', () => {
     }
   })
 
-  it('supplies both shipped presets, and only those, from the system root', async () => {
+  it('supplies every Xiaojing preset, and only those, from the system roots', async () => {
     const listed = await ctx.agentPresets.list()
 
-    expect(listed.map(preset => preset.id).sort()).toEqual(['code', 'cordis', 'minimal', 'standard'])
+    expect(listed.map(preset => preset.id).sort()).toEqual(['code', 'cordis', 'finance', 'minimal', 'standard'])
     expect(listed.every(preset => preset.trust === 'system')).toBe(true)
     expect(ctx.agentPresets.defaultId).toBe('standard')
   })
@@ -248,6 +259,56 @@ describe('the shipped Web composition', () => {
       ])
     } finally {
       await handle.dispose()
+    }
+  })
+
+  it('composes Finance模式 with every Standard mode capability and its own persona', async () => {
+    const standard = await ctx.agents.create({
+      sessionId: SessionId(`preset-finance-standard-${randomUUID()}`),
+      setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
+    })
+    const finance = await ctx.agents.create({
+      sessionId: SessionId(`preset-finance-${randomUUID()}`),
+      setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'finance').then(() => undefined),
+    })
+    try {
+      expect(toolNames(ctx, finance.agent)).toEqual(toolNames(ctx, standard.agent))
+      const standardAssembly = await ctx.systemPrompt.assemble({ scope: standard.agent })
+      const financeAssembly = await ctx.systemPrompt.assemble({ scope: finance.agent })
+      expect(financeAssembly.tools.map(tool => tool.name)).toEqual(standardAssembly.tools.map(tool => tool.name))
+      expect(financeAssembly.sections.filter(section => section.name !== 'deployment:persona'))
+        .toEqual(standardAssembly.sections.filter(section => section.name !== 'deployment:persona'))
+      expect(financeAssembly.sections.find(section => section.name === 'deployment:persona')?.text)
+        .toBe(FINANCE_PROMPT)
+      expect(financeAssembly.sections.some(section => section.name === 'tools:sdk')).toBe(false)
+
+      const standardSkills = (await ctx.skills.list({ scope: standard.agent })).map(skill => skill.name)
+      const financeSkills = (await ctx.skills.list({ scope: finance.agent })).map(skill => skill.name)
+      expect(standardSkills).not.toContain('china-tax-official-research')
+      expect(financeSkills).toContain('china-tax-official-research')
+
+      const loaded = await ctx.tools.execute({
+        callId: CallId('preset-finance-tax-skill-load'),
+        name: 'skill',
+        arguments: { name: 'china-tax-official-research' },
+        signal: new AbortController().signal,
+        agent: finance.agent,
+      })
+      expect(loaded.isError, JSON.stringify(loaded.content)).toBe(false)
+      const content = JSON.stringify(loaded.content)
+      expect(content).toContain('fgk.chinatax.gov.cn')
+      expect(content).toContain('flk.npc.gov.cn')
+      expect(content).toContain('待核验')
+      expect(content).toContain('Ask only for material missing facts')
+      expect(content).toContain('Do not present a search snippet as if it were the complete provision')
+      expect(content).toContain('If official sources conflict')
+      expect(content).toContain('If the jurisdiction is outside mainland China')
+      expect(content).toContain('**结论**')
+      expect(content).toContain('**官方依据**')
+      expect(content).toContain('Do not invent document numbers')
+    } finally {
+      await finance.dispose()
+      await standard.dispose()
     }
   })
 

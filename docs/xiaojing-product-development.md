@@ -4,6 +4,8 @@ English | [中文](xiaojing-product-development.zh.md)
 
 This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.2 source baseline on official `dsh-v0.1.1-rc.2`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md), and [desktop companion and tray decision](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md) own the rationale and rejected alternatives.
 
+Read the [module and source architecture map](xiaojing-module-architecture.md) first when you need a quick view of the upstream core, Xiaojing plugins, Electron shell, and source directories.
+
 ## Read this first
 
 Before editing product code, identify the owning layer instead of starting from the visible component. The following rules are release requirements:
@@ -31,12 +33,14 @@ Before editing product code, identify the owning layer instead of starting from 
 flowchart LR
   Upstream["Upstream dsh-v0.1.1-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
+  Adapters --> Finance["Finance product extension boundary"]
   Adapters --> Usage["Usage host and client plugins"]
   Adapters --> Browser["Microsoft Edge browser-control plugin"]
   Adapters --> Computer["Windows UIA control plugin"]
   Adapters --> Weixin["Weixin channel plugins"]
   Adapters --> Visualize["Isolated visualization plugin"]
   Product --> Bundle["Web app composition"]
+  Finance --> Bundle
   Usage --> Bundle
   Browser --> Bundle
   Computer --> Bundle
@@ -54,6 +58,7 @@ The lowest layer that can own a change owns it. Official packages expose neutral
 |---|---|---|
 | Official-compatible UI owners | Product-neutral slots, owner props, fallback UI, and generic startup-logo metadata reading | `packages/client/ui-sidebar/`, `packages/client/ui-conversation/`, `packages/client/ui-settings-models/`, `packages/client/web/` |
 | Xiaojing product layer | Brand components, palette, product copy, onboarding, and default deployment persona | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.md) |
+| Finance extension foundation | Product-only preset root, localized preset copy, package and row naming rules, compatibility-adapter rule, and durable-root inventory | `apps/cli/config/xiaojing-agent-presets/`, [`product.json`](../packages/client/xiaojing-product/product.json), [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs) |
 | Usage Host plugin | Provider usage observation, API-key fingerprinting, built-in pricing, immutable ledger, Remote, and update event | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.md) |
 | Usage Client plugin | Sidebar summary and detail panel, Settings entry, monthly calendar, formatting, and refresh controller | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.md) |
 | Browser-control plugins | Dedicated and optional personal Edge adapters, global page discovery, per-turn leases, bounded semantic DOM actions, extension pairing, and high-impact approval | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.md), [`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.md) |
@@ -76,11 +81,15 @@ Do not duplicate detailed package contracts in this document. Update the owning 
 
 The official-compatible UI roots expose five Xiaojing-required single-owner slots: `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.brand.content`, and `onboarding.content`. Each owner retains a neutral fallback so the upstream-style application still runs when the product plugin is absent. Generic code may define owner props, layout space, design tokens, metadata keys, and fallback rendering; it may not import the Xiaojing package or mention Xiaojing, Sudotech, SUDO, product asset filenames, or product copy.
 
+The generic Agent-preset Client also exposes `AgentPresetDisplayRegistry`. It accepts localized display providers for additional system preset ids but never overrides user-authored rows. The registry contains no Xiaojing id or copy; the product plugin owns the Finance registration and removing that plugin restores file metadata.
+
 [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs) scans the official UI source roots for product marks, verifies each declared slot, verifies inventoried assets and desktop manifests, and requires the Web composition to load the product plugin. A packaging command fails when this isolation check fails.
 
 ### Product plugin
 
 `@deepseek-ai/dsh-client-xiaojing-product` has a Host face and a browser face. The Host face fills an empty `deployment:persona` section with the Xiaojing identity but never replaces a selected or user-created agent persona. The browser face registers the five product slots, localized copy, and theme CSS as one unloadable plugin, and its registrations are compiled only by the `xiaojing` Client build profile. The same lifecycle synchronizes the existing browser `theme-color` metadata after the product dataset is attached, then restores the generic value when the product plugin unloads.
+
+The same browser face registers localized Finance display copy through the generic preset registry. The preset composition itself is not stored in this Client package: profile boot adds `apps/cli/config/xiaojing-agent-presets/` only for the `xiaojing` build profile, while official and unknown profiles retain the original four-preset root.
 
 All ordinary brand changes start in this package. Add or replace the asset in the application public assets, update `product.json` when the inventory changes, and reference it from the product component. Do not solve a missing product presentation by directly editing `SidebarRoot`, `EmptyHero`, `WelcomeNotice`, or another official owner.
 
@@ -102,6 +111,12 @@ A startup-brand change is incomplete if only one surface is checked. Verify the 
 5. Register the product renderer from the product package and verify unloading it restores the generic fallback.
 
 ## Functional plugin isolation
+
+### Finance extension foundation
+
+Finance currently consists of one product-only system preset and an enforceable extension manifest, not a finance service. Its composition keeps every Standard mode row except the persona, and the product verifier compares parsed rows so a future Standard capability change cannot silently drift. Existing installations retain their saved default, existing sessions retain the preset recorded at creation, and official Harness profiles do not discover Finance.
+
+`product.json.financeExtension` is the source of truth for future Finance package prefixes, Cordis row prefixes, `src/compat.ts`, and the protected `harness/finance` durable root. Host and Client package inventories are deliberately empty until a complete capability seam exists. A future package must follow the manifest name-to-row rule, appear in the assembled Web composition, isolate rc-specific imports in its compatibility adapter when declared, and persist only schema-versioned data below the Finance root. The foundation protects that root during desktop upgrades but does not create or write it.
 
 ### Local usage accounting
 
@@ -281,6 +296,7 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 ## Release-blocking checks
 
 - `scripts/verify-xiaojing-product-layer.mjs` passes and official UI source roots contain no product marks.
+- The official preset root contains only `standard`, `code`, `minimal`, and `cordis`; the Xiaojing profile adds exactly the inventoried `finance` preset, and its non-persona composition remains identical to Standard mode.
 - The assembled application loads `xiaojing-product`, usage Host, usage Client, desktop-companion Host and Client, and isolated visualization plugins; generic fallbacks still work without the product plugin, removing the desktop-companion rows removes only its state/settings integration, and removing the visualization composition row removes only visualization cards.
 - API-key creation and replacement work after launch, and no plaintext key enters usage records or browser snapshots.
 - Usage accounting settles each provider request once, applies Beijing peak windows and the built-in model table, preserves historical request-time costs, and displays two decimal places.
@@ -308,6 +324,7 @@ Failure of any applicable item blocks publication. Do not treat successful insta
 - Browser and Windows control are semantic, not visual. They cannot handle pixel-only or canvas-only interfaces without a separate future vision capability.
 - The Weixin channel supports one iLink bot's direct text, supported-image, and document messages only while Xiaojing is open. It does not take over a personal account, process ordinary groups, voice, or video, or guarantee exactly-once final-reply delivery across a crash after the remote send succeeds.
 - Visualization cards render only in the Web client, keep a fixed light palette, and cannot yet send follow-up messages from inside the card.
+- Finance is currently a selectable verification-aware persona over the Standard capability set. It has no client context, local regulation corpus, deterministic calculator, Youcheng workflow, SDOO connector, or compliance engine yet.
 - A future upstream release can require changes to generic slots, the rc adapter, integration patches, or data migration, but it must not require reimplementing the product and feature layers.
 
 ## Quick handoff for a new session

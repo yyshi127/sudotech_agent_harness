@@ -28,6 +28,8 @@ chip 以部署默认值打开，其选择是**暂存**的——该界面先于�
 
 preset 文件提供一套未国际化的 `name` 与 `description`，Web 将其用于所有 `user` 行和未知的 `system` 行。对于四个随附 id（`standard`、`code`、`minimal` 与 `cordis`），只有名单将该行标记为 `system` 时，Web 才会从当前 locale 解析这两个字段；同名的 `user` preset 仍使用其文件元数据。
 
+`AgentPresetDisplayRegistry` 是为额外 `system` id 提供显示文案的产品中性扩展点。产品 Client 插件可以为某个 id 注册本地化文本，撤销注册后恢复 preset 文件元数据。即使 `user` 行使用相同 id，registry 也绝不覆盖它，因此安装或移除产品文案不会给用户自建 preset 改名。
+
 本行在自身命名空间的 `settings/changed` 以及 `connection/reset` 时重新读取：名单是一个活动目录，默认值是一项设置，外部编辑与重新连接都可能改变它。
 
 ## 管理分区

@@ -19,7 +19,7 @@ import { IconAgentPresetOutline16, IconChevronDownOutline14, Menu } from '@deeps
 // Type-only: pulls the ui-conversation SlotMap merge (the hero seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { AgentPresetSeatState } from './seat-store.ts'
-import { presetDisplayText } from './locales.ts'
+import type { AgentPresetDisplayResolver } from './display-registry.ts'
 import css from './AgentPresetSeat.module.css'
 
 /** Registration-side business face for the hero chip. */
@@ -34,6 +34,8 @@ export interface AgentPresetSeatInjected {
   select: (id: string) => Promise<void>
   /** Clear the one-shot introduce cue once the chip has played it. */
   introduced: () => void
+  /** Resolve official or product-owned display copy for one roster row. */
+  displayPreset: AgentPresetDisplayResolver
 }
 
 /* Introduce timeline: the icon eases in first (the CSS animation shares this
@@ -68,7 +70,7 @@ export type AgentPresetSeatProps =
  * @param props - composed slot props.
  * @returns the chip, or null when the deployment composes no presets.
  */
-export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, t }: AgentPresetSeatProps) {
+export function AgentPresetSeat({ load, select, introduced, displayPreset, useAgentPresetSeat, t }: AgentPresetSeatProps) {
   const state = useAgentPresetSeat(snapshot => snapshot)
   const [open, setOpen] = useState(false)
 
@@ -77,7 +79,7 @@ export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, 
   }, [load])
 
   const chosen = state.options.find(option => option.id === state.current)
-  const chosenText = chosen === undefined ? undefined : presetDisplayText(chosen, t)
+  const chosenText = chosen === undefined ? undefined : displayPreset(chosen)
   const label = chosenText?.name ?? state.current
   const ready = state.options.length > 0 && state.current !== ''
 
@@ -130,7 +132,7 @@ export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, 
       open={open}
       onClose={() => { setOpen(false) }}
       items={state.options.map((option) => {
-        const text = presetDisplayText(option, t)
+        const text = displayPreset(option)
         return {
           id: option.id,
           // Name and description together: the id alone never says what a

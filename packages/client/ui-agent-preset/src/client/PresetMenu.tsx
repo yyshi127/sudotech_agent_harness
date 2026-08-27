@@ -11,7 +11,8 @@
 
 import { IconChevronDownOutline14, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AgentPresetOption } from './settings-store.ts'
-import { presetDisplayText, type AgentPresetSettingsKey } from './locales.ts'
+import type { AgentPresetSettingsKey } from './locales.ts'
+import type { AgentPresetDisplayResolver } from './display-registry.ts'
 
 /** What one surface passes to the shared picker. */
 export interface PresetMenuProps {
@@ -23,6 +24,8 @@ export interface PresetMenuProps {
   label: string
   /** Active Web locale lookup. */
   t: (key: AgentPresetSettingsKey) => string
+  /** Official and product-owned display-copy resolver. */
+  displayPreset: AgentPresetDisplayResolver
   /** Class for the trigger button, owned by the calling surface. */
   buttonClassName: string | undefined
   /** Class for the chevron, owned by the calling surface. */
@@ -43,7 +46,7 @@ export interface PresetMenuProps {
  * @returns the menu and its trigger.
  */
 export function PresetMenu({
-  options, selectedId, label, t, buttonClassName, chevronClassName,
+  options, selectedId, label, t, displayPreset, buttonClassName, chevronClassName,
   disabled, open, onOpenChange, onSelect,
 }: PresetMenuProps) {
   return (
@@ -51,7 +54,7 @@ export function PresetMenu({
       open={open}
       onClose={() => { onOpenChange(false) }}
       items={options.map((option) => {
-        const name = presetDisplayText(option, t).name
+        const name = displayPreset(option).name
         return {
           id: option.id,
           // All preset surfaces resolve copy the same way; the id is addressing,

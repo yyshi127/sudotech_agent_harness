@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AgentPresetSettingsState } from './settings-store.ts'
-import { presetDisplayText, type AgentPresetSettingsKey } from './locales.ts'
+import type { AgentPresetSettingsKey } from './locales.ts'
+import type { AgentPresetDisplayResolver } from './display-registry.ts'
 import { PresetMenu } from './PresetMenu.tsx'
 import css from './AgentPresetRow.module.css'
 
@@ -22,6 +23,8 @@ export interface AgentPresetRowInjected {
   load: () => Promise<void>
   /** Persist one preset as the default for later sessions. */
   select: (id: string) => Promise<void>
+  /** Resolve official or product-owned display copy for one roster row. */
+  displayPreset: AgentPresetDisplayResolver
 }
 
 /** Full component props. */
@@ -35,7 +38,7 @@ export type AgentPresetRowProps =
  * @param props - composed slot props.
  * @returns the row, or null when the deployment composes no presets.
  */
-export function AgentPresetRow({ load, select, useAgentPreset, t }: AgentPresetRowProps) {
+export function AgentPresetRow({ load, select, displayPreset, useAgentPreset, t }: AgentPresetRowProps) {
   const state = useAgentPreset(snapshot => snapshot)
   const [open, setOpen] = useState(false)
 
@@ -55,7 +58,7 @@ export function AgentPresetRow({ load, select, useAgentPreset, t }: AgentPresetR
   // Every preset surface applies the same display-copy rule. The id remains
   // addressing rather than a label, except where no display name exists.
   const chosen = state.options.find(option => option.id === state.currentValue)
-  const chosenText = chosen === undefined ? undefined : presetDisplayText(chosen, t)
+  const chosenText = chosen === undefined ? undefined : displayPreset(chosen)
   const label = state.currentValue === '' ? t('loading') : (chosenText?.name ?? state.currentValue)
   const description: string = state.error ?? t('description')
 
@@ -70,6 +73,7 @@ export function AgentPresetRow({ load, select, useAgentPreset, t }: AgentPresetR
         selectedId={state.currentValue}
         label={label}
         t={t}
+        displayPreset={displayPreset}
         buttonClassName={css.selector}
         chevronClassName={css.chevron}
         disabled={busy || !state.writable || state.options.length === 0}

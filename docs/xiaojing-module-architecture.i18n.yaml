@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/xiaojing-module-architecture.md
+xiaojing-module-architecture.md: 25d9b9c80f7cbc0e077f0c5849b6e780ba0a2531
+xiaojing-module-architecture.zh.md: 9899a0c23b5476126721cf78db305dc775d5d447

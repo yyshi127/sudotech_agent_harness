@@ -31,15 +31,33 @@ import {
   type Profile,
 } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-
-/** Shipped agent-preset root: beside this app's own config, in both source and built layouts. */
-const SHIPPED_PRESET_ROOT = fileURLToPath(new URL('../config/agent-presets/', import.meta.url))
-
 import { DSH_LAUNCH_ENVIRONMENT_KEY, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { createProcessShutdown, type ProcessShutdown } from './process-shutdown.ts'
 
 const NAME = 'dsh'
+
+/** Official agent-preset root: beside this app's own config, in both source and built layouts. */
+const OFFICIAL_PRESET_ROOT = fileURLToPath(new URL('../config/agent-presets/', import.meta.url))
+
+/** Xiaojing-only agent-preset root, added only for the product build profile. */
+const XIAOJING_PRESET_ROOT = fileURLToPath(new URL('../config/xiaojing-agent-presets/', import.meta.url))
+
+/**
+ * Resolve the immutable system-preset roots for one Client build profile.
+ * @param clientProfile - active Client build profile; undefined is the official-safe default.
+ * @returns official presets plus product presets only for the Xiaojing profile.
+ */
+export function shippedPresetRoots(
+  clientProfile: string | undefined = process.env.DSH_CLIENT_BUILD_PROFILE,
+): Array<{ path: string; trust: 'system' }> {
+  return [
+    { path: OFFICIAL_PRESET_ROOT, trust: 'system' },
+    ...(clientProfile === 'xiaojing'
+      ? [{ path: XIAOJING_PRESET_ROOT, trust: 'system' as const }]
+      : []),
+  ]
+}
 
 /**
  * The home-level user patch layer (`$DSH_HOME/cordis.patch.yml`), applied
@@ -153,8 +171,10 @@ function composeProfile(
     if (typeof row.id === 'string') rows.set(row.id, row)
   }
   const composedOverlays = [...overlays]
-  // The SHIPPED root is the part of the roster only this app can resolve: it
-  // sits beside this app's own config, in both the source and built layouts.
+  // The shipped roots are the part of the roster only this app can resolve:
+  // they sit beside this app's own config, in both source and built layouts.
+  // Product presets are selected by the same profile that selects the product
+  // Client build, so an official run never discovers Xiaojing compositions.
   // The writable root the roster appends is `dsh-agent-presets`' own, so a
   // launcher that never reaches this patch still finds a person's presets.
   if (rows.has('agent-presets')) {
@@ -162,7 +182,7 @@ function composeProfile(
       id: 'agent-presets',
       config: {
         ...(rows.get('agent-presets')?.config ?? {}) as Record<string, unknown>,
-        roots: [{ path: SHIPPED_PRESET_ROOT, trust: 'system' }],
+        roots: shippedPresetRoots(),
       },
     })
   }

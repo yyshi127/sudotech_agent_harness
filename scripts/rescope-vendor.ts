@@ -101,6 +101,11 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', upstream: ['cordis'] },
   // The preset-roster loop names the `cordis` preset id, not a package.
   { file: 'apps/cli/tests/windows-shell.spec.ts', upstream: ['cordis'] },
+  // The Xiaojing Finance foundation verifies and documents the upstream
+  // `cordis` agent-preset id. These sites do not name the framework package.
+  { file: 'docs/xiaojing-product-development.md', upstream: ['cordis'] },
+  { file: 'docs/xiaojing-product-development.zh.md', upstream: ['cordis'] },
+  { file: 'scripts/verify-xiaojing-product-layer.mjs', upstream: ['cordis'] },
   // GROUP_ORDER holds `packages/<group>/` directory names, not package names.
   { file: 'scripts/gen-module-graph.ts', upstream: ['cordis'] },
   { file: 'scripts/gen-doc-graphs.ts', upstream: ['cordis'] },

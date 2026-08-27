@@ -41,6 +41,10 @@ const EDITING_CORDIS_SKILL = fileURLToPath(new URL(
   '../../../apps/cli/config/agent-presets/cordis/skills/editing-cordis-compositions/SKILL.md',
   import.meta.url,
 ))
+const FINANCE_TAX_SKILL = fileURLToPath(new URL(
+  '../../../apps/cli/config/xiaojing-agent-presets/finance/skills/china-tax-official-research/SKILL.md',
+  import.meta.url,
+))
 
 // The Code Mode overlay configs (include-patched variants of cordis.yml; the
 // replay swap resolves each one's sibling `*cordis.snapshot.yml`).
@@ -92,6 +96,12 @@ async function prepareEditingCordisSkillWorkspace(cwd: string): Promise<void> {
   const target = join(cwd, '.dsh', 'skills', 'editing-cordis-compositions', 'SKILL.md')
   await mkdir(dirname(target), { recursive: true })
   await copyFile(EDITING_CORDIS_SKILL, target)
+}
+
+async function prepareFinanceTaxSkillWorkspace(cwd: string): Promise<void> {
+  const target = join(cwd, '.dsh', 'skills', 'china-tax-official-research', 'SKILL.md')
+  await mkdir(dirname(target), { recursive: true })
+  await copyFile(FINANCE_TAX_SKILL, target)
 }
 
 async function prepareDelimiterPathWorkspace(cwd: string): Promise<void> {
@@ -346,6 +356,12 @@ const SCENARIOS: Scenario[] = [
     systemPromptSource: 'text-turn',
     toolSchemasSource: 'text-turn',
     prepareWorkspace: prepareEditingCordisSkillWorkspace,
+  },
+  {
+    name: 'finance-tax-skill-load',
+    hasModelTurn: true,
+    recorded: false,
+    prepareWorkspace: prepareFinanceTaxSkillWorkspace,
   },
   { name: 'lsp-definition', hasModelTurn: true, recorded: false, pinsHeader: true, headerClass: 'lsp', configPath: LSP_CONFIG },
   // web_fetch markdown rendering end to end: the overlay's loopback fixture

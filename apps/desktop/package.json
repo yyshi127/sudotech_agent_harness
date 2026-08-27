@@ -26,10 +26,11 @@
   "scripts": {
     "start": "electron .",
     "prepare:runtime": "node scripts/prepare-node-runtime.mjs",
+    "verify:installer-cancel": "node scripts/verify-installer-cancel-helper.mjs",
     "verify:identity": "node scripts/verify-desktop-identity.mjs",
     "verify:product-layer": "node ../../scripts/verify-xiaojing-product-layer.mjs",
     "verify:user-data": "node scripts/verify-user-data-contract.mjs",
-    "dist:win": "pnpm run verify:identity && pnpm run verify:user-data && pnpm run verify:product-layer && pnpm run prepare:runtime && electron-builder --win nsis --x64"
+    "dist:win": "pnpm run verify:identity && pnpm run verify:installer-cancel && pnpm run verify:user-data && pnpm run verify:product-layer && pnpm run prepare:runtime && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -191,6 +192,10 @@
       {
         "from": "../../THIRD_PARTY_NOTICES.md",
         "to": "legal/THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "build/internal-use-notice.txt",
+        "to": "legal/Xiaojing-Internal-Use-Notice.txt"
       }
     ],
     "win": {

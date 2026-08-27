@@ -4,6 +4,8 @@
 
 本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.2 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
 
+需要快速理解官方核心、小兢插件、Electron 外壳和源码目录之间关系时，先阅读[模块架构与源码结构图](xiaojing-module-architecture.zh.md)。
+
 ## 开始前必读
 
 修改产品代码前，应先确定负责该行为的层级，不能从当前可见组件直接开始修改。以下规则属于发布要求：
@@ -31,12 +33,14 @@
 flowchart LR
   Upstream["Upstream dsh-v0.1.1-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
+  Adapters --> Finance["Finance product extension boundary"]
   Adapters --> Usage["Usage host and client plugins"]
   Adapters --> Browser["Microsoft Edge browser-control plugin"]
   Adapters --> Computer["Windows UIA control plugin"]
   Adapters --> Weixin["Weixin channel plugins"]
   Adapters --> Visualize["Isolated visualization plugin"]
   Product --> Bundle["Web app composition"]
+  Finance --> Bundle
   Usage --> Bundle
   Browser --> Bundle
   Computer --> Bundle
@@ -54,6 +58,7 @@ flowchart LR
 |---|---|---|
 | 官方兼容 UI owner | 与产品无关的 slot、owner props、fallback UI 和通用启动 Logo 元数据读取 | `packages/client/ui-sidebar/`、`packages/client/ui-conversation/`、`packages/client/ui-settings-models/`、`packages/client/web/` |
 | 小兢产品层 | 品牌组件、配色、产品文案、初次使用说明和默认部署人格 | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.zh.md) |
+| Finance 扩展基础层 | 产品专属预设根目录、本地化预设文案、包和组合行命名规则、兼容适配规则及持久化根目录清单 | `apps/cli/config/xiaojing-agent-presets/`、[`product.json`](../packages/client/xiaojing-product/product.json)、[`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs) |
 | 用量 Host 插件 | 提供方用量观察、API Key 指纹、内置计价、不可变账本、Remote 和更新事件 | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.zh.md) |
 | 用量 Client 插件 | 侧边栏摘要和明细浮层、设置入口、月度日历、格式化和刷新控制器 | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.zh.md) |
 | 浏览器操控插件 | 专用及可选个人 Edge 适配器、全局页面发现、逐轮租约、有界语义 DOM 操作、扩展配对及高影响操作授权 | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.zh.md)、[`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.zh.md) |
@@ -76,11 +81,15 @@ flowchart LR
 
 官方兼容 UI 根目录只公开小兢所需的五个单 owner slot：`sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content` 和 `onboarding.content`。每个 owner 都保留中性 fallback，因此缺少产品插件时，上游风格应用仍能运行。通用代码可以定义 owner props、布局空间、设计 token、元数据键和 fallback 渲染，但不能导入小兢包，也不能出现小兢、数豆、SUDO、产品资源文件名或产品文案。
 
+通用 Agent 预设 Client 还公开 `AgentPresetDisplayRegistry`。它允许为额外系统预设 id 注册本地化显示提供方，但绝不覆盖用户自建行。registry 本身不包含小兢 id 或文案；Finance 注册由产品插件负责，移除产品插件后恢复文件元数据。
+
 [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs)会扫描官方 UI 源码根目录中的产品标记，验证所有已声明 slot、清单中的资源和桌面 manifest，并要求 Web 组合加载产品插件。隔离检查失败时，打包命令会失败。
 
 ### 产品插件
 
 `@deepseek-ai/dsh-client-xiaojing-product` 同时包含 Host 半侧和浏览器半侧。Host 半侧只在 `deployment:persona` 为空时填入小兢身份，不会覆盖已选择或用户创建的 agent 人格。浏览器半侧把五个产品 slot、本地化文案和主题 CSS 注册为一个可卸载插件，而且这些注册只会由 `xiaojing` Client 构建 profile 编译进入产品客户端。同一生命周期会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在产品插件卸载时恢复通用值。
+
+同一个浏览器半侧通过通用预设 registry 注册 Finance 本地化显示文案。预设组装不存放在这个 Client 包中：profile 启动只为 `xiaojing` 构建 profile 增加 `apps/cli/config/xiaojing-agent-presets/`，official 和未知 profile 继续使用原来的四预设根目录。
 
 普通品牌修改都应从该包开始。在应用 public 资源中增加或替换资源，资源清单变化时更新 `product.json`，再由产品组件引用。不能为了补充产品展示而直接修改 `SidebarRoot`、`EmptyHero`、`WelcomeNotice` 或其他官方 owner。
 
@@ -102,6 +111,12 @@ flowchart LR
 5. 从产品包注册产品 renderer，并验证卸载产品插件后会恢复通用 fallback。
 
 ## 功能插件隔离
+
+### Finance 扩展基础层
+
+Finance 当前由一个产品专属系统预设和可执行检查的扩展清单组成，还不是财务服务。它的人格以外组合行与标准模式完全一致，产品检查会比较解析后的配置行，防止标准模式未来增加能力时 Finance 静默漂移。已有安装继续使用已保存的默认模式，已有会话继续使用创建时记录的预设，官方 Harness profile 不会发现 Finance。
+
+`product.json.financeExtension` 是未来 Finance 包名前缀、Cordis 配置行前缀、`src/compat.ts` 和受保护 `harness/finance` 持久化根目录的事实来源。在形成完整能力链之前，Host 与 Client 包清单有意保持为空。未来包必须遵守清单中的包名到配置行规则，出现在组装后的 Web 组合中，在声明需要适配器时把 rc 专属导入隔离到兼容文件，并且只在 Finance 根目录下保存带 schema 版本的数据。基础层会在桌面升级时保护该根目录，但当前不会创建或写入它。
 
 ### 本机用量统计
 
@@ -281,6 +296,7 @@ pnpm desktop:dist
 ## 发布阻断检查
 
 - `scripts/verify-xiaojing-product-layer.mjs` 通过，官方 UI 源码根目录不包含产品标记。
+- 官方预设根目录只包含 `standard`、`code`、`minimal` 和 `cordis`；小兢 profile 只增加清单登记的 `finance` 预设，而且其人格以外组装始终与标准模式一致。
 - 组装应用加载 `xiaojing-product`、用量 Host、用量 Client、桌面小兢 Host 与 Client 和独立可视化插件；移除产品插件后通用 fallback 仍可运行，移除桌面小兢组合行只会移除其状态／设置集成，移除可视化组合行只会移除可视化卡片。
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
@@ -308,6 +324,7 @@ pnpm desktop:dist
 - 浏览器和 Windows 操控依赖语义而不是视觉；纯像素或仅 Canvas 界面需要未来独立的视觉能力。
 - 微信频道只在小兢会计打开时支持一个 iLink bot 的单聊文字、受支持图片和文档消息。它不会接管个人账号、处理普通群聊、语音或视频，也无法保证远程发送成功后崩溃场景下的最终回复严格只投递一次。
 - 可视化卡片只在 Web Client 中渲染，固定使用浅色配色，卡片内部暂时不能向主对话发送后续消息。
+- Finance 当前只是标准模式能力集之上的可选择、强调核验的人格，尚无客户上下文、本地法规语料、确定性计算器、有成工作流、SDOO 连接器或合规引擎。
 - 后续上游版本可能要求调整通用 slot、rc 适配器、集成补丁或数据迁移，但不能要求重新实现产品层和功能层。
 
 ## 新会话快速交接

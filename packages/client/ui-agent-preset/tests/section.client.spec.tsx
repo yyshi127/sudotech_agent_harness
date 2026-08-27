@@ -13,9 +13,12 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { AgentPresetSection } from '../src/client/AgentPresetSection.tsx'
 import type { AgentPresetSectionProps } from '../src/client/AgentPresetSection.tsx'
 import type { AgentPresetSectionState, CopyDraft } from '../src/client/section-store.ts'
-import { en } from '../src/client/locales.ts'
+import { en, presetDisplayText, type PresetDisplaySource } from '../src/client/locales.ts'
 
 afterEach(cleanup)
+
+const translate = (key: keyof typeof en): string => en[key]
+const displayPreset = (preset: PresetDisplaySource) => presetDisplayText(preset, translate)
 
 const READY: AgentPresetSectionState = {
   status: 'ready',
@@ -63,7 +66,8 @@ function renderSection(
   const props = {
     ...actions,
     useAgentPresetSection: bindSnapshotSelector(store),
-    t: (key: keyof typeof en) => en[key],
+    t: translate,
+    displayPreset,
   } as unknown as AgentPresetSectionProps
   render(<AgentPresetSection {...props} />)
   return actions
@@ -299,7 +303,8 @@ describe('the preset list', () => {
     const { container } = render(<AgentPresetSection {...({
       useAgentPresetSection: bindSnapshotSelector(
         createSnapshotStore<AgentPresetSectionState>({ ...READY, status: 'unavailable', rows: [] })),
-      t: (key: keyof typeof en) => en[key],
+      t: translate,
+      displayPreset,
       load: vi.fn(() => Promise.resolve()),
     } as unknown as AgentPresetSectionProps)} />)
 

@@ -19,9 +19,12 @@ import { AgentPresetSeat } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSeatProps } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSettingsState } from '../src/client/settings-store.ts'
 import type { AgentPresetSeatState } from '../src/client/seat-store.ts'
-import { en } from '../src/client/locales.ts'
+import { en, presetDisplayText, type PresetDisplaySource } from '../src/client/locales.ts'
 
 afterEach(cleanup)
+
+const translate = (key: keyof typeof en): string => en[key]
+const displayPreset = (preset: PresetDisplaySource) => presetDisplayText(preset, translate)
 
 const ROW_READY: AgentPresetSettingsState = {
   status: 'ready',
@@ -50,7 +53,8 @@ function renderRow(state: Partial<AgentPresetSettingsState> = {}) {
   render(<AgentPresetRow {...({
     ...actions,
     useAgentPreset: bindSnapshotSelector(store),
-    t: (key: keyof typeof en) => en[key],
+    t: translate,
+    displayPreset,
   } as unknown as AgentPresetRowProps)} />)
   return actions
 }
@@ -65,7 +69,8 @@ function renderSeat(state: Partial<AgentPresetSeatState> = {}) {
   render(<AgentPresetSeat {...({
     ...actions,
     useAgentPresetSeat: bindSnapshotSelector(store),
-    t: (key: keyof typeof en) => en[key],
+    t: translate,
+    displayPreset,
   } as unknown as AgentPresetSeatProps)} />)
   return actions
 }
@@ -85,7 +90,8 @@ function renderLabel(
     sessionId: 's1',
     useSessions: bindSnapshotSelector(sessions),
     useAgentPresets: bindSnapshotSelector(store),
-    t: (key: keyof typeof en) => en[key],
+    t: translate,
+    displayPreset,
   } as unknown as AgentPresetLabelProps)} />)
   return { load, view }
 }
@@ -177,7 +183,8 @@ describe('the General-settings row', () => {
       select: vi.fn(() => Promise.resolve()),
       useAgentPreset: bindSnapshotSelector(
         createSnapshotStore<AgentPresetSettingsState>({ ...ROW_READY, status: 'unavailable', options: [] })),
-      t: (key: keyof typeof en) => en[key],
+      t: translate,
+      displayPreset,
     } as unknown as AgentPresetRowProps)} />)
 
     expect(container.firstChild).toBeNull()
@@ -189,7 +196,8 @@ describe('the General-settings row', () => {
       load: vi.fn(() => Promise.resolve()),
       select: vi.fn(() => Promise.resolve()),
       useAgentPreset: bindSnapshotSelector(store),
-      t: (key: keyof typeof en) => en[key],
+      t: translate,
+      displayPreset,
     } as unknown as AgentPresetRowProps)} />)
     fireEvent.click(screen.getByRole('button'))
 

@@ -18,7 +18,8 @@ import {
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { draftBlocker, type AgentPresetSectionState } from './section-store.ts'
-import { presetDisplayText, type AgentPresetSettingsKey } from './locales.ts'
+import type { AgentPresetSettingsKey } from './locales.ts'
+import type { AgentPresetDisplayResolver } from './display-registry.ts'
 import css from './AgentPresetSection.module.css'
 
 /** Registration-side business face for the management section. */
@@ -57,6 +58,8 @@ export interface AgentPresetSectionInjected {
   remove: () => Promise<void>
   /** Make one preset the default for sessions created later. */
   makeDefault: (id: string) => Promise<void>
+  /** Resolve official or product-owned display copy for one roster row. */
+  displayPreset: AgentPresetDisplayResolver
 }
 
 /** Full component props. */
@@ -69,16 +72,17 @@ export type AgentPresetSectionProps =
 interface CopyDialogProps {
   state: AgentPresetSectionState
   t: (key: AgentPresetSettingsKey) => string
+  displayPreset: AgentPresetDisplayResolver
   actions: Pick<AgentPresetSectionInjected,
     'cancelCopy' | 'confirmCopy' | 'setCopyId' | 'setCopyName'>
 }
 
-function CopyDialog({ state, t, actions }: CopyDialogProps): ReactNode {
+function CopyDialog({ state, t, displayPreset, actions }: CopyDialogProps): ReactNode {
   const draft = state.copy
   const blocker = draft === null ? undefined : draftBlocker(draft, state.rows)
   const message = draft === null ? null : draft.error ?? (blocker === undefined ? null : t(blocker))
   const source = draft === null ? undefined : state.rows.find(row => row.id === draft.from)
-  const sourceTitle = source === undefined ? draft?.fromTitle : presetDisplayText(source, t).name
+  const sourceTitle = source === undefined ? draft?.fromTitle : displayPreset(source).name
   return (
     <Modal
       open={draft !== null}
@@ -182,7 +186,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
   const viewedRow = viewedId === undefined ? undefined : state.rows.find(row => row.id === viewedId)
   const viewedTitle = state.view === null
     ? ''
-    : viewedRow === undefined ? state.view.title : presetDisplayText(viewedRow, t).name
+    : viewedRow === undefined ? state.view.title : props.displayPreset(viewedRow).name
 
   useEffect(() => {
     void load()
@@ -236,7 +240,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
       {([['system', t('builtInGroup')], ['user', t('customGroup')]] as const).map(([trust, heading]) => {
         const group = state.rows
           .filter(row => row.trust === trust)
-          .map(row => ({ row, text: presetDisplayText(row, t) }))
+          .map(row => ({ row, text: props.displayPreset(row) }))
         // The custom group is where a preset of one's own will appear, so it
         // stays on screen even while empty: heading plus the creator entry.
         const tail = trust === 'user' ? creatorButton : null
@@ -364,6 +368,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
       <CopyDialog
         state={state}
         t={t}
+        displayPreset={props.displayPreset}
         actions={{
           cancelCopy: props.cancelCopy,
           confirmCopy: props.confirmCopy,

@@ -15,6 +15,38 @@
     "onboarding.content",
     "settings.section"
   ],
+  "agentPresets": [
+    {
+      "id": "finance",
+      "name": "Finance模式",
+      "base": "standard",
+      "composition": "apps/cli/config/xiaojing-agent-presets/finance/agent.cordis.yml"
+    }
+  ],
+  "financeExtension": {
+    "schemaVersion": 1,
+    "presetRoot": "apps/cli/config/xiaojing-agent-presets",
+    "durableRoot": "harness/finance",
+    "compatibilityAdapter": "src/compat.ts",
+    "skills": [
+      {
+        "name": "china-tax-official-research",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/china-tax-official-research/SKILL.md"
+      }
+    ],
+    "host": {
+      "directory": "packages/xiaojing",
+      "packagePrefix": "@deepseek-ai/dsh-xiaojing-finance-",
+      "rowPrefix": "xiaojing-finance-",
+      "packages": []
+    },
+    "client": {
+      "directory": "packages/client",
+      "packagePrefix": "@deepseek-ai/dsh-client-ui-xiaojing-finance-",
+      "rowPrefix": "ui-xiaojing-finance-",
+      "packages": []
+    }
+  },
   "assets": [
     "apps/web/public/sdoobot-avatar.png",
     "apps/web/public/sudo-logo-gray.png",

@@ -15,7 +15,7 @@ import { IconAgentPresetOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 // Type-only: pulls the ui-conversation SlotMap merge (the header actions).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { AgentPresetSettingsState } from './settings-store.ts'
-import { presetDisplayText } from './locales.ts'
+import type { AgentPresetDisplayResolver } from './display-registry.ts'
 import css from './AgentPresetLabel.module.css'
 
 /** Registration-side business face for the header label. */
@@ -26,6 +26,8 @@ export interface AgentPresetLabelInjected {
   }
   /** Read the roster, so the label can show a name rather than an id. */
   load: () => Promise<void>
+  /** Resolve official or product-owned display copy for one roster row. */
+  displayPreset: AgentPresetDisplayResolver
 }
 
 /** Full component props. */
@@ -40,7 +42,7 @@ export type AgentPresetLabelProps =
  * @returns the label, or null when the session records no preset.
  */
 export function AgentPresetLabel({
-  sessionId, useSessions, useAgentPresets, load, t,
+  sessionId, useSessions, useAgentPresets, load, displayPreset, t,
 }: AgentPresetLabelProps) {
   const preset = useSessions(state => state.byId[sessionId]?.agentPreset)
   const options = useAgentPresets(state => state.options)
@@ -54,7 +56,7 @@ export function AgentPresetLabel({
   if (preset === undefined) return null
 
   const option = options.find(entry => entry.id === preset)
-  const text = option === undefined ? undefined : presetDisplayText(option, t)
+  const text = option === undefined ? undefined : displayPreset(option)
   return (
     <span className={css.label} title={text?.description ?? t('headerHint')}>
       <IconAgentPresetOutline16 size={14} className={css.icon} />

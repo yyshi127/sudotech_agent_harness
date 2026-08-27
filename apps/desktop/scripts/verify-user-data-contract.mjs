@@ -23,6 +23,7 @@ const identity = JSON.parse(await readFile(join(appRoot, 'identity.json'), 'utf8
 const manifest = JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8'))
 const main = await readFile(join(appRoot, 'main.mjs'), 'utf8')
 const installer = await readFile(join(appRoot, 'build', 'installer.nsh'), 'utf8')
+const installerCancelHelper = await readFile(join(appRoot, 'build', 'installer-cancel-helper.ps1'), 'utf8')
 
 const EXPECTED_WEB_BUNDLES = [
   '@deepseek-ai/dsh-base',
@@ -53,8 +54,9 @@ if (!main.includes("app.setPath('userData', join(app.getPath('appData'), ...iden
   || !main.includes("join(app.getPath('documents'), '小兢会计工作区')")) {
   throw new Error('desktop startup no longer uses the permanent user-data paths')
 }
-if (/APPDATA|Local Storage|\.credentials|\.agent-presets|attachments|usage-accounting/i.test(installer)) {
-  throw new Error('custom installer script must never address protected user data')
+if (/\$APPDATA\b|%APPDATA%|\$LOCALAPPDATA\b|Local Storage|\.credentials|\.agent-presets|attachments|usage-accounting/i
+  .test(`${installer}\n${installerCancelHelper}`)) {
+  throw new Error('custom installer and cancellation helper must never address protected user data')
 }
 
 async function filesBelow(root) {

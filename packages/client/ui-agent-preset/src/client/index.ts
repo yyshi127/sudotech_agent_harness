@@ -31,6 +31,7 @@ import type { AgentPresetSectionInjected } from './AgentPresetSection.tsx'
 import { AgentPresetSeatController } from './seat-store.ts'
 import type { SeatSessionSummary } from './seat-store.ts'
 import { AgentPresetSectionController } from './section-store.ts'
+import { AgentPresetDisplayRegistry, type AgentPresetDisplayResolver } from './display-registry.ts'
 import { en, zh } from './locales.ts'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
 
@@ -43,6 +44,11 @@ export {
   draftBlocker, type AgentPresetSectionState, type CopyDraft, type PresetRow, type PresetView,
 } from './section-store.ts'
 export type { AgentPresetOption, AgentPresetSettingsState } from './settings-store.ts'
+export {
+  AgentPresetDisplayRegistry,
+  type AgentPresetDisplayProvider,
+  type AgentPresetDisplayResolver,
+} from './display-registry.ts'
 export { AGENT_PRESET_SETTINGS_NS, writeDefaultPreset } from './settings-store.ts'
 
 /** Required services (cordis fiber inject). */
@@ -54,6 +60,8 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope
  */
 export function apply(ctx: ClientContext): void {
   const { api } = ctx.get('connection') as ConnectionHandle
+  const display = new AgentPresetDisplayRegistry()
+  ctx.provide('agentPresetDisplay', display)
   const controller = new AgentPresetSettingsController(api, ctx.settingsScope.describe())
   // One roster, four surfaces. The chip is registered in a later scope, so it
   // subscribes here rather than being reached from this one.
@@ -64,11 +72,14 @@ export function apply(ctx: ClientContext): void {
   })
 
   ctx.effect(() => ctx.locale.register('settings.agentPreset', { zh, en }), 'ui-agent-preset: settings row dictionaries')
+  const t = ctx.locale.bind('settings.agentPreset')
+  const displayPreset: AgentPresetDisplayResolver = preset => display.resolve(preset, t)
 
   const injected = (): AgentPresetRowInjected => ({
     hooks: { agentPreset: controller.store },
     load: () => controller.load(),
     select: (id: string) => controller.select(id),
+    displayPreset,
   })
 
   ctx.effect(() => {
@@ -120,11 +131,13 @@ export function apply(ctx: ClientContext): void {
       load: () => seat.load(),
       select: (id: string) => seat.select(id),
       introduced: () => { seat.introduced() },
+      displayPreset,
     })
 
     const labelInjected = (): AgentPresetLabelInjected => ({
       hooks: { agentPresets: controller.store },
       load: () => controller.load(),
+      displayPreset,
     })
 
     scope.effect(() => {
@@ -202,6 +215,7 @@ export function apply(ctx: ClientContext): void {
     confirmDelete: (id: string | null) => { section.confirmDelete(id) },
     remove: () => section.remove(),
     makeDefault: (id: string) => section.makeDefault(id),
+    displayPreset,
   })
 
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
@@ -217,7 +231,7 @@ export function apply(ctx: ClientContext): void {
     name: 'settings.section',
     id: 'agent-presets',
     order: 20,
-    label: () => ctx.locale.bind('settings.agentPreset')('nav'),
+    label: () => t('nav'),
     locale: 'settings.agentPreset',
     inject: sectionInjected,
   }, AgentPresetSection))
