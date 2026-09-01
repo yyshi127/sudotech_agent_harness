@@ -38,6 +38,17 @@ export const inject = ['slots', 'locale', 'agentPresetDisplay']
 /** Register Xiaojing brand, hero, onboarding, and theme as one unloadable product layer. */
 export function apply(ctx: ClientContext): void {
   if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing') return
+  ctx.effect(() => {
+    const root = document.documentElement
+    const existing = root.dataset.dshClientBuildProfile
+    if (existing !== undefined && existing !== 'xiaojing') {
+      throw new Error(`xiaojing-product: Client build profile already claimed by ${JSON.stringify(existing)}`)
+    }
+    root.dataset.dshClientBuildProfile = 'xiaojing'
+    return () => {
+      if (root.dataset.dshClientBuildProfile === 'xiaojing') delete root.dataset.dshClientBuildProfile
+    }
+  }, 'xiaojing-product: build profile witness')
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'xiaojing-product: dictionaries')
   const t = ctx.locale.bind(NS)
   ctx.effect(() => ctx.agentPresetDisplay.register('finance', () => ({

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "revision": 2,
+  "clients": [
+    {
+      "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "version": 1,
+      "status": "active",
+      "createdAt": 1787648400000,
+      "updatedAt": 1787648400000,
+      "legalName": "升级样本客户有限公司",
+      "shortName": "升级样本客户",
+      "unifiedSocialCreditCode": "91310000MA1FL7AA1A",
+      "taxpayerType": "general-vat",
+      "registeredRegion": "上海市",
+      "accountingStandard": "enterprise",
+      "industry": "软件和信息技术服务业",
+      "financePolicyNotes": "费用按部门归集。",
+      "chartMappings": [
+        {
+          "localAccountCode": "6602",
+          "externalAccountCode": "A-6602"
+        }
+      ],
+      "externalSystemRefs": [
+        {
+          "system": "sdoo",
+          "tenantId": "fixture-tenant-a",
+          "companyId": "fixture-company-a"
+        }
+      ],
+      "workspacePath": "/fixture/xiaojing/clients/client-a"
+    },
+    {
+      "id": "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+      "version": 3,
+      "status": "active",
+      "createdAt": 1787648401000,
+      "updatedAt": 1787648402000,
+      "legalName": "第二升级样本客户有限公司",
+      "shortName": "第二样本客户",
+      "unifiedSocialCreditCode": "91330000MA2FL7BB2B",
+      "taxpayerType": "small-scale-vat",
+      "registeredRegion": "浙江省杭州市",
+      "accountingStandard": "small-enterprise",
+      "industry": "批发和零售业",
+      "financePolicyNotes": "费用按项目归集。",
+      "chartMappings": [
+        {
+          "localAccountCode": "6602",
+          "externalAccountCode": "B-6602"
+        }
+      ],
+      "externalSystemRefs": [
+        {
+          "system": "youcheng",
+          "tenantId": "fixture-tenant-b",
+          "companyId": "fixture-company-b"
+        }
+      ],
+      "workspacePath": "/fixture/xiaojing/clients/client-b"
+    }
+  ]
+}

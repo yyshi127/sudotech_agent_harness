@@ -101,7 +101,12 @@
     "@deepseek-ai/dsh-subagent": "workspace:^",
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-finance-calculations": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-finance-domain": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-finance-documents": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-finance-evidence": "workspace:^",
     "@types/js-yaml": "^4.0.9",
-    "execa": "^10.0.0"
+    "execa": "^10.0.0",
+    "fflate": "^0.8.3"
   }
 }

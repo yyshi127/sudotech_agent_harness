@@ -116,6 +116,11 @@ const PRIVILEGED_METHODS = new Set([
   'credentials.set',
   'credentials.unset',
   'llm.discoverModels',
+  'financeClients.read',
+  'financeClients.create',
+  'financeClients.update',
+  'financeClients.archive',
+  'financeClients.stage',
 ])
 
 /**

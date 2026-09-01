@@ -11,6 +11,7 @@ import {
   normalizeCompanionPreferences,
   resolveCompanionBounds,
 } from './desktop-companion.mjs'
+import { assertXiaojingDesktopClientBuild } from './client-build-profile.mjs'
 
 const identity = JSON.parse(readFileSync(new URL('./identity.json', import.meta.url), 'utf8'))
 const PRODUCT_NAME = identity.productName
@@ -20,6 +21,7 @@ const BACKEND_READY_TIMEOUT_MS = 60_000
 const COMPANION_STREAM_RETRY_MS = 1_000
 const COMPANION_PREFERENCES_MODE = 0o600
 const COMPANION_DIRECTORY_MODE = 0o700
+const UPDATE_SHUTDOWN_ARGUMENT = '--xiaojing-shutdown-for-update'
 
 const channels = {
   applicationInfo: 'xiaojing-desktop:application-info',
@@ -68,12 +70,23 @@ let dragState
 const singleInstance = app.requestSingleInstanceLock()
 if (!singleInstance) {
   app.quit()
+} else if (process.argv.includes(UPDATE_SHUTDOWN_ARGUMENT)) {
+  quitting = true
+  app.quit()
 } else {
-  app.on('second-instance', showMainWindow)
+  app.on('second-instance', (_event, argv) => {
+    if (argv.includes(UPDATE_SHUTDOWN_ARGUMENT)) {
+      quitting = true
+      app.quit()
+      return
+    }
+    showMainWindow()
+  })
   app.whenReady().then(startDesktop).catch(showFatalError)
 }
 
 async function startDesktop() {
+  assertXiaojingDesktopClientBuild(resolve(import.meta.dirname, '..', '..'), app.isPackaged)
   app.setName(PRODUCT_NAME)
   app.setAppUserModelId(identity.appId)
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => { callback(false) })
@@ -438,6 +451,7 @@ function startBackend() {
     ...process.env,
     DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
     DSH_HOME: dataRoot,
+    XIAOJING_FINANCE_WORKSPACE_ROOT: join(workspace, 'Finance工作区'),
     DSH_TELEMETRY_DISABLED: '1',
     ...(app.isPackaged ? { XIAOJING_EDGE_EXTENSION_DIR: join(process.resourcesPath, 'xiaojing-edge-extension') } : {}),
     NODE_USE_ENV_PROXY: process.env.NODE_USE_ENV_PROXY ?? '1',

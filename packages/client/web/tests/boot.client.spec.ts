@@ -6,7 +6,7 @@ import type {
   WebBootEntry,
 } from '@deepseek-ai/dsh-client-modules/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AppWebEntry } from '../src/boot.ts'
+import { AppWebEntry, assertClientBuildProfileActivated } from '../src/boot.ts'
 
 const MODULES_ID = '@deepseek-ai/dsh-client-modules'
 const win = globalThis as DshWindow
@@ -16,7 +16,9 @@ afterEach(() => {
   vi.restoreAllMocks()
   delete win.__DSH_BOOT__
   delete win.__ModuleLoader__
+  delete document.documentElement.dataset.dshClientBuildProfile
   document.body.innerHTML = ''
+  vi.unstubAllEnvs()
 })
 
 /** Install the stable facade shape that the Host injects before AppWebEntry runs. */
@@ -76,6 +78,40 @@ describe('bootstrap failure rendering', () => {
       const duplicate = { id: 'duplicate', url: '/duplicate/client.js', rev: '1' }
       win.__DSH_BOOT__ = { rev: 'graph', entries: [duplicate, duplicate] }
     }, 'duplicate graph entry "duplicate"')
+  })
+
+  it('renders a bounded failure when bundle activation never settles', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.append(container)
+    installFacade()
+    win.__DSH_BOOT__ = {
+      rev: 'graph',
+      entries: [{ id: 'stalled', url: '/stalled.js', rev: '1', immediately: true }],
+    }
+    const entry = new AppWebEntry(container, {
+      activationTimeoutMs: 5,
+      loadBundle: () => new Promise<void>(() => {}),
+    })
+
+    await entry.run()
+
+    expect(container.textContent).toContain('plugin activation timed out after 5 ms')
+    expect(error).toHaveBeenCalledOnce()
+    await entry.dispose()
+  })
+})
+
+describe('Client build profile witness', () => {
+  it('accepts a matching product witness and rejects missing or mixed artifacts', () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    expect(() => { assertClientBuildProfileActivated() }).toThrow(/static Client profile "xiaojing".*"none"/)
+
+    document.documentElement.dataset.dshClientBuildProfile = 'official'
+    expect(() => { assertClientBuildProfileActivated() }).toThrow(/"xiaojing".*"official"/)
+
+    document.documentElement.dataset.dshClientBuildProfile = 'xiaojing'
+    expect(() => { assertClientBuildProfileActivated() }).not.toThrow()
   })
 })
 

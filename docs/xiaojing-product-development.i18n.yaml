@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/xiaojing-product-development.md
-xiaojing-product-development.md: 56ddf5c3965699a753847e86b0cfed4aa9be2481
-xiaojing-product-development.zh.md: 622722d76b5986555795a4b949bd9f5bbd93e26a
+xiaojing-product-development.md: 3719fd675cbddfcc304b1f342379af25b55c14b6
+xiaojing-product-development.zh.md: f6737f08bfa5aef771c4cc7f09ccb11d35074584

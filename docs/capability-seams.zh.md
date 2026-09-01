@@ -185,6 +185,14 @@ flowchart LR
   svc_xiaojingComputerControl["ctx.xiaojingComputerControl<br/>Xiaojing Windows automation"]
   pkg_xiaojing_desktop_companion["xiaojing-desktop-companion"]
   svc_xiaojingDesktopCompanion["ctx.xiaojingDesktopCompanion<br/>Xiaojing desktop-companion state"]
+  pkg_xiaojing_finance_calculations["xiaojing-finance-calculations"]
+  svc_xiaojingFinanceCalculations["ctx.xiaojingFinanceCalculations<br/>Xiaojing Finance deterministic calculations"]
+  pkg_xiaojing_finance_domain["xiaojing-finance-domain"]
+  svc_xiaojingFinanceDomain["ctx.xiaojingFinanceDomain<br/>Xiaojing Finance client domain"]
+  pkg_xiaojing_finance_documents["xiaojing-finance-documents"]
+  svc_xiaojingFinanceDocuments["ctx.xiaojingFinanceDocuments<br/>Xiaojing shared document normalization"]
+  pkg_xiaojing_finance_evidence["xiaojing-finance-evidence"]
+  svc_xiaojingFinanceEvidence["ctx.xiaojingFinanceEvidence<br/>Xiaojing Finance official evidence"]
   pkg_xiaojing_weixin_channel["xiaojing-weixin-channel"]
   svc_xiaojingWeixinChannel["ctx.xiaojingWeixinChannel<br/>Xiaojing Weixin channel"]
   pkg_spill["spill"]
@@ -322,6 +330,10 @@ flowchart LR
   pkg_xiaojing_browser_control --> svc_xiaojingBrowserControl
   pkg_xiaojing_computer_control --> svc_xiaojingComputerControl
   pkg_xiaojing_desktop_companion --> svc_xiaojingDesktopCompanion
+  pkg_xiaojing_finance_calculations --> svc_xiaojingFinanceCalculations
+  pkg_xiaojing_finance_documents --> svc_xiaojingFinanceDocuments
+  pkg_xiaojing_finance_domain --> svc_xiaojingFinanceDomain
+  pkg_xiaojing_finance_evidence --> svc_xiaojingFinanceEvidence
   pkg_xiaojing_weixin_channel --> svc_xiaojingWeixinChannel
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
@@ -496,6 +508,10 @@ flowchart LR
 | `ctx.xiaojingBrowserControl` | `core` | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | - | - | 在一个可移除的产品插件中负责隔离的 Edge 生命周期、有界语义观察、授权检查和 browser_control 工具注册。 |
 | `ctx.xiaojingComputerControl` | `core` | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | - | - | 在一个可移除的产品插件中负责有界的 PowerShell UI Automation helper、观察 ID、授权检查和 computer_control 工具注册。 |
 | `ctx.xiaojingDesktopCompanion` | `core` | [`xiaojing-desktop-companion`](../packages/xiaojing/xiaojing-desktop-companion) | - | - | - | 聚合会话、审批和脱敏的微信生命周期信号，生成可移除桌面小兢集成所使用的不含内容的快照。 |
+| `ctx.xiaojingFinanceCalculations` | `core` | [`xiaojing-finance-calculations`](../packages/xiaojing/xiaojing-finance-calculations) | - | - | - | 在一个可移除的产品插件中负责带版本的中国大陆财税试算规则、精确十进制运算、不可变客户前提和 Finance 专属计算消费端。 |
+| `ctx.xiaojingFinanceDomain` | `core` | [`xiaojing-finance-domain`](../packages/xiaojing/xiaojing-finance-domain) | - | - | - | 在一个可移除的产品插件中负责本地纳税主体档案、revision 安全存储、不可变会话绑定、脱敏投影和 Finance 提示词上下文。 |
+| `ctx.xiaojingFinanceDocuments` | `core` | [`xiaojing-finance-documents`](../packages/xiaojing/xiaojing-finance-documents) | - | - | - | 在一个隔离工作线程中标准化已获授权的 Finance 与普通会话上传文件，再通过各模式专用工具提供有界、带来源位置的文本和 PPTX 图片批次。 |
+| `ctx.xiaojingFinanceEvidence` | `core` | [`xiaojing-finance-evidence`](../packages/xiaojing/xiaojing-finance-evidence) | - | - | - | 为 Finance 预设从已登记的中国大陆官方来源检索受限、带日期状态的依据，不引入本地全文语料库。 |
 | `ctx.xiaojingWeixinChannel` | `core` | [`xiaojing-weixin-channel`](../packages/xiaojing/xiaojing-weixin-channel) | - | - | - | 在可移除的小兢频道集成中负责 iLink 配对、轮询、持久队列、Agent 会话投递和脱敏状态。 |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | 后端保存过大的工具文本，并返回面向模型的定位信息和取回提示；spill-policy 是 tools/post-execute 消费方，负责决定何时 spill。 |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`, `directory-picker-browse` | `apiproxy` | - | 带判别标记的交互能力：原生后端在 Host 显示设备上打开一个操作系统选择器，浏览后端为应用内浏览器提供列表与创建原语；双端后端通过其浏览器侧填充 ui-workspace 目录流程的 slot（不通过协议发布）。 |

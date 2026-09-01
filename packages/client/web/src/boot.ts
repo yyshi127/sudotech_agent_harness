@@ -15,8 +15,14 @@ import { getStaticModules } from './seed.ts'
 import { STATE_LABELS } from './loader-status.ts'
 import './base.css'
 
+/** Maximum time one complete plugin roster may remain unsettled at startup. */
+const CLIENT_PLUGIN_ACTIVATION_TIMEOUT_MS = 60_000
+
 /** Module transport hook replaced by jsdom tests. */
-export type BootSeams = Pick<ClientModuleCreateOptions, 'loadBundle'>
+export type BootSeams = Pick<ClientModuleCreateOptions, 'loadBundle'> & {
+  /** Test and embedded-runtime override for the plugin activation deadline. */
+  activationTimeoutMs?: number
+}
 
 /** Browser boot entry consumed by `apps/web`. */
 export class AppWebEntry {
@@ -70,6 +76,7 @@ export class AppWebEntry {
       const ctx = new Context()
       this.ctx = ctx
       await this.runPluginBoot(ctx, prefetching)
+      assertClientBuildProfileActivated()
       await this.mountApp(ctx)
     } catch (reason) {
       console.error(reason)
@@ -123,19 +130,47 @@ export class AppWebEntry {
 
     const rows = this.manifest.plugins.map(row => row.id)
     this.page.setTotal(rows.length)
-    await prefetching
-    await Promise.all(rows.map(async (name) => {
-      this.page.setState(name, 'loading')
-      const id = await loader.create({ name })
-      if (loader.resolve(id).fiber === undefined) this.page.setState(name, 'failed')
-    }))
-
-    await loader.await()
+    const activation = (async () => {
+      await prefetching
+      await Promise.all(rows.map(async (name) => {
+        this.page.setState(name, 'loading')
+        const id = await loader.create({ name })
+        if (loader.resolve(id).fiber === undefined) this.page.setState(name, 'failed')
+      }))
+      await loader.await()
+    })()
+    await this.awaitActivation(ctx, activation)
     this.assertEntriesActive(ctx)
+  }
+
+  /** Stop an unsettled plugin roster from leaving the boot page spinning forever. */
+  private async awaitActivation(ctx: Context, activation: Promise<void>): Promise<void> {
+    const timeoutMs = this.seams?.activationTimeoutMs ?? CLIENT_PLUGIN_ACTIVATION_TIMEOUT_MS
+    let handle: ReturnType<typeof setTimeout> | undefined
+    const deadline = new Promise<never>((_resolve, reject) => {
+      handle = setTimeout(() => {
+        const failures = this.entryFailures(ctx)
+        const detail = failures.length === 0 ? '' : `\n${failures.join('\n')}`
+        reject(new Error(`web boot: plugin activation timed out after ${String(timeoutMs)} ms${detail}`))
+      }, timeoutMs)
+    })
+    try {
+      await Promise.race([activation, deadline])
+    } finally {
+      if (handle !== undefined) clearTimeout(handle)
+    }
   }
 
   /** Reject entries that failed import/apply or still wait on missing services. */
   private assertEntriesActive(ctx: Context): void {
+    const failures = this.entryFailures(ctx)
+    if (failures.length > 0) {
+      throw new Error(`web boot: ${String(failures.length)} entr${failures.length === 1 ? 'y' : 'ies'} did not activate\n${failures.join('\n')}`)
+    }
+  }
+
+  /** Describe every entry that is not active at the instant of inspection. */
+  private entryFailures(ctx: Context): string[] {
     const failures: string[] = []
     for (const entry of ctx.loader.entries()) {
       const name = entry.options.name
@@ -152,8 +187,24 @@ export class AppWebEntry {
         failures.push(`${name}: ${state}`)
       }
     }
-    if (failures.length > 0) {
-      throw new Error(`web boot: ${String(failures.length)} entr${failures.length === 1 ? 'y' : 'ies'} did not activate\n${failures.join('\n')}`)
-    }
+    return failures
   }
+}
+
+/**
+ * Require the static Web shell and the activated product plugin to identify the same build profile.
+ *
+ * The profile value is compiled into the static shell while the witness is
+ * emitted by the matching dynamic product bundle. Equality proves that a
+ * partial build did not mix artifacts before the renderer replaces the boot
+ * page.
+ */
+export function assertClientBuildProfileActivated(): void {
+  const expected = process.env.DSH_CLIENT_BUILD_PROFILE
+  const actual = document.documentElement.dataset.dshClientBuildProfile
+  if (expected === actual) return
+  throw new Error(
+    `web boot: static Client profile ${JSON.stringify(expected ?? 'none')} does not match activated product profile `
+    + `${JSON.stringify(actual ?? 'none')}; run a complete profile build before starting the application`,
+  )
 }

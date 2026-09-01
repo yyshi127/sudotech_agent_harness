@@ -32,6 +32,7 @@ import type {
   SessionId, SessionSearchResultItem, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import type { createWorkspaceViewStore } from '../stores.ts'
+import type { WorkspaceCategorySnapshot } from '../category-registry.ts'
 
 /**
  * Owner share of the directory-flow holes: the complete conversation between
@@ -91,6 +92,8 @@ export type WorkspaceBrowserInjected = {
   hooks: DirectoryPickingInjected['hooks'] & {
     /** Current generation's Host description, bound by the slot renderer. */
     hostDescription: HostDescriptionSource
+    /** Product-owned workspace categories and their reserved Workspace ids. */
+    workspaceCategories: HostObservable<WorkspaceCategorySnapshot>
   }
   /**
    * Start a New Session in a Workspace: reuse-or-create its blank session and
@@ -137,6 +140,22 @@ export type WorkspaceBrowserInjected = {
   insertSessionBefore: (workspaceId: WorkspaceId, sessionId: SessionId, beforeSessionId?: SessionId) => Promise<void>
   /** Adopt a picked host directory as a real Workspace before targeting a Session. */
   createWorkspace: (input: { path: string }) => Promise<WorkspaceView>
+  /** Activate a product workspace category or one Workspace inside it. */
+  activateWorkspaceCategory: (categoryId: string, workspaceId?: WorkspaceId) => Promise<void>
+  /** Add a selected directory to one product-owned category section. */
+  addWorkspaceToCategory: (
+    categoryId: string,
+    sectionId: string,
+    path: string,
+  ) => Promise<WorkspaceId | undefined>
+  /** Rename a Workspace through its owning product category. */
+  renameWorkspaceInCategory: (
+    categoryId: string,
+    workspaceId: WorkspaceId,
+    title: string,
+  ) => Promise<void>
+  /** Remove a Workspace from its product category while retaining durable data. */
+  removeWorkspaceFromCategory: (categoryId: string, workspaceId: WorkspaceId) => Promise<void>
 }
 
 /** Full browser props: shell owner share + viewing store + injected actions + the locale seat. */
@@ -153,10 +172,17 @@ export type WorkspaceBrowserProps =
  * callback; this callback creates only the real Host Workspace. A type alias
  * supplies the implicit index signature required by the registry.
  */
-export type WorkspacePickerInjected = DirectoryPickingInjected & {
+export type WorkspacePickerInjected = {
+  hooks: DirectoryPickingInjected['hooks'] & {
+    /** Product-owned workspace categories and the category selected by the current mode. */
+    workspaceCategories: HostObservable<WorkspaceCategorySnapshot>
+  }
   /** Adopt a picked host directory as a real Workspace before targeting a Session. */
   createWorkspace: (input: { path: string }) => Promise<WorkspaceView>
 }
+
+/** Component-side picker hooks bound from every injected observable. */
+export type WorkspacePickerHooks = PropsHooks<WorkspacePickerInjected['hooks']>
 
 /**
  * Full picker props: the owner share plus the creation callback and the
@@ -167,5 +193,5 @@ export type WorkspacePickerProps =
   PropsRuntime<'conversation.hero.workspace'>
   & PropsRenderSlots<'conversation.hero.workspace.directoryFlow'>
   & Omit<WorkspacePickerInjected, 'hooks'>
-  & DirectoryPickingHooks
+  & WorkspacePickerHooks
   & PropsLocale<'workspace'>

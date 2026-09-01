@@ -43,10 +43,32 @@ const expectedFinanceRules = {
   presetRoot: 'apps/cli/config/xiaojing-agent-presets',
   durableRoot: 'harness/finance',
   compatibilityAdapter: 'src/compat.ts',
-  skills: [{
-    name: 'china-tax-official-research',
-    path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/china-tax-official-research/SKILL.md',
-  }],
+  skills: [
+    {
+      name: 'finance-tax-research-cn',
+      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-tax-research-cn/SKILL.md',
+    },
+    {
+      name: 'finance-document-reading',
+      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-document-reading/SKILL.md',
+    },
+    {
+      name: 'finance-invoice-review',
+      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-invoice-review/SKILL.md',
+    },
+    {
+      name: 'finance-voucher-draft',
+      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-voucher-draft/SKILL.md',
+    },
+    {
+      name: 'finance-data-analysis',
+      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-data-analysis/SKILL.md',
+    },
+    {
+      name: 'finance-reimbursement',
+      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-reimbursement/SKILL.md',
+    },
+  ],
   host: {
     directory: 'packages/xiaojing',
     packagePrefix: '@deepseek-ai/dsh-xiaojing-finance-',
@@ -114,9 +136,38 @@ if (!Array.isArray(standardRows) || !Array.isArray(financeRows)) {
     || JSON.stringify(financeSkillRow?.config) !== JSON.stringify(expectedFinanceSkillConfig)) {
     errors.push('Finance模式 must add only its product-owned skill root to the Standard skill provider')
   }
+  const financeFileRows = financeCapabilities.filter(row => row?.id === 'finance-files')
+  if (financeFileRows.length !== 1
+    || financeFileRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-domain/files-tool') {
+    errors.push('Finance模式 must load exactly one Xiaojing Finance controlled-file consumer')
+  }
+  const financeEvidenceRows = financeCapabilities.filter(row => row?.id === 'finance-evidence')
+  if (financeEvidenceRows.length !== 1
+    || financeEvidenceRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-evidence/tool') {
+    errors.push('Finance模式 must load exactly one Xiaojing official-evidence consumer')
+  }
+  const financeCalculationRows = financeCapabilities.filter(row => row?.id === 'finance-calculations')
+  if (financeCalculationRows.length !== 1
+    || financeCalculationRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-calculations/tool') {
+    errors.push('Finance模式 must load exactly one Xiaojing deterministic-calculation consumer')
+  }
+  const financeDocumentRows = financeCapabilities.filter(row => row?.id === 'finance-documents')
+  if (financeDocumentRows.length !== 1
+    || financeDocumentRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-documents/tool') {
+    errors.push('Finance模式 must load exactly one Xiaojing document-normalization consumer')
+  }
   const normalizedFinanceCapabilities = financeCapabilities.map(row => (
     row?.id === 'skill-filesystem' ? standardSkillRow : row
-  ))
+  )).filter(row => row?.id !== 'finance-client-context'
+    && row?.id !== 'finance-files'
+    && row?.id !== 'finance-calculations'
+    && row?.id !== 'finance-evidence'
+    && row?.id !== 'finance-documents')
+  const financeClientContextRows = financeCapabilities.filter(row => row?.id === 'finance-client-context')
+  if (financeClientContextRows.length !== 1
+    || financeClientContextRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-domain/context') {
+    errors.push('Finance模式 must load exactly one Xiaojing Finance client-context consumer')
+  }
   if (JSON.stringify(normalizedFinanceCapabilities) !== JSON.stringify(standardCapabilities)) {
     errors.push('Finance模式 capabilities drifted from Standard mode outside its product skill root')
   }
@@ -126,7 +177,8 @@ if (!Array.isArray(standardRows) || !Array.isArray(financeRows)) {
     || financePersona?.name !== '@deepseek-ai/dsh-persona'
     || typeof financePersona?.config?.text !== 'string'
     || !financePersona.config.text.includes('Finance模式')
-    || !financePersona.config.text.includes('待核验')) {
+    || !financePersona.config.text.includes('待核验')
+    || !financePersona.config.text.includes('finance_document')) {
     errors.push('Finance模式 must own one finance-specific, verification-aware persona row')
   }
 }
@@ -138,11 +190,18 @@ for (const skill of financeExtension?.skills ?? []) {
     continue
   }
   const source = await readFile(join(root, skill.path), 'utf8')
-  if (!source.startsWith(`---\nname: ${skill.name}\n`)
-    || !source.includes('fgk.chinatax.gov.cn')
-    || !source.includes('flk.npc.gov.cn')
-    || !source.includes('待核验')) {
-    errors.push(`Finance skill ${skill.name} is missing its official-source verification rules`)
+  if (!source.startsWith(`---\nname: ${skill.name}\n`)) {
+    errors.push(`Finance skill ${skill.name} has invalid metadata`)
+  } else if (skill.name === 'finance-tax-research-cn'
+    && (!source.includes('fgk.chinatax.gov.cn')
+      || !source.includes('flk.npc.gov.cn')
+      || !source.includes('待核验'))) {
+    errors.push('Finance official-research skill is missing its verification rules')
+  } else if (skill.name === 'finance-document-reading'
+    && (!source.includes('finance_document')
+      || !source.includes('vision-required')
+      || !source.includes('Do not use shell'))) {
+    errors.push('Finance document-reading skill is missing its deterministic reading rules')
   }
 }
 const financeMetadata = load(await readFile(
@@ -199,6 +258,7 @@ function nestedRows(entries, rows = []) {
     if (typeof entry !== 'object' || entry === null) continue
     rows.push(entry)
     if (Array.isArray(entry.config)) nestedRows(entry.config, rows)
+    if (Array.isArray(entry.insert)) nestedRows(entry.insert, rows)
   }
   return rows
 }
@@ -214,6 +274,21 @@ const composition = await readFile(join(root, 'packages', 'bundle', 'web-app', '
 const parsedComposition = load(composition, { schema: entrySchema })
 const compositionRows = nestedRows(parsedComposition)
 const webAppManifest = JSON.parse(await readFile(join(root, 'packages', 'bundle', 'web-app', 'package.json'), 'utf8'))
+const financeCalculationsHostRow = compositionRows.find(row => row.id === 'xiaojing-finance-calculations')
+if (financeCalculationsHostRow?.name !== '@deepseek-ai/dsh-xiaojing-finance-calculations'
+  || financeCalculationsHostRow?.disabled?.__jsExpr !== "process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'") {
+  errors.push('Finance deterministic-calculation Host must be isolated to the Xiaojing build profile')
+}
+const financeEvidenceHostRow = compositionRows.find(row => row.id === 'xiaojing-finance-evidence')
+if (financeEvidenceHostRow?.name !== '@deepseek-ai/dsh-xiaojing-finance-evidence'
+  || financeEvidenceHostRow?.disabled?.__jsExpr !== "process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'") {
+  errors.push('Finance official-evidence Host must be isolated to the Xiaojing build profile')
+}
+const financeDocumentsHostRow = compositionRows.find(row => row.id === 'xiaojing-finance-documents')
+if (financeDocumentsHostRow?.name !== '@deepseek-ai/dsh-xiaojing-finance-documents'
+  || financeDocumentsHostRow?.disabled?.__jsExpr !== "process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'") {
+  errors.push('Finance document-normalization Host must be isolated to the Xiaojing build profile')
+}
 for (const path of [...manifest.assets, ...manifest.desktopManifests]) {
   await readFile(join(root, path))
 }
@@ -354,6 +429,10 @@ if (!desktopMain.includes("window.on('close'")
 const buildEnvironment = await readFile(join(root, 'scripts', 'client-build-environment.ts'), 'utf8')
 if (!buildEnvironment.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
   errors.push('xiaojing client build profile is missing')
+}
+const buildOrchestrator = await readFile(join(root, 'scripts', 'build.ts'), 'utf8')
+if (!buildOrchestrator.includes("parentEnvironment[CLIENT_BUILD_PROFILE_SELECTOR]\n    ?? 'xiaojing'")) {
+  errors.push('the default complete build no longer selects the xiaojing client profile')
 }
 
 if (errors.length > 0) {

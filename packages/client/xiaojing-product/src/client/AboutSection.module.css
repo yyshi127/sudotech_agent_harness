@@ -69,6 +69,16 @@
   font-weight: 700;
 }
 
+.release {
+  display: grid;
+  gap: 12px;
+}
+
+.release + .release {
+  padding-top: 24px;
+  border-top: 1px solid #d9ebe7;
+}
+
 .releaseHeading {
   display: flex;
   align-items: end;
@@ -97,7 +107,7 @@
 
 .features li {
   display: grid;
-  grid-template-columns: 34px 1fr;
+  grid-template-columns: 42px 1fr;
   align-items: start;
   gap: 12px;
   min-height: 76px;
@@ -111,7 +121,7 @@
 .features li > span {
   display: grid;
   place-items: center;
-  width: 32px;
+  width: 40px;
   height: 32px;
   border-radius: 9px;
   color: #087e6f;

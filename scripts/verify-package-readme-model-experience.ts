@@ -95,6 +95,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/client/ui-weixin-channel': { kind: 'none', reason: 'Browser-side Weixin connection presentation; registers nothing model-facing.' },
   'packages/client/ui-desktop-companion': { kind: 'none', reason: 'Browser-side desktop-companion presentation; registers nothing model-facing.' },
   'packages/client/ui-xiaojing-browser-control': { kind: 'none', reason: 'Browser-side browser preference presentation; registers nothing model-facing.' },
+  'packages/client/ui-xiaojing-finance-clients': { kind: 'indirect', reason: 'Browser-side staging delegates durable binding and model rendering to xiaojing-finance-domain.' },
   'packages/client/ui-settings': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-settings-general': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },
   'packages/client/ui-settings-models': { kind: 'none', reason: 'Browser-side UI plugin layer; registers nothing model-facing.' },

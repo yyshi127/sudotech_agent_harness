@@ -44,6 +44,7 @@ The browser side of the dsh web GUI: shell boot, browser-host communication, sha
 | [`ui-settings-general/`](ui-settings-general/README.md) | Provides the general settings section. |
 | [`ui-settings-models/`](ui-settings-models/README.md) | Provides model-provider configuration and DeepSeek onboarding. |
 | [`ui-usage-accounting/`](ui-usage-accounting/README.md) | Shows today's local usage and the current-month usage calendar. |
+| [`ui-xiaojing-finance-clients/`](ui-xiaojing-finance-clients/README.md) | Manages local Finance clients, dedicated workspace routing, and immutable per-session context. |
 | [`ui-weixin-channel/`](ui-weixin-channel/README.md) | Presents Xiaojing Weixin pairing and connection controls in settings. |
 | [`ui-xiaojing-browser-control/`](ui-xiaojing-browser-control/README.md) | Presents the removable Xiaojing Microsoft Edge automation page. |
 | [`ui-settings-plugin-inventory/`](ui-settings-plugin-inventory/README.md) | Contributes the read-only Host Loader inventory tab to Plugins settings. |

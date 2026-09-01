@@ -8,6 +8,7 @@ import { OfficialBrandMark, OfficialBrandName } from '../src/client/Brand.tsx'
 
 afterEach(() => {
   cleanup()
+  delete document.documentElement.dataset.dshClientBuildProfile
   vi.unstubAllEnvs()
 })
 
@@ -47,6 +48,7 @@ describe('official browser-brand plugin', () => {
     const fiber = before.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     for (const hole of HOLES) expect(before.slots.entries(hole)).toHaveLength(1)
+    expect(document.documentElement.dataset.dshClientBuildProfile).toBe('official')
 
     before.disposeHoles?.()
     for (const hole of HOLES) expect(before.slots.entries(hole)).toHaveLength(0)
@@ -56,6 +58,7 @@ describe('official browser-brand plugin', () => {
 
     await fiber.dispose()
     for (const hole of HOLES) expect(before.slots.entries(hole)).toHaveLength(0)
+    expect(document.documentElement.dataset.dshClientBuildProfile).toBeUndefined()
 
     const after = await bench(false)
     await after.ctx.plugin({ inject: [...inject], apply }).await()

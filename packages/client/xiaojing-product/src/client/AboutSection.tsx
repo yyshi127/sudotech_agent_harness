@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { useApplicationVersion } from './application-info.ts'
 import type { XiaojingProductKey } from './locales.ts'
+import { XIAOJING_RELEASE_HISTORY } from './release-history.ts'
 import css from './AboutSection.module.css'
 
 /** Product copy injected into the About settings section. */
@@ -14,16 +15,7 @@ export interface AboutSectionInjected {
 /** Complete About settings-section props. */
 export type AboutSectionProps = PropsRuntime<'settings.section'> & InjectFace<AboutSectionInjected>
 
-const FEATURE_KEYS = [
-  'featureVision',
-  'featureWeixin',
-  'featureEdge',
-  'featureUsage',
-  'featureVisualize',
-  'featureCompanion',
-] as const
-
-/** Render the Xiaojing version and current release highlights. */
+/** Render the Xiaojing version and newest-first incremental release history. */
 export function AboutSection({ t }: AboutSectionProps): ReactNode {
   const version = useApplicationVersion()
   return (
@@ -40,22 +32,26 @@ export function AboutSection({ t }: AboutSectionProps): ReactNode {
         <span className={css.version}>{t('version')} v{version}</span>
       </header>
 
-      <div className={css.releaseHeading}>
-        <div>
-          <p>{t('releaseEyebrow')}</p>
-          <h3>v{version} {t('releaseTitle')}</h3>
-        </div>
-        <span>{FEATURE_KEYS.length} {t('features')}</span>
-      </div>
+      {XIAOJING_RELEASE_HISTORY.map((release, releaseIndex) => (
+        <section className={css.release} data-release-version={release.version} key={release.version}>
+          <div className={css.releaseHeading}>
+            <div>
+              <p>{t(releaseIndex === 0 ? 'releaseEyebrow' : 'historyEyebrow')}</p>
+              <h3>v{release.version} {t('releaseTitle')}</h3>
+            </div>
+            <span>{release.features.length} {t('features')}</span>
+          </div>
 
-      <ol className={css.features}>
-        {FEATURE_KEYS.map((key, index) => (
-          <li key={key}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <p>{t(key)}</p>
-          </li>
-        ))}
-      </ol>
+          <ol className={css.features}>
+            {release.features.map(feature => (
+              <li key={feature.label}>
+                <span>{feature.label}</span>
+                <p>{t(feature.copyKey)}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
     </section>
   )
 }

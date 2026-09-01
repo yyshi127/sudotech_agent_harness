@@ -2449,6 +2449,208 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'xiaojingFinanceCalculations',
+    summary: 'Host service consumed only by the Finance preset\'s calculation tool.',
+    description: 'Host service consumed only by the Finance preset\'s calculation tool.',
+    methods: [
+      {
+        signature: 'calculate(agent: Agent, request: FinanceCalculationRequest): FinanceCalculationResult',
+        description: 'Calculate one Finance trial result using explicit inputs and immutable client assumptions.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'request', description: 'Explicit calculation request.' }],
+        returns: 'Auditable deterministic result.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceDocuments',
+    summary: 'Host service exposed only through the Finance preset\'s document tool.',
+    description: 'Host service exposed only through the Finance preset\'s document tool.',
+    methods: [
+      {
+        signature: 'async listDocuments(agent: Agent, signal?: AbortSignal): Promise<FinanceDocumentListItem[]>',
+        description: 'List and normalize original-material imports in the calling Finance session.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'signal', description: 'Caller cancellation signal; shared warming remains useful after cancellation.' }],
+        returns: 'Imported document states in event order.',
+      },
+      {
+        signature: 'async readDocument( agent: Agent, documentId: FinanceManagedFileId, cursor: number = 0, signal?: AbortSignal, ): Promise<FinanceDocumentReadResult>',
+        description: 'Read one bounded page of normalized content from the calling Finance session.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'documentId', description: 'Session import identity returned by {@link listDocuments}.' }, { name: 'cursor', description: 'Zero-based normalized-unit cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Paginated normalized content.',
+      },
+      {
+        signature: 'async readDocumentVisuals( agent: Agent, documentId: FinanceManagedFileId, cursor: number = 0, signal?: AbortSignal, ): Promise<FinanceDocumentVisualReadResult>',
+        description: 'Read one bounded document-image page from the calling Finance session.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'documentId', description: 'Session import identity returned by {@link listDocuments}.' }, { name: 'cursor', description: 'Zero-based document-image cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Durable native-vision attachments and their slide locations.',
+      },
+      {
+        signature: 'async listGeneralDocuments(agent: Agent, signal?: AbortSignal): Promise<XiaojingDocumentListItem[]>',
+        description: 'List deterministic document states for the calling ordinary session.',
+        parameters: [{ name: 'agent', description: 'Calling non-Finance agent.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Current-session uploads in durable user-message order.',
+      },
+      {
+        signature: 'async readGeneralDocument( agent: Agent, documentId: XiaojingDocumentId, cursor: number = 0, signal?: AbortSignal, ): Promise<XiaojingDocumentReadResult>',
+        description: 'Read normalized text from one upload introduced by the calling ordinary session.',
+        parameters: [{ name: 'agent', description: 'Calling non-Finance agent.' }, { name: 'documentId', description: 'Opaque identity returned by {@link listGeneralDocuments}.' }, { name: 'cursor', description: 'Zero-based normalized-unit cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Paginated normalized content.',
+      },
+      {
+        signature: 'async readGeneralDocumentVisuals( agent: Agent, documentId: XiaojingDocumentId, cursor: number = 0, signal?: AbortSignal, ): Promise<XiaojingDocumentVisualReadResult>',
+        description: 'Read document images from one upload introduced by the calling ordinary session.',
+        parameters: [{ name: 'agent', description: 'Calling non-Finance agent.' }, { name: 'documentId', description: 'Opaque identity returned by {@link listGeneralDocuments}.' }, { name: 'cursor', description: 'Zero-based document-image cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Durable native-vision attachments and their slide locations.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceDomain',
+    summary: 'Host service owning local client CRUD, pre-turn staging, and durable session binding.',
+    description: 'Host service owning local client CRUD, pre-turn staging, and durable session binding.',
+    methods: [
+      {
+        signature: '@Remote(\'list\') list(): Promise<FinanceClientListView>',
+        description: 'List local client summaries.',
+        parameters: [],
+        returns: 'Current catalog revision and rows.',
+      },
+      {
+        signature: '@Remote(\'workspaces\') async workspaces(): Promise<FinanceWorkspaceListView>',
+        description: 'List standard and customer Workspaces owned by Finance.',
+        parameters: [],
+        returns: 'Browser-safe Workspace identities in customer-catalog order.',
+      },
+      {
+        signature: '@Remote(\'addConsultationWorkspace\') async addConsultationWorkspace( request: AddFinanceConsultationWorkspaceRequest, ): Promise<FinanceGeneralWorkspaceEntry>',
+        description: 'Register one user-selected Finance consultation Workspace.',
+        parameters: [{ name: 'request', description: 'Directory selected through the local folder picker.' }],
+        returns: 'Browser-safe Finance Workspace entry.',
+      },
+      {
+        signature: '@Remote(\'renameWorkspace\') async renameWorkspace(request: RenameFinanceWorkspaceRequest): Promise<FinanceWorkspaceEntry>',
+        description: 'Rename one Finance-owned Workspace without changing its directory or client record.',
+        parameters: [{ name: 'request', description: 'Workspace identity and new sidebar title.' }],
+        returns: 'Updated browser-safe Workspace entry.',
+      },
+      {
+        signature: '@Remote(\'removeWorkspace\') async removeWorkspace(request: RemoveFinanceWorkspaceRequest): Promise<FinanceWorkspaceEntry>',
+        description: 'Remove one Finance-owned Workspace from product lists without deleting durable data.',
+        parameters: [{ name: 'request', description: 'Workspace selected in the Finance sidebar.' }],
+        returns: 'The detached browser-safe Workspace entry.',
+      },
+      {
+        signature: '@Remote(\'restoreClientWorkspace\') async restoreClientWorkspace( request: RestoreFinanceClientWorkspaceRequest, ): Promise<FinanceClientWorkspaceEntry | null>',
+        description: 'Restore a removed client Workspace when its existing directory is selected again.',
+        parameters: [{ name: 'request', description: 'Directory selected through the local folder picker.' }],
+        returns: 'Restored client Workspace, or null when the directory is not an existing client.',
+      },
+      {
+        signature: '@Remote(\'read\') read(clientId: FinanceClientId): Promise<FinanceClientReadView>',
+        description: 'Read full local client detail.',
+        parameters: [{ name: 'clientId', description: 'Client identity.' }],
+        returns: 'Full loopback-only record.',
+      },
+      {
+        signature: '@Remote(\'create\') async create(request: CreateFinanceClientRequest): Promise<FinanceClientMutationResult>',
+        description: 'Create one client.',
+        parameters: [{ name: 'request', description: 'Expected revision and fields.' }],
+        returns: 'Mutation result.',
+      },
+      {
+        signature: '@Remote(\'update\') async update(request: UpdateFinanceClientRequest): Promise<FinanceClientMutationResult>',
+        description: 'Replace one active client.',
+        parameters: [{ name: 'request', description: 'Client, revision, and fields.' }],
+        returns: 'Mutation result.',
+      },
+      {
+        signature: '@Remote(\'archive\') async archive(request: ArchiveFinanceClientRequest): Promise<FinanceClientMutationResult>',
+        description: 'Archive one active client.',
+        parameters: [{ name: 'request', description: 'Client and expected revision.' }],
+        returns: 'Mutation result.',
+      },
+      {
+        signature: '@Remote(\'stage\') async stage(agent: Agent, request: StageFinanceClientRequest): Promise<FinanceSessionContextView>',
+        description: 'Stage a general or client-specific context before the first turn.',
+        parameters: [{ name: 'agent', description: 'Target live agent.' }, { name: 'request', description: 'Selection.' }],
+        returns: 'Current UI state.',
+      },
+      {
+        signature: '@Remote(\'sessionContext\') async sessionContext(agent: Agent): Promise<FinanceSessionContextView>',
+        description: 'Read the sanitized Finance context state for one session.',
+        parameters: [{ name: 'agent', description: 'Target live agent.' }],
+        returns: 'UI state.',
+      },
+      {
+        signature: 'async promptContext(agent: Agent): Promise<string>',
+        description: 'Resolve and durably bind the model-visible Finance context for one request.',
+        parameters: [{ name: 'agent', description: 'Finance agent addressing a model.' }],
+        returns: 'Logged context text.',
+      },
+      {
+        signature: '@Remote(\'importUpload\') async importUpload(agent: Agent, request: ImportFinanceUploadRequest): Promise<FinanceImportedFile>',
+        description: 'Register one completed local upload in the current Finance context.',
+        parameters: [{ name: 'agent', description: 'Finance agent whose consultation session or client selection owns the upload.' }, { name: 'request', description: 'Upload-service path and browser filename.' }],
+        returns: 'Session-scoped consultation record or committed client original-material record.',
+      },
+      {
+        signature: 'localUploadRoot(): string',
+        description: 'Return the Host-configured directory that owns general-consultation uploads.',
+        parameters: [],
+        returns: 'Absolute local upload directory.',
+      },
+      {
+        signature: 'async publishFile(agent: Agent, request: PublishFinanceFileRequest): Promise<FinanceManagedFile>',
+        description: 'Publish one file from the current session work directory.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent.' }, { name: 'request', description: 'Session-work path and optional output name.' }],
+        returns: 'Committed formal-output record.',
+      },
+      {
+        signature: 'async archiveFile(agent: Agent, request: ArchiveFinanceFileRequest): Promise<FinanceManagedFile>',
+        description: 'Archive one managed client file without removing its source.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent.' }, { name: 'request', description: 'Managed source and optional archive name.' }],
+        returns: 'Committed archive record.',
+      },
+      {
+        signature: 'requireBoundClient(agent: Agent): FinanceClientBinding',
+        description: 'Require an immutable bound client for a client-specific Finance service.',
+        parameters: [{ name: 'agent', description: 'Finance agent.' }],
+        returns: 'Durable binding.',
+      },
+      {
+        signature: 'currentClientBinding(agent: Agent): FinanceClientBinding | undefined',
+        description: 'Read the immutable client binding when the Finance session has one.',
+        parameters: [{ name: 'agent', description: 'Finance agent.' }],
+        returns: 'Detached binding, or undefined for consultation sessions.',
+      },
+      {
+        signature: 'async requireBoundClientWorkspace(agent: Agent): Promise<{ binding: FinanceClientBinding workspace: FinanceClientWorkspace }>',
+        description: 'Require a bound client and ensure its workspace directories exist.',
+        parameters: [{ name: 'agent', description: 'Finance agent.' }],
+        returns: 'Immutable binding and client workspace paths.',
+      },
+      {
+        signature: 'isFinanceAgent(agent: Agent): boolean',
+        description: 'Whether a live agent is composed from Finance.',
+        parameters: [{ name: 'agent', description: 'Agent to inspect.' }],
+        returns: 'Finance membership.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceEvidence',
+    summary: 'Host service used only by the Finance preset\'s evidence tool.',
+    description: 'Host service used only by the Finance preset\'s evidence tool.',
+    methods: [
+      {
+        signature: 'research(agent: Agent, request: FinanceEvidenceRequest, signal?: AbortSignal): Promise<FinanceEvidenceResult>',
+        description: 'Research official evidence for one Finance agent.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'request', description: 'Research request.' }, { name: 'signal', description: 'Cancellation signal.' }],
+        returns: 'Auditable evidence result.',
+      },
+    ],
+  },
+  {
     key: 'xiaojingWeixinChannel',
     summary: 'Stateful Host adapter; exported for assembled integration tests.',
     description: 'Stateful Host adapter; exported for assembled integration tests.',
@@ -2977,6 +3179,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AdapterRegistrationHandle {\n    (): void;\n    replace(providers: string[]): void;\n}',
   },
   {
+    name: 'AddFinanceConsultationWorkspaceRequest',
+    declaration: 'export interface AddFinanceConsultationWorkspaceRequest {\n    path: string;\n}',
+  },
+  {
     name: 'Agent',
     declaration: 'export interface Agent {\n    readonly id: SessionId;\n    readonly options: AgentOptions;\n    readonly session: Session;\n    readonly inbox: Inbox;\n    readonly status: AgentStatus;\n    readonly ctx: Context;\n    cancel(cause: AgentCancelCause, options?: CancelOptions): void;\n    whenIdle(): Promise<void>;\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n    send(message: UserMessage, target: InboxTarget, wakeup: boolean): void;\n    followup(message: UserMessage): void;\n    steer(message: UserMessage): void;\n    inject(message: UserMessage): void;\n}',
   },
@@ -3031,6 +3237,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ApprovalService',
     declaration: 'export class ApprovalService extends Service {\n    static Config: z<Config>;\n    constructor(ctx: Context, public config: Config);\n    setPolicy(agent: Agent, policy: ApprovalPolicy): void;\n    async request(req: ApprovalRequest): Promise<ApprovalOutcome>;\n    async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>;\n    overrideOf(session: Session): ApprovalPolicy | undefined;\n}',
+  },
+  {
+    name: 'ArchiveFinanceClientRequest',
+    declaration: 'export interface ArchiveFinanceClientRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n}',
+  },
+  {
+    name: 'ArchiveFinanceFileRequest',
+    declaration: 'export interface ArchiveFinanceFileRequest {\n    sourcePath: string;\n    preferredName?: string;\n}',
   },
   {
     name: 'AskUserQuestionAnswer',
@@ -3433,6 +3647,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
+    name: 'CreateFinanceClientRequest',
+    declaration: 'export interface CreateFinanceClientRequest {\n    expectedRevision: number;\n    client: FinanceClientDraft;\n    workspacePath: string;\n}',
+  },
+  {
     name: 'CreateGoalRequest',
     declaration: 'export interface CreateGoalRequest {\n    readonly objective: string;\n    readonly maxGoalRounds?: number;\n}',
   },
@@ -3499,6 +3717,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DirectoryRegistrationHandle',
     declaration: 'export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}',
+  },
+  {
+    name: 'DocumentListItem',
+    declaration: 'export interface DocumentListItem<TId extends string> {\n    documentId: TId;\n    name: string;\n    kind: FinanceDocumentKind;\n    status: FinanceDocumentStatus;\n    summary: FinanceDocumentSummary;\n    warnings: string[];\n}',
+  },
+  {
+    name: 'DocumentReadResult',
+    declaration: 'export interface DocumentReadResult<TId extends string> extends DocumentListItem<TId> {\n    cursor: number;\n    units: FinanceDocumentUnit[];\n    nextCursor?: number;\n}',
+  },
+  {
+    name: 'DocumentVisualItem',
+    declaration: 'export interface DocumentVisualItem {\n    attachment: ImageAttachmentRef;\n    locator: string;\n}',
+  },
+  {
+    name: 'DocumentVisualReadResult',
+    declaration: 'export interface DocumentVisualReadResult<TId extends string> extends DocumentListItem<TId> {\n    cursor: number;\n    visuals: DocumentVisualItem[];\n    nextCursor?: number;\n}',
   },
   {
     name: 'Domain',
@@ -3595,6 +3829,214 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'FileReferenceCandidate',
     declaration: 'export interface FileReferenceCandidate {\n    path: string;\n    kind: \'file\' | \'directory\';\n}',
+  },
+  {
+    name: 'FinanceAccountingStandard',
+    declaration: 'export type FinanceAccountingStandard = \'enterprise\' | \'small-enterprise\' | \'government\' | \'nonprofit\' | \'other\';',
+  },
+  {
+    name: 'FinanceCalculationKind',
+    declaration: 'export type FinanceCalculationKind = \'vat\' | \'vat-surcharges\' | \'enterprise-income-tax\' | \'salary-iit\';',
+  },
+  {
+    name: 'FinanceCalculationRequest',
+    declaration: 'export interface FinanceCalculationRequest {\n    calculation: FinanceCalculationKind;\n    asOfDate: string;\n    taxpayerType?: FinanceTaxpayerType;\n    taxExclusiveSales?: string;\n    vatRatePercent?: \'13\' | \'9\' | \'6\';\n    deductibleInputVat?: string;\n    priorVatCredit?: string;\n    filingFrequency?: FinanceFilingFrequency;\n    mandatoryTaxableSales?: string;\n    applySmallScaleOnePercent?: boolean;\n    paidVat?: string;\n    paidConsumptionTax?: string;\n    urbanMaintenanceTaxRatePercent?: \'7\' | \'5\' | \'1\';\n    applySixTaxTwoFeeHalfReduction?: boolean;\n    cumulativeTaxableIncome?: string;\n    priorPrepaidEnterpriseIncomeTax?: string;\n    smallLowProfitEnterprise?: boolean;\n    restrictedOrProhibitedIndustry?: boolean;\n    employeeCount?: number;\n    totalAssets?: string;\n    cumulativeIncome?: string;\n    cumulativeTaxExemptIncome?: string;\n    monthsEmployed?: number;\n    cumulativeSpecialDeductions?: string;\n    cumulativeAdditionalDeductions?: string;\n    cumulativeOtherDeductions?: string;\n    cumulativeTaxRelief?: string;\n    cumulativeTaxWithheld?: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationResult',
+    declaration: 'export interface FinanceCalculationResult {\n    status: \'complete\' | \'needs-input\' | \'unsupported\';\n    calculation: FinanceCalculationKind;\n    asOfDate: string;\n    ruleSetVersion: string;\n    taxpayerType?: FinanceTaxpayerType;\n    taxpayerTypeSource: \'request\' | \'client\' | \'none\';\n    inputs: FinanceCalculationValue[];\n    steps: FinanceCalculationStep[];\n    outputs: FinanceCalculationValue[];\n    missingInputs: string[];\n    invalidInputs: string[];\n    assumptions: string[];\n    warnings: string[];\n    rounding: string;\n    rules: FinanceCalculationRuleReference[];\n    disclaimer: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationRuleReference',
+    declaration: 'export interface FinanceCalculationRuleReference {\n    id: string;\n    title: string;\n    documentNumber?: string;\n    effectiveFrom: string;\n    effectiveTo?: string;\n    url: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationStep',
+    declaration: 'export interface FinanceCalculationStep {\n    label: string;\n    expression: string;\n    result: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationValue',
+    declaration: 'export interface FinanceCalculationValue {\n    name: string;\n    label: string;\n    value: string;\n    unit: \'元\' | \'%\' | \'月\' | \'人\' | \'布尔\' | \'文本\';\n    source: \'request\' | \'client\' | \'rule\';\n}',
+  },
+  {
+    name: 'FinanceChartMapping',
+    declaration: 'export interface FinanceChartMapping {\n    localAccountCode: string;\n    externalAccountCode: string;\n}',
+  },
+  {
+    name: 'FinanceClientBinding',
+    declaration: 'export interface FinanceClientBinding {\n    schemaVersion: 1;\n    clientVersion: number;\n    client: FinanceClientSnapshot;\n    workspacePath: string;\n}',
+  },
+  {
+    name: 'FinanceClientDraft',
+    declaration: 'export interface FinanceClientDraft {\n    legalName: string;\n    shortName?: string;\n    unifiedSocialCreditCode?: string;\n    taxpayerType: FinanceTaxpayerType;\n    registeredRegion: string;\n    accountingStandard: FinanceAccountingStandard;\n    industry?: string;\n    financePolicyNotes?: string;\n    chartMappings: FinanceChartMapping[];\n    externalSystemRefs: FinanceExternalSystemRef[];\n}',
+  },
+  {
+    name: 'FinanceClientId',
+    declaration: 'export type FinanceClientId = Branded<\'FinanceClientId\'>;',
+  },
+  {
+    name: 'FinanceClientListView',
+    declaration: 'export interface FinanceClientListView {\n    revision: number;\n    clients: FinanceClientSummary[];\n}',
+  },
+  {
+    name: 'FinanceClientMutationResult',
+    declaration: 'export interface FinanceClientMutationResult {\n    revision: number;\n    client: FinanceClientRecord;\n}',
+  },
+  {
+    name: 'FinanceClientReadView',
+    declaration: 'export interface FinanceClientReadView {\n    revision: number;\n    client: FinanceClientRecord;\n}',
+  },
+  {
+    name: 'FinanceClientRecord',
+    declaration: 'export interface FinanceClientRecord extends FinanceClientDraft {\n    id: FinanceClientId;\n    version: number;\n    status: \'active\' | \'archived\';\n    workspacePath: string;\n    createdAt: number;\n    updatedAt: number;\n    archivedAt?: number;\n}',
+  },
+  {
+    name: 'FinanceClientSnapshot',
+    declaration: 'export type FinanceClientSnapshot = Readonly<FinanceClientDraft & {\n    id: FinanceClientId;\n}>;',
+  },
+  {
+    name: 'FinanceClientSummary',
+    declaration: 'export interface FinanceClientSummary {\n    id: FinanceClientId;\n    legalName: string;\n    shortName?: string;\n    taxpayerType: FinanceTaxpayerType;\n    registeredRegion: string;\n    accountingStandard: FinanceAccountingStandard;\n    version: number;\n    status: \'active\' | \'archived\';\n}',
+  },
+  {
+    name: 'FinanceClientWorkspace',
+    declaration: 'export interface FinanceClientWorkspace {\n    clientRoot: string;\n    profileDirectory: string;\n    policyDirectory: string;\n    sourceDirectory: string;\n    sessionWorkDirectory: string;\n    outputDirectory: string;\n    archiveDirectory: string;\n}',
+  },
+  {
+    name: 'FinanceClientWorkspaceEntry',
+    declaration: 'export type FinanceClientWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'client\';\n    clientId: FinanceClientId;\n};',
+  },
+  {
+    name: 'FinanceConsultationFile',
+    declaration: 'export interface FinanceConsultationFile {\n    id: FinanceManagedFileId;\n    sessionId: string;\n    path: string;\n    name: string;\n    sha256: string;\n    size: number;\n    createdAt: number;\n}',
+  },
+  {
+    name: 'FinanceConsultationWorkspaceEntry',
+    declaration: 'export type FinanceConsultationWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'consultation\';\n};',
+  },
+  {
+    name: 'FinanceDocumentKind',
+    declaration: 'export type FinanceDocumentKind = \'pdf\' | \'docx\' | \'xlsx\' | \'pptx\' | \'xml\' | \'ofd\' | \'csv\' | \'txt\' | \'image\' | \'unsupported\';',
+  },
+  {
+    name: 'FinanceDocumentListItem',
+    declaration: 'export type FinanceDocumentListItem = DocumentListItem<FinanceManagedFileId>;',
+  },
+  {
+    name: 'FinanceDocumentReadResult',
+    declaration: 'export type FinanceDocumentReadResult = DocumentReadResult<FinanceManagedFileId>;',
+  },
+  {
+    name: 'FinanceDocumentStatus',
+    declaration: 'export type FinanceDocumentStatus = \'parsed\' | \'vision-required\' | \'native-vision\' | \'unsupported\' | \'failed\';',
+  },
+  {
+    name: 'FinanceDocumentSummary',
+    declaration: 'export interface FinanceDocumentSummary {\n    pageCount?: number;\n    slideCount?: number;\n    visualCount?: number;\n    sheetNames?: string[];\n    rowCount?: number;\n    unitCount: number;\n    charCount: number;\n}',
+  },
+  {
+    name: 'FinanceDocumentUnit',
+    declaration: 'export interface FinanceDocumentUnit {\n    index: number;\n    kind: \'text\' | \'row\';\n    locator: string;\n    text: string;\n}',
+  },
+  {
+    name: 'FinanceDocumentVisualReadResult',
+    declaration: 'export type FinanceDocumentVisualReadResult = DocumentVisualReadResult<FinanceManagedFileId>;',
+  },
+  {
+    name: 'FinanceEvidenceApplicability',
+    declaration: 'export type FinanceEvidenceApplicability = \'national-conditional\' | \'local-conditional\' | \'background-only\' | \'unverified\';',
+  },
+  {
+    name: 'FinanceEvidenceAuthorityLevel',
+    declaration: 'export type FinanceEvidenceAuthorityLevel = \'L0\' | \'L1\' | \'L2\' | \'L3\';',
+  },
+  {
+    name: 'FinanceEvidenceItem',
+    declaration: 'export interface FinanceEvidenceItem {\n    sourceId: FinanceEvidenceSourceId;\n    authority: string;\n    authorityLevel: FinanceEvidenceAuthorityLevel;\n    title: string;\n    documentNumber?: string;\n    publicationDate?: string;\n    effectiveFrom?: string;\n    effectiveTo?: string;\n    lifecycle: FinanceEvidenceLifecycle;\n    legalEffect: FinanceEvidenceLegalEffect;\n    applicability: FinanceEvidenceApplicability;\n    role: FinanceEvidenceRole;\n    url: string;\n    retrievedAt?: string;\n    sha256?: string;\n    excerpt?: string;\n    retrieval: \'network\' | \'cache\' | \'not-fetched\';\n    rightsStatus: \'terms-review-pending\';\n    limitations: string[];\n}',
+  },
+  {
+    name: 'FinanceEvidenceLegalEffect',
+    declaration: 'export type FinanceEvidenceLegalEffect = \'law\' | \'administrative-regulation\' | \'departmental-rule\' | \'normative-document\' | \'official-guidance\' | \'unknown\';',
+  },
+  {
+    name: 'FinanceEvidenceLifecycle',
+    declaration: 'export type FinanceEvidenceLifecycle = \'current\' | \'historical\' | \'future\' | \'repealed\' | \'draft\' | \'amended\' | \'transitional\' | \'unverified\';',
+  },
+  {
+    name: 'FinanceEvidenceRequest',
+    declaration: 'export interface FinanceEvidenceRequest {\n    query: string;\n    asOfDate?: string;\n    locality?: string;\n}',
+  },
+  {
+    name: 'FinanceEvidenceResult',
+    declaration: 'export interface FinanceEvidenceResult {\n    status: FinanceEvidenceStatus;\n    query: string;\n    asOfDate: string;\n    jurisdiction: \'中国大陆\';\n    locality?: string;\n    localitySource: \'request\' | \'client\' | \'none\';\n    checkedAt: string;\n    evidence: FinanceEvidenceItem[];\n    assumptions: string[];\n    warnings: string[];\n}',
+  },
+  {
+    name: 'FinanceEvidenceRole',
+    declaration: 'export type FinanceEvidenceRole = \'official-text\' | \'discovery-only\';',
+  },
+  {
+    name: 'FinanceEvidenceSourceId',
+    declaration: 'export type FinanceEvidenceSourceId = Branded<\'FinanceEvidenceSourceId\'>;',
+  },
+  {
+    name: 'FinanceEvidenceStatus',
+    declaration: 'export type FinanceEvidenceStatus = \'verified\' | \'partial\' | \'pending\' | \'out-of-scope\';',
+  },
+  {
+    name: 'FinanceExternalSystemRef',
+    declaration: 'export interface FinanceExternalSystemRef {\n    system: \'youcheng\' | \'sdoo\';\n    tenantId?: string;\n    companyId?: string;\n    accountSetId?: string;\n}',
+  },
+  {
+    name: 'FinanceFileAction',
+    declaration: 'export type FinanceFileAction = \'import\' | \'publish\' | \'archive\';',
+  },
+  {
+    name: 'FinanceFileStage',
+    declaration: 'export type FinanceFileStage = \'source\' | \'output\' | \'archive\';',
+  },
+  {
+    name: 'FinanceFilingFrequency',
+    declaration: 'export type FinanceFilingFrequency = \'monthly\' | \'quarterly\';',
+  },
+  {
+    name: 'FinanceGeneralWorkspaceEntry',
+    declaration: 'export type FinanceGeneralWorkspaceEntry = FinanceStandardWorkspaceEntry | FinanceConsultationWorkspaceEntry;',
+  },
+  {
+    name: 'FinanceImportedFile',
+    declaration: 'export type FinanceImportedFile = FinanceManagedFile | FinanceConsultationFile;',
+  },
+  {
+    name: 'FinanceManagedFile',
+    declaration: 'export interface FinanceManagedFile {\n    id: FinanceManagedFileId;\n    clientId: FinanceClientId;\n    sessionId: string;\n    action: FinanceFileAction;\n    stage: FinanceFileStage;\n    path: string;\n    name: string;\n    sha256: string;\n    size: number;\n    createdAt: number;\n    sourceFileId?: FinanceManagedFileId;\n}',
+  },
+  {
+    name: 'FinanceManagedFileId',
+    declaration: 'export type FinanceManagedFileId = Branded<\'FinanceManagedFileId\'>;',
+  },
+  {
+    name: 'FinanceSessionContextView',
+    declaration: 'export type FinanceSessionContextView = {\n    state: \'not-finance\';\n    locked: true;\n} | {\n    state: \'general\';\n    locked: false;\n} | {\n    state: \'ready\';\n    locked: false;\n    clientId: FinanceClientId;\n    clientName: string;\n} | {\n    state: \'bound\';\n    locked: true;\n    clientName: string;\n};',
+  },
+  {
+    name: 'FinanceStandardWorkspaceEntry',
+    declaration: 'export type FinanceStandardWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'standard\';\n};',
+  },
+  {
+    name: 'FinanceTaxpayerType',
+    declaration: 'export type FinanceTaxpayerType = \'general-vat\' | \'small-scale-vat\' | \'other\';',
+  },
+  {
+    name: 'FinanceWorkspaceEntry',
+    declaration: 'export type FinanceWorkspaceEntry = FinanceStandardWorkspaceEntry | FinanceConsultationWorkspaceEntry | FinanceClientWorkspaceEntry;',
+  },
+  {
+    name: 'FinanceWorkspaceId',
+    declaration: 'export type FinanceWorkspaceId = Branded<\'WorkspaceId\'>;',
+  },
+  {
+    name: 'FinanceWorkspaceListView',
+    declaration: 'export interface FinanceWorkspaceListView {\n    standard: FinanceStandardWorkspaceEntry;\n    consultations: FinanceConsultationWorkspaceEntry[];\n    clients: FinanceClientWorkspaceEntry[];\n    listedWorkspaceIds: FinanceWorkspaceId[];\n}',
   },
   {
     name: 'FinishReason',
@@ -3715,6 +4157,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ImageVariantId',
     declaration: 'export type ImageVariantId = Branded<\'ImageVariantId\'>;',
+  },
+  {
+    name: 'ImportFinanceUploadRequest',
+    declaration: 'export interface ImportFinanceUploadRequest {\n    path: string;\n    originalName: string;\n}',
   },
   {
     name: 'Inbox',
@@ -4145,6 +4591,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PruneResult {\n    readonly pruned: readonly PrunedEntry[];\n    readonly charsRemoved: number;\n}',
   },
   {
+    name: 'PublishFinanceFileRequest',
+    declaration: 'export interface PublishFinanceFileRequest {\n    sourcePath: string;\n    preferredName?: string;\n}',
+  },
+  {
     name: 'ReadFileLine',
     declaration: 'export interface ReadFileLine {\n    number: number;\n    text: string;\n}',
   },
@@ -4163,6 +4613,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RedactedSecret',
     declaration: 'export interface RedactedSecret {\n    path: string[];\n    set: boolean;\n}',
+  },
+  {
+    name: 'RemoveFinanceWorkspaceRequest',
+    declaration: 'export interface RemoveFinanceWorkspaceRequest {\n    workspaceId: FinanceWorkspaceId;\n}',
+  },
+  {
+    name: 'RenameFinanceWorkspaceRequest',
+    declaration: 'export interface RenameFinanceWorkspaceRequest {\n    workspaceId: FinanceWorkspaceId;\n    title: string;\n}',
   },
   {
     name: 'ReplayEnvelope',
@@ -4215,6 +4673,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RestoredSessionOptions',
     declaration: 'export interface RestoredSessionOptions {\n    readonly seed: SessionEvent[];\n    readonly meta: SessionHeader;\n    readonly seedSource: \'persistence\';\n}',
+  },
+  {
+    name: 'RestoreFinanceClientWorkspaceRequest',
+    declaration: 'export interface RestoreFinanceClientWorkspaceRequest {\n    path: string;\n}',
   },
   {
     name: 'ResumeAgentOptions',
@@ -4697,6 +5159,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SpillSource {\n    toolName: string;\n    callId: CallId;\n    label: string;\n}',
   },
   {
+    name: 'StageFinanceClientRequest',
+    declaration: 'export type StageFinanceClientRequest = {\n    mode: \'general\';\n} | {\n    mode: \'client\';\n    clientId: FinanceClientId;\n};',
+  },
+  {
     name: 'StorageBackend',
     declaration: 'export interface StorageBackend {\n    readonly kv?: KvFacet;\n    close(): Promise<void>;\n}',
   },
@@ -5177,6 +5643,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TypertTypeModel {\n    readonly name: string;\n    readonly declaration: string;\n}',
   },
   {
+    name: 'UpdateFinanceClientRequest',
+    declaration: 'export interface UpdateFinanceClientRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    client: FinanceClientDraft;\n}',
+  },
+  {
     name: 'UpdateTeamTaskRequest',
     declaration: 'export interface UpdateTeamTaskRequest {\n    readonly taskId: TeamTaskId;\n    readonly expectedRevision: number;\n    readonly action: TeamTaskAction;\n    readonly subject?: string;\n    readonly description?: string;\n    readonly blockedBy?: readonly TeamTaskId[];\n    readonly writeScopes?: readonly string[];\n    readonly owner?: string;\n}',
   },
@@ -5319,6 +5789,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkflowStopReason',
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
+  },
+  {
+    name: 'XiaojingDocumentId',
+    declaration: 'export type XiaojingDocumentId = Branded<\'XiaojingDocumentId\'>;',
+  },
+  {
+    name: 'XiaojingDocumentListItem',
+    declaration: 'export type XiaojingDocumentListItem = DocumentListItem<XiaojingDocumentId>;',
+  },
+  {
+    name: 'XiaojingDocumentReadResult',
+    declaration: 'export type XiaojingDocumentReadResult = DocumentReadResult<XiaojingDocumentId>;',
+  },
+  {
+    name: 'XiaojingDocumentVisualReadResult',
+    declaration: 'export type XiaojingDocumentVisualReadResult = DocumentVisualReadResult<XiaojingDocumentId>;',
   },
 ]
 

@@ -1,0 +1,14 @@
+.label {
+  background: #eef8f6;
+  border: 1px solid #cde7e1;
+  border-radius: 7px;
+  color: #287166;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 260px;
+  overflow: hidden;
+  padding: 4px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

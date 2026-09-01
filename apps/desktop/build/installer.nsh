@@ -22,11 +22,36 @@
   StrCpy $isForceCurrentInstall "1"
 !macroend
 
+!macro customCheckAppRunning
+  !ifndef BUILD_UNINSTALLER
+    ReadRegStr $R8 HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation
+  !else
+    StrCpy $R8 "$INSTDIR"
+  !endif
+
+  StrCmp $R8 "" xiaojingAppCheckDone
+  IfFileExists "$R8\${APP_EXECUTABLE_FILENAME}" 0 xiaojingAppCheckDone
+  InitPluginsDir
+  File /oname=$PLUGINSDIR\xiaojing-installer-shutdown.ps1 "${BUILD_RESOURCES_DIR}\installer-shutdown-helper.ps1"
+  System::Call 'KERNEL32::GetCurrentProcessId() i .R9'
+
+xiaojingAppCheckRetry:
+  nsExec::ExecToStack `"$PowerShellPath" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\xiaojing-installer-shutdown.ps1" -InstallDirectory "$R8" -InstallerProcessId $R9`
+  Pop $R0
+  Pop $R1
+  StrCmp $R0 "0" xiaojingAppCheckDone
+  MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "无法安全关闭旧版小兢会计。请结束旧版进程后重试。" /SD IDCANCEL IDRETRY xiaojingAppCheckRetry
+  Quit
+
+xiaojingAppCheckDone:
+!macroend
+
 !macro customInstall
   Call xiaojingFinalizeInstallSection
 !macroend
 
 !macro customPageAfterChangeDir
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE xiaojingRestoreSelectedInstallDirectory
   !define MUI_PAGE_CUSTOMFUNCTION_SHOW xiaojingInstallFilesShow
 !macroend
 
@@ -40,6 +65,7 @@
     Var /GLOBAL xiaojingWelcomePathLink
     Var /GLOBAL xiaojingWelcomePathInput
     Var /GLOBAL xiaojingWelcomeBrowseButton
+    Var /GLOBAL xiaojingSelectedInstallDirectory
     Var /GLOBAL xiaojingWelcomeProductControl
     Var /GLOBAL xiaojingWelcomeProductBitmap
     Var /GLOBAL xiaojingWelcomeTitleControl
@@ -121,6 +147,13 @@
       Pop $2
       Pop $1
       Exch $0
+    FunctionEnd
+
+    Function xiaojingRestoreSelectedInstallDirectory
+      StrCmp $xiaojingSelectedInstallDirectory "" xiaojingRestoreSelectedInstallDirectoryDone
+      StrCpy $INSTDIR "$xiaojingSelectedInstallDirectory"
+
+    xiaojingRestoreSelectedInstallDirectoryDone:
     FunctionEnd
 
     Function xiaojingChooseInstallDirectory
@@ -277,6 +310,7 @@
       Push $0
       Call xiaojingNormalizeInstallDirectory
       Pop $INSTDIR
+      StrCpy $xiaojingSelectedInstallDirectory "$INSTDIR"
       ${NSD_SetText} $xiaojingWelcomePathInput $INSTDIR
     FunctionEnd
 

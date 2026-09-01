@@ -12,6 +12,7 @@
     "sidebar.brand.name",
     "conversation.hero.brand.mark",
     "conversation.hero.brand.content",
+    "conversation.hero.context",
     "onboarding.content",
     "settings.section"
   ],
@@ -30,21 +31,68 @@
     "compatibilityAdapter": "src/compat.ts",
     "skills": [
       {
-        "name": "china-tax-official-research",
-        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/china-tax-official-research/SKILL.md"
+        "name": "finance-tax-research-cn",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-tax-research-cn/SKILL.md"
+      },
+      {
+        "name": "finance-document-reading",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-document-reading/SKILL.md"
+      },
+      {
+        "name": "finance-invoice-review",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-invoice-review/SKILL.md"
+      },
+      {
+        "name": "finance-voucher-draft",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-voucher-draft/SKILL.md"
+      },
+      {
+        "name": "finance-data-analysis",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-data-analysis/SKILL.md"
+      },
+      {
+        "name": "finance-reimbursement",
+        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-reimbursement/SKILL.md"
       }
     ],
     "host": {
       "directory": "packages/xiaojing",
       "packagePrefix": "@deepseek-ai/dsh-xiaojing-finance-",
       "rowPrefix": "xiaojing-finance-",
-      "packages": []
+      "packages": [
+        {
+          "name": "@deepseek-ai/dsh-xiaojing-finance-calculations",
+          "row": "xiaojing-finance-calculations",
+          "compatibilityAdapter": true
+        },
+        {
+          "name": "@deepseek-ai/dsh-xiaojing-finance-domain",
+          "row": "xiaojing-finance-domain",
+          "compatibilityAdapter": true
+        },
+        {
+          "name": "@deepseek-ai/dsh-xiaojing-finance-documents",
+          "row": "xiaojing-finance-documents",
+          "compatibilityAdapter": true
+        },
+        {
+          "name": "@deepseek-ai/dsh-xiaojing-finance-evidence",
+          "row": "xiaojing-finance-evidence",
+          "compatibilityAdapter": true
+        }
+      ]
     },
     "client": {
       "directory": "packages/client",
       "packagePrefix": "@deepseek-ai/dsh-client-ui-xiaojing-finance-",
       "rowPrefix": "ui-xiaojing-finance-",
-      "packages": []
+      "packages": [
+        {
+          "name": "@deepseek-ai/dsh-client-ui-xiaojing-finance-clients",
+          "row": "ui-xiaojing-finance-clients",
+          "compatibilityAdapter": false
+        }
+      ]
     }
   },
   "assets": [

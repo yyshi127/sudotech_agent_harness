@@ -77,6 +77,52 @@
     visibility 0s linear;
 }
 
+.sectionLabels {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 64px);
+  min-width: 0;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    max-width 180ms var(--ds-ease-in-out),
+    opacity 120ms var(--ds-ease-in-out),
+    transform 180ms var(--ds-ease-in-out),
+    visibility 0s linear;
+}
+
+.categoryButton {
+  flex: none;
+  max-width: none;
+  overflow: visible;
+  border: none;
+  border-radius: 5px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.categoryButton:hover,
+.categoryButtonActive {
+  color: var(--dsw-alias-label-primary);
+}
+
+.categoryButtonActive {
+  background: var(--dsw-alias-state-business-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.categoryButtonActive:hover {
+  color: #fff;
+}
+
 .sectionLabelHidden {
   max-width: 0;
   margin-right: -4px;
@@ -375,6 +421,111 @@
 }
 
 .groupSection + .groupSection {
+  margin-top: 4px;
+}
+
+.workspaceSectionRow {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
+  display: flex;
+  height: 34px;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.workspaceSectionRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.workspaceSectionToggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.workspaceSectionSlot {
+  align-items: center;
+  color: var(--dsw-alias-label-tertiary);
+  display: inline-flex;
+  flex: none;
+  height: 20px;
+  justify-content: center;
+  width: 16px;
+}
+
+.workspaceSectionChevron {
+  display: none;
+}
+
+.workspaceSectionRow:hover .workspaceSectionChevron {
+  display: inline-flex;
+}
+
+.workspaceSectionRow:hover .workspaceSectionFolder {
+  display: none;
+}
+
+.workspaceSectionIconActive {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.workspaceSectionArrow {
+  color: var(--dsw-alias-label-tertiary);
+  flex: none;
+  transition: transform 150ms var(--ds-ease-in-out);
+}
+
+.workspaceSectionAdd {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 20px;
+  justify-content: center;
+  padding: 0;
+  width: 20px;
+}
+
+.workspaceSectionAdd:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.workspaceSectionArrowOpen {
+  transform: rotate(90deg);
+}
+
+.workspaceSectionLabel {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceSectionChildren {
+  margin-left: 14px;
+}
+
+.workspaceSectionChildren + .workspaceSectionChildren {
   margin-top: 4px;
 }
 

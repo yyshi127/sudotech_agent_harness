@@ -115,13 +115,22 @@ export class ClientModuleSystem implements ClientModuleLoader {
     const pending = this.pendingArrival.get(id)
     if (pending !== undefined) return pending
     if (this.loadCache.has(id) || this.factories.has(id)) return Promise.resolve()
-    const task = this.loadBundle(url).then(() => {
+    const task = this.loadBundleWithRetry(url).then(() => {
       if (!this.factories.has(id)) {
         throw new Error(`client-modules: bundle ${url} loaded without registering "${id}" via __ModuleLoader__.load`)
       }
     }).finally(() => { this.pendingArrival.delete(id) })
     this.pendingArrival.set(id, task)
     return task
+  }
+
+  /** Retry one failed bundle transport once before surfacing the final failure. */
+  private async loadBundleWithRetry(url: string): Promise<void> {
+    try {
+      await this.loadBundle(url)
+    } catch {
+      await this.loadBundle(url)
+    }
   }
 
   /** Register each unresolved dynamic request before registering its consumer. */

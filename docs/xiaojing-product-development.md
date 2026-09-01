@@ -1,8 +1,8 @@
-# Xiaojing Accounting product development baseline (0.2.2)
+# Xiaojing Accounting product development baseline (0.2.3)
 
 English | [中文](xiaojing-product-development.zh.md)
 
-This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.2 source baseline on official `dsh-v0.1.1-rc.2`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md), and [desktop companion and tray decision](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md) own the rationale and rejected alternatives.
+This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.2.3 source baseline on official `dsh-v0.1.1-rc.2`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md), and [desktop companion and tray decision](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md) own the rationale and rejected alternatives.
 
 Read the [module and source architecture map](xiaojing-module-architecture.md) first when you need a quick view of the upstream core, Xiaojing plugins, Electron shell, and source directories.
 
@@ -19,7 +19,7 @@ Before editing product code, identify the owning layer instead of starting from 
 
 | Item | Current value | Source of truth |
 |---|---|---|
-| Desktop product version | `0.2.2` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| Desktop product version | `0.2.3` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
 | Official Harness baseline | `dsh-v0.1.1-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Official baseline commit | `b150a551b8d465e31e418e1b2eaf5e79bbb7d28` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Product integration base | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
@@ -58,7 +58,8 @@ The lowest layer that can own a change owns it. Official packages expose neutral
 |---|---|---|
 | Official-compatible UI owners | Product-neutral slots, owner props, fallback UI, and generic startup-logo metadata reading | `packages/client/ui-sidebar/`, `packages/client/ui-conversation/`, `packages/client/ui-settings-models/`, `packages/client/web/` |
 | Xiaojing product layer | Brand components, palette, product copy, onboarding, and default deployment persona | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/README.md) |
-| Finance extension foundation | Product-only preset root, localized preset copy, package and row naming rules, compatibility-adapter rule, and durable-root inventory | `apps/cli/config/xiaojing-agent-presets/`, [`product.json`](../packages/client/xiaojing-product/product.json), [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs) |
+| Finance domain Host plugin | Local taxpayer records, dedicated Finance Workspaces, revision-safe storage, immutable session binding, controlled client-file lifecycle, safe projection, Remote, and Finance prompt context | [`packages/xiaojing/xiaojing-finance-domain/`](../packages/xiaojing/xiaojing-finance-domain/README.md) |
+| Finance clients Client plugin | Client settings, compact consultation/client selection, Finance workspace category, preset routing, composer gating, unified-upload handoff, and read-only session labels | [`packages/client/ui-xiaojing-finance-clients/`](../packages/client/ui-xiaojing-finance-clients/README.md) |
 | Usage Host plugin | Provider usage observation, API-key fingerprinting, built-in pricing, immutable ledger, Remote, and update event | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/README.md) |
 | Usage Client plugin | Sidebar summary and detail panel, Settings entry, monthly calendar, formatting, and refresh controller | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/README.md) |
 | Browser-control plugins | Dedicated and optional personal Edge adapters, global page discovery, per-turn leases, bounded semantic DOM actions, extension pairing, and high-impact approval | [`packages/xiaojing/xiaojing-browser-control/`](../packages/xiaojing/xiaojing-browser-control/README.md), [`packages/client/ui-xiaojing-browser-control/`](../packages/client/ui-xiaojing-browser-control/README.md) |
@@ -79,7 +80,7 @@ Do not duplicate detailed package contracts in this document. Update the owning 
 
 ### Generic owners
 
-The official-compatible UI roots expose five Xiaojing-required single-owner slots: `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.brand.content`, and `onboarding.content`. Each owner retains a neutral fallback so the upstream-style application still runs when the product plugin is absent. Generic code may define owner props, layout space, design tokens, metadata keys, and fallback rendering; it may not import the Xiaojing package or mention Xiaojing, Sudotech, SUDO, product asset filenames, or product copy.
+The official-compatible UI roots expose six Xiaojing-required single-owner slots: `sidebar.brand.mark`, `sidebar.brand.name`, `conversation.hero.brand.mark`, `conversation.hero.brand.content`, `conversation.hero.context`, and `onboarding.content`. Each owner retains a neutral fallback so the upstream-style application still runs when the product or Finance Client plugin is absent. Generic code may define owner props, layout space, design tokens, metadata keys, and fallback rendering; it may not import a Xiaojing package or mention Xiaojing, Sudotech, SUDO, product asset filenames, or product copy.
 
 The generic Agent-preset Client also exposes `AgentPresetDisplayRegistry`. It accepts localized display providers for additional system preset ids but never overrides user-authored rows. The registry contains no Xiaojing id or copy; the product plugin owns the Finance registration and removing that plugin restores file metadata.
 
@@ -112,11 +113,53 @@ A startup-brand change is incomplete if only one surface is checked. Verify the 
 
 ## Functional plugin isolation
 
-### Finance extension foundation
+### Finance client domain
 
-Finance currently consists of one product-only system preset and an enforceable extension manifest, not a finance service. Its composition keeps every Standard mode row except the persona, and the product verifier compares parsed rows so a future Standard capability change cannot silently drift. Existing installations retain their saved default, existing sessions retain the preset recorded at creation, and official Harness profiles do not discover Finance.
+Finance retains every Standard-mode composition row except its persona and adds five preset-scoped consumers: `finance-client-context` for immutable customer context, `finance-files` for controlled publication and archive operations, `finance-calculations` for versioned deterministic trial calculations, `finance-documents` for deterministic document reading, and `finance-evidence` for official-source research. The product verifier compares parsed Standard and Finance rows, permits only these declared extensions, and requires the Host and Client packages inventoried in `product.json.financeExtension` to appear in the Xiaojing Web composition. Official Harness profiles still do not discover Finance.
 
-`product.json.financeExtension` is the source of truth for future Finance package prefixes, Cordis row prefixes, `src/compat.ts`, and the protected `harness/finance` durable root. Host and Client package inventories are deliberately empty until a complete capability seam exists. A future package must follow the manifest name-to-row rule, appear in the assembled Web composition, isolate rc-specific imports in its compatibility adapter when declared, and persist only schema-versioned data below the Finance root. The foundation protects that root during desktop upgrades but does not create or write it.
+`@deepseek-ai/dsh-xiaojing-finance-domain` stores one local record per taxpayer entity in schema-versioned `$DSH_HOME/finance/clients-v1.json`. Whole-file revisions reject stale writes, file locking and atomic replacement prevent torn writes, and corrupt data stops plugin startup without overwriting the source. Records are archived rather than deleted. External-system references contain only Youcheng or SDOO identifiers, never credentials.
+
+A blank Finance session defaults to general financial consultation. The Client may stage a client in Host memory until the first turn. Before the first model request, the preset consumer appends and flushes one immutable `finance/client-bound` event containing only the selected record snapshot and record version. Historical sessions therefore keep their original facts when the current client record changes. The `financeClient` projection exposes only client display name and state; future client-specific services must call `requireBoundClient()` and reject general sessions. A month, quarter, or year belongs to the specific Finance Skill request, not the client or session.
+
+`@deepseek-ai/dsh-client-ui-xiaojing-finance-clients` registers Customer Management at Settings order 22 and fills the product-neutral `conversation.hero.context` slot for blank Finance sessions. The `Consultation / Client` selector blocks only its own composer condition while client mode has no selected client; the owner-aware block registry preserves independent model, upload, Goal, and Plan constraints. After the first turn, the selector becomes a read-only client label. Removing the two product composition rows removes the feature without changing Standard mode or official UI owners.
+
+The desktop sets `XIAOJING_FINANCE_WORKSPACE_ROOT` to `Documents/小兢会计工作区/Finance工作区`. The Host registers one Workspace displayed as `Consultation` and one stable-client-id Workspace per customer; profile, policy, source, session-isolated work, deliverable, and archive directories remain below the customer root. Finance Skills create period-specific children when a task needs them. A client session's `cwd` must equal the selected customer root, while a consultation's `cwd` must equal the fixed directory. Invalid combinations reject before model use. Failed client creation rolls back its new directory and Workspace registration; startup removes an interrupted registration without deleting files.
+
+The existing upload picker emits an optional product-neutral preparation event before its legacy upload. A bound Finance client session claims the event, performs the upload lazily once, and asks the Host to copy the resulting local file into `02-原始资料`; ordinary and Finance consultation sessions leave the event unclaimed and retain the original upload behavior. Each bound session receives a private directory below `03-会话作业`. The `finance_files` tool interprets natural finalization intent such as export, delivery, final output, or formal save as a controlled copy from that session directory into `04-成果输出`; only explicit archive intent copies managed customer material into `05-归档`. The append-only managed-file index records SHA-256, source stage, destination, session, and the corresponding `finance/file-*` event. These operations preserve their source files. The Host package README owns the complete path and failure rules.
+
+Generic `ui-workspace` accepts product categories, optional nested sections, and the current preset's picker scope through `WorkspaceCategoryRegistry` but does not recognize Finance. The Finance Client plugin supplies `Regular workspaces / Finance workspaces` labels and membership: `Consultation` stays at the Finance root, while `Client workspaces` contains every customer. The composer picker also lists only the current preset's Workspaces. Selecting Finance enters consultation, selecting a client enters its Workspace first, and leaving Finance returns to a regular Workspace. Removing the Finance Client registration restores a generic sidebar with no Finance condition.
+
+### Shared local document normalization
+
+`@deepseek-ai/dsh-xiaojing-finance-documents` owns one deterministic parser core and two source-authorization adapters. The Finance adapter consumes immutable customer or consultation import events and revalidates canonical path, regular-file state, size, and SHA-256. The ordinary-session adapter consumes only durable human `user/message` upload references from the current session, confines them to the protected Xiaojing upload root, and rejects arbitrary paths or plugin-authored text. Both adapters parse PDFs, DOCX, XLSX, PPTX, CSV, and TXT in the same serialized, memory-bounded Worker.
+
+PPTX normalization retains ordered shape and table text, speaker notes, and slide references for embedded PNG, JPEG, WebP, and GIF files. For PDF, pages with useful text layers retain deterministic text while text-poor pages are rendered locally as bounded PNG files. The bounded `visuals` action sends rendered scan pages and retained document pictures to the exact active image-capable model with source locators. Charts, SmartArt, vectors, media, and embedded objects are not otherwise reconstructed. The package performs no OCR and calls no external parsing service.
+
+Normalized records use schema version `3` and normalizer version `4` below `$DSH_HOME/finance/documents/v3/normalizer-v4/<scope-hash>/`; all earlier normalizer and schema directories remain untouched. The normalizer-specific directory prevents stale pre-render records from hiding scan visuals. File locking and atomic replacement protect writes, and each Finance customer, Finance consultation, or ordinary session receives an isolated scope. Corrupt records stop plugin initialization and remain unchanged.
+
+The Xiaojing-only global `document_reader` gives every non-Finance preset `list`, `read`, and `visuals` actions. Finance registers the equivalent `finance_document` tool and hides the ordinary tool in its Agent scope, preserving customer authorization without duplicating the parser. Content reaches the model only through logged tool results and never through standing prompt injection. Removing the Host and ordinary consumer rows removes the shared capability; removing the Finance consumer independently removes its Finance adapter. The package [README](../packages/xiaojing/xiaojing-finance-documents/README.md) owns format, storage, limit, and failure details.
+
+### Official finance-tax evidence
+
+`@deepseek-ai/dsh-xiaojing-finance-evidence` uses the existing Web search service for discovery, then privately fetches only HTTPS pages admitted by its official-source registry. Search snippets never become evidence. The service classifies fetched text by authority, legal effect, lifecycle relative to the requested date, and conditional applicability. A bound client's registered region may default local discovery, but it never establishes that a rule applies to that client.
+
+The Finance-only `finance_evidence` tool returns `verified`, `partial`, `pending`, or `out-of-scope` evidence availability and persists the complete structured result in `tool/result`. Partial or pending propositions remain `待核验`. Rights stay `terms-review-pending`; the product does not claim a complete official corpus, cleared redistribution rights, or coverage outside Chinese mainland jurisdiction.
+
+`$DSH_HOME/finance/evidence-cache-v1.json` stores schema-versioned metadata, bounded official-text excerpts, hashes, and retrieval state with file locking and atomic replacement. It does not store search snippets, a bulk legal corpus, credentials, or client records. Removing the Host row and Finance consumer row removes official evidence research without changing the customer domain or Standard mode. The package [README](../packages/xiaojing/xiaojing-finance-evidence/README.md) owns retrieval, failure, and model-experience details.
+
+### Deterministic Finance trial calculations
+
+`@deepseek-ai/dsh-xiaojing-finance-calculations` provides a complete Host service, Finance-only `finance_calculation` consumer, and package-owned invariant companion without changing `agent-loop`. Its first immutable rule pack, `cn-mainland-2026-v1`, supports dates from 2026-01-01 through 2027-12-31 and covers one-rate general-taxpayer VAT, bounded small-scale VAT examples, VAT-derived surcharges, enterprise-income-tax prepayment examples, and cumulative resident salary withholding. Every request uses decimal-string yuan amounts, explicit eligibility choices, exact decimal arithmetic, named formulas, fixed rounding, official rule references, applicability warnings, and a mandatory trial-only disclaimer.
+
+A bound customer supplies only the taxpayer type and registered region from the immutable `finance/client-bound` snapshot. A conflicting taxpayer type is rejected; a consultation must provide the type explicitly. Missing facts produce `needs-input`, unsupported dates produce `unsupported`, and neither path guesses a rate or result. The package creates no separate ledger: the normal `tool/call` and `tool/result` events retain the request and complete audit trace. Removing the Host and preset rows removes the calculator without changing customer, document, evidence, or Standard-mode behavior.
+
+The Finance skill root contains `finance-tax-research-cn`, `finance-invoice-review`, `finance-voucher-draft`, `finance-data-analysis`, and `finance-reimbursement`, plus the supporting `finance-document-reading` skill. These workflows coordinate existing document, evidence, calculation, and controlled-file tools. They prepare reviewable conclusions and drafts but do not post vouchers, file returns, approve reimbursements, make payments, or mutate an external system.
+
+### Finance Stage 1 integrated acceptance
+
+The keyless Stage 1 assembled snapshot mounts the shipped Xiaojing composition with one Standard agent and two Finance customer agents. It pins the exact Finance tool and skill additions, proves Standard mode remains free of Finance tools, keeps customer prompt context and identical source bytes isolated by customer, rejects cross-customer document ids, preserves source-row locations, selects deterministic VAT behavior from each immutable customer binding, and refuses a Hong Kong tax request as outside the mainland scope. The desktop user-data verifier separately reads two synthetic prior-version Finance records through the production store, verifies private fields and every managed workspace stage, and proves that compatibility reads leave protected bytes unchanged. The [acceptance Agent Note](../.agents/notes/implemented/testing/2026-08-29-xiaojing-finance-stage1-integrated-acceptance.md) owns the rationale and limits.
+
+This gate establishes source readiness only. Live official-site retrieval, model answers, Electron behavior, Windows installation, and in-place upgrade remain manual release checks; no package is generated while an applicable product or data-preservation check fails.
 
 ### Local usage accounting
 
@@ -164,7 +207,7 @@ The plugin is removable without editing Harness core: disable or remove its sing
 
 ### Bundled third-party plugins
 
-The shipped profile includes `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts), while the Web composition includes the isolated visualization plugin only for the Xiaojing build. The file-upload source commit is pinned by the application dependency graph, and a local pnpm patch keeps one visible picker: supported PNG/JPEG/WebP/GIF files call the generic session-scoped `conversation.addImages()` intake and become native images, while documents and unsupported image formats use the legacy file store with an explicit no-direct-vision label. The same picker remains enabled for ordinary, Goal, and Plan input, and preserves the attachment layout and caret repairs. ModLens and its visual bridge are not part of 0.2.2. Only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
+The shipped profile includes `dsh-file-uploads` through [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts), while the Web composition includes the isolated visualization plugin only for the Xiaojing build. The file-upload source commit is pinned by the application dependency graph, and a local pnpm patch keeps one visible picker: supported PNG/JPEG/WebP/GIF files call the generic session-scoped `conversation.addImages()` intake and become native images, while documents and unsupported image formats use the legacy file store with an explicit no-direct-vision label. A bound Finance customer session may claim the picker's optional preparation event and replace the legacy store result with one controlled customer-file copy; it does not upload the same file twice. The same picker remains enabled for ordinary, Goal, and Plan input, and preserves the attachment layout and caret repairs. ModLens and its visual bridge are not part of 0.2.3. Only the exact installation-owned 0.1.9 tuple `base + web-app + ModLens + file uploads` migrates atomically to `base + web-app + file uploads`; a reordered, extended, or otherwise customized bundle list remains byte-identical. A bundled plugin change is a source change and requires focused tests, preview, and a new installer. A user-installed profile plugin must consume the application runtime through peer dependencies; profile-local Harness or Cordis runtime copies are rejected and a newly introduced shadow is rolled back.
 
 ### Adding a capability
 
@@ -181,7 +224,7 @@ The shipped profile includes `dsh-file-uploads` through [`PROFILE_TEMPLATES`](..
 |---|---|---|
 | `desktop-api-key-environment-isolation` | The desktop removes inherited `DEEPSEEK_API_KEY`; rc.2's writable credential UI lets users create or replace the credential after launch. | `apps/desktop/main.mjs` |
 | `profile-runtime-shadow-protection` | User plugin installation cannot replace the application-owned Harness or Cordis runtime and restore the upstream interface. | CLI and app-boot profile loading |
-| `file-upload-composer-repair` | One picker routes supported images into rc.2 canonical native-image intake and other files into the legacy store in ordinary, Goal, and Plan modes; pending layout does not cover the composer, and the visible caret matches the insertion point. | `patches/dsh-file-uploads@1.0.0.patch` |
+| `file-upload-composer-repair` | One picker routes supported images into rc.2 canonical native-image intake and other files into the legacy store in ordinary, Goal, and Plan modes, while an optional Finance preparation event permits one controlled customer-file copy; pending layout does not cover the composer, and the visible caret matches the insertion point. | `patches/dsh-file-uploads@1.0.0.patch` |
 
 These contracts are neither branding nor claimed upstream behavior. Keep their ids and paths in `integration-patches.json`. When upstream implements the same contract, remove or narrow the patch in an explicit change with regression tests and update the inventory; do not silently delete it during a merge.
 
@@ -241,12 +284,15 @@ The version in `apps/desktop/package.json` must increase for every distributed i
 
 ### Preview and verify
 
-Build once and launch the composed Web application, not standalone Vite:
+Build once and launch the composed Web application, not standalone Vite. The Host reads `DSH_CLIENT_BUILD_PROFILE` at startup to mount Xiaojing-only preset roots, so keep the profile in the same PowerShell session used to launch the preview:
 
-```sh
+```powershell
+$env:DSH_CLIENT_BUILD_PROFILE = 'xiaojing'
 pnpm run build:xiaojing
 pnpm dsh web --port 3090
 ```
+
+Omitting the runtime profile leaves the Xiaojing Client artifacts visible but mounts only the official preset roots, so Finance mode will be absent even though its source and browser bundle exist.
 
 For repeated Client-plugin edits, run the watcher in another terminal after the initial build:
 
@@ -305,7 +351,7 @@ Expected conflict zones are the generic slot owners, the accounting compatibilit
 - Every assembled agent receives `browser_control` and `computer_control` with routing descriptions; presets that accept runtime context also receive the combined capability prompt. A development composition can remove either Cordis row without changing Harness core.
 - Fake-iLink tests cover pairing, verification, reconnect, FIFO delivery, deduplication, session correlation, Weixin approval, encrypted image/document receive and send, structured mobile text, and durable recovery without exposing credentials or contacting Tencent. Manual preview confirms real phone pairing and media interoperability before release.
 - Both startup surfaces, expanded and collapsed sidebar, hero, onboarding, taskbar title, and taskbar/shortcut icons show the intended product identity.
-- Desktop-companion tests cover six states, terminal-state timers, concurrent tasks, approval priority, content-free snapshots, settings controls, bridge validation, the 50% default and size range, atomic preferences, drag bounds, main-window-interior initial/reset placement, display recovery, tuck/wake/reset consistency, tray restoration, second-instance restoration, close-to-tray, and risk-confirmed true exit. Product tests and Web snapshots cover the v0.2.2 beta badge, About-page release list, and version parity gate. Electron preview confirms that the focusless transparent window remains interactive only on the scaled character and nearby status bubble and releases its renderer when tucked.
+- Desktop-companion tests cover six states, terminal-state timers, concurrent tasks, approval priority, content-free snapshots, settings controls, bridge validation, the 50% default and size range, atomic preferences, drag bounds, main-window-interior initial/reset placement, display recovery, tuck/wake/reset consistency, tray restoration, second-instance restoration, close-to-tray, and risk-confirmed true exit. Product tests and Web snapshots cover the v0.2.3 beta badge, About-page release list, and version parity gate. Electron preview confirms that the focusless transparent window remains interactive only on the scaled character and nearby status bubble and releases its renderer when tucked.
 - Desktop identity and user-data verifiers pass with the incremented version.
 - A clean installation works at the default and a custom parent path, automatically appending `xiaojing-agent-desktop`.
 - An in-place upgrade retains the existing installation path and leaves only one Control Panel entry and one application identity.
@@ -324,7 +370,7 @@ Failure of any applicable item blocks publication. Do not treat successful insta
 - Browser and Windows control are semantic, not visual. They cannot handle pixel-only or canvas-only interfaces without a separate future vision capability.
 - The Weixin channel supports one iLink bot's direct text, supported-image, and document messages only while Xiaojing is open. It does not take over a personal account, process ordinary groups, voice, or video, or guarantee exactly-once final-reply delivery across a crash after the remote send succeeds.
 - Visualization cards render only in the Web client, keep a fixed light palette, and cannot yet send follow-up messages from inside the card.
-- Finance is currently a selectable verification-aware persona over the Standard capability set. It has no client context, local regulation corpus, deterministic calculator, Youcheng workflow, SDOO connector, or compliance engine yet.
+- Finance now has local client records, immutable per-session client context, official-source research, shared document reading, four deterministic trial-calculation types, and its first five professional workflow skills. It still has no local regulation corpus, Youcheng workflow, SDOO connector, filing or posting connector, or compliance engine.
 - A future upstream release can require changes to generic slots, the rc adapter, integration patches, or data migration, but it must not require reimplementing the product and feature layers.
 
 ## Quick handoff for a new session

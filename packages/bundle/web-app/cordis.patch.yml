@@ -76,6 +76,28 @@
     - id: usage-accounting
       name: '@deepseek-ai/dsh-usage-accounting'
 
+    - id: xiaojing-finance-domain
+      name: '@deepseek-ai/dsh-xiaojing-finance-domain'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+      config:
+        workspaceRoot: !!js process.env.XIAOJING_FINANCE_WORKSPACE_ROOT ?? process.getBuiltinModule('node:path').join(process.cwd(), 'Finance工作区')
+
+    - id: xiaojing-finance-calculations
+      name: '@deepseek-ai/dsh-xiaojing-finance-calculations'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+
+    - id: xiaojing-finance-evidence
+      name: '@deepseek-ai/dsh-xiaojing-finance-evidence'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+
+    - id: xiaojing-finance-documents
+      name: '@deepseek-ai/dsh-xiaojing-finance-documents'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+
+    - id: xiaojing-document-reader
+      name: '@deepseek-ai/dsh-xiaojing-finance-documents/general-tool'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+
     # Optional Xiaojing visualization cards. The row is inert for the
     # official build and can be removed as one independent product layer.
     - id: xiaojing-visualize
@@ -334,6 +356,10 @@
     # sessions created later. Absent a roster it renders nothing.
     - id: ui-agent-preset
       name: '@deepseek-ai/dsh-client-ui-agent-preset'
+
+    - id: ui-xiaojing-finance-clients
+      name: '@deepseek-ai/dsh-client-ui-xiaojing-finance-clients'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
 
     # Plugin configuration: the host-plane sections a user owns, as expandable
     # cards. A namespace this deployment does not expose renders nothing.

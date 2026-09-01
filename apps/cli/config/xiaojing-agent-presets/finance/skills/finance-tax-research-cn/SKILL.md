@@ -1,5 +1,5 @@
 ---
-name: china-tax-official-research
+name: finance-tax-research-cn
 description: Use for Chinese finance, tax, invoice, accounting-policy, filing, deduction, preferential-treatment, or tax-risk questions that require a current and verifiable rule. Search official sources, establish jurisdiction, taxpayer facts and the relevant period, then answer with authority, effective dates, applicability, risks, document numbers and direct official links.
 whenToUse: Questions whose answer may change with Chinese tax law, accounting policy, locality, taxpayer type, transaction facts, or tax period.
 user-invocable: true
@@ -24,7 +24,11 @@ Ask only for material missing facts. If several common fact patterns lead to dif
 
 ## Research only from attributable official sources
 
-Use `web_search` for current or date-sensitive claims. Search with exact policy titles, document numbers, dates, tax types, and the relevant locality. Prefer direct documents over summaries and use this authority order:
+Use `finance_evidence` for every current or date-sensitive material claim. Give it a focused query, the relevant `as_of_date`, and a Mainland locality when local implementation may matter. It searches only configured official sources, attempts to retrieve official text, classifies legal effect and lifecycle, and records a bounded evidence result in the session log.
+
+Only an item marked `official-text` has retrieved official text. An item marked `discovery-only` is a lead, not evidence. A `partial`, `pending`, or `out-of-scope` result requires the affected proposition to be labeled `待核验`. `web_search` may be used to discover another official title or document number after `finance_evidence` is incomplete, but its snippets never support a final conclusion; rerun `finance_evidence` with the refined query.
+
+Prefer direct documents over summaries and use this authority order:
 
 1. Laws and administrative regulations published through the National Laws and Regulations Database (`flk.npc.gov.cn`) or the Chinese Government website (`gov.cn`).
 2. Formal tax and accounting documents from the State Taxation Administration policy database (`fgk.chinatax.gov.cn`, `chinatax.gov.cn`) and the Ministry of Finance (`mof.gov.cn`, including its accounting and tax-policy departments).
@@ -34,7 +38,7 @@ Use `web_search` for current or date-sensitive claims. Search with exact policy 
 
 A `.gov.cn` suffix alone does not prove that a page governs the user's case. Confirm the issuing authority, document title, document number when one exists, publication date, effective date, territorial reach, and current status. Search for amendments, repeal or invalidation lists, transition rules, and later documents that cite or replace the candidate rule.
 
-Do not present a search snippet as if it were the complete provision. If the available official result does not expose enough text to support the conclusion, say what remains unverified and avoid a definitive answer.
+Do not present a search snippet as if it were the complete provision. If `finance_evidence` does not expose enough fetched official text to support the conclusion, say what remains unverified and avoid a definitive answer.
 
 ## Classify every material authority
 
@@ -54,7 +58,7 @@ Use the user's language. For a substantive answer, include these sections unless
 2. **适用前提** — jurisdiction, entity or taxpayer type, transaction facts, period, and any assumptions.
 3. **依据与判断** — explain how each controlling rule applies; separate confirmed facts from inference.
 4. **操作建议与风险** — list the practical treatment, evidence to retain, unresolved points, local-calibre differences, and conditions requiring confirmation with the competent authority or a licensed professional.
-5. **官方依据** — provide a compact table with issuing authority, policy title, document number, publication/effective date, status, and a direct official Markdown link.
+5. **官方依据** — provide a compact table with issuing authority, authority level, policy title, document number, publication/effective date, lifecycle, legal effect, retrieval role, and a direct official Markdown link.
 
 Use `待核验` for a material proposition whose official source, current effect, or applicability cannot be established. Do not invent document numbers, article numbers, quotations, effective dates, rates, thresholds, filing deadlines, or links. Do not say that filing, payment, posting, approval, or another external action has completed unless a tool result verifies the final state.
 

@@ -9,7 +9,7 @@
  * occupant's own create-folder affordance already covers creating one.
  */
 import type { ReactNode, RefObject } from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Button, IconFolderClose16, IconPlusOutline16, Menu, Modal, type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -32,8 +32,8 @@ export interface WorkspacePickFlowProps {
   anchorRef?: RefObject<HTMLElement | null> | undefined
   /** Selector hook over the workspace list (framework standard hook). */
   useWorkspaces: <S>(selector: (state: WorkspaceListState) => S) => S
-  /** Adopt a picked host directory as a real Workspace. */
-  createWorkspace: (input: { path: string }) => Promise<WorkspaceView>
+  /** Adopt a picked host directory as a real Workspace; undefined means a product flow was cancelled. */
+  createWorkspace: (input: { path: string }) => Promise<Pick<WorkspaceView, 'workspaceId'> | undefined>
   /** Bound occupancy selector hook for this surface's directory-flow hole (empty leaves the surface with no add action). */
   useDirectoryFlow: SnapshotSelectorHook<boolean>
   /** Render this surface's directory-flow hole with the owner conversation (the entry's narrowed renderSlot). */
@@ -44,6 +44,10 @@ export interface WorkspacePickFlowProps {
   onClose: () => void
   /** Only offer the add action, hide existing workspaces. */
   addOnly?: boolean
+  /** Optional product-owned set restricting the workspaces shown in this picker. */
+  visibleWorkspaceIds?: ReadonlySet<WorkspaceId>
+  /** Whether this picker may adopt another ordinary Workspace. */
+  allowCreate?: boolean
   /** Menu opening direction relative to the anchor. */
   side?: 'bottom' | 'top' | 'right'
   /** Currently active workspace (trailing check in the picker list). */
@@ -66,11 +70,15 @@ export function WorkspacePickFlow({
   onPick,
   onClose,
   addOnly = false,
+  visibleWorkspaceIds,
+  allowCreate = true,
   side = 'bottom',
   selectedId,
 }: WorkspacePickFlowProps) {
   const workspaceSnapshot = useWorkspaces(state => state)
-  const workspaces = workspaceSnapshot.items
+  const workspaces = visibleWorkspaceIds === undefined
+    ? workspaceSnapshot.items
+    : workspaceSnapshot.items.filter(workspace => visibleWorkspaceIds.has(workspace.workspaceId))
   const getAnchorRect = useCallback(
     () => anchorRef?.current?.getBoundingClientRect() ?? null,
     [anchorRef],
@@ -98,7 +106,7 @@ export function WorkspacePickFlow({
   useEffect(() => {
     if (flowOpen && !flowAvailable) setFlowOpen(false)
   }, [flowOpen, flowAvailable])
-  const addEntries: MenuEntry[] = flowAvailable
+  const addEntries: MenuEntry[] = allowCreate && flowAvailable
     ? [{ id: ADD_WORKSPACE, label: t('menu.addWorkspace'), icon: <IconPlusOutline16 size={16} />, disabled: flowBusy }]
     : []
   // With workspaces listed, the add action pins below the scroll region
@@ -126,6 +134,7 @@ export function WorkspacePickFlow({
   const adoptDirectory = (path: string): Promise<void> =>
     createWorkspace({ path }).then((workspace) => {
       setFlowOpen(false)
+      if (workspace === undefined) return
       onPick(workspace.workspaceId)
     }).catch((reason: unknown) => {
       setModalError(reason instanceof Error ? reason.message : String(reason))
@@ -231,9 +240,26 @@ export function WorkspacePicker({
   onClose,
   createWorkspace,
   useDirectoryFlow,
+  useWorkspaceCategories,
   renderSlot,
   t,
 }: WorkspacePickerProps) {
+  const categorySnapshot = useWorkspaceCategories(state => state)
+  const allWorkspaceIds = useWorkspaces(state => state.items.map(workspace => workspace.workspaceId))
+  const activeCategory = categorySnapshot.categories
+    .find(category => category.id === categorySnapshot.pickerCategoryId)
+  const reservedWorkspaceIds = useMemo(
+    () => new Set(categorySnapshot.categories.flatMap(
+      category => category.reservedWorkspaceIds ?? category.workspaceIds,
+    )),
+    [categorySnapshot.categories],
+  )
+  const visibleWorkspaceIds = useMemo(
+    () => new Set(activeCategory === undefined
+      ? allWorkspaceIds.filter(workspaceId => !reservedWorkspaceIds.has(workspaceId))
+      : activeCategory.workspaceIds),
+    [activeCategory, allWorkspaceIds, reservedWorkspaceIds],
+  )
   return (
     <WorkspacePickFlow
       t={t}
@@ -242,6 +268,8 @@ export function WorkspacePicker({
       useWorkspaces={useWorkspaces}
       createWorkspace={createWorkspace}
       useDirectoryFlow={useDirectoryFlow}
+      visibleWorkspaceIds={visibleWorkspaceIds}
+      allowCreate={activeCategory === undefined}
       renderDirectoryFlow={owner => renderSlot('conversation.hero.workspace.directoryFlow', owner)}
       selectedId={selectedId}
       onPick={onPick}

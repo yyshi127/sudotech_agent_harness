@@ -35,6 +35,17 @@ import { AgentPresetDisplayRegistry, type AgentPresetDisplayResolver } from './d
 import { en, zh } from './locales.ts'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
 
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * Announces the preset chosen for the next blank session before that session exists.
+     * @mode broadcast
+     * @param agentPreset - Staged preset id.
+     */
+    'agent-preset/staged': (agentPreset: string) => void
+  }
+}
+
 export type { AgentPresetLabelInjected, AgentPresetLabelProps } from './AgentPresetLabel.tsx'
 export type { AgentPresetRowInjected, AgentPresetRowProps } from './AgentPresetRow.tsx'
 export type { AgentPresetSeatInjected, AgentPresetSeatProps } from './AgentPresetSeat.tsx'
@@ -129,7 +140,10 @@ export function apply(ctx: ClientContext): void {
     const seatInjected = (): AgentPresetSeatInjected => ({
       hooks: { agentPresetSeat: seat.store },
       load: () => seat.load(),
-      select: (id: string) => seat.select(id),
+      select: async (id: string) => {
+        await seat.select(id)
+        scope.emit('agent-preset/staged', id)
+      },
       introduced: () => { seat.introduced() },
       displayPreset,
     })

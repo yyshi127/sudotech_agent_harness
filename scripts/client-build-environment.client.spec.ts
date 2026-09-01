@@ -5,6 +5,7 @@ import yaml from 'js-yaml'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   assertClientBuildEnvironment,
+  assertClientBuildMutationAllowed,
   clientBuildEnvironmentDefines,
   clientBuildProcessEnvironment,
   readClientBuildRecord,
@@ -188,6 +189,21 @@ describe('client build environment', () => {
 
     write(join(official, 'apps/web/dist/index.html'), '<main>changed</main>')
     expect(() => { readClientBuildRecord(official) }).toThrow(/artifacts differ/)
+  })
+
+  it('blocks a partial Client rebuild from replacing a recorded profile', () => {
+    const environment = {
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      ...XIAOJING_PROFILE,
+    }
+    const fixture = buildFixture(environment)
+    const cleanRoot = mkdtempSync(join(tmpdir(), 'dsh-client-build-empty-'))
+    roots.push(cleanRoot)
+
+    expect(() => { assertClientBuildMutationAllowed(fixture, environment) }).not.toThrow()
+    expect(() => { assertClientBuildMutationAllowed(fixture, {}) })
+      .toThrow(/partial Client rebuild.*pnpm run build:xiaojing/)
+    expect(() => { assertClientBuildMutationAllowed(cleanRoot, {}) }).not.toThrow()
   })
 
   it('keeps public client values out of workflow-wide environments', () => {

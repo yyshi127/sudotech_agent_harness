@@ -22,16 +22,19 @@ import {
 import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
 import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold, seedSession, watchConsole,
-  webSnapshotMode, type WebScaffold,
+  profileGoldenPath, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/agent-preset-selection', import.meta.url))
 const HERO_EXPECTED = join(SNAPSHOT_DIR, 'hero.expected.md')
-const MENU_EXPECTED = join(SNAPSHOT_DIR, 'menu.expected.md')
+const MENU_EXPECTED = profileGoldenPath(join(SNAPSHOT_DIR, 'menu.expected.md'))
 const HEADER_EXPECTED = join(SNAPSHOT_DIR, 'header.expected.md')
 /** The shipped roster, beside the composition that names it. */
 const SHIPPED_PRESETS = fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url))
+/** Xiaojing-only presets included when the built Client is the product profile. */
+const XIAOJING_PRESETS = fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url))
+const CLIENT_PROFILE = webClientProfile()
 const MODE = webSnapshotMode()
 const SEED_ID = 'agent-preset-selection-web-e2e'
 /** A project skill only a preset that mounts `skill-filesystem` can discover. */
@@ -173,7 +176,13 @@ describe('web e2e: agent-preset selection', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
-      agentPresets: { roots: [{ path: SHIPPED_PRESETS, trust: 'system' }], default: 'standard' },
+      agentPresets: {
+        roots: [
+          { path: SHIPPED_PRESETS, trust: 'system' },
+          ...CLIENT_PROFILE === 'xiaojing' ? [{ path: XIAOJING_PRESETS, trust: 'system' as const }] : [],
+        ],
+        default: 'standard',
+      },
     })
     // A resumed session runs what it was created with; seeding one that
     // records `minimal` is what makes the header label a claim about the
@@ -218,7 +227,8 @@ describe('web e2e: agent-preset selection', () => {
     // the id alone never said what a preset does.
     expect(snapshot).toContain('Minimal mode')
     expect(snapshot).toContain('Creator mode')
-    expect(snapshot).toContain('Finance模式')
+    if (CLIENT_PROFILE === 'xiaojing') expect(snapshot).toContain('Finance模式')
+    else expect(snapshot).not.toContain('Finance模式')
     await page.keyboard.press('Escape')
   })
 

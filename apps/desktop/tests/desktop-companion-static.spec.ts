@@ -46,4 +46,12 @@ describe('desktop companion renderer isolation', () => {
     expect(renderer).toContain('reducedMotion.matches')
     expect(renderer).toContain('scheduleIdlePose()')
   })
+
+  it('honors the installer shutdown request without restoring the tray window', () => {
+    const main = readFileSync(new URL('../main.mjs', import.meta.url), 'utf8')
+    expect(main).toContain("const UPDATE_SHUTDOWN_ARGUMENT = '--xiaojing-shutdown-for-update'")
+    expect(main).toContain('process.argv.includes(UPDATE_SHUTDOWN_ARGUMENT)')
+    expect(main).toContain('argv.includes(UPDATE_SHUTDOWN_ARGUMENT)')
+    expect(main.indexOf('argv.includes(UPDATE_SHUTDOWN_ARGUMENT)')).toBeLessThan(main.indexOf('showMainWindow()', main.indexOf('second-instance')))
+  })
 })

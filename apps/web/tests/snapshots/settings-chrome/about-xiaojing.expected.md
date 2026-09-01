@@ -2,8 +2,33 @@
 - paragraph: 数豆科技
 - heading "小兢会计" [level=2]
 - paragraph: 小兢会计，您的AI办公搭子
-- text: 当前版本 v0.2.2
+- text: 当前版本 v0.2.3
 - paragraph: CURRENT RELEASE
+- heading "v0.2.3 版本新特性" [level=3]
+- text: 7 项功能亮点
+- list:
+  - listitem:
+    - text: F1-0
+    - paragraph: 建立可独立装卸的 Finance 扩展层，使财务能力与 Harness 核心及标准模式保持隔离。
+  - listitem:
+    - text: F1-1
+    - paragraph: 新增 Finance 模式，在完整继承标准模式能力的基础上加入财税专业身份、核验规则与技能目录。
+  - listitem:
+    - text: F1-2
+    - paragraph: 新增财务工作区、客户档案与客户工作区，让客户上下文在会话和本地资料之间保持一致且相互隔离。
+  - listitem:
+    - text: F1-3
+    - paragraph: 新增中国财税官方依据服务，优先核验官方正文、适用地区与时效，证据不足时明确标记“待核验”。
+  - listitem:
+    - text: F1-4
+    - paragraph: 统一解析 PDF、Word、Excel、PPTX、图片及数电发票，支持内嵌图片和扫描型 PDF 的视觉读取。
+  - listitem:
+    - text: F1-5
+    - paragraph: 新增四类可复核的财税试算与首批五个专业流程技能，保留输入、公式、依据和结果轨迹。
+  - listitem:
+    - text: F1-6
+    - paragraph: 完成 Finance 第一阶段集成验收，覆盖多客户隔离、资料可追溯、计算一致性及升级数据保护。
+- paragraph: VERSION HISTORY
 - heading "v0.2.2 版本新特性" [level=3]
 - text: 6 项功能亮点
 - list:

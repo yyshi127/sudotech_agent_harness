@@ -106,7 +106,7 @@ describe('web e2e: settings modal and General preferences', () => {
       )
       await compareOrRefreshGolden(DESKTOP_COMPANION_EXPECTED, companionSnapshot, MODE)
       await dialog.getByRole('button', { name: '关于小兢' }).click()
-      await dialog.getByText('当前版本 v0.2.2', { exact: true }).waitFor({ timeout: 10_000 })
+      await dialog.getByText('当前版本 v0.2.3', { exact: true }).waitFor({ timeout: 10_000 })
       const aboutSnapshot = await captureStableAria(
         page,
         '[data-xiaojing-about]',

@@ -1,5 +1,5 @@
 diff --git a/client.js b/client.js
-index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4d58e82f3 100644
+index 1ae1bb8..04a2b58 100644
 --- a/client.js
 +++ b/client.js
 @@ -10,6 +10,14 @@ window.__ModuleLoader__.load({
@@ -58,17 +58,37 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
      }
  
      function serializedFile(file) {
-@@ -118,10 +157,19 @@ window.__ModuleLoader__.load({
+@@ -118,10 +157,39 @@ window.__ModuleLoader__.load({
          return { actx, shell: this.ctx.conversation.input.for(actx) }
        }
  
 +      addImages(sessionId, files, limits) {
-+        const { actx } = this.scope(sessionId)
++        const { actx, shell } = this.scope(sessionId)
 +        const conversation = actx.get('conversation')
 +        if (!conversation || typeof conversation.addImages !== 'function') {
 +          throw new Error('当前版本未提供原生图片附件能力')
 +        }
-+        return conversation.addImages(files, limits)
++        const before = new Set(shell.snapshot?.imageIds || [])
++        const result = conversation.addImages(files, limits)
++        if (!result.ok) return result
++        return {
++          ...result,
++          imageIds: (shell.snapshot?.imageIds || []).filter((id) => !before.has(id)),
++        }
++      }
++
++      removeImage(sessionId, imageId) {
++        const { shell } = this.scope(sessionId)
++        shell.removeImage(imageId)
++      }
++
++      prepareUpload(sessionId, originalName, upload) {
++        const { actx } = this.scope(sessionId)
++        return actx.serial(actx, 'xiaojing-finance/local-file-prepare', {
++          sessionId,
++          originalName,
++          upload,
++        })
 +      }
 +
        insertReference(sessionId, entry) {
@@ -79,7 +99,18 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
          return actx.bail(actx, 'slash/input-insert-reference', {
            reference: {
              source: SOURCE,
-@@ -280,40 +328,97 @@ window.__ModuleLoader__.load({
+@@ -147,7 +186,9 @@ window.__ModuleLoader__.load({
+         const input = shell.snapshot
+         const occurrence = input.occurrences.find((item) => item.source === SOURCE && item.ref === ref)
+         if (occurrence) {
+-          shell.setDraft(input.draft.slice(0, occurrence.offset) + input.draft.slice(occurrence.offset + 1))
++          const tailOffset = occurrence.offset + occurrence.length
++          const end = input.draft[tailOffset] === ' ' ? tailOffset + 1 : tailOffset
++          shell.setDraft(input.draft.slice(0, occurrence.offset) + input.draft.slice(end))
+         }
+         const next = entries.filter((item) => item.ref !== ref)
+         if (next.length > 0) this.pending.set(key, next)
+@@ -280,40 +348,119 @@ window.__ModuleLoader__.load({
        return controller.pendingFor(sessionId)
      }
  
@@ -144,19 +175,42 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
          try {
 -          for (const file of files) {
 +          if (images.length > 0) {
-+            try {
+             try {
+-              const stored = await uploadFile(file)
+-              props.controller.attach(props.sessionId, stored)
+-              attached += 1
 +              const result = props.controller.addImages(props.sessionId, images, imageLimits)
-+              if (result.ok) attachedImages = images.length
-+              else failures.push(`图片：${imageIntakeError(result.error)}`)
++              if (!result.ok) {
++                failures.push(`图片：${imageIntakeError(result.error)}`)
++              } else if (result.imageIds.length !== images.length) {
++                for (const imageId of result.imageIds) props.controller.removeImage(props.sessionId, imageId)
++                failures.push('图片：无法确认已添加的图片，请重试')
++              } else {
++                for (const [index, file] of images.entries()) {
++                  try {
++                    await props.controller.prepareUpload(
++                      props.sessionId,
++                      file.name,
++                      () => uploadFile(file),
++                    )
++                    attachedImages += 1
++                  } catch (error) {
++                    props.controller.removeImage(props.sessionId, result.imageIds[index])
++                    failures.push(`${file.name}: ${errorMessage(error)}`)
++                  }
++                }
++              }
 +            } catch (error) {
 +              failures.push(`图片：${errorMessage(error)}`)
 +            }
 +          }
 +          for (const file of documents) {
-             try {
-               const stored = await uploadFile(file)
--              props.controller.attach(props.sessionId, stored)
--              attached += 1
++            try {
++              const stored = await props.controller.prepareUpload(
++                props.sessionId,
++                file.name,
++                () => uploadFile(file),
++              ) || await uploadFile(file)
 +              props.controller.attach(props.sessionId, {
 +                ...stored,
 +                visualUnsupported: unsupportedVisualFile(file),
@@ -185,7 +239,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
        return React.createElement(
          'div',
          { className: 'dsh-upload-control', title: status || '上传本地文件并加入本次消息' },
-@@ -331,6 +436,7 @@ window.__ModuleLoader__.load({
+@@ -331,6 +478,7 @@ window.__ModuleLoader__.load({
              className: 'dsh-upload-button',
              disabled,
              'aria-label': busy ? '正在上传文件' : '上传文件',
@@ -193,7 +247,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
              onClick: () => pickerRef.current?.click(),
            },
            React.createElement('span', { className: 'dsh-upload-icon', 'aria-hidden': true }, busy ? '…' : '↑'),
-@@ -344,6 +450,7 @@ window.__ModuleLoader__.load({
+@@ -344,6 +492,7 @@ window.__ModuleLoader__.load({
        const input = props.useInput((state) => state)
        const promptError = props.useSession((session) => session.promptError) || null
        const files = usePending(props.controller, props.sessionId)
@@ -201,7 +255,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
  
        React.useEffect(() => {
          props.controller.migrateLegacy(props.sessionId, input?.draft || '')
-@@ -354,10 +461,27 @@ window.__ModuleLoader__.load({
+@@ -354,10 +503,27 @@ window.__ModuleLoader__.load({
          if (promptError) props.controller.restoreFailed(props.sessionId)
        }, [props.controller, props.sessionId, promptError])
  
@@ -230,7 +284,7 @@ index 1ae1bb832e1d9498a94ab3dee40c259fc1c57550..90524b12fa081478d1583722a01dd9c4
          files.map((file) => React.createElement(
            'div',
            { className: 'dsh-upload-chip', key: file.ref },
-@@ -522,7 +646,7 @@ window.__ModuleLoader__.load({
+@@ -522,7 +688,7 @@ window.__ModuleLoader__.load({
        .dsh-upload-button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
        .dsh-upload-button:disabled{opacity:.55;cursor:wait}
        .dsh-upload-icon{font-size:15px;line-height:1;font-weight:600}

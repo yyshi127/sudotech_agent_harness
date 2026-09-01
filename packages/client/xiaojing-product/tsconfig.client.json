@@ -11,6 +11,7 @@
     "src/client/application-info.ts",
     "src/client/HeroBrand.tsx",
     "src/client/OnboardingContent.tsx",
+    "src/client/release-history.ts",
     "src/client/SidebarBrand.tsx",
     "src/client/index.ts",
     "src/client/locales.ts"

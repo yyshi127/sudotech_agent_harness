@@ -272,6 +272,38 @@ export function readClientBuildRecord(
   return record
 }
 
+/**
+ * Refuse a partial Client rebuild that would mix profiles with the current complete build.
+ *
+ * A complete build removes its old record before invoking the Client compiler. A
+ * direct partial rebuild therefore reaches this guard only when it is about to
+ * mutate an already-recorded artifact set. The caller must reproduce every
+ * recorded public value exactly or use the complete profile build instead.
+ *
+ * @param root - repository root containing the current complete build record.
+ * @param environment - environment that would be embedded in the partial rebuild.
+ */
+export function assertClientBuildMutationAllowed(
+  root: string,
+  environment: NodeJS.ProcessEnv = process.env,
+): void {
+  if (!existsSync(resolve(root, CLIENT_BUILD_RECORD_PATH))) return
+
+  const record = readClientBuildRecord(root)
+  try {
+    assertClientBuildEnvironment(environment, record.environment)
+  } catch (error) {
+    const profile = record.environment.DSH_CLIENT_BUILD_PROFILE
+    const command = profile === 'official' || profile === 'xiaojing'
+      ? `pnpm run build:${profile}`
+      : 'pnpm run build'
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `partial Client rebuild would mix artifacts from different build environments; run ${command} instead (${detail})`,
+    )
+  }
+}
+
 /** Return the deterministic digest of every artifact affected by the public client environment. */
 function clientArtifactDigest(root: string): ClientArtifactDigest {
   const paths = globSync([...CLIENT_ARTIFACT_PATTERNS], { cwd: root })

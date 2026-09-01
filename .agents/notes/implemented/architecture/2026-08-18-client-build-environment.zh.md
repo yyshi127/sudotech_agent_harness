@@ -18,7 +18,11 @@ Vite 配置与动态 client bundle 的共享 tsdown preset 使用同一 define �
 
 `DSH_CLIENT_*` 的名称本身表示公开性。凭据、路径和其他仅供 Host 或 CI 使用的值不得使用该前缀。
 
-根构建包装脚本向两个 bundler 提供同一份精确的公开环境。每次完整构建都会把源码 Git HEAD 的七位前缀派生为 `DSH_CLIENT_COMMIT_HASH`；没有仓库元数据的构建环境可显式提供该值。除此之外，`pnpm run build` 继承调用方的 `DSH_CLIENT_*` 值，`pnpm run build:official` 则不依赖特定 shell 的环境变量语法，直接选择仓库的官方产物 profile，并设置 `DSH_CLIENT_BUILD_PROFILE=official` 供部署专属业务注册使用。完整构建成功后会写入精确的公开环境，以及覆盖 Vite 输出和所有动态 client bundle 的摘要；局部构建命令不会替换该记录。
+根构建包装脚本向两个 bundler 提供同一份精确的公开环境。每次完整构建都会把源码 Git HEAD 的七位前缀派生为 `DSH_CLIENT_COMMIT_HASH`；没有仓库元数据的构建环境可显式提供该值。在小兢产品仓库中，`pnpm run build` 默认选择小兢 profile，只有 `--profile` 或 CI 使用的非公开选择器才会显式选择其他 profile。`pnpm run build:official` 不依赖特定 shell 的环境变量语法，直接选择仓库的官方产物 profile，并设置 `DSH_CLIENT_BUILD_PROFILE=official` 供部署专属业务注册使用。完整构建成功后会写入精确的公开环境，以及覆盖 Vite 输出和所有动态 client bundle 的摘要；局部构建命令不会替换该记录。
+
+直接编译 Client 前会检查已有的完整构建记录。构建进程必须精确复现记录中的公开环境，否则会在改写产物前停止，并提示应使用的完整 profile 构建命令。完整构建会在调用同一编译器前移除旧记录，只有两条产物路径都成功后才写入新记录。
+
+每个具名 profile 由一个产品插件负责在其构建期 profile 条件通过后发布激活标记。React 挂载前，静态 Web 外壳要求该标记与自身编译得到的 `DSH_CLIENT_BUILD_PROFILE` 完全一致。静态外壳与动态插件混用时，启动过程会显示明确错误，不再静默进入错误产品界面。未打包的小兢 Electron 预览还会在创建窗口前检查完整构建记录；记录缺失或不是小兢产物时直接拒绝启动。
 
 ## Alternatives considered
 
@@ -32,6 +36,8 @@ Vite 配置与动态 client bundle 的共享 tsdown preset 使用同一 define �
 
 ## Consequences
 
-Vite 静态壳和共享 tsdown 动态 bundle 对同一 `DSH_CLIENT_*` 构建进程变量产生相同字符串值。未设置的静态点访问得到 `undefined`，非 `DSH_CLIENT_*` 值不会通过该机制进入浏览器产物，业务代码也无法枚举构建进程环境。每次完整构建都携带可公开展示的短源码 revision。CI 构建门禁选择官方 profile，而不把其中的公开值暴露给源码测试或无关 workflow 步骤。npm 打包与 built Web 测试会校验记录中的环境及当前产物摘要，因此默认构建后请求官方打包、局部重建或修改输出都会在消费产物前失败。
+Vite 静态壳和共享 tsdown 动态 bundle 对同一 `DSH_CLIENT_*` 构建进程变量产生相同字符串值。未设置的静态点访问得到 `undefined`，非 `DSH_CLIENT_*` 值不会通过该机制进入浏览器产物，业务代码也无法枚举构建进程环境。每次完整构建都携带可公开展示的短源码 revision。普通产品开发会保持小兢产物处于激活状态；CI 构建门禁和上游对照工作显式选择官方 profile。npm 打包与 built Web 测试会校验记录中的环境及当前产物摘要，因此不兼容的打包请求、局部重建或修改输出都会在消费产物前失败。
+
+与 profile 不兼容的直接 Client 重建会在修改生成文件前失败。其他路径如果产生混合产物，浏览器启动会拒绝挂载并保留不依赖框架的错误页。Bundle 传输会对一次失败重试一次；插件名册持续不稳定时会在有限时间后显示失败，不再无限转圈。
 
 任何被业务代码引用的 `DSH_CLIENT_*` 值都会成为公开产物内容，命名错误可能泄露信息。构建选择在产物生成时固定；需要部署后变化的设置必须使用拥有校验、传输和文档的运行时配置机制。

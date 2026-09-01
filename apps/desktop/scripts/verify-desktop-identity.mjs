@@ -11,6 +11,7 @@ const installerProductLogo = await readFile(join(appRoot, 'build', 'installer-pr
 const installerProductLogoSmall = await readFile(join(appRoot, 'build', 'installer-product-logo-small.bmp'))
 const installerCompanyLogo = await readFile(join(appRoot, 'build', 'installer-company-logo.bmp'))
 const installerCancelHelper = await readFile(join(appRoot, 'build', 'installer-cancel-helper.ps1'), 'utf8')
+const installerShutdownHelper = await readFile(join(appRoot, 'build', 'installer-shutdown-helper.ps1'), 'utf8')
 const main = await readFile(join(appRoot, 'main.mjs'), 'utf8')
 const buildResourceNames = await readdir(join(appRoot, 'build'))
 
@@ -91,6 +92,14 @@ for (const [label, actual, wanted] of checks) {
   if (actual !== wanted) throw new Error(`${label} must remain ${JSON.stringify(wanted)}`)
 }
 
+const packagedFiles = new Set(manifest.build?.files ?? [])
+for (const match of main.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
+  const importedFile = match[1]
+  if (!packagedFiles.has(importedFile)) {
+    throw new Error(`Electron main-process import ${importedFile} must be included in build.files`)
+  }
+}
+
 const version = String(manifest.version).split('.').map(Number)
 if (version.length !== 3 || version.some(part => !Number.isInteger(part) || part < 0)) {
   throw new Error('desktop version must be a three-part numeric semver')
@@ -110,6 +119,13 @@ if (!installer.includes('!macro customWelcomePage')
   || !installer.includes('!macro customFinishPage')
   || !installer.includes('SetCtlColors $xiaojingWelcomeInstallButton "FFFFFF" "12A489"')) {
   throw new Error('installer must retain the two-stage Xiaojing setup flow and SUDO green action')
+}
+if (!installer.includes('Var /GLOBAL xiaojingSelectedInstallDirectory')
+  || !installer.includes('StrCpy $xiaojingSelectedInstallDirectory "$INSTDIR"')
+  || !installer.includes('!define MUI_PAGE_CUSTOMFUNCTION_PRE xiaojingRestoreSelectedInstallDirectory')
+  || !installer.includes('Function xiaojingRestoreSelectedInstallDirectory')
+  || !installer.includes('StrCpy $INSTDIR "$xiaojingSelectedInstallDirectory"')) {
+  throw new Error('installer must restore the selected directory after current-user install mode initialization')
 }
 const autoDiscoveredLicenseFiles = buildResourceNames.filter(name => /^(?:license|eula)(?:[_.]|$)/i.test(name))
 if (manifest.build?.nsis?.license != null || autoDiscoveredLicenseFiles.length > 0) {
@@ -155,6 +171,18 @@ if (installer.includes('xiaojingScheduleRollback')
   || installer.includes('APP_INSTALLER_STORE_FILE')
   || installer.includes('/S /currentuser /D=$INSTDIR')) {
   throw new Error('installer must not use the failed previous-installer rollback path')
+}
+if (!installer.includes('!macro customCheckAppRunning')
+  || !installer.includes('ReadRegStr $R8 HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation')
+  || !installer.includes('installer-shutdown-helper.ps1')
+  || !installerShutdownHelper.includes("$expectedDirectoryName = 'xiaojing-agent-desktop'")
+  || !installerShutdownHelper.includes('Get-CimInstance -ClassName Win32_Process')
+  || !installerShutdownHelper.includes('$_.ExecutablePath')
+  || !installerShutdownHelper.includes('Remove-OverlongLegacyInstallEntries')
+  || !installerShutdownHelper.includes('$maximumLegacyPathLength = 259')
+  || !installerShutdownHelper.includes("$shutdownArgument = '--xiaojing-shutdown-for-update'")
+  || !main.includes("const UPDATE_SHUTDOWN_ARGUMENT = '--xiaojing-shutdown-for-update'")) {
+  throw new Error('installer must stop only owned processes and remove legacy overlong program paths before replacement')
 }
 if (!main.includes("app.setPath('userData'")) {
   throw new Error('Electron userData must be pinned before startup')

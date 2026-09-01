@@ -1,0 +1,386 @@
+/** Xiaojing Finance client-management settings, workspace category, hero context, and session label. */
+
+import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
+import type { ClientContext, SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { WorkspaceCategoryProvider } from '@deepseek-ai/dsh-client-ui-workspace/client'
+import financeClientsRemote from '@deepseek-ai/dsh-xiaojing-finance-domain/remote'
+import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain/remote'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
+import { FinanceClientsController } from './controller.ts'
+import {
+  FinanceClientCreateOverlay,
+  type FinanceClientCreateOverlayInjected,
+} from './FinanceClientCreateOverlay.tsx'
+import { FinanceClientsSection, type EditorState, type FinanceClientsSectionInjected } from './FinanceClientsSection.tsx'
+import { FinanceContextLabel } from './FinanceContextLabel.tsx'
+import { FinanceHeroContext, type FinanceHeroContextInjected } from './FinanceHeroContext.tsx'
+import type {
+  FinanceSessionContextView,
+  FinanceWorkspaceEntry,
+  StageFinanceClientRequest,
+} from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
+import { en, zh, type FinanceClientsKey } from './locales.ts'
+import type { LocalUploadedFile } from './upload-contract.ts'
+
+export type { FinanceClientsRemote, FinanceClientsView } from './controller.ts'
+export type { FinanceLocalFilePrepareRequest, LocalUploadedFile } from './upload-contract.ts'
+export type { FinanceClientsSectionInjected, FinanceClientsSectionProps } from './FinanceClientsSection.tsx'
+export type {
+  FinanceClientCreateOverlayInjected,
+  FinanceClientCreateOverlayProps,
+} from './FinanceClientCreateOverlay.tsx'
+export type { FinanceHeroContextInjected, FinanceHeroContextProps } from './FinanceHeroContext.tsx'
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** Xiaojing Finance client records and session-context copy. */
+    'finance.clients': FinanceClientsKey
+  }
+}
+
+const NS = 'finance.clients'
+const BLOCK_OWNER = '@deepseek-ai/dsh-client-ui-xiaojing-finance-clients'
+
+/** Required service used to mount the product-only Finance Remote contribution. */
+export const inject = ['remote']
+
+/** Mount the Finance Remote contribution, then register its product-only UI consumer. */
+export async function apply(ctx: ClientContext): Promise<void> {
+  if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing') return
+  await ctx.remote.$mount(financeClientsRemote)
+  ctx.inject(
+    [
+      'slots', 'remote.financeClients', 'locale', 'sessions', 'conversation',
+      'connection', 'workspaces', 'workspaceCategories',
+    ],
+    registerFinanceClientSurfaces,
+  )
+}
+
+function registerFinanceClientSurfaces(ctx: ClientContext): void {
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-xiaojing-finance-clients: dictionaries')
+
+  const controller = new FinanceClientsController(ctx.remote.financeClients)
+  const connection = ctx.get('connection') as ConnectionHandle
+  const t = ctx.locale.bind(NS)
+  const loadClients = (): Promise<void> => controller.load()
+  const read = controller.read.bind(controller)
+  const sessionContext = controller.sessionContext.bind(controller)
+  ctx.effect(() => ctx.on('xiaojing-finance/local-file-prepare', async (request) => {
+    const summary = ctx.sessions.list.getSnapshot().byId[request.sessionId]
+    if (summary !== undefined && summary.agentPreset !== 'finance') return undefined
+    const context = await controller.sessionContext(request.sessionId)
+    if (context.state === 'not-finance') return undefined
+    const uploaded = await request.upload()
+    const imported = await controller.importUpload(request.sessionId, {
+      path: uploaded.path,
+      originalName: request.originalName,
+    })
+    const prepared: LocalUploadedFile = {
+      ...uploaded,
+      name: imported.name,
+      path: imported.path,
+      size: imported.size,
+    }
+    return prepared
+  }), 'ui-xiaojing-finance-clients: controlled upload handoff')
+  const workspaceState = async () => {
+    if (controller.store.getSnapshot().workspaces === null) await controller.load()
+    const workspaces = controller.store.getSnapshot().workspaces
+    if (workspaces === null) throw new Error('Finance workspace catalog is unavailable')
+    return workspaces
+  }
+  const selectPreset = async (sessionId: SessionId, agentPreset: string): Promise<void> => {
+    const summary = ctx.sessions.list.getSnapshot().byId[sessionId]
+    if (summary?.agentPreset === agentPreset) return
+    const response = await connection.api.agentPresets.select({ sessionId, agentPreset })
+    if (!response.result.ok) throw new Error(response.result.error.message)
+    ctx.sessions.noteAgentPreset(sessionId, response.result.value.agentPreset)
+  }
+  const enterFinanceWorkspace = async (
+    entry: FinanceWorkspaceEntry,
+    request: StageFinanceClientRequest,
+  ): Promise<FinanceSessionContextView> => {
+    if (!entry.startable) throw new Error('Archived customer workspaces cannot start new sessions')
+    const sessionId = await ctx.workspaces.connectWorkspace(entry.workspaceId)
+    await selectPreset(sessionId, 'finance')
+    const context = await controller.stage(sessionId, request)
+    ctx.sessions.open(sessionId)
+    return context
+  }
+  const stage = async (
+    sessionId: SessionId,
+    request: StageFinanceClientRequest,
+  ): Promise<FinanceSessionContextView> => {
+    const workspaces = await workspaceState()
+    if (request.mode === 'general') {
+      const listedWorkspaceIds = new Set(workspaces.listedWorkspaceIds)
+      const currentWorkspaceId = ctx.workspaces.list.getSnapshot().items
+        .find(workspace => workspace.sessionIds.includes(sessionId))?.workspaceId
+      const entry = [workspaces.standard, ...workspaces.consultations]
+        .find(candidate => candidate.workspaceId === currentWorkspaceId && listedWorkspaceIds.has(candidate.workspaceId))
+        ?? [workspaces.standard, ...workspaces.consultations]
+          .find(candidate => listedWorkspaceIds.has(candidate.workspaceId))
+      if (entry === undefined) throw new Error('Finance requires at least one consultation workspace')
+      return await enterFinanceWorkspace(entry, request)
+    }
+    const entry = workspaces.clients.find(candidate => candidate.clientId === request.clientId)
+    if (entry === undefined) throw new Error('The selected customer workspace is unavailable')
+    return await enterFinanceWorkspace(entry, request)
+  }
+  const setBlocked = (sessionId: SessionId, reason: string | undefined): void => {
+    ctx.conversation.blocks.setOwned(BLOCK_OWNER, sessionId, reason === undefined ? undefined : { reason })
+  }
+
+  const categorySource: WorkspaceCategoryProvider['source'] = {
+    getSnapshot: () => {
+      const workspaces = controller.store.getSnapshot().workspaces
+      const entries = workspaces === null
+        ? []
+        : [workspaces.standard, ...workspaces.consultations, ...workspaces.clients]
+      const listedWorkspaceIds = new Set(workspaces?.listedWorkspaceIds ?? [])
+      const listedEntries = entries.filter(entry => listedWorkspaceIds.has(entry.workspaceId))
+      return {
+        label: t('financeWorkspace'),
+        ordinaryLabel: t('ordinaryWorkspace'),
+        workspaceIds: listedEntries.map(entry => entry.workspaceId),
+        reservedWorkspaceIds: entries.map(entry => entry.workspaceId),
+        manageableWorkspaceIds: listedEntries.map(entry => entry.workspaceId),
+        newSessionDisabledWorkspaceIds: listedEntries.filter(entry => !entry.startable)
+          .map(entry => entry.workspaceId),
+        sections: [
+          {
+            id: 'clients',
+            label: t('clientWorkspaces'),
+            icon: 'person',
+            workspaceIds: workspaces?.clients
+              .filter(entry => listedWorkspaceIds.has(entry.workspaceId))
+              .map(entry => entry.workspaceId) ?? [],
+            addLabel: t('addClientWorkspace'),
+          },
+          {
+            id: 'consultations',
+            label: t('generalConsulting'),
+            icon: 'discussion',
+            workspaceIds: workspaces === null
+              ? []
+              : [workspaces.standard, ...workspaces.consultations]
+                .filter(entry => listedWorkspaceIds.has(entry.workspaceId))
+                .map(entry => entry.workspaceId),
+            addLabel: t('addConsultationWorkspace'),
+          },
+        ],
+      }
+    },
+    subscribe: listener => controller.store.subscribe(listener),
+  }
+  const activateCategory = async (workspaceId?: WorkspaceId): Promise<void> => {
+    const workspaces = await workspaceState()
+    const listedWorkspaceIds = new Set(workspaces.listedWorkspaceIds)
+    const entry = workspaceId === undefined
+      ? [workspaces.standard, ...workspaces.consultations]
+        .find(candidate => listedWorkspaceIds.has(candidate.workspaceId))
+      : [workspaces.standard, ...workspaces.consultations, ...workspaces.clients]
+        .find(candidate => candidate.workspaceId === workspaceId && listedWorkspaceIds.has(candidate.workspaceId))
+    if (entry === undefined) throw new Error('Unknown Finance workspace')
+    const request: StageFinanceClientRequest = entry.kind === 'client'
+      ? { mode: 'client', clientId: entry.clientId }
+      : { mode: 'general' }
+    await enterFinanceWorkspace(entry, request)
+  }
+  ctx.effect(() => ctx.workspaceCategories.register({
+    id: 'finance',
+    order: 10,
+    source: categorySource,
+    activate: activateCategory,
+    addWorkspace: async (sectionId, path) => {
+      if (sectionId === 'consultations') {
+        return (await controller.addConsultationWorkspace(path)).workspaceId
+      }
+      if (sectionId !== 'clients') throw new Error(`Unknown Finance workspace section: ${sectionId}`)
+      const restored = await controller.restoreClientWorkspace(path)
+      if (restored !== null) return restored.workspaceId
+      const clientId = await controller.beginClientWorkspaceCreation(path)
+      if (clientId === undefined) return undefined
+      const workspaces = await workspaceState()
+      const entry = workspaces.clients.find(candidate => candidate.clientId === clientId)
+      if (entry === undefined) throw new Error('The created customer workspace is unavailable')
+      return entry.workspaceId
+    },
+    renameWorkspace: async (workspaceId, title) => {
+      await controller.renameWorkspace(workspaceId, title)
+    },
+    removeWorkspace: async (workspaceId) => {
+      const currentSessionId = ctx.sessions.list.getSnapshot().current
+      const currentWorkspaceId = currentSessionId === undefined
+        ? undefined
+        : ctx.workspaces.list.getSnapshot().items
+          .find(workspace => workspace.sessionIds.includes(currentSessionId))?.workspaceId
+      await controller.removeWorkspace(workspaceId)
+      if (currentWorkspaceId === workspaceId) await activateCategory()
+    },
+  }), 'ui-xiaojing-finance-clients: Finance workspace category')
+
+  ctx.effect(() => {
+    let disposed = false
+    let running = false
+    let rerun = false
+    let previousOrdinaryWorkspaceId: WorkspaceId | undefined
+
+    const reconcile = async (): Promise<void> => {
+      const sessionState = ctx.sessions.list.getSnapshot()
+      const sessionId = sessionState.current
+      if (sessionId === undefined) return
+      const summary = sessionState.byId[sessionId]
+      if (summary === undefined) return
+      ctx.workspaceCategories.setPickerCategory(summary.agentPreset === 'finance' ? 'finance' : undefined)
+      if (!summary.blank) return
+      const workspaces = controller.store.getSnapshot().workspaces
+      if (workspaces === null) return
+      const financeIds = new Set([workspaces.standard, ...workspaces.consultations, ...workspaces.clients]
+        .map(entry => entry.workspaceId))
+      const listedFinanceIds = new Set(workspaces.listedWorkspaceIds)
+      const workspaceItems = ctx.workspaces.list.getSnapshot().items
+      const currentWorkspaceId = workspaceItems
+        .find(workspace => workspace.sessionIds.includes(sessionId))?.workspaceId
+
+      if (summary.agentPreset === 'finance'
+        && (currentWorkspaceId === undefined || !listedFinanceIds.has(currentWorkspaceId))) {
+        if (currentWorkspaceId !== undefined) previousOrdinaryWorkspaceId = currentWorkspaceId
+        await activateCategory()
+        return
+      }
+      if (summary.agentPreset === 'finance' || currentWorkspaceId === undefined || !financeIds.has(currentWorkspaceId)) return
+
+      const ordinaryWorkspace = workspaceItems.find(workspace =>
+        workspace.workspaceId === previousOrdinaryWorkspaceId && !financeIds.has(workspace.workspaceId))
+        ?? workspaceItems.find(workspace => !financeIds.has(workspace.workspaceId))
+      if (ordinaryWorkspace === undefined) {
+        ctx.sessions.clear()
+        return
+      }
+      const targetSessionId = await ctx.workspaces.connectWorkspace(ordinaryWorkspace.workspaceId)
+      if (summary.agentPreset !== undefined) await selectPreset(targetSessionId, summary.agentPreset)
+      ctx.sessions.open(targetSessionId)
+    }
+
+    const schedule = (): void => {
+      if (disposed) return
+      if (running) {
+        rerun = true
+        return
+      }
+      running = true
+      void reconcile().catch((reason: unknown) => {
+        console.warn('Finance workspace routing failed:', reason)
+      }).finally(() => {
+        running = false
+        if (rerun) {
+          rerun = false
+          schedule()
+        }
+      })
+    }
+
+    const disposeSessions = ctx.sessions.list.subscribe(schedule)
+    const disposeWorkspaces = ctx.workspaces.list.subscribe(schedule)
+    const disposeFinance = controller.store.subscribe(schedule)
+    const disposePresetStage = ctx.on('agent-preset/staged', (agentPreset) => {
+      ctx.workspaceCategories.setPickerCategory(agentPreset === 'finance' ? 'finance' : undefined)
+      if (agentPreset !== 'finance' || ctx.sessions.list.getSnapshot().current !== undefined) return
+      void activateCategory().catch((reason: unknown) => {
+        console.warn('Finance workspace activation failed:', reason)
+      })
+    })
+    void controller.load().then(schedule)
+    schedule()
+    return () => {
+      disposed = true
+      disposeSessions()
+      disposeWorkspaces()
+      disposeFinance()
+      disposePresetStage()
+      ctx.workspaceCategories.setPickerCategory(undefined)
+    }
+  }, 'ui-xiaojing-finance-clients: preset-workspace routing')
+
+  const sectionInjected = (): FinanceClientsSectionInjected => ({
+    hooks: { financeClients: controller.store },
+    load: loadClients,
+    read,
+    update: async (editor: EditorState) => {
+      await controller.update({
+        clientId: editor.clientId,
+        expectedRevision: editor.expectedRevision,
+        client: editor.draft,
+      })
+    },
+    archive: async (clientId, expectedRevision) => {
+      await controller.archive({ clientId, expectedRevision })
+    },
+  })
+
+  const heroInjected = (): FinanceHeroContextInjected => ({
+    hooks: { financeClients: controller.store },
+    loadClients,
+    sessionContext,
+    stage,
+    setBlocked,
+  })
+
+  const overlayInjected = (): FinanceClientCreateOverlayInjected => ({
+    hooks: { financeClients: controller.store },
+    createClient: controller.create.bind(controller),
+    complete: controller.completeClientWorkspaceCreation.bind(controller),
+    cancel: controller.cancelClientWorkspaceCreation.bind(controller),
+  })
+
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'finance-clients',
+    order: 22,
+    label: () => t('nav'),
+    locale: NS,
+    inject: sectionInjected,
+  }, FinanceClientsSection))
+
+  ctx.slots.inject('conversation.hero.context', () => ctx.slots.register({
+    name: 'conversation.hero.context',
+    locale: NS,
+    inject: heroInjected,
+  }, FinanceHeroContext))
+
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
+    id: 'finance-client-workspace-create',
+    order: 20,
+    locale: NS,
+    inject: overlayInjected,
+  }, FinanceClientCreateOverlay))
+
+  ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
+    name: 'conversation.session.header.actions',
+    id: 'finance-client-context',
+    order: -9,
+    locale: NS,
+  }, FinanceContextLabel))
+
+  ctx.effect(() => {
+    const refresh = (): void => {
+      controller.resetSessionContexts()
+      void controller.load()
+    }
+    const dispose = ctx.on('connection/reset', refresh)
+    return () => { dispose() }
+  }, 'ui-xiaojing-finance-clients: reconnect refresh')
+
+  ctx.effect(() => () => {
+    controller.cancelClientWorkspaceCreation()
+  }, 'ui-xiaojing-finance-clients: cancel pending customer creation on unload')
+}

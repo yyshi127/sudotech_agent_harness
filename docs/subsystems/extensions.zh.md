@@ -272,6 +272,275 @@ snapshot(): CompanionSnapshot
 
 Source: [`packages/xiaojing/xiaojing-desktop-companion/src/index.ts`](../../packages/xiaojing/xiaojing-desktop-companion/src/index.ts)
 
+<a id="ctxxiaojingfinancecalculations--xiaojingfinancecalculations"></a>
+
+### `ctx.xiaojingFinanceCalculations` — `XiaojingFinanceCalculations`
+
+Host service consumed only by the Finance preset's calculation tool.
+
+```ts cordis-catalog
+/**
+ * Calculate one Finance trial result using explicit inputs and immutable client assumptions.
+ * @param agent - Calling Finance agent.
+ * @param request - Explicit calculation request.
+ * @returns Auditable deterministic result.
+ */
+calculate(agent: Agent, request: FinanceCalculationRequest): FinanceCalculationResult
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/xiaojing/xiaojing-finance-calculations/src/index.ts`](../../packages/xiaojing/xiaojing-finance-calculations/src/index.ts)
+
+<a id="ctxxiaojingfinancedocuments--xiaojingfinancedocuments"></a>
+
+### `ctx.xiaojingFinanceDocuments` — `XiaojingFinanceDocuments`
+
+Host service exposed only through the Finance preset's document tool.
+
+```ts cordis-catalog
+/**
+ * List and normalize original-material imports in the calling Finance session.
+ * @param agent - Calling Finance agent.
+ * @param signal - Caller cancellation signal; shared warming remains useful after cancellation.
+ * @returns Imported document states in event order.
+ */
+async listDocuments(agent: Agent, signal?: AbortSignal): Promise<FinanceDocumentListItem[]>
+
+/**
+ * Read one bounded page of normalized content from the calling Finance session.
+ * @param agent - Calling Finance agent.
+ * @param documentId - Session import identity returned by {@link listDocuments}.
+ * @param cursor - Zero-based normalized-unit cursor.
+ * @param signal - Caller cancellation signal.
+ * @returns Paginated normalized content.
+ */
+async readDocument( agent: Agent, documentId: FinanceManagedFileId, cursor: number = 0, signal?: AbortSignal, ): Promise<FinanceDocumentReadResult>
+
+/**
+ * Read one bounded document-image page from the calling Finance session.
+ * @param agent - Calling Finance agent.
+ * @param documentId - Session import identity returned by {@link listDocuments}.
+ * @param cursor - Zero-based document-image cursor.
+ * @param signal - Caller cancellation signal.
+ * @returns Durable native-vision attachments and their slide locations.
+ */
+async readDocumentVisuals( agent: Agent, documentId: FinanceManagedFileId, cursor: number = 0, signal?: AbortSignal, ): Promise<FinanceDocumentVisualReadResult>
+
+/**
+ * List deterministic document states for the calling ordinary session.
+ * @param agent - Calling non-Finance agent.
+ * @param signal - Caller cancellation signal.
+ * @returns Current-session uploads in durable user-message order.
+ */
+async listGeneralDocuments(agent: Agent, signal?: AbortSignal): Promise<XiaojingDocumentListItem[]>
+
+/**
+ * Read normalized text from one upload introduced by the calling ordinary session.
+ * @param agent - Calling non-Finance agent.
+ * @param documentId - Opaque identity returned by {@link listGeneralDocuments}.
+ * @param cursor - Zero-based normalized-unit cursor.
+ * @param signal - Caller cancellation signal.
+ * @returns Paginated normalized content.
+ */
+async readGeneralDocument( agent: Agent, documentId: XiaojingDocumentId, cursor: number = 0, signal?: AbortSignal, ): Promise<XiaojingDocumentReadResult>
+
+/**
+ * Read document images from one upload introduced by the calling ordinary session.
+ * @param agent - Calling non-Finance agent.
+ * @param documentId - Opaque identity returned by {@link listGeneralDocuments}.
+ * @param cursor - Zero-based document-image cursor.
+ * @param signal - Caller cancellation signal.
+ * @returns Durable native-vision attachments and their slide locations.
+ */
+async readGeneralDocumentVisuals( agent: Agent, documentId: XiaojingDocumentId, cursor: number = 0, signal?: AbortSignal, ): Promise<XiaojingDocumentVisualReadResult>
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/xiaojing/xiaojing-finance-documents/src/index.ts`](../../packages/xiaojing/xiaojing-finance-documents/src/index.ts)
+
+<a id="ctxxiaojingfinancedomain--xiaojingfinancedomain"></a>
+
+### `ctx.xiaojingFinanceDomain` — `XiaojingFinanceDomain`
+
+Host service owning local client CRUD, pre-turn staging, and durable session binding.
+
+```ts cordis-catalog
+/**
+ * List local client summaries.
+ * @returns Current catalog revision and rows.
+ */
+@Remote('list') list(): Promise<FinanceClientListView>
+
+/**
+ * List standard and customer Workspaces owned by Finance.
+ * @returns Browser-safe Workspace identities in customer-catalog order.
+ */
+@Remote('workspaces') async workspaces(): Promise<FinanceWorkspaceListView>
+
+/**
+ * Register one user-selected Finance consultation Workspace.
+ * @param request - Directory selected through the local folder picker.
+ * @returns Browser-safe Finance Workspace entry.
+ */
+@Remote('addConsultationWorkspace') async addConsultationWorkspace( request: AddFinanceConsultationWorkspaceRequest, ): Promise<FinanceGeneralWorkspaceEntry>
+
+/**
+ * Rename one Finance-owned Workspace without changing its directory or client record.
+ * @param request - Workspace identity and new sidebar title.
+ * @returns Updated browser-safe Workspace entry.
+ */
+@Remote('renameWorkspace') async renameWorkspace(request: RenameFinanceWorkspaceRequest): Promise<FinanceWorkspaceEntry>
+
+/**
+ * Remove one Finance-owned Workspace from product lists without deleting durable data.
+ * @param request - Workspace selected in the Finance sidebar.
+ * @returns The detached browser-safe Workspace entry.
+ */
+@Remote('removeWorkspace') async removeWorkspace(request: RemoveFinanceWorkspaceRequest): Promise<FinanceWorkspaceEntry>
+
+/**
+ * Restore a removed client Workspace when its existing directory is selected again.
+ * @param request - Directory selected through the local folder picker.
+ * @returns Restored client Workspace, or null when the directory is not an existing client.
+ */
+@Remote('restoreClientWorkspace') async restoreClientWorkspace( request: RestoreFinanceClientWorkspaceRequest, ): Promise<FinanceClientWorkspaceEntry | null>
+
+/**
+ * Read full local client detail.
+ * @param clientId - Client identity.
+ * @returns Full loopback-only record.
+ */
+@Remote('read') read(clientId: FinanceClientId): Promise<FinanceClientReadView>
+
+/**
+ * Create one client.
+ * @param request - Expected revision and fields.
+ * @returns Mutation result.
+ */
+@Remote('create') async create(request: CreateFinanceClientRequest): Promise<FinanceClientMutationResult>
+
+/**
+ * Replace one active client.
+ * @param request - Client, revision, and fields.
+ * @returns Mutation result.
+ */
+@Remote('update') async update(request: UpdateFinanceClientRequest): Promise<FinanceClientMutationResult>
+
+/**
+ * Archive one active client.
+ * @param request - Client and expected revision.
+ * @returns Mutation result.
+ */
+@Remote('archive') async archive(request: ArchiveFinanceClientRequest): Promise<FinanceClientMutationResult>
+
+/**
+ * Stage a general or client-specific context before the first turn.
+ * @param agent - Target live agent.
+ * @param request - Selection.
+ * @returns Current UI state.
+ */
+@Remote('stage') async stage(agent: Agent, request: StageFinanceClientRequest): Promise<FinanceSessionContextView>
+
+/**
+ * Read the sanitized Finance context state for one session.
+ * @param agent - Target live agent.
+ * @returns UI state.
+ */
+@Remote('sessionContext') async sessionContext(agent: Agent): Promise<FinanceSessionContextView>
+
+/**
+ * Resolve and durably bind the model-visible Finance context for one request.
+ * @param agent - Finance agent addressing a model.
+ * @returns Logged context text.
+ */
+async promptContext(agent: Agent): Promise<string>
+
+/**
+ * Register one completed local upload in the current Finance context.
+ * @param agent - Finance agent whose consultation session or client selection owns the upload.
+ * @param request - Upload-service path and browser filename.
+ * @returns Session-scoped consultation record or committed client original-material record.
+ */
+@Remote('importUpload') async importUpload(agent: Agent, request: ImportFinanceUploadRequest): Promise<FinanceImportedFile>
+
+/**
+ * Return the Host-configured directory that owns general-consultation uploads.
+ * @returns Absolute local upload directory.
+ */
+localUploadRoot(): string
+
+/**
+ * Publish one file from the current session work directory.
+ * @param agent - Bound Finance agent.
+ * @param request - Session-work path and optional output name.
+ * @returns Committed formal-output record.
+ */
+async publishFile(agent: Agent, request: PublishFinanceFileRequest): Promise<FinanceManagedFile>
+
+/**
+ * Archive one managed client file without removing its source.
+ * @param agent - Bound Finance agent.
+ * @param request - Managed source and optional archive name.
+ * @returns Committed archive record.
+ */
+async archiveFile(agent: Agent, request: ArchiveFinanceFileRequest): Promise<FinanceManagedFile>
+
+/**
+ * Require an immutable bound client for a client-specific Finance service.
+ * @param agent - Finance agent.
+ * @returns Durable binding.
+ */
+requireBoundClient(agent: Agent): FinanceClientBinding
+
+/**
+ * Read the immutable client binding when the Finance session has one.
+ * @param agent - Finance agent.
+ * @returns Detached binding, or undefined for consultation sessions.
+ */
+currentClientBinding(agent: Agent): FinanceClientBinding | undefined
+
+/**
+ * Require a bound client and ensure its workspace directories exist.
+ * @param agent - Finance agent.
+ * @returns Immutable binding and client workspace paths.
+ */
+async requireBoundClientWorkspace(agent: Agent): Promise<{ binding: FinanceClientBinding workspace: FinanceClientWorkspace }>
+
+/**
+ * Whether a live agent is composed from Finance.
+ * @param agent - Agent to inspect.
+ * @returns Finance membership.
+ */
+isFinanceAgent(agent: Agent): boolean
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts`](../../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
+
+<a id="ctxxiaojingfinanceevidence--xiaojingfinanceevidence"></a>
+
+### `ctx.xiaojingFinanceEvidence` — `XiaojingFinanceEvidence`
+
+Host service used only by the Finance preset's evidence tool.
+
+```ts cordis-catalog
+/**
+ * Research official evidence for one Finance agent.
+ * @param agent - Calling Finance agent.
+ * @param request - Research request.
+ * @param signal - Cancellation signal.
+ * @returns Auditable evidence result.
+ */
+research(agent: Agent, request: FinanceEvidenceRequest, signal?: AbortSignal): Promise<FinanceEvidenceResult>
+```
+
+Types: [Agent](core.zh.md)
+
+Source: [`packages/xiaojing/xiaojing-finance-evidence/src/index.ts`](../../packages/xiaojing/xiaojing-finance-evidence/src/index.ts)
+
 <a id="ctxxiaojingweixinchannel--xiaojingweixinchannel"></a>
 
 ### `ctx.xiaojingWeixinChannel` — `XiaojingWeixinChannel`

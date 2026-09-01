@@ -183,6 +183,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
     /** Product-owned headline copy beside the blank-session brand mark. */
     'conversation.hero.brand.content': { kind: 'single'; scope: 'root'; owner: HeroBrandContentOwnerProps }
+    /** Optional product context controls following the hero agent-preset chip. */
+    'conversation.hero.context': { kind: 'single'; scope: 'root'; owner: HeroContextOwnerProps }
     /**
      * The agent-preset chip beside the workspace picker on the new-session
      * screen. Root scope: no session exists yet, so the choice is staged for
@@ -639,6 +641,12 @@ export interface HeroBrandContentOwnerProps {
   children?: never
 }
 
+/** Empty owner share for an optional blank-session business context selector. */
+export interface HeroContextOwnerProps {
+  /** Marker field: the occupant owns the complete context presentation. */
+  children?: never
+}
+
 /**
  * Full conversation-slot component props: runtime & child-render (view ring
  * + composer chain/bar + input-region + hero picker slots) & store & injected
@@ -652,6 +660,7 @@ export type ConversationSlotProps =
     | 'conversation.input.dock' | 'conversation.composer.dock'
     | 'conversation.input.left' | 'conversation.input.right'
     | 'conversation.hero.brand.mark' | 'conversation.hero.brand.content'
+    | 'conversation.hero.context'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
   >

@@ -15,6 +15,7 @@
     "sandbox-exec",
     "tar",
     "taskkill",
+    "taskkill.exe",
     "where.exe"
   ],
   "ignoreWorkspaces": [
@@ -236,10 +237,47 @@
         "tests/**/*.tsx"
       ]
     },
+    "packages/client/ui-xiaojing-finance-clients": {
+      "entry": [
+        "tests/**/*.spec.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
+      ]
+    },
     "packages/xiaojing/xiaojing-browser-control": {
       "entry": [
         "tests/**/*.spec.ts",
         "tests/fixtures/source-launch-smoke.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "packages/xiaojing/xiaojing-finance-evidence": {
+      "entry": [
+        "tests/**/*.spec.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "packages/xiaojing/xiaojing-finance-calculations": {
+      "entry": [
+        "tests/**/*.spec.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "packages/xiaojing/xiaojing-finance-documents": {
+      "entry": [
+        "tests/**/*.spec.ts"
       ],
       "project": [
         "src/**/*.ts",

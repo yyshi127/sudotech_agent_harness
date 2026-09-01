@@ -14,6 +14,7 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { WorkspaceBrowserInjected, WorkspacePickerInjected } from './contract/slots.ts'
+import { WorkspaceCategoryRegistry } from './category-registry.ts'
 import { createWorkspaceViewStore } from './stores.ts'
 import { WorkspaceBrowser } from './WorkspaceBrowser.tsx'
 import { WorkspacePicker } from './WorkspacePicker.tsx'
@@ -23,6 +24,14 @@ export type {
   DirectoryFlowOwnerProps, DirectoryFlowSlotName, DirectoryPickingHooks, DirectoryPickingInjected,
   WorkspaceBrowserInjected, WorkspaceBrowserProps, WorkspacePickerInjected, WorkspacePickerProps,
 } from './contract/slots.ts'
+export {
+  WorkspaceCategoryRegistry,
+  type WorkspaceCategoryProvider,
+  type WorkspaceCategorySection,
+  type WorkspaceCategorySectionIcon,
+  type WorkspaceCategorySnapshot,
+  type WorkspaceCategoryState,
+} from './category-registry.ts'
 export type { WorkspaceKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -54,6 +63,8 @@ export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'connection'
 export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
   const hostDescription = connection.hostDescription
+  const workspaceCategories = new WorkspaceCategoryRegistry()
+  ctx.provide('workspaceCategories', workspaceCategories)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
 
   const searchSessions: WorkspaceBrowserInjected['searchSessions'] = async (query, signal) => {
@@ -102,11 +113,25 @@ export function apply(ctx: ClientContext): void {
       await ctx.workspaces.insertSessionBefore(workspaceId, sessionId, beforeSessionId)
     },
     createWorkspace: input => ctx.workspaces.create(input),
-    hooks: { directoryFlow: browserFlowSource, hostDescription },
+    activateWorkspaceCategory: (categoryId, workspaceId) => workspaceCategories.activate(categoryId, workspaceId),
+    addWorkspaceToCategory: (categoryId, sectionId, path) =>
+      workspaceCategories.addWorkspace(categoryId, sectionId, path),
+    renameWorkspaceInCategory: (categoryId, workspaceId, title) =>
+      workspaceCategories.renameWorkspace(categoryId, workspaceId, title),
+    removeWorkspaceFromCategory: (categoryId, workspaceId) =>
+      workspaceCategories.removeWorkspace(categoryId, workspaceId),
+    hooks: {
+      directoryFlow: browserFlowSource,
+      hostDescription,
+      workspaceCategories: workspaceCategories.store,
+    },
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
     createWorkspace: input => ctx.workspaces.create(input),
-    hooks: { directoryFlow: pickerFlowSource },
+    hooks: {
+      directoryFlow: pickerFlowSource,
+      workspaceCategories: workspaceCategories.store,
+    },
   })
   // Each registration declares its directory-flow child in the same call;
   // slot injection follows both the owner and declaration HMR lifetimes.

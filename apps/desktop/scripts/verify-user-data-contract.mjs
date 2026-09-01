@@ -13,6 +13,8 @@ import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { EMBEDDED_PRICE_TABLE, priceUsage } from '@deepseek-ai/dsh-usage-accounting'
 import { loadProfile } from '@deepseek-ai/dsh-app-boot'
+import { FinanceClientStore } from '@deepseek-ai/dsh-xiaojing-finance-domain/store'
+import { FinanceClientId } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = join(appRoot, '..', '..')
@@ -24,6 +26,7 @@ const manifest = JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8'
 const main = await readFile(join(appRoot, 'main.mjs'), 'utf8')
 const installer = await readFile(join(appRoot, 'build', 'installer.nsh'), 'utf8')
 const installerCancelHelper = await readFile(join(appRoot, 'build', 'installer-cancel-helper.ps1'), 'utf8')
+const installerShutdownHelper = await readFile(join(appRoot, 'build', 'installer-shutdown-helper.ps1'), 'utf8')
 
 const EXPECTED_WEB_BUNDLES = [
   '@deepseek-ai/dsh-base',
@@ -51,12 +54,13 @@ if (manifest.build?.nsis?.deleteAppDataOnUninstall !== false) {
 }
 if (!main.includes("app.setPath('userData', join(app.getPath('appData'), ...identity.userDataSegments))")
   || !main.includes("join(app.getPath('userData'), 'harness')")
-  || !main.includes("join(app.getPath('documents'), '小兢会计工作区')")) {
+  || !main.includes("join(app.getPath('documents'), '小兢会计工作区')")
+  || !main.includes("XIAOJING_FINANCE_WORKSPACE_ROOT: join(workspace, 'Finance工作区')")) {
   throw new Error('desktop startup no longer uses the permanent user-data paths')
 }
 if (/\$APPDATA\b|%APPDATA%|\$LOCALAPPDATA\b|Local Storage|\.credentials|\.agent-presets|attachments|usage-accounting/i
-  .test(`${installer}\n${installerCancelHelper}`)) {
-  throw new Error('custom installer and cancellation helper must never address protected user data')
+  .test(`${installer}\n${installerCancelHelper}\n${installerShutdownHelper}`)) {
+  throw new Error('custom installer and lifecycle helpers must never address protected user data')
 }
 
 async function filesBelow(root) {
@@ -239,6 +243,37 @@ async function verifyUsageData(appData, currentKeyFingerprint) {
   '0.1.9 current-key usage totals, category costs, or old-key isolation changed')
 }
 
+async function verifyFinanceData(appData, documents) {
+  const store = new FinanceClientStore(join(appData, 'harness'))
+  await store.init()
+  const catalog = await store.list()
+  assert(catalog.revision === 2 && catalog.clients.length === 2,
+    'Finance upgrade fixture does not preserve two isolated client records')
+  const first = await store.read(FinanceClientId('6ba7b810-9dad-11d1-80b4-00c04fd430c8'))
+  const second = await store.read(FinanceClientId('6ba7b811-9dad-11d1-80b4-00c04fd430c8'))
+  assert(first.client.taxpayerType === 'general-vat'
+    && first.client.financePolicyNotes === '费用按部门归集。'
+    && first.client.externalSystemRefs[0]?.companyId === 'fixture-company-a',
+  'first Finance client lost private fields during the upgrade probe')
+  assert(second.client.taxpayerType === 'small-scale-vat'
+    && second.client.financePolicyNotes === '费用按项目归集。'
+    && second.client.externalSystemRefs[0]?.companyId === 'fixture-company-b',
+  'second Finance client lost private fields during the upgrade probe')
+
+  const clientRoot = join(documents, '小兢会计工作区', 'Finance工作区', 'clients')
+  const firstFiles = await hashes(join(clientRoot, first.client.id))
+  const secondFiles = await hashes(join(clientRoot, second.client.id))
+  assert(firstFiles['02-原始资料/发票样本.txt'] !== undefined
+    && firstFiles['03-会话作业/fixture-session/分析草稿.txt'] !== undefined
+    && firstFiles['04-成果输出/正式结果.txt'] !== undefined
+    && firstFiles['05-归档/归档凭证.txt'] !== undefined,
+  'first Finance client workspace did not preserve every managed lifecycle directory')
+  assert(secondFiles['02-原始资料/银行流水样本.txt'] !== undefined
+    && firstFiles['02-原始资料/银行流水样本.txt'] === undefined
+    && secondFiles['02-原始资料/发票样本.txt'] === undefined,
+  'Finance client workspace files crossed client directories')
+}
+
 const fixtureAppData = join(fixtureRoot, 'app-data')
 const scratch = await mkdtemp(join(tmpdir(), 'xiaojing-upgrade-data-'))
 try {
@@ -286,6 +321,7 @@ try {
   await verifySessionData(appData)
   await verifyPresetData(appData)
   await verifyUsageData(appData, currentKeyFingerprint)
+  await verifyFinanceData(appData, documents)
   const afterReadChecks = await hashes(appData)
   assert(JSON.stringify(afterReadChecks) === JSON.stringify(profileAfter),
     'rc.2 compatibility reads unexpectedly rewrote protected user data')

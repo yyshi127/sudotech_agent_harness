@@ -183,6 +183,14 @@ flowchart LR
   svc_xiaojingComputerControl["ctx.xiaojingComputerControl<br/>Xiaojing Windows automation"]
   pkg_xiaojing_desktop_companion["xiaojing-desktop-companion"]
   svc_xiaojingDesktopCompanion["ctx.xiaojingDesktopCompanion<br/>Xiaojing desktop-companion state"]
+  pkg_xiaojing_finance_calculations["xiaojing-finance-calculations"]
+  svc_xiaojingFinanceCalculations["ctx.xiaojingFinanceCalculations<br/>Xiaojing Finance deterministic calculations"]
+  pkg_xiaojing_finance_domain["xiaojing-finance-domain"]
+  svc_xiaojingFinanceDomain["ctx.xiaojingFinanceDomain<br/>Xiaojing Finance client domain"]
+  pkg_xiaojing_finance_documents["xiaojing-finance-documents"]
+  svc_xiaojingFinanceDocuments["ctx.xiaojingFinanceDocuments<br/>Xiaojing shared document normalization"]
+  pkg_xiaojing_finance_evidence["xiaojing-finance-evidence"]
+  svc_xiaojingFinanceEvidence["ctx.xiaojingFinanceEvidence<br/>Xiaojing Finance official evidence"]
   pkg_xiaojing_weixin_channel["xiaojing-weixin-channel"]
   svc_xiaojingWeixinChannel["ctx.xiaojingWeixinChannel<br/>Xiaojing Weixin channel"]
   pkg_spill["spill"]
@@ -320,6 +328,10 @@ flowchart LR
   pkg_xiaojing_browser_control --> svc_xiaojingBrowserControl
   pkg_xiaojing_computer_control --> svc_xiaojingComputerControl
   pkg_xiaojing_desktop_companion --> svc_xiaojingDesktopCompanion
+  pkg_xiaojing_finance_calculations --> svc_xiaojingFinanceCalculations
+  pkg_xiaojing_finance_documents --> svc_xiaojingFinanceDocuments
+  pkg_xiaojing_finance_domain --> svc_xiaojingFinanceDomain
+  pkg_xiaojing_finance_evidence --> svc_xiaojingFinanceEvidence
   pkg_xiaojing_weixin_channel --> svc_xiaojingWeixinChannel
   svc_agentDefaultModel --> pkg_headless
   svc_agentDefaultModel --> pkg_host_apiproxy
@@ -494,6 +506,10 @@ flowchart LR
 | `ctx.xiaojingBrowserControl` | `core` | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | - | - | Owns the isolated Edge lifecycle, bounded semantic observations, approval checks, and browser_control tool registration in one removable product plugin. |
 | `ctx.xiaojingComputerControl` | `core` | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | - | - | Owns the bounded PowerShell UI Automation helper, observation identities, approval checks, and computer_control tool registration in one removable product plugin. |
 | `ctx.xiaojingDesktopCompanion` | `core` | [`xiaojing-desktop-companion`](../packages/xiaojing/xiaojing-desktop-companion) | - | - | - | Aggregates session, approval, and sanitized Weixin lifecycle signals into the content-free snapshot consumed by the removable desktop companion integration. |
+| `ctx.xiaojingFinanceCalculations` | `core` | [`xiaojing-finance-calculations`](../packages/xiaojing/xiaojing-finance-calculations) | - | - | - | Owns versioned mainland-China trial-calculation rules, exact decimal arithmetic, immutable-client assumptions, and the Finance-only calculation consumer in one removable product plugin. |
+| `ctx.xiaojingFinanceDomain` | `core` | [`xiaojing-finance-domain`](../packages/xiaojing/xiaojing-finance-domain) | - | - | - | Owns local taxpayer-entity records, revision-safe storage, immutable session binding, sanitized projection, and Finance prompt context in one removable product plugin. |
+| `ctx.xiaojingFinanceDocuments` | `core` | [`xiaojing-finance-documents`](../packages/xiaojing/xiaojing-finance-documents) | - | - | - | Normalizes authorized Finance and ordinary-session uploads in one isolated worker, then serves bounded source-located text and PPTX image batches through mode-specific tools. |
+| `ctx.xiaojingFinanceEvidence` | `core` | [`xiaojing-finance-evidence`](../packages/xiaojing/xiaojing-finance-evidence) | - | - | - | Retrieves bounded, date-aware evidence from the registered mainland China official sources for the Finance preset without introducing a local full-text corpus. |
 | `ctx.xiaojingWeixinChannel` | `core` | [`xiaojing-weixin-channel`](../packages/xiaojing/xiaojing-weixin-channel) | - | - | - | Owns iLink pairing, polling, durable queueing, Agent session delivery, and sanitized status for the removable Xiaojing channel integration. |
 | `ctx.spillStore` | `seam` | [`spill`](../packages/spill/spill) | [`spill-local`](../packages/spill/spill-local) | [`spill-policy`](../packages/spill/spill-policy) | - | The backend saves oversized tool text and returns a model-facing locator plus retrieval hint; spill-policy is the tools/post-execute consumer that decides when to spill. |
 | `ctx.directoryPicker` | `seam` | `directory-picker` | `directory-picker-native`, `directory-picker-browse` | `apiproxy` | - | Discriminated interaction capability: the native backend opens one OS chooser on the host display, the browse backend serves listing/creation primitives for the in-app browser; dual-face backends fill ui-workspace directory-flow slots from their browser halves (no wire advertisement). |

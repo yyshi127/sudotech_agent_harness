@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-xiaojing-installer-selected-directory-lifecycle.md
+2026-08-30-xiaojing-installer-selected-directory-lifecycle.md: a49f9a4b2523d1d834c49d0e82beea57c3e375d0
+2026-08-30-xiaojing-installer-selected-directory-lifecycle.zh.md: 33b494e3f9454bf063325722efd4f8e492c08dc6

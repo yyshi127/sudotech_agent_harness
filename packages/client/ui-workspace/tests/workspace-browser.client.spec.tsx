@@ -79,8 +79,13 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     insertWorkspaceBefore: vi.fn(async () => {}),
     insertSessionBefore: vi.fn(async () => {}),
     createWorkspace: vi.fn(async () => workspace('created', [])),
+    activateWorkspaceCategory: vi.fn(async () => {}),
+    addWorkspaceToCategory: vi.fn(async () => undefined),
+    renameWorkspaceInCategory: vi.fn(async () => {}),
+    removeWorkspaceFromCategory: vi.fn(async () => {}),
     useDirectoryFlow: bindSnapshotSelector({ getSnapshot: () => true, subscribe: () => () => {} }),
     useHostDescription: selector => selector(undefined),
+    useWorkspaceCategories: hook({ categories: [] }),
     renderSlot: ((_name: string, owner: { open: boolean }) => (owner.open ? <div data-testid="directory-flow" /> : null)) as never,
     t,
     ...overrides,
@@ -178,6 +183,179 @@ describe('WorkspaceBrowser', () => {
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('menu')).toBeNull()
     expect(b.store.getSnapshot().groupBy).toBe('workspace')
+  })
+
+  it('keeps product Workspaces out of the ordinary category and activates Finance independently', async () => {
+    const activateWorkspaceCategory = vi.fn(async () => {})
+    const sessions = sessionState([
+      summary('ordinary-session', 2),
+      summary('finance-session', 1),
+      summary('archived-client-session', 0),
+    ])
+    mount({
+      useSessions: hook(sessions),
+      useWorkspaces: hook(workspaceState([
+        workspace('ordinary', ['ordinary-session'], '小兢会计_Workspace'),
+        workspace('finance-standard', ['finance-session'], '咨询'),
+        workspace('finance-archived', ['archived-client-session'], '历史客户'),
+      ])),
+      useWorkspaceCategories: hook({
+        categories: [{
+          id: 'finance',
+          label: '财务工作区',
+          ordinaryLabel: '普通工作区',
+          workspaceIds: [wid('finance-standard'), wid('finance-archived')],
+          newSessionDisabledWorkspaceIds: [wid('finance-archived')],
+          sections: [{
+            id: 'clients',
+            label: '客户工作区',
+            icon: 'person',
+            workspaceIds: [wid('finance-archived')],
+          }],
+        }],
+      }),
+      activateWorkspaceCategory,
+    })
+
+    expect(screen.getByText('小兢会计_Workspace')).toBeTruthy()
+    expect(screen.queryByText('咨询')).toBeNull()
+    expect(screen.queryByText('历史客户')).toBeNull()
+    expect(screen.queryByText('finance-session')).toBeNull()
+    expect(screen.queryByText('archived-client-session')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '财务工作区' }))
+    await waitFor(() => {
+      expect(activateWorkspaceCategory).toHaveBeenCalledWith('finance')
+      expect(screen.getByText('咨询')).toBeTruthy()
+      expect(screen.getByText('客户工作区')).toBeTruthy()
+      expect(screen.getByText('历史客户')).toBeTruthy()
+    })
+    expect(screen.getByText('客户工作区').closest('[role="treeitem"]')
+      ?.querySelector('[data-workspace-section-icon="person"]')).toBeTruthy()
+    expect(screen.queryByText('小兢会计_Workspace')).toBeNull()
+    expect(screen.getByRole('button', { name: '在“咨询”中新建会话' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '在“历史客户”中新建会话' })).toBeNull()
+
+    fireEvent.click(screen.getByText('咨询'))
+    expect(screen.getByText('finance-session')).toBeTruthy()
+    expect(screen.queryByText('ordinary-session')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '普通工作区' }))
+    expect(screen.getByText('小兢会计_Workspace')).toBeTruthy()
+    expect(screen.queryByText('咨询')).toBeNull()
+    expect(screen.queryByText('finance-session')).toBeNull()
+    expect(screen.queryByText('archived-client-session')).toBeNull()
+  })
+
+  it('keeps interleaved registry Workspaces inside their configured product sections', async () => {
+    mount({
+      useWorkspaces: hook(workspaceState([
+        workspace('client-a', [], '甲公司'),
+        workspace('consultation-a', [], '税务咨询'),
+        workspace('client-b', [], '乙公司'),
+        workspace('consultation-b', [], '审计咨询'),
+      ])),
+      useWorkspaceCategories: hook({
+        categories: [{
+          id: 'finance',
+          label: '财务工作区',
+          ordinaryLabel: '普通工作区',
+          workspaceIds: [
+            wid('client-a'), wid('consultation-a'), wid('client-b'), wid('consultation-b'),
+          ],
+          newSessionDisabledWorkspaceIds: [],
+          sections: [
+            {
+              id: 'clients', label: '客户分组', icon: 'person',
+              workspaceIds: [wid('client-a'), wid('client-b')],
+            },
+            {
+              id: 'consultations', label: '咨询分组', icon: 'discussion',
+              workspaceIds: [wid('consultation-a'), wid('consultation-b')],
+            },
+          ],
+        }],
+      }),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '财务工作区' }))
+    const tree = screen.getByRole('tree', { name: '会话' })
+    await waitFor(() => { expect(tree.textContent).toContain('审计咨询') })
+    const content = tree.textContent ?? ''
+    expect(content.indexOf('客户分组')).toBeLessThan(content.indexOf('甲公司'))
+    expect(content.indexOf('甲公司')).toBeLessThan(content.indexOf('乙公司'))
+    expect(content.indexOf('乙公司')).toBeLessThan(content.indexOf('咨询分组'))
+    expect(content.indexOf('咨询分组')).toBeLessThan(content.indexOf('税务咨询'))
+    expect(content.indexOf('税务咨询')).toBeLessThan(content.indexOf('审计咨询'))
+  })
+
+  it('routes consultation and client Workspace actions through their product category', async () => {
+    const renameWorkspaceInCategory = vi.fn(async () => {})
+    const removeWorkspaceFromCategory = vi.fn(async () => {})
+    const browser = mount({
+      useWorkspaces: hook(workspaceState([
+        workspace('finance-standard', [], '咨询'),
+        workspace('finance-client', [], '数豆科技'),
+      ])),
+      useWorkspaceCategories: hook({
+        categories: [{
+          id: 'finance',
+          label: '财务工作区',
+          ordinaryLabel: '普通工作区',
+          workspaceIds: [wid('finance-standard'), wid('finance-client')],
+          reservedWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
+          manageableWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
+          newSessionDisabledWorkspaceIds: [],
+          sections: [
+            { id: 'consultations', label: '咨询', icon: 'discussion', workspaceIds: [wid('finance-standard')] },
+            { id: 'clients', label: '客户', icon: 'person', workspaceIds: [wid('finance-client')] },
+          ],
+        }],
+      }),
+      renameWorkspaceInCategory,
+      removeWorkspaceFromCategory,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '财务工作区' }))
+    await waitFor(() => { expect(screen.getByText('数豆科技')).toBeTruthy() })
+
+    fireEvent.click(screen.getByRole('button', { name: '工作区“咨询”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '重命名' }))
+    fireEvent.change(screen.getByLabelText('工作区名称'), { target: { value: '日常咨询' } })
+    fireEvent.click(screen.getByRole('button', { name: '重命名' }))
+    await waitFor(() => {
+      expect(renameWorkspaceInCategory).toHaveBeenCalledWith('finance', wid('finance-standard'), '日常咨询')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '工作区“数豆科技”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '移除工作区' }))
+    const dialog = screen.getByRole('dialog', { name: '移除工作区' })
+    expect(dialog.textContent).toContain('将把“数豆科技”从工作区列表中移除')
+    expect(dialog.textContent).toContain('文件夹与会话记录会保留')
+    fireEvent.click(screen.getByRole('button', { name: '移除工作区' }))
+    await waitFor(() => {
+      expect(removeWorkspaceFromCategory).toHaveBeenCalledWith('finance', wid('finance-client'))
+    })
+    expect(screen.getByRole('status').textContent).toBe('正在移除工作区…')
+
+    rerender(browser, {
+      useWorkspaceCategories: hook({
+        categories: [{
+          id: 'finance',
+          label: '财务工作区',
+          ordinaryLabel: '普通工作区',
+          workspaceIds: [wid('finance-standard')],
+          reservedWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
+          manageableWorkspaceIds: [wid('finance-standard')],
+          newSessionDisabledWorkspaceIds: [],
+          sections: [
+            { id: 'consultations', label: '咨询', icon: 'discussion', workspaceIds: [wid('finance-standard')] },
+            { id: 'clients', label: '客户', icon: 'person', workspaceIds: [] },
+          ],
+        }],
+      }),
+    })
+    expect(screen.queryByRole('dialog', { name: '移除工作区' })).toBeNull()
   })
 
   it('persists flat-list drag order locally and applies Last updated within that account', async () => {
@@ -355,6 +533,54 @@ describe('WorkspaceBrowser', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '单列表' }))
     expect(screen.getByText('kept-s')).toBeTruthy()
     expect(screen.queryByText('gone-s')).toBeNull()
+  })
+
+  it('keeps a product category and reopens its Workspace after archiving the current last session', async () => {
+    const archiveSession = vi.fn(async () => {})
+    const activateWorkspaceCategory = vi.fn(async () => {})
+    const current = sessionState([summary('finance-session', 1)], { current: sid('finance-session') })
+    const category = {
+      id: 'finance',
+      label: '财务工作区',
+      ordinaryLabel: '普通工作区',
+      workspaceIds: [wid('finance-standard')],
+      newSessionDisabledWorkspaceIds: [],
+      sections: [{
+        id: 'consultations',
+        label: '咨询',
+        icon: 'discussion' as const,
+        workspaceIds: [wid('finance-standard')],
+      }],
+    }
+    const browser = mount({
+      useSessions: hook(current),
+      useWorkspaces: hook(workspaceState([
+        workspace('ordinary', [], '普通项目'),
+        workspace('finance-standard', ['finance-session'], '财务咨询'),
+      ])),
+      useWorkspaceCategories: hook({ categories: [category] }),
+      archiveSession,
+      activateWorkspaceCategory,
+    })
+
+    fireEvent.click(screen.getByRole('button', {
+      name: t('actions.session.aria', { name: 'finance-session' }),
+    }))
+    fireEvent.click(screen.getByRole('menuitem', { name: t('menu.archiveSession') }))
+    await waitFor(() => {
+      expect(archiveSession).toHaveBeenCalledWith(sid('finance-session'))
+      expect(activateWorkspaceCategory).toHaveBeenCalledWith('finance', wid('finance-standard'))
+    })
+
+    rerender(browser, {
+      useSessions: hook(sessionState([summary('finance-session', 1)])),
+      useWorkspaces: hook(workspaceState([
+        workspace('ordinary', [], '普通项目'),
+        workspace('finance-standard', ['finance-session'], '财务咨询'),
+      ], [sid('finance-session')])),
+    })
+    expect(screen.getByText('财务咨询')).toBeTruthy()
+    expect(screen.queryByText('普通项目')).toBeNull()
   })
 
   it('logs and keeps the tree when the archive call rejects', async () => {

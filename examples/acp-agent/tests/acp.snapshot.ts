@@ -42,7 +42,7 @@ const EDITING_CORDIS_SKILL = fileURLToPath(new URL(
   import.meta.url,
 ))
 const FINANCE_TAX_SKILL = fileURLToPath(new URL(
-  '../../../apps/cli/config/xiaojing-agent-presets/finance/skills/china-tax-official-research/SKILL.md',
+  '../../../apps/cli/config/xiaojing-agent-presets/finance/skills/finance-tax-research-cn/SKILL.md',
   import.meta.url,
 ))
 
@@ -99,7 +99,7 @@ async function prepareEditingCordisSkillWorkspace(cwd: string): Promise<void> {
 }
 
 async function prepareFinanceTaxSkillWorkspace(cwd: string): Promise<void> {
-  const target = join(cwd, '.dsh', 'skills', 'china-tax-official-research', 'SKILL.md')
+  const target = join(cwd, '.dsh', 'skills', 'finance-tax-research-cn', 'SKILL.md')
   await mkdir(dirname(target), { recursive: true })
   await copyFile(FINANCE_TAX_SKILL, target)
 }

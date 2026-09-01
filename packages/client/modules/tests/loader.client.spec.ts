@@ -400,15 +400,41 @@ describe('default transport seam', () => {
   })
 
   it('a script load failure is loud and removes the node', async () => {
-    vi.spyOn(document.head, 'append').mockImplementation((...nodes) => {
+    const append = vi.spyOn(document.head, 'append').mockImplementation((...nodes) => {
       const script = nodes[0]
       if (!(script instanceof HTMLScriptElement)) throw new Error('expected script node')
       queueMicrotask(() => { script.dispatchEvent(new Event('error')) })
     })
+    append.mockClear()
     const b = bench([row('dee')], {}, { defaultTransport: true })
     await expect(b.loader.prefetch('dee')).rejects.toThrow(
       'bundle script /plugins/dee/client.js?rev=0 failed to load',
     )
+    expect(append).toHaveBeenCalledTimes(2)
+    expect([...document.querySelectorAll('script')]).toEqual([])
+  })
+
+  it('recovers when the default bundle transport succeeds on its one retry', async () => {
+    let attempt = 0
+    vi.spyOn(document.head, 'append').mockImplementation((...nodes) => {
+      const script = nodes[0]
+      if (!(script instanceof HTMLScriptElement)) throw new Error('expected script node')
+      attempt += 1
+      queueMicrotask(() => {
+        if (attempt === 1) {
+          script.dispatchEvent(new Event('error'))
+          return
+        }
+        win.__ModuleLoader__?.load({ id: 'dee', factory: () => ({ marker: 'retried' }) })
+        script.dispatchEvent(new Event('load'))
+      })
+    })
+    const b = bench([row('dee')], {}, { defaultTransport: true })
+
+    const exports = await b.loader.import('dee', '', {})
+
+    expect((exports as { marker: string }).marker).toBe('retried')
+    expect(attempt).toBe(2)
     expect([...document.querySelectorAll('script')]).toEqual([])
   })
 })

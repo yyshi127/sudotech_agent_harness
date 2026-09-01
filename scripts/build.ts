@@ -5,6 +5,7 @@ import { rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
+  CLIENT_BUILD_PROFILE_SELECTOR,
   CLIENT_BUILD_RECORD_PATH,
   clientBuildProcessEnvironment,
   repositoryCommitHash,
@@ -34,11 +35,14 @@ function main(): void {
     allowPositionals: false,
   })
   const root = resolve(import.meta.dirname, '..')
-  const parentEnvironment = {
+  const parentEnvironment: NodeJS.ProcessEnv = {
     ...process.env,
     DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, process.env),
   }
-  const clientEnvironment = resolveClientBuildEnvironment(parentEnvironment, values.profile)
+  const selectedProfile = values.profile
+    ?? parentEnvironment[CLIENT_BUILD_PROFILE_SELECTOR]
+    ?? 'xiaojing'
+  const clientEnvironment = resolveClientBuildEnvironment(parentEnvironment, selectedProfile)
   const buildEnvironment = clientBuildProcessEnvironment(parentEnvironment, clientEnvironment)
 
   rmSync(resolve(root, CLIENT_BUILD_RECORD_PATH), { force: true })

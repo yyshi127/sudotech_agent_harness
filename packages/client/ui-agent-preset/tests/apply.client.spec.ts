@@ -406,6 +406,8 @@ describe('ui-agent-preset apply', () => {
 
   it('applies the staged choice to the blank session the flow lands on', async () => {
     const { ctx, slots, calls } = await bench()
+    const staged: string[] = []
+    ctx.on('agent-preset/staged', (agentPreset) => { staged.push(agentPreset) })
     declareRoot(slots)
     declareConversation(slots)
     ctx.provide('conversation', {} as never)
@@ -424,6 +426,7 @@ describe('ui-agent-preset apply', () => {
     // Picked on the hero screen, where there is no session yet.
     await chip.select('minimal')
     expect(calls).not.toContain('select:minimal')
+    expect(staged).toEqual(['minimal'])
 
     state.current = 's1'
     state.byId['s1'] = { id: 's1', blank: true, agentPreset: 'standard' }

@@ -9,16 +9,18 @@
  * menu in between; the flow and its error dialog live in WorkspacePicker
  * (same package — direct composition, no slot between them).
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
-  Button, IconCloseFill14, IconPersonalizationOutline16,
-  IconProjectAddOutline16, IconSearchOutline16, Menu, Modal, Tooltip,
+  Button, IconCloseFill14, IconFolderClose16, IconFolderOpen16, IconPersonalizationOutline16,
+  IconProjectAddOutline16, IconSearchOutline16, IconThinkOutline16, IconTriangleRightFill14,
+  IconUserOutline16, Menu, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   SessionId, SessionListState, SessionSearchResultItem, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceBrowserProps } from './contract/slots.ts'
+import type { WorkspaceCategorySection } from './category-registry.ts'
 import type { SessionNode, SessionOrderBy } from './tree.ts'
 import { deriveFlat, deriveGroups, deriveSearchResults, UNGROUPED_KEY } from './tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './rows/Rows.tsx'
@@ -37,6 +39,23 @@ const SEARCH_DEBOUNCE_MS = 250
 const SEARCH_QUERY_MAX_CODE_UNITS = 500
 /** Session rows visible per Workspace before the local overflow control. */
 const COLLAPSED_SESSION_LIMIT = 5
+
+/** Render a product-neutral semantic section icon while retaining folder fallback. */
+function sectionIcon(section: WorkspaceCategorySection, expanded: boolean): ReactNode {
+  if (section.icon === undefined) {
+    return expanded ? <IconFolderOpen16 /> : <IconFolderClose16 />
+  }
+  switch (section.icon) {
+    case 'discussion': return <IconThinkOutline16 />
+    case 'person': return <IconUserOutline16 />
+    default: return assertNever(section.icon)
+  }
+}
+
+/** Reject an unhandled closed-union member. */
+function assertNever(value: never): never {
+  throw new Error(`Unhandled workspace section icon: ${String(value)}`)
+}
 
 /** Keep controlled input and RPC payload inside the session.search wire contract. */
 function sanitizeSearchQuery(value: string): string {
@@ -235,6 +254,22 @@ type SessionTreeProps = Pick<
   setSessionOrder: (accountKey: string, order: string[]) => void
   /** Registry-global archive set (hidden rows). */
   archivedSessionIds: readonly SessionNode['id'][]
+  /** Sessions visible in the selected workspace category. */
+  visibleSessionIds: ReadonlySet<SessionId>
+  /** Workspaces that retain history but cannot create another session. */
+  newSessionDisabledWorkspaceIds: ReadonlySet<WorkspaceId>
+  /** Optional product-owned nested sections within the active category. */
+  workspaceSections: readonly WorkspaceCategorySection[]
+  /** Whether the composed directory flow can serve section add actions. */
+  sectionAddAvailable: boolean
+  /** Open one product section's directory-backed add flow. */
+  onSectionAdd: (section: WorkspaceCategorySection, anchor: HTMLButtonElement) => void
+  /** Whether Workspace drag reordering is available on the active surface. */
+  manageWorkspaces: boolean
+  /** Workspaces whose owning surface exposes rename and remove actions. */
+  manageableWorkspaceIds: ReadonlySet<WorkspaceId>
+  /** Product-category remove label; ordinary Workspaces retain delete wording. */
+  removeWorkspaceLabel?: string | undefined
   /** Open the browser-owned rename dialog for a real Workspace group. */
   onRenameRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
   /** Open the browser-owned delete-confirmation dialog for a real Workspace group. */
@@ -254,6 +289,9 @@ function SessionTree({
   insertWorkspaceBefore, insertSessionBefore, orderBy,
   groupExpansion, setGroupExpanded,
   sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
+  visibleSessionIds, newSessionDisabledWorkspaceIds, manageWorkspaces, manageableWorkspaceIds,
+  removeWorkspaceLabel,
+  workspaceSections, sectionAddAvailable, onSectionAdd,
 }: SessionTreeProps) {
   const list = useSessions(s => s)
   const current = list.current
@@ -280,8 +318,8 @@ function SessionTree({
   )
   const ungroupedSessionIds = useMemo(() => {
     const accounted = new Set(workspaces.flatMap(workspace => workspace.sessionIds))
-    return list.ids.filter(id => list.byId[id] !== undefined && !accounted.has(id))
-  }, [list, workspaces])
+    return list.ids.filter(id => list.byId[id] !== undefined && visibleSessionIds.has(id) && !accounted.has(id))
+  }, [list, visibleSessionIds, workspaces])
   useEffect(() => {
     if (list.phase !== 'ready') return
     const switchedToUpdated = previousOrderBy.current !== 'updated' && orderBy === 'updated'
@@ -289,7 +327,7 @@ function SessionTree({
     const accounts = [
       ...workspaces.map(workspace => ({
         key: workspace.workspaceId as string,
-        sessionIds: workspace.sessionIds.filter(id => list.byId[id] !== undefined),
+        sessionIds: workspace.sessionIds.filter(id => list.byId[id] !== undefined && visibleSessionIds.has(id)),
       })),
       { key: UNGROUPED_KEY, sessionIds: ungroupedSessionIds },
     ]
@@ -320,15 +358,145 @@ function SessionTree({
     () => reconciledSessionOrder(ungroupedSessionIds, sessionOrderByAccount[UNGROUPED_KEY]),
     [sessionOrderByAccount, ungroupedSessionIds],
   )
+  const visibleList = useMemo(() => ({
+    ...list,
+    ids: list.ids.filter(id => visibleSessionIds.has(id)),
+    current: list.current !== undefined && visibleSessionIds.has(list.current)
+      ? list.current
+      : undefined,
+  }), [list, visibleSessionIds])
   const groups = useMemo(
-    () => deriveGroups(list, orderedWorkspaces, archivedSessionIds, {
+    () => deriveGroups(visibleList, orderedWorkspaces, archivedSessionIds, {
       expandedGroups,
       ...(sessionOrderByAccount[UNGROUPED_KEY] === undefined
         ? {}
         : { ungroupedOrder: sessionOrderByAccount[UNGROUPED_KEY] }),
     }),
-    [list, orderedWorkspaces, archivedSessionIds, expandedGroups, sessionOrderByAccount],
+    [visibleList, orderedWorkspaces, archivedSessionIds, expandedGroups, sessionOrderByAccount],
   )
+  const [collapsedWorkspaceSections, setCollapsedWorkspaceSections] = useState<ReadonlySet<string>>(new Set())
+  const sectionByWorkspaceId = useMemo(() => {
+    const result = new Map<WorkspaceId, WorkspaceCategorySection>()
+    for (const section of workspaceSections) {
+      for (const workspaceId of section.workspaceIds) result.set(workspaceId, section)
+    }
+    return result
+  }, [workspaceSections])
+  const displayedGroups = useMemo(() => {
+    if (workspaceSections.length === 0) return groups
+    const sectionOrder = new Map(workspaceSections.map((section, index) => [section.id, index]))
+    return groups.map((group, index) => ({ group, index }))
+      .sort((left, right) => {
+        const leftSection = left.group.workspaceId === undefined
+          ? undefined
+          : sectionByWorkspaceId.get(left.group.workspaceId)
+        const rightSection = right.group.workspaceId === undefined
+          ? undefined
+          : sectionByWorkspaceId.get(right.group.workspaceId)
+        const leftOrder = leftSection === undefined
+          ? workspaceSections.length
+          : (sectionOrder.get(leftSection.id) ?? workspaceSections.length)
+        const rightOrder = rightSection === undefined
+          ? workspaceSections.length
+          : (sectionOrder.get(rightSection.id) ?? workspaceSections.length)
+        return leftOrder - rightOrder || left.index - right.index
+      })
+      .map(item => item.group)
+  }, [groups, sectionByWorkspaceId, workspaceSections])
+  const firstGroupKeyBySection = useMemo(() => {
+    const result = new Map<string, string>()
+    for (const group of displayedGroups) {
+      if (group.workspaceId === undefined) continue
+      const section = sectionByWorkspaceId.get(group.workspaceId)
+      if (section !== undefined && !result.has(section.id)) result.set(section.id, group.key)
+    }
+    return result
+  }, [displayedGroups, sectionByWorkspaceId])
+  const sectionPlacement = useMemo(() => {
+    const beforeGroup = new Map<string, WorkspaceCategorySection[]>()
+    let pending: WorkspaceCategorySection[] = []
+    for (const section of workspaceSections) {
+      const firstGroupKey = firstGroupKeyBySection.get(section.id)
+      if (firstGroupKey === undefined) {
+        pending.push(section)
+        continue
+      }
+      beforeGroup.set(firstGroupKey, [...pending, section])
+      pending = []
+    }
+    const firstUnsectionedGroup = displayedGroups.find(group =>
+      group.workspaceId === undefined || !sectionByWorkspaceId.has(group.workspaceId))
+    if (firstUnsectionedGroup !== undefined && pending.length > 0) {
+      beforeGroup.set(firstUnsectionedGroup.key, pending)
+      pending = []
+    }
+    return { beforeGroup, trailing: pending }
+  }, [displayedGroups, firstGroupKeyBySection, sectionByWorkspaceId, workspaceSections])
+  const currentWorkspaceSection = currentGroup === undefined
+    ? undefined
+    : workspaceSections.find(section => section.workspaceIds.some(workspaceId => workspaceId === currentGroup))
+  useEffect(() => {
+    if (currentWorkspaceSection === undefined) return
+    setCollapsedWorkspaceSections((collapsed) => {
+      if (!collapsed.has(currentWorkspaceSection.id)) return collapsed
+      const next = new Set(collapsed)
+      next.delete(currentWorkspaceSection.id)
+      return next
+    })
+  }, [currentWorkspaceSection])
+  const toggleWorkspaceSection = (sectionId: string): void => {
+    setCollapsedWorkspaceSections((collapsed) => {
+      const next = new Set(collapsed)
+      if (next.has(sectionId)) next.delete(sectionId)
+      else next.add(sectionId)
+      return next
+    })
+  }
+  const sectionRow = (section: WorkspaceCategorySection): ReactNode => {
+    const expanded = !collapsedWorkspaceSections.has(section.id)
+    const containsCurrent = section.id === currentWorkspaceSection?.id
+    return (
+      <div
+        key={`section:${section.id}`}
+        className={css.workspaceSectionRow}
+        role="treeitem"
+        aria-expanded={expanded}
+      >
+        <button
+          type="button"
+          className={css.workspaceSectionToggle}
+          onClick={() => { toggleWorkspaceSection(section.id) }}
+        >
+          <span className={clsx(
+            css.workspaceSectionSlot,
+            css.workspaceSectionFolder,
+            containsCurrent && css.workspaceSectionIconActive,
+          )} data-workspace-section-icon={section.icon ?? 'folder'}>
+            {sectionIcon(section, expanded)}
+          </span>
+          <span className={clsx(css.workspaceSectionSlot, css.workspaceSectionChevron)}>
+            <IconTriangleRightFill14 className={clsx(
+              css.workspaceSectionArrow,
+              expanded && css.workspaceSectionArrowOpen,
+            )} />
+          </span>
+          <span className={css.workspaceSectionLabel}>{section.label}</span>
+        </button>
+        {section.addLabel !== undefined && sectionAddAvailable && (
+          <Tooltip label={section.addLabel} side="right" delayMs={500}>
+            <button
+              type="button"
+              className={css.workspaceSectionAdd}
+              aria-label={section.addLabel}
+              onClick={(event) => { onSectionAdd(section, event.currentTarget) }}
+            >
+              <IconProjectAddOutline16 size={16} />
+            </button>
+          </Tooltip>
+        )}
+      </div>
+    )
+  }
   const now = Date.now()
   const commitSessionDrag = (activeDrag: DragState, over: NonNullable<DragState['over']>): void => {
     if (sessionDropCommitted.current) return
@@ -378,8 +546,8 @@ function SessionTree({
       console.warn('workspace reorder rejected:', reason)
     })
   }
-  const workspaceDropAtListStart = groups[0]?.workspaceId !== undefined
-    && workspaceDrag?.over?.id === groups[0].workspaceId
+  const workspaceDropAtListStart = displayedGroups[0]?.workspaceId !== undefined
+    && workspaceDrag?.over?.id === displayedGroups[0].workspaceId
     && workspaceDrag.over.half === 'before'
 
   return (
@@ -390,15 +558,21 @@ function SessionTree({
         role="tree"
         aria-label={t('section.sessions')}
       >
-        {groups.length === 0 && (
+        {groups.length === 0 && workspaceSections.length === 0 && (
           <div className={css.empty}>{t('empty.none')}</div>
         )}
-        {groups.map((group) => {
+        {displayedGroups.map((group) => {
+          const workspaceSection = group.workspaceId === undefined
+            ? undefined
+            : sectionByWorkspaceId.get(group.workspaceId)
+          const startingSections = sectionPlacement.beforeGroup.get(group.key) ?? []
+          const workspaceSectionExpanded = workspaceSection === undefined
+            || !collapsedWorkspaceSections.has(workspaceSection.id)
           const workspaceId = group.workspaceId
           const workspaceMarker = workspaceId !== undefined && workspaceDrag?.over?.id === workspaceId
             ? workspaceDrag.over.half
             : null
-          const workspaceDragProps = workspaceId === undefined ? undefined : {
+          const workspaceDragProps = workspaceId === undefined || !manageWorkspaces ? undefined : {
             start: () => {
               workspaceDropCommitted.current = false
               setWorkspaceDrag({ workspaceId, over: null })
@@ -425,7 +599,7 @@ function SessionTree({
               if (workspaceDrag === null) return
               commitWorkspaceDrag(workspaceDrag, { id: workspaceId, half })
             }
-          return (
+          const groupElement = (
           // Group section: header row + expanded top-level session rows. The
           // inter-group breathing room is the section's own margin
           // (WorkspaceBrowser.module.css).
@@ -460,14 +634,16 @@ function SessionTree({
                   }
                   setGroupExpanded(group.key, !group.expanded)
                 }}
-                onCreate={() => {
-                  if (group.workspaceId !== undefined) {
-                    setGroupExpanded(group.key, true)
-                    startSession(group.workspaceId)
-                  }
-                }}
+                onCreate={workspaceId !== undefined && newSessionDisabledWorkspaceIds.has(workspaceId)
+                  ? undefined
+                  : () => {
+                    if (group.workspaceId !== undefined) {
+                      setGroupExpanded(group.key, true)
+                      startSession(group.workspaceId)
+                    }
+                  }}
                 drag={workspaceDragProps}
-                actions={group.workspaceId === undefined
+                actions={group.workspaceId === undefined || !manageableWorkspaceIds.has(group.workspaceId)
                   ? undefined
                   : {
                     rename: () => {
@@ -478,6 +654,7 @@ function SessionTree({
                     /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
                       if (group.workspaceId !== undefined) onDeleteRequest(group.workspaceId, group.label)
                     },
+                    ...removeWorkspaceLabel === undefined ? {} : { deleteLabel: removeWorkspaceLabel },
                   }}
               />
               {(expandedSessionGroups.includes(group.key)
@@ -538,7 +715,16 @@ function SessionTree({
               )}
             </div>
           )
+          return (
+            <Fragment key={group.key}>
+              {startingSections.map(sectionRow)}
+              {workspaceSectionExpanded && (workspaceSection === undefined
+                ? groupElement
+                : <div className={css.workspaceSectionChildren}>{groupElement}</div>)}
+            </Fragment>
+          )
         })}
+        {sectionPlacement.trailing.map(sectionRow)}
       </div>
       <span className={css.fade} />
     </div>
@@ -548,7 +734,8 @@ function SessionTree({
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
   useSessions, open, forkSession, onSessionRename, onSessionArchive, archivedSessionIds,
-  orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, t,
+  orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder,
+  visibleSessionIds, t,
 }: Pick<
   SessionTreeProps,
   | 'useSessions'
@@ -563,11 +750,11 @@ function FlatList({
   | 'syncSessionOrderAccount'
   | 'setSessionOrder'
   | 't'
->) {
+> & { visibleSessionIds: ReadonlySet<SessionId> }) {
   const list = useSessions(s => s)
   const baseRows = useMemo(
-    () => deriveFlat(list, archivedSessionIds),
-    [list, archivedSessionIds],
+    () => deriveFlat(list, archivedSessionIds).filter(row => visibleSessionIds.has(row.id)),
+    [list, archivedSessionIds, visibleSessionIds],
   )
   const sessionIds = useMemo(() => baseRows.map(row => row.id), [baseRows])
   const previousOrderBy = useRef(orderBy)
@@ -672,6 +859,11 @@ interface RemoteSearchState {
   hasMore: boolean
 }
 
+interface SectionPickerRequest {
+  categoryId: string
+  section: WorkspaceCategorySection
+}
+
 /** Flat search body: local metadata matches plus the current Host result page. */
 function SearchResults({
   useSessions,
@@ -681,6 +873,7 @@ function SearchResults({
   query,
   remote,
   resultLimit,
+  visibleSessionIds,
   t,
 }: Pick<SessionTreeProps, 'useSessions' | 'open' | 't'> & {
   workspaces: readonly WorkspaceView[]
@@ -688,15 +881,20 @@ function SearchResults({
   query: string
   remote: RemoteSearchState
   resultLimit: number
+  visibleSessionIds: ReadonlySet<SessionId>
 }) {
   const list = useSessions(s => s)
   const currentRemote = remote.query === query
     ? remote
     : { query, status: 'loading' as const, items: [], hasMore: false }
-  const results = useMemo(
+  const unfilteredResults = useMemo(
     () => deriveSearchResults(list, workspaces, query, archivedSessionIds, currentRemote, resultLimit),
     [list, workspaces, query, archivedSessionIds, currentRemote, resultLimit],
   )
+  const results = useMemo(() => ({
+    ...unfilteredResults,
+    items: unfilteredResults.items.filter(item => visibleSessionIds.has(item.id)),
+  }), [unfilteredResults, visibleSessionIds])
   const pending = currentRemote.status === 'loading'
   const failed = currentRemote.status === 'error'
 
@@ -760,8 +958,13 @@ export function WorkspaceBrowser({
   createWorkspace,
   searchSessions,
   searchResultLimit,
+  activateWorkspaceCategory,
+  addWorkspaceToCategory,
+  renameWorkspaceInCategory,
+  removeWorkspaceFromCategory,
   useDirectoryFlow,
   useHostDescription,
+  useWorkspaceCategories,
   renderSlot,
   t,
 }: WorkspaceBrowserProps) {
@@ -769,6 +972,59 @@ export function WorkspaceBrowser({
   const workspaces = useWorkspaces(state => state.items)
   const workspacePhase = useWorkspaces(state => state.phase)
   const archivedSessionIds = useWorkspaces(state => state.archivedSessionIds)
+  const categories = useWorkspaceCategories(state => state.categories)
+  const ordinaryCategoryLabel = categories.find(category => category.ordinaryLabel !== undefined)?.ordinaryLabel
+    ?? t('section.workspaces')
+  const currentSessionId = useSessions(state => state.current)
+  const allSessionIds = useSessions(state => state.ids)
+  const categoryForCurrent = currentSessionId === undefined
+    ? undefined
+    : categories.find(category => (category.reservedWorkspaceIds ?? category.workspaceIds).some(workspaceId =>
+      workspaces.find(workspace => workspace.workspaceId === workspaceId)?.sessionIds.includes(currentSessionId)))?.id
+  const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(categoryForCurrent)
+  useEffect(() => {
+    if (currentSessionId === undefined) return
+    setActiveCategoryId(categoryForCurrent)
+  }, [categoryForCurrent, currentSessionId])
+  const activeCategory = categories.find(category => category.id === activeCategoryId)
+  const reservedWorkspaceIds = useMemo(
+    () => new Set(categories.flatMap(category => category.reservedWorkspaceIds ?? category.workspaceIds)),
+    [categories],
+  )
+  const visibleWorkspaces = useMemo(
+    () => activeCategory === undefined
+      ? workspaces.filter(workspace => !reservedWorkspaceIds.has(workspace.workspaceId))
+      : workspaces.filter(workspace => activeCategory.workspaceIds.includes(workspace.workspaceId)),
+    [activeCategory, reservedWorkspaceIds, workspaces],
+  )
+  const reservedSessionIds = useMemo(() => new Set(
+    workspaces
+      .filter(workspace => reservedWorkspaceIds.has(workspace.workspaceId))
+      .flatMap(workspace => workspace.sessionIds),
+  ), [reservedWorkspaceIds, workspaces])
+  const visibleSessionIds = useMemo(() => activeCategory === undefined
+    ? new Set(allSessionIds.filter(sessionId => !reservedSessionIds.has(sessionId)))
+    : new Set(visibleWorkspaces.flatMap(workspace => workspace.sessionIds)),
+  [activeCategory, allSessionIds, reservedSessionIds, visibleWorkspaces])
+  const newSessionDisabledWorkspaceIds = useMemo(
+    () => new Set(activeCategory?.newSessionDisabledWorkspaceIds ?? []),
+    [activeCategory],
+  )
+  const manageableWorkspaceIds = useMemo(
+    () => new Set(activeCategory?.manageableWorkspaceIds ?? (activeCategory === undefined
+      ? visibleWorkspaces.map(workspace => workspace.workspaceId)
+      : [])),
+    [activeCategory, visibleWorkspaces],
+  )
+  const startVisibleSession = (workspaceId?: WorkspaceId): void => {
+    if (activeCategory === undefined) {
+      startSession(workspaceId)
+      return
+    }
+    void activateWorkspaceCategory(activeCategory.id, workspaceId).catch((reason: unknown) => {
+      console.warn('workspace category activation failed:', reason)
+    })
+  }
   // Live occupancy of this surface's directory-flow hole (the same source the
   // flow reads): a composition without a picking affordance can add nothing.
   const directoryFlowAvailable = useDirectoryFlow(occupied => occupied)
@@ -783,7 +1039,7 @@ export function WorkspaceBrowser({
   })
   const currentBlankAccount = currentBlankSessionId === undefined
     ? undefined
-    : (workspaces.find(workspace => workspace.sessionIds.includes(currentBlankSessionId))
+    : (visibleWorkspaces.find(workspace => workspace.sessionIds.includes(currentBlankSessionId))
       ?.workspaceId as string | undefined) ?? UNGROUPED_KEY
   const promotedBlank = useRef<{ sessionId: SessionId; accountKey: string } | undefined>(undefined)
   useEffect(() => {
@@ -827,6 +1083,9 @@ export function WorkspaceBrowser({
   // states; the menu anchors on this button).
   const [wsPickerOpen, setWsPickerOpen] = useState(false)
   const wsPlusRef = useRef<HTMLButtonElement>(null)
+  const sectionPlusRef = useRef<HTMLButtonElement | null>(null)
+  const [sectionPicker, setSectionPicker] = useState<SectionPickerRequest | null>(null)
+  const sectionPickerRef = useRef<SectionPickerRequest | null>(null)
   const composingRef = useRef(false)
 
   // Rail search = expand + land in the search box: the flag arms before the
@@ -902,13 +1161,17 @@ export function WorkspaceBrowser({
   }, [normalizedQuery, searchSessions])
 
   // Rename dialog (browser-owned so it outlives row unmounts during collapse).
-  const [renameTarget, setRenameTarget] = useState<{ workspaceId: WorkspaceId; currentTitle: string } | null>(null)
+  const [renameTarget, setRenameTarget] = useState<{
+    workspaceId: WorkspaceId
+    currentTitle: string
+    categoryId?: string
+  } | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [renaming, setRenaming] = useState(false)
   const [renameError, setRenameError] = useState<string | null>(null)
   const renameTrimmed = renameDraft.trim()
   const renameDuplicate = renameTarget !== null && renameTrimmed !== '' && renameTrimmed !== renameTarget.currentTitle
-    && workspaces.some(w => w.title === renameTrimmed)
+    && visibleWorkspaces.some(w => w.title === renameTrimmed)
   const renameBlocked = renaming || renameTrimmed === ''
     || renameTarget === null || renameTrimmed === renameTarget.currentTitle || renameDuplicate
   const closeRename = () => {
@@ -920,7 +1183,10 @@ export function WorkspaceBrowser({
     if (renameBlocked) return
     setRenaming(true)
     setRenameError(null)
-    renameWorkspace(renameTarget.workspaceId, renameTrimmed).then(() => {
+    const operation = renameTarget.categoryId === undefined
+      ? renameWorkspace(renameTarget.workspaceId, renameTrimmed)
+      : renameWorkspaceInCategory(renameTarget.categoryId, renameTarget.workspaceId, renameTrimmed)
+    operation.then(() => {
       setRenaming(false)
       setRenameTarget(null)
     }).catch((reason: unknown) => {
@@ -963,28 +1229,41 @@ export function WorkspaceBrowser({
   }
 
   // Archive is dialog-free: not destructive (the log and the accounting slot
-  // remain), so the menu action commits directly; the row disappears when the
-  // archive-set echo lands. Failures are non-fatal console diagnostics, the
-  // same posture as reorder rejections.
+  // remain), so the menu action commits directly. A current Session inside a
+  // product category is replaced through that category's activation path so
+  // clearing the archived selection cannot fall back to the ordinary surface.
   const onSessionArchive = (sessionId: SessionNode['id']) => {
-    archiveSession(sessionId).catch((reason: unknown) => {
+    const workspaceId = workspaces.find(workspace => workspace.sessionIds.includes(sessionId))?.workspaceId
+    const categoryId = sessionId === currentSessionId ? categoryForCurrent : undefined
+    const canStartReplacement = workspaceId !== undefined
+      && !newSessionDisabledWorkspaceIds.has(workspaceId)
+    archiveSession(sessionId).then(() => {
+      if (categoryId === undefined || workspaceId === undefined || !canStartReplacement) return
+      void activateWorkspaceCategory(categoryId, workspaceId).catch((reason: unknown) => {
+        console.warn('workspace category activation after session archive failed:', reason)
+      })
+    }).catch((reason: unknown) => {
       console.warn('session archive rejected:', reason)
     })
   }
 
   // Delete dialog is separate from the row so a successful removal can
   // unmount that row without tearing down the in-flight confirmation state.
-  const [deleteTarget, setDeleteTarget] = useState<{ workspaceId: WorkspaceId; title: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{
+    workspaceId: WorkspaceId
+    title: string
+    categoryId?: string
+  } | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteCommittedId, setDeleteCommittedId] = useState<WorkspaceId | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   useEffect(() => {
     if (deleteCommittedId === null
-      || workspaces.some(workspace => workspace.workspaceId === deleteCommittedId)) return
+      || visibleWorkspaces.some(workspace => workspace.workspaceId === deleteCommittedId)) return
     setDeleting(false)
     setDeleteCommittedId(null)
     setDeleteTarget(null)
-  }, [deleteCommittedId, workspaces])
+  }, [deleteCommittedId, visibleWorkspaces])
   const closeDelete = () => {
     if (deleting) return
     setDeleteTarget(null)
@@ -996,7 +1275,10 @@ export function WorkspaceBrowser({
     setDeleting(true)
     setDeleteCommittedId(null)
     setDeleteError(null)
-    deleteWorkspace(deleteTarget.workspaceId).then(() => {
+    const operation = deleteTarget.categoryId === undefined
+      ? deleteWorkspace(deleteTarget.workspaceId)
+      : removeWorkspaceFromCategory(deleteTarget.categoryId, deleteTarget.workspaceId)
+    operation.then(() => {
       // Keep the confirmation pending until this component has rendered the
       // committed list projection without the deleted id. Closing earlier
       // exposes one stale React frame to the next Create Workspace gesture.
@@ -1011,9 +1293,35 @@ export function WorkspaceBrowser({
     <div className={clsx(css.root, !wide && css.rail)}>
       <div className={css.sectionHeader}>
         {wide && (
-          <span className={clsx(css.sectionLabel, css.wide, searchExpanded && css.sectionLabelHidden)}>
-            {groupBy === 'flat' ? t('section.sessions') : t('section.workspaces')}
-          </span>
+          <div className={clsx(css.sectionLabels, searchExpanded && css.sectionLabelHidden)}>
+            <button
+              type="button"
+              className={clsx(css.sectionLabel, css.wide, css.categoryButton,
+                activeCategory === undefined && css.categoryButtonActive)}
+              onClick={() => {
+                setWsPickerOpen(false)
+                setActiveCategoryId(undefined)
+              }}
+            >
+              {groupBy === 'flat' ? t('section.sessions') : ordinaryCategoryLabel}
+            </button>
+            {categories.map(category => (
+              <button
+                key={category.id}
+                type="button"
+                className={clsx(css.categoryButton, activeCategory?.id === category.id && css.categoryButtonActive)}
+                onClick={() => {
+                  setWsPickerOpen(false)
+                  setActiveCategoryId(category.id)
+                  void activateWorkspaceCategory(category.id).catch((reason: unknown) => {
+                    console.warn('workspace category activation failed:', reason)
+                  })
+                }}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
         )}
         {wide && (
           <div className={clsx(css.searchSlot, searchExpanded && css.searchSlotExpanded)}>
@@ -1085,7 +1393,7 @@ export function WorkspaceBrowser({
           {/* Adding is the button's one action, so a composition with no
               picking affordance has nothing to offer here: the region hides the
               button rather than leaving a dead one in the header. */}
-          {directoryFlowAvailable && (
+          {directoryFlowAvailable && activeCategory === undefined && (
             <Tooltip label={t('workspace.add')} side="bottom" delayMs={500}>
               <button
                 ref={wsPlusRef}
@@ -1146,11 +1454,12 @@ export function WorkspaceBrowser({
             <SearchResults
               useSessions={useSessions}
               open={open}
-              workspaces={workspaces}
+              workspaces={visibleWorkspaces}
               archivedSessionIds={archivedSessionIds}
               query={normalizedQuery}
               remote={remoteSearch}
               resultLimit={searchResultLimit}
+              visibleSessionIds={visibleSessionIds}
               t={t}
             />
           )
@@ -1160,6 +1469,7 @@ export function WorkspaceBrowser({
                 useSessions={useSessions} open={open} forkSession={forkSession}
                 onSessionRename={onSessionRename} onSessionArchive={onSessionArchive}
                 archivedSessionIds={archivedSessionIds}
+                visibleSessionIds={visibleSessionIds}
                 orderBy={orderBy}
                 sessionOrderByAccount={sessionOrderByAccount}
                 sessionUpdatedAtByAccount={sessionUpdatedAtByAccount}
@@ -1174,7 +1484,7 @@ export function WorkspaceBrowser({
                 onSessionRename={onSessionRename}
                 onSessionArchive={onSessionArchive}
                 forkSession={forkSession}
-                workspaces={workspaces}
+                workspaces={visibleWorkspaces}
                 groupExpansion={groupExpansion}
                 setGroupExpanded={actions.setGroupExpanded}
                 sessionOrderByAccount={sessionOrderByAccount}
@@ -1182,25 +1492,78 @@ export function WorkspaceBrowser({
                 syncSessionOrderAccount={actions.syncSessionOrderAccount}
                 setSessionOrder={actions.setSessionOrder}
                 archivedSessionIds={archivedSessionIds}
-                startSession={startSession}
+                startSession={startVisibleSession}
                 open={open}
                 insertWorkspaceBefore={insertWorkspaceBefore}
                 insertSessionBefore={insertSessionBefore}
                 orderBy={orderBy}
+                visibleSessionIds={visibleSessionIds}
+                newSessionDisabledWorkspaceIds={newSessionDisabledWorkspaceIds}
+                workspaceSections={activeCategory?.sections ?? []}
+                sectionAddAvailable={directoryFlowAvailable}
+                onSectionAdd={(section, anchor) => {
+                  if (activeCategory === undefined) return
+                  sectionPlusRef.current = anchor
+                  const request = { categoryId: activeCategory.id, section }
+                  sectionPickerRef.current = request
+                  setSectionPicker(request)
+                }}
+                manageWorkspaces={activeCategory === undefined}
+                manageableWorkspaceIds={manageableWorkspaceIds}
+                {...activeCategory === undefined ? {} : { removeWorkspaceLabel: t('remove.workspace') }}
                 home={home}
                 t={t}
                 onRenameRequest={(workspaceId, currentTitle) => {
-                  setRenameTarget({ workspaceId, currentTitle })
+                  setRenameTarget({
+                    workspaceId,
+                    currentTitle,
+                    ...activeCategory === undefined ? {} : { categoryId: activeCategory.id },
+                  })
                   setRenameDraft(currentTitle)
                   setRenameError(null)
                 }}
                 onDeleteRequest={(workspaceId, title) => {
-                  setDeleteTarget({ workspaceId, title })
+                  setDeleteTarget({
+                    workspaceId,
+                    title,
+                    ...activeCategory === undefined ? {} : { categoryId: activeCategory.id },
+                  })
                   setDeleteError(null)
                 }}
               />
             ))}
       </div>
+
+      <WorkspacePickFlow
+        t={t}
+        open={sectionPicker !== null}
+        anchorRef={sectionPlusRef}
+        useWorkspaces={useWorkspaces}
+        createWorkspace={async ({ path }) => {
+          const request = sectionPickerRef.current
+          if (request === null) return undefined
+          const workspaceId = await addWorkspaceToCategory(
+            request.categoryId,
+            request.section.id,
+            path,
+          )
+          if (workspaceId === undefined) {
+            sectionPickerRef.current = null
+            return undefined
+          }
+          return { workspaceId }
+        }}
+        useDirectoryFlow={useDirectoryFlow}
+        renderDirectoryFlow={owner => renderSlot('sidebar.workspaces.directoryFlow', owner)}
+        addOnly
+        side="right"
+        onPick={(workspaceId) => {
+          sectionPickerRef.current = null
+          setSectionPicker(null)
+          startVisibleSession(workspaceId)
+        }}
+        onClose={() => { setSectionPicker(null) }}
+      />
 
       <Modal
         open={renameTarget !== null}
@@ -1272,10 +1635,13 @@ export function WorkspaceBrowser({
         open={deleteTarget !== null}
         onClose={closeDelete}
         closeLabel={t('close')}
-        title={t('delete.workspace')}
+        title={t(deleteTarget?.categoryId === undefined ? 'delete.workspace' : 'remove.workspace')}
         {...deleteTarget === null
           ? {}
-          : { description: t('delete.desc', { name: deleteTarget.title }) }}
+          : { description: t(
+            deleteTarget.categoryId === undefined ? 'delete.desc' : 'remove.desc',
+            { name: deleteTarget.title },
+          ) }}
         footer={(
           <>
             <Button variant="outline" disabled={deleting} onClick={closeDelete}>{t('cancel')}</Button>
@@ -1285,12 +1651,14 @@ export function WorkspaceBrowser({
               disabled={deleting}
               onClick={confirmDelete}
             >
-              {t('delete.workspace')}
+              {t(deleteTarget?.categoryId === undefined ? 'delete.workspace' : 'remove.workspace')}
             </Button>
           </>
         )}
       >
-        {deleting && <div className={css.deleteStatus} role="status">{t('delete.pending')}</div>}
+        {deleting && <div className={css.deleteStatus} role="status">{
+          t(deleteTarget?.categoryId === undefined ? 'delete.pending' : 'remove.pending')
+        }</div>}
         {deleteError !== null && <div className={css.renameError} role="alert">{deleteError}</div>}
       </Modal>
     </div>

@@ -17,6 +17,7 @@ interface FakeWorld {
   dpi: ReturnType<typeof vi.fn>
   createDialog: ReturnType<typeof vi.fn>
   uninitialize: ReturnType<typeof vi.fn>
+  foregroundWindow: ReturnType<typeof vi.fn>
   dialog: {
     setOptions: ReturnType<typeof vi.fn>
     setTitle: ReturnType<typeof vi.fn>
@@ -27,6 +28,7 @@ interface FakeWorld {
 }
 
 function world(overrides: Partial<Win32FolderDialog> = {}, coInit = 0): FakeWorld {
+  const ownerWindow = { kind: 'foreground-window' }
   const dialog = {
     setOptions: vi.fn(() => 0),
     setTitle: vi.fn(() => 0),
@@ -38,19 +40,21 @@ function world(overrides: Partial<Win32FolderDialog> = {}, coInit = 0): FakeWorl
   const dpi = vi.fn()
   const createDialog = vi.fn(() => dialog)
   const uninitialize = vi.fn()
+  const foregroundWindow = vi.fn(() => ownerWindow)
   const bindings: Win32DialogBindings = {
     setThreadDpiAwareness: dpi,
     coInitializeSta: vi.fn(() => coInit),
     coUninitialize: uninitialize,
     createFolderDialog: createDialog,
     currentThreadId: vi.fn(() => 4242),
+    foregroundWindow,
   }
-  return { bindings, dpi, createDialog, uninitialize, dialog: dialog as FakeWorld['dialog'] }
+  return { bindings, dpi, createDialog, uninitialize, foregroundWindow, dialog: dialog as FakeWorld['dialog'] }
 }
 
 describe('runFolderDialog', () => {
   it('sequences DPI, STA, options, title, show, result extraction, and apartment teardown', () => {
-    const { bindings, dpi, dialog, uninitialize } = world()
+    const { bindings, dpi, dialog, uninitialize, foregroundWindow } = world()
     const showing = vi.fn()
     expect(runFolderDialog(bindings, 'Pick', showing)).toBe('C:\\picked\\目录')
     expect(dpi).toHaveBeenCalledOnce()
@@ -60,6 +64,8 @@ describe('runFolderDialog', () => {
     expect(dialog.setTitle).toHaveBeenCalledWith('Pick')
     expect(showing).toHaveBeenCalledWith(4242)
     expect(showing.mock.invocationCallOrder[0]).toBeLessThan(dialog.show.mock.invocationCallOrder[0] as number)
+    expect(foregroundWindow).toHaveBeenCalledOnce()
+    expect(dialog.show).toHaveBeenCalledWith({ kind: 'foreground-window' })
     expect(dialog.release).toHaveBeenCalledOnce()
   })
 

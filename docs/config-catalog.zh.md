@@ -3312,6 +3312,116 @@ export interface Config {
 
 来源：[`packages/xiaojing/xiaojing-computer-control/src/index.ts:41`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
 
+<a id="deepseek-aidsh-xiaojing-finance-documents"></a>
+
+## `@deepseek-ai/dsh-xiaojing-finance-documents`
+
+需要：`xiaojingFinanceDomain` · `attachments`
+
+```ts config-catalog
+/** Deployment limits for local document normalization and model-visible reads. */
+export interface Config {
+  /** Explicit Harness home; omission follows `DSH_HOME`, then `~/.dsh`. */
+  dshHome?: string
+  /** Maximum accepted source bytes. */
+  maxFileBytes?: number
+  /** Parser worker wall deadline in milliseconds. */
+  parseTimeoutMs?: number
+  /** Parser worker V8 old-generation ceiling in MiB. */
+  workerMemoryMb?: number
+  /** Maximum accepted PDF pages. */
+  maxPdfPages?: number
+  /** Maximum accepted PPTX slides. */
+  maxPresentationSlides?: number
+  /** Maximum retained page renders and embedded raster images per document. */
+  maxDocumentVisuals?: number
+  /** Maximum aggregate page-render and embedded-image bytes retained per document. */
+  maxDocumentVisualBytes?: number
+  /** Minimum extracted PDF characters before requiring image/OCR handling. */
+  minPdfTextChars?: number
+  /** Preferred width for complete-page PDF rendering. */
+  pdfRenderWidthPx?: number
+  /** Maximum decoded pixels in one complete rendered PDF page. */
+  maxPdfRenderPixels?: number
+  /** Maximum retained characters per normalized document. */
+  maxTextChars?: number
+  /** Maximum retained characters per source-located unit. */
+  maxUnitChars?: number
+  /** Maximum XLSX sheets inspected. */
+  maxSpreadsheetSheets?: number
+  /** Maximum XLSX or CSV rows retained. */
+  maxSpreadsheetRows?: number
+  /** Maximum columns retained in one spreadsheet row. */
+  maxSpreadsheetColumns?: number
+  /** Maximum spreadsheet cells inspected. */
+  maxSpreadsheetCells?: number
+  /** Maximum characters returned by one model tool read. */
+  maxToolChars?: number
+  /** Maximum document visuals returned by one model tool read. */
+  maxVisualsPerRead?: number
+  /** Maximum aggregate encoded image bytes returned by one model tool read. */
+  maxVisualBytesPerRead?: number
+}
+```
+
+来源：[`packages/xiaojing/xiaojing-finance-documents/src/index.ts:44`](../packages/xiaojing/xiaojing-finance-documents/src/index.ts)
+
+<a id="deepseek-aidsh-xiaojing-finance-domain"></a>
+
+## `@deepseek-ai/dsh-xiaojing-finance-domain`
+
+需要：`sessions` · `sessionProjections` · `workspaceRegistry`
+
+```ts config-catalog
+/** Deployment settings for Finance client storage. */
+export interface Config {
+  /** Explicit Harness home; omission follows `DSH_HOME`, then `~/.dsh`. */
+  dshHome?: string
+  /** Absolute user-visible root for standard consultation and customer workspaces. */
+  workspaceRoot?: string
+  /** Local upload directory whose completed files may enter customer source materials. */
+  uploadRoot?: string
+}
+```
+
+来源：[`packages/xiaojing/xiaojing-finance-domain/src/index.ts:80`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
+
+<a id="deepseek-aidsh-xiaojing-finance-evidence"></a>
+
+## `@deepseek-ai/dsh-xiaojing-finance-evidence`
+
+需要：`web` · `xiaojingFinanceDomain`
+
+```ts config-catalog
+/** Deployment limits for official-source retrieval and bounded caching. */
+export interface Config {
+  /** Explicit Harness home; omission follows `DSH_HOME`, then `~/.dsh`. */
+  dshHome?: string
+  /** Search result cap for each planned official-domain query. */
+  maxResultsPerQuery?: number
+  /** Maximum official URLs fetched in one tool call. */
+  maxCandidates?: number
+  /** Maximum characters retained in one official-text excerpt. */
+  maxExcerptChars?: number
+  /** Structured-cache entry ceiling. */
+  maxCacheEntries?: number
+  /** Structured-cache lifetime in milliseconds. */
+  cacheTtlMs?: number
+  /** Direct official-page fetch timeout in milliseconds. */
+  fetchTimeoutMs?: number
+  /** Maximum official response bytes read. */
+  maxResponseBytes?: number
+  /** Maximum official URL length accepted by the direct fetcher. */
+  maxUrlLength?: number
+  /** Maximum decoded official response characters. */
+  maxBodyChars?: number
+  /** Same-origin redirect ceiling. */
+  maxRedirects?: number
+}
+```
+
+来源：[`packages/xiaojing/xiaojing-finance-evidence/src/index.ts:22`](../packages/xiaojing/xiaojing-finance-evidence/src/index.ts)
+
 <a id="deepseek-aidsh-xiaojing-visualize"></a>
 
 ## `@deepseek-ai/dsh-xiaojing-visualize`
@@ -3418,6 +3528,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-workflow-run`（[`packages/client/ui-workflow-run/src/index.ts`](../packages/client/ui-workflow-run/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-workspace`（[`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-xiaojing-browser-control`（[`packages/client/ui-xiaojing-browser-control/src/index.ts`](../packages/client/ui-xiaojing-browser-control/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-xiaojing-finance-clients`（[`packages/client/ui-xiaojing-finance-clients/src/index.ts`](../packages/client/ui-xiaojing-finance-clients/src/index.ts)）
 - `@deepseek-ai/dsh-client-xiaojing-product` — 需要 `systemPrompt` · `tools` · `approval`（[`packages/client/xiaojing-product/src/index.ts`](../packages/client/xiaojing-product/src/index.ts)）
 - `@deepseek-ai/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts)）
 - `@deepseek-ai/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
@@ -3450,6 +3561,7 @@ export interface Config {
 - `@deepseek-ai/dsh-user-questions`（[`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts)）
 - `@deepseek-ai/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
 - `@deepseek-ai/dsh-xiaojing-desktop-companion` — 需要 `webServer`（[`packages/xiaojing/xiaojing-desktop-companion/src/index.ts`](../packages/xiaojing/xiaojing-desktop-companion/src/index.ts)）
+- `@deepseek-ai/dsh-xiaojing-finance-calculations` — 需要 `xiaojingFinanceDomain`（[`packages/xiaojing/xiaojing-finance-calculations/src/index.ts`](../packages/xiaojing/xiaojing-finance-calculations/src/index.ts)）
 
 ## Seam 包（不可直接加载）
 

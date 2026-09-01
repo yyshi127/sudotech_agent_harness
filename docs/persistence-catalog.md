@@ -409,6 +409,75 @@ Source: [`packages/compaction/compaction/src/types.ts:33`](../packages/compactio
 
 Source: [`packages/feedback/command-feedback/src/index.ts:62`](../packages/feedback/command-feedback/src/index.ts)
 
+### `finance/*`
+
+<a id="financeclient-bound--log-only"></a>
+
+#### `finance/client-bound` — log-only
+
+```ts persistence-catalog
+/** Immutable client selection written before the first model request. */
+'finance/client-bound': FinanceClientBinding
+```
+
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:374`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+
+<a id="financeconsultation-file-imported--log-only"></a>
+
+#### `finance/consultation-file-imported` — log-only
+
+```ts persistence-catalog
+/**
+ * Local upload registered for one general Finance consultation session.
+ * @param data - Immutable session-scoped upload record.
+ */
+'finance/consultation-file-imported': FinanceConsultationFileImportedEvent
+```
+
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:384`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+
+<a id="financefile-archived--log-only"></a>
+
+#### `finance/file-archived` — log-only
+
+```ts persistence-catalog
+/**
+ * Managed client material copied into the bound client's archive directory.
+ * @param data - Immutable archive record.
+ */
+'finance/file-archived': FinanceFileCommittedEvent
+```
+
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:394`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+
+<a id="financefile-imported--log-only"></a>
+
+#### `finance/file-imported` — log-only
+
+```ts persistence-catalog
+/**
+ * Local upload copied into the bound client's original-materials directory.
+ * @param data - Immutable import record.
+ */
+'finance/file-imported': FinanceFileCommittedEvent
+```
+
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:379`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+
+<a id="financefile-published--log-only"></a>
+
+#### `finance/file-published` — log-only
+
+```ts persistence-catalog
+/**
+ * Session work copied into the bound client's formal-output directory.
+ * @param data - Immutable publication record.
+ */
+'finance/file-published': FinanceFileCommittedEvent
+```
+
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:389`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+
 ### `goal/*`
 
 <a id="goalchange--log-only"></a>

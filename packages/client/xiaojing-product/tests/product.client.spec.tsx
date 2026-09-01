@@ -7,11 +7,13 @@ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { AgentPresetDisplayRegistry } from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import { AboutSection } from '../src/client/AboutSection.tsx'
+import { XIAOJING_PRODUCT_VERSION } from '../src/client/application-info.ts'
 import { HeroBrandContent, HeroBrandMark } from '../src/client/HeroBrand.tsx'
 import { OnboardingContent } from '../src/client/OnboardingContent.tsx'
 import { SidebarBrandMark, SidebarBrandName } from '../src/client/SidebarBrand.tsx'
 import { apply, inject } from '../src/client/index.ts'
 import { en, zh } from '../src/client/locales.ts'
+import { XIAOJING_RELEASE_HISTORY } from '../src/client/release-history.ts'
 
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by Xiaojing product components') }) as never
@@ -23,6 +25,7 @@ afterEach(() => {
   document.querySelectorAll('meta[name="theme-color"]').forEach((node) => { node.remove() })
   document.body.style.removeProperty('background-color')
   delete document.body.dataset.xiaojingProduct
+  delete document.documentElement.dataset.dshClientBuildProfile
   Reflect.deleteProperty(window, 'xiaojingDesktop')
   vi.unstubAllEnvs()
 })
@@ -59,7 +62,7 @@ describe('Xiaojing product UI', () => {
     expect(screen.getByRole('img', { name: '小兢会计' }).getAttribute('style')).toContain('width: 34px')
     render(<HeroBrandContent {...kit} t={t} />)
     expect(screen.getByText('小兢会计，您的AI办公搭子')).toBeTruthy()
-    expect(screen.getByText('内测版 v0.2.2')).toBeTruthy()
+    expect(screen.getByText('内测版 v0.2.3')).toBeTruthy()
   })
 
   it('renders independent sidebar mark and name occupants', () => {
@@ -72,13 +75,24 @@ describe('Xiaojing product UI', () => {
     expect(css).toContain('padding-right: 4px')
   })
 
-  it('renders the current desktop release and its feature list', () => {
+  it('renders incremental current and historical release features', () => {
     render(<AboutSection {...kit} close={vi.fn()} t={t} />)
     expect(screen.getByRole('heading', { name: '小兢会计' })).toBeTruthy()
-    expect(screen.getByText('当前版本 v0.2.2')).toBeTruthy()
+    expect(screen.getByText('当前版本 v0.2.3')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'v0.2.3 版本新特性' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'v0.2.2 版本新特性' })).toBeTruthy()
+    expect(screen.getByText('F1-0')).toBeTruthy()
+    expect(screen.getByText('F1-6')).toBeTruthy()
+    expect(screen.getByText(/新增财务工作区、客户档案与客户工作区/)).toBeTruthy()
     expect(screen.getByText(/桌面小兢通过动作和表情/)).toBeTruthy()
-    expect(screen.getAllByRole('listitem')).toHaveLength(6)
+    expect(screen.getAllByRole('listitem')).toHaveLength(13)
+  })
+
+  it('keeps the current version at the head of immutable release history', () => {
+    const versions = XIAOJING_RELEASE_HISTORY.map(release => release.version)
+    expect(versions[0]).toBe(XIAOJING_PRODUCT_VERSION)
+    expect(new Set(versions).size).toBe(versions.length)
+    expect(versions).toEqual(['0.2.3', '0.2.2'])
   })
 
   it('activates every product occupant and theme only for the Xiaojing build profile', async () => {
@@ -88,6 +102,7 @@ describe('Xiaojing product UI', () => {
     await official.ctx.plugin({ inject: [...inject], apply }).await()
     for (const hole of HOLES) expect(official.slots.entries(hole)).toHaveLength(0)
     expect(document.body.dataset.xiaojingProduct).toBeUndefined()
+    expect(document.documentElement.dataset.dshClientBuildProfile).toBeUndefined()
     await official.ctx.fiber.dispose()
 
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
@@ -101,6 +116,7 @@ describe('Xiaojing product UI', () => {
     await fiber.await()
     for (const hole of HOLES) expect(product.slots.entries(hole)).toHaveLength(1)
     expect(document.body.dataset.xiaojingProduct).toBe('')
+    expect(document.documentElement.dataset.dshClientBuildProfile).toBe('xiaojing')
     expect(themeColor.content).toBe('rgb(251, 253, 253)')
     expect(product.ctx.agentPresetDisplay.resolve({ id: 'finance', trust: 'system' }, key => key))
       .toEqual({ name: 'Finance模式', description: en.financePresetDescription })
@@ -108,6 +124,7 @@ describe('Xiaojing product UI', () => {
     await fiber.dispose()
     for (const hole of HOLES) expect(product.slots.entries(hole)).toHaveLength(0)
     expect(document.body.dataset.xiaojingProduct).toBeUndefined()
+    expect(document.documentElement.dataset.dshClientBuildProfile).toBeUndefined()
     expect(themeColor.content).toBe('rgb(255, 255, 255)')
     await product.ctx.fiber.dispose()
   })

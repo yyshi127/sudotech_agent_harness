@@ -16,12 +16,21 @@
     - button "Agent 预设":
       - img
       - text: Agent 预设
+    - button "客户管理":
+      - img
+      - text: 客户管理
     - button "频道":
       - img
       - text: 频道
     - button "浏览器控制":
       - img
       - text: 浏览器控制
+    - button "桌面小兢":
+      - img
+      - text: 桌面小兢
+    - button "关于小兢":
+      - img
+      - text: 关于小兢
   - button "打开配置文件"
   - button "关闭":
     - img

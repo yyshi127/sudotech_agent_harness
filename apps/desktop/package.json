@@ -1,12 +1,13 @@
 {
   "name": "@sudotech/xiaojing-accounting-desktop",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "小兢会计 Windows desktop application",
   "type": "module",
   "main": "main.mjs",
   "files": [
     "main.mjs",
+    "client-build-profile.mjs",
     "desktop-companion.mjs",
     "preload.cjs",
     "companion.html",
@@ -27,10 +28,12 @@
     "start": "electron .",
     "prepare:runtime": "node scripts/prepare-node-runtime.mjs",
     "verify:installer-cancel": "node scripts/verify-installer-cancel-helper.mjs",
+    "verify:installer-shutdown": "node scripts/verify-installer-shutdown-helper.mjs",
     "verify:identity": "node scripts/verify-desktop-identity.mjs",
+    "verify:packaged-runtime": "node scripts/verify-packaged-runtime.mjs",
     "verify:product-layer": "node ../../scripts/verify-xiaojing-product-layer.mjs",
     "verify:user-data": "node scripts/verify-user-data-contract.mjs",
-    "dist:win": "pnpm run verify:identity && pnpm run verify:installer-cancel && pnpm run verify:user-data && pnpm run verify:product-layer && pnpm run prepare:runtime && electron-builder --win nsis --x64"
+    "dist:win": "pnpm run verify:identity && pnpm run verify:installer-cancel && pnpm run verify:installer-shutdown && pnpm run verify:user-data && pnpm run verify:product-layer && pnpm run prepare:runtime && electron-builder --win nsis --x64 && pnpm run verify:packaged-runtime"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "workspace:^",
@@ -142,6 +145,7 @@
     "@deepseek-ai/dsh-app-boot": "workspace:^",
     "@deepseek-ai/dsh-credentials-local": "workspace:^",
     "@deepseek-ai/dsh-session-persistence-jsonl": "workspace:^",
+    "@deepseek-ai/dsh-xiaojing-finance-domain": "workspace:^",
     "electron": "43.4.0",
     "electron-builder": "26.15.3"
   },
@@ -160,6 +164,7 @@
     },
     "files": [
       "main.mjs",
+      "client-build-profile.mjs",
       "desktop-companion.mjs",
       "preload.cjs",
       "companion.html",

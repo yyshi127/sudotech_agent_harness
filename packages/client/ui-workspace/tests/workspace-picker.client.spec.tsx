@@ -7,6 +7,7 @@ import type {
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from '../src/client/contract/slots.ts'
+import type { WorkspaceCategorySnapshot } from '../src/client/category-registry.ts'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { WorkspacePicker } from '../src/client/WorkspacePicker.tsx'
 import { zh } from '../src/client/locales.ts'
@@ -81,6 +82,7 @@ function mount(
   items: readonly WorkspaceView[] = [workspace('alpha', 'Alpha')],
   createWorkspace = vi.fn(),
   occupancy = occupancySource(),
+  categories: WorkspaceCategorySnapshot = { categories: [] },
 ) {
   const onPick = vi.fn()
   const onClose = vi.fn()
@@ -96,6 +98,7 @@ function mount(
       onClose={onClose}
       createWorkspace={createWorkspace}
       useDirectoryFlow={occupancy.useDirectoryFlow}
+      useWorkspaceCategories={hook(categories)}
       renderSlot={renderSlot}
       t={t}
     />
@@ -212,7 +215,8 @@ describe('WorkspacePicker', () => {
       <WorkspacePicker
         open useSessions={hook(sessions)} useWorkspaces={hook(workspaceState([workspace('alpha', 'Alpha')]))}
         onPick={vi.fn()} onClose={vi.fn()} createWorkspace={vi.fn()}
-        useDirectoryFlow={occupancySource().useDirectoryFlow} renderSlot={renderSlot} t={t}
+        useDirectoryFlow={occupancySource().useDirectoryFlow} useWorkspaceCategories={hook({ categories: [] })}
+        renderSlot={renderSlot} t={t}
       />,
     )
     expect(screen.queryByRole('menu')).toBeNull()
@@ -227,7 +231,8 @@ describe('WorkspacePicker', () => {
       <WorkspacePicker
         open anchorRef={anchor()} useSessions={hook(sessions)} useWorkspaces={hook(state)}
         onPick={vi.fn()} onClose={vi.fn()} createWorkspace={vi.fn()}
-        useDirectoryFlow={occupancySource().useDirectoryFlow} renderSlot={renderSlot} t={t}
+        useDirectoryFlow={occupancySource().useDirectoryFlow} useWorkspaceCategories={hook({ categories: [] })}
+        renderSlot={renderSlot} t={t}
       />,
     )
     // An empty list is not final yet: jumping into the directory flow here
@@ -302,6 +307,32 @@ describe('WorkspacePicker', () => {
     act(() => { b.occupancy.flip(false) })
     expect(b.probe.owner!.open).toBe(false)
     expect(screen.getByRole<HTMLButtonElement>('menuitem', { name: 'Alpha' }).disabled).toBe(false)
+    expect(screen.queryByRole('menuitem', { name: '添加工作区…' })).toBeNull()
+  })
+
+  it('shows only the selected product category and hides generic workspace creation', () => {
+    mount(
+      [
+        workspace('ordinary', '普通项目'),
+        workspace('finance-standard', '咨询'),
+        workspace('finance-client', '数豆科技'),
+      ],
+      vi.fn(),
+      occupancySource(),
+      {
+        pickerCategoryId: 'finance',
+        categories: [{
+          id: 'finance',
+          label: '财务工作区',
+          ordinaryLabel: '普通工作区',
+          workspaceIds: [wid('finance-standard'), wid('finance-client')],
+          newSessionDisabledWorkspaceIds: [],
+        }],
+      },
+    )
+    expect(screen.queryByRole('menuitem', { name: '普通项目' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: '咨询' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: '数豆科技' })).toBeTruthy()
     expect(screen.queryByRole('menuitem', { name: '添加工作区…' })).toBeNull()
   })
 })
