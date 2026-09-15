@@ -1,0 +1,61 @@
+- dialog "编辑帐套信息":
+  - banner:
+    - heading "编辑帐套信息" [level=2]
+    - button "取消":
+      - img
+  - region "帐套信息内容":
+    - group "主体基本资料":
+      - text: 主体基本资料 主体全称
+      - textbox "主体全称": 数豆科技
+      - text: 简称 可选
+      - textbox "简称 可选"
+      - text: 统一社会信用代码 可选
+      - textbox "统一社会信用代码 可选"
+      - text: 纳税人类型
+      - combobox "纳税人类型":
+        - option "增值税一般纳税人" [selected]
+        - option "增值税小规模纳税人"
+        - option "其他"
+      - text: 注册地区
+      - textbox "注册地区": 苏州
+      - text: 会计准则
+      - combobox "会计准则":
+        - option "企业会计准则"
+        - option "小企业会计准则" [selected]
+        - option "政府会计准则制度"
+        - option "民间非营利组织会计制度"
+        - option "其他"
+      - text: 行业 可选
+      - textbox "行业 可选"
+      - group: 财务政策备注 可选
+    - group "财务系统配置":
+      - text: 财务系统配置 财务系统
+      - combobox "财务系统":
+        - option "暂不配置"
+        - option "有成" [selected]
+        - option "SDOO"
+        - option "用友"
+        - option "金蝶"
+      - text: API 环境
+      - combobox "API 环境":
+        - option "测试环境" [selected]
+        - option "生产环境"
+      - text: API 地址
+      - textbox "API 地址": https://cwdata.yiqiyun.com
+      - text: 环境是内部标记，接口地址由系统自动配置；测试与正式环境可以使用同一地址。 AppKey
+      - textbox "AppKey": snapshot-app-key
+      - text: AppSecret
+      - textbox "AppSecret":
+        - /placeholder: 已保存；留空表示保持不变
+      - text: AppSecret 已安全保存；此处不会回显明文。
+      - button "验证并获取账套"
+      - text: 使用当前填写的 Key 获取可访问账套；此操作不会保存或修改绑定。
+      - status: 可选账套数量： 2
+      - text: 绑定账套
+      - combobox "绑定账套":
+        - option "请选择要绑定的账套"
+        - option "其他企业 · ID unrelated"
+        - option "数豆 · ID 35581" [selected]
+      - paragraph: 保存后自动鉴权并核验此账套 ID。绿点表示最近一次核验成功，不代表拥有全部业务操作权限；重新保存可再次验证。
+  - button "取消"
+  - button "保存"

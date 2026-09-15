@@ -176,9 +176,26 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // The Weixin channel adapts the MIT-licensed Tencent iLink implementation;
   // the attribution notice ships with every published copy.
   '@deepseek-ai/dsh-xiaojing-weixin-channel': ['NOTICE.md'],
-  // The Finance preset loads prompt-context and managed-file consumers as
+  // The Finance preset loads prompt-context and operation consumers as
   // separate Cordis rows while the package root owns records and Remotes.
-  '@deepseek-ai/dsh-xiaojing-finance-domain': ['lib/context.js', 'lib/files-tool.js'],
+  '@deepseek-ai/dsh-xiaojing-finance-domain': [
+    'lib/context.js',
+    'lib/files-tool.js',
+    'lib/vouchers-tool.js',
+    'lib/balances-tool.js',
+    'lib/journals-tool.js',
+    'lib/open-items-tool.js',
+    'lib/open-item-analysis-tool.js',
+    'lib/references-tool.js',
+    'lib/voucher-preparation-tool.js',
+    'lib/voucher-deletion-tool.js',
+    'lib/journal-deletion-tool.js',
+    'lib/open-item-deletion-tool.js',
+    'lib/open-item-write-off-tool.js',
+    'lib/journal-preparation-tool.js',
+    'lib/open-item-preparation-tool.js',
+    'lib/master-data-preparation-tool.js',
+  ],
   '@deepseek-ai/dsh-xiaojing-finance-calculations': ['lib/tool.js'],
   // Finance normalization runs untrusted document parsers in a dedicated
   // worker and mounts its model-facing tool as a separate preset row.

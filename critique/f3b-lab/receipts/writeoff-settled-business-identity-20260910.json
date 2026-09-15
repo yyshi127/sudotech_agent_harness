@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-09-10T14:24:48.047Z",
+  "mode": "settled",
+  "reads": 6,
+  "businessWrites": 0,
+  "ledgerId": "35616",
+  "observations": [
+    {
+      "direction": "receivable",
+      "openItemId": "72606",
+      "businessAccountId": "174626",
+      "balance": "0.00",
+      "finished": true
+    },
+    {
+      "direction": "payable",
+      "openItemId": "72607",
+      "businessAccountId": "174624",
+      "balance": "0.00",
+      "finished": true
+    }
+  ]
+}

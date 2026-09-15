@@ -16,7 +16,7 @@ Status: proposed
 
 ## Proposal
 
-把小兢会计建设为“跨软件、可执行、可审计的专业财税作业工作台”，按四个产品阶段交付：财税专业基础；有成报销及 SDOO 软件业务闭环；合规审阅与风险发现；主动财务管理。第二阶段先完成有成报销，再接入 SDOO；第三阶段才引入专业合规引擎，不能提前把启发式提示包装成合规结论。
+把小兢会计建设为跨软件、可执行、可审计的专业财税作业工作台，按四阶段交付：专业基础；有成与 SDOO 业务系统；合规审阅；主动管理。有成当前只规划财务并完成财务整体验收，不安排报销或双模块隔离建设。报销暂缓，须财务验收后由用户另行明确要求，不是并行或自动下一项任务。专业合规属于第三阶段，不能用连接器中的未核验启发式代替。
 
 财税模式是第五个系统 Agent preset，是标准模式的严格能力超集。它保留标准模式的文件、Shell、网页、Skill、Plan、Goal、子代理、工作流、微信、浏览器和电脑操控能力，再增加客户上下文、官方证据、财税文档、可解释试算、财务业务 Skill 及连接器。财税模式不复制一套 Agent Loop，也不改变其他 preset 的行为。
 
@@ -85,7 +85,7 @@ These are target owners, not a requirement to create empty packages before their
 
 `FinanceWorkflowService` starts, resumes, cancels and inspects versioned workflows. Each workflow carries client ID, business object, current step, required evidence, completed actions, pending approval, idempotency key and connector revision. A model can select a workflow and supply business inputs but cannot skip its required steps.
 
-`FinanceConnector` exposes typed business operations with `read`, `draft`, `validate` and `commit` semantics. Every mutation accepts a client/company/ledger scope, expected object revision, idempotency key and approval proof. Results include the pre-state summary, post-state summary, external object ID, audit reference and an explicit outcome; transport success alone is not business success.
+`FinanceConnector` 提供按客户／企业／账套限定的类型化查询、本地准备和确认后的外部动作。写入包含任务身份及确认证据。仅在供应商支持时使用外部版本校验和幂等；否则声明限制并回查未知结果。返回值区分外部编号、核实状态、部分成功及未核验证据，传输成功不足以证明完成。
 
 `FinanceAuditService` appends sanitized business events that are sufficient to reconstruct which client, evidence version, workflow version, user confirmation and external object were used. Credentials, full invoice images and unnecessary personal data never enter browser snapshots or ordinary logs.
 
@@ -130,37 +130,36 @@ Deliver a selectable finance preset that answers professional Chinese finance an
 - Calculation fixtures cover general and small-scale taxpayer contexts, period boundaries, missing inputs and rounding; outputs are reproducible without the model.
 - Existing brand, usage, upload, vision, Weixin, Edge, Windows control, Visualize, desktop companion and user-data tests pass.
 
-## Stage 2.1: Youcheng reimbursement closed loop
+<a id="stage-21-youcheng-reimbursement-closed-loop"></a>
+
+## Stage 2.1：财务优先，报销暂缓
 
 ### Goal
 
-Deliver a stable, resumable and auditable Youcheng workflow that can inspect reimbursement records, prepare finance review decisions, obtain human confirmation and commit an approved action exactly once, without relying on screenshots or coordinate clicks.
+当前方案只覆盖财务。用户确认的财务范围全部完成且 F4 整体验收通过，才具备考虑报销的前提。报销仍暂缓，等待用户另行明确要求；既有样例保留，不扩展。[有成计划](../../../../docs/integrations/youcheng-natural-language-development-plan.zh.md)维护范围和验收，[逐项执行计划](../../../../docs/integrations/youcheng-finance-execution-plan.zh.md)维护功能编号与 Goal；[实现方案](../../../../docs/integrations/youcheng-implementation-design.zh.md)中的财务部分维护恢复约束。
 
 ### Technical route
 
-The first task is an API qualification spike against a dedicated Youcheng test tenant. The official product site links to an OPENAPI document, so the connector prefers an authenticated official API when it provides the required object and mutation. The spike records authentication, scopes, tenant isolation, sandbox availability, pagination, rate limits, idempotency, webhooks, error semantics and licensing. An undocumented endpoint is not used in production.
+核验完整财务范围，将财务目录中重复出现的报销条目识别出来，不能当成财务依赖。复用基础设施，不复用报销业务执行。本阶段不开发报销模板、发票池、连接解耦或目录任务。
 
-When an operation is unavailable through an approved API, a Youcheng-specific DOM adapter may use the existing Edge transport but owns its own page recognizers, semantic locators, state assertions and version compatibility. The generic `browser_control` remains an infrastructure fallback, not the definition of the business process. Coordinates, screenshots and Windows UIA are not accepted as the normal workflow path.
-
-The first vertical slice is finance review because the initial user is a finance practitioner. It lists pending reimbursements, opens one record and its attachments, extracts review facts, presents a proposed approve/reject/request-more-information decision, asks for confirmation, commits once and verifies the resulting status. Employee draft creation and submission follows as a second vertical slice; payment and bank transfer remain excluded.
+财务按业务结果拆解 Goal，每项包括必要的接口、工具、界面和验收，不按 API 数量计进度。不同客户账套必须准确限定；不建设双向模块隔离体系，不调用报销业务服务。本次仍是方案，不是实施授权。
 
 ### Workflow rules
 
-- Read and export operations do not require approval.
-- Creating or editing a draft may proceed inside a clearly identified draft but cannot submit it.
-- Submit, approve, reject and withdraw require one confirmation showing client, document, amount, action and consequence.
-- Delete always requires a separate confirmation even under “从不审批”.
-- Each committed operation uses an idempotency key and reads the object after mutation. A timeout with unknown outcome stops for reconciliation instead of retrying blindly.
-- The workflow persists its step and external object revision so application restart, Weixin queue recovery or model retry does not duplicate an action.
-- A page, API or permission version mismatch disables mutation and returns a compatibility error; it never guesses a selector or field.
+- 后端校验财务客户、账套、身份、权限及动作，不能仅靠提示词保护。
+- 财务无需报销配置即可运行，既有报销数据不作为财务任务数据。
+- 财务任务发现、材料授权、锁、重复检查及恢复按客户／账套限定。
+- 核对参数和副作用，接口名含查询不足以证明只读；未知写入先回查再决定安全重试。
+- 必交付范围中的删除、核销等高风险财务动作须独立安全验收，不能静默移出确认范围。
+- 保留既有报销记录和样例，不开发新报销能力。
 
 ### Stage 2.1 release criteria
 
-- API and DOM providers pass the same connector contract suite; unavailable operations fail explicitly.
-- A real test tenant completes 100 repeated read flows and at least 30 end-to-end review flows without duplicate actions, wrong client, wrong record or hidden fallback.
-- Tests cover login expiry, permission denial, slow loading, page redesign, stale object revision, lost connection, restart, confirmation expiry and unknown commit outcome.
-- The Stage 1 professional analysis can feed the review workflow, while the workflow remains deterministic after the user confirms the final action.
-- The product does not claim “有成闭环” until the real-tenant acceptance record is signed off.
+- F0 明确完整财务验收清单及用户同意的例外，凭证样例不能替代模块完成。
+- F1–F3 完成全部必交付财务动作，具备聚焦测试、真实组合快照、授权外部核验和必要模型案例。
+- F4 检查完整范围、客户账套保护、取消、重复、部分成功、重启、配置变化及未知结果，不安排报销或双模块验收。
+- 财务整体验收须用户确认，生成报告或部分测试通过均不足以代替。
+- 未通过就继续财务；通过也不自动启动报销，报销须用户另行明确要求。
 
 ## Stage 2.2: SDOO and Odoo accounting integration
 
@@ -260,35 +259,25 @@ Scope: calculator versioning, rounding, missing-input diagnostics, output templa
 
 Scope: assembled snapshots, focused tests, user-data copy, Electron preview and acceptance record. Do not package or announce Stage 1 while any release criterion is unresolved.
 
-### F2Y-1 — Youcheng API qualification
+### F0 — 财务范围与验收清单
 
-**Goal:** Determine with a dedicated Youcheng test tenant which official OPENAPI operations can support the reimbursement workflows, document authentication, scopes, licensing, idempotency and error semantics, and produce a connector capability matrix with unsupported operations explicitly identified.
+梳理财务接口及业务要求，与用户确认必交付项和例外，排除报销依赖。核验阶段不写业务单据。
 
-Scope: read-only spike first, secret handling and official documentation references. Do not use undocumented endpoints or production customer data. Complete when the matrix is backed by recorded tests and selects API, DOM or unsupported for every required operation.
+### F1 — 独立财务连接与查询
 
-### F2Y-2 — Youcheng connector read model
+不依赖报销凭据、工具或数据，实现财务身份、连接、基础资料、列表／详情、余额、范围及完整性检查。
 
-**Goal:** Implement a typed Youcheng connector that can discover the current tenant, list and read reimbursement objects and attachments, normalize them into finance-domain records, and return stable compatibility errors instead of exposing vendor API or DOM details.
+### F2 — 财务凭证作业
 
-Scope: API provider plus a Youcheng-specific DOM provider only where required, connector contract tests, pagination, login expiry and version detection. Do not mutate any Youcheng record. Complete when both providers satisfy the same read contract and repeated reads select the correct tenant and document.
+实现仅财务的准备、校验、确认、持久执行和回查。可参考基础设施机制，不调用报销业务服务。
 
-### F2Y-3 — Youcheng finance-review closed loop
+### F3 — 财务日记账、往来及维护
 
-**Goal:** Implement a resumable finance-review workflow that reads one pending reimbursement, gathers its evidence, prepares a review recommendation, obtains explicit user confirmation, approves, rejects or requests information exactly once, and verifies the resulting Youcheng status.
+完成确认后的日记账、账户、往来及维护范围；危险动作单独验收，不把必交付项延后到报销。
 
-Scope: `finance-reimbursement` Skill, workflow state, approval summary, idempotency, post-read and recovery. Do not include payment or deletion. Complete after real-tenant repeated acceptance meets the Stage 2.1 stability threshold.
+### F4 — 财务整体验收
 
-### F2Y-4 — Youcheng reimbursement draft and submit
-
-**Goal:** Implement a second resumable workflow that creates or updates a reimbursement draft from user-provided materials, validates all required fields, shows a complete submission preview, submits only after confirmation, and reconciles an unknown result without duplicate submission.
-
-Scope: draft mapping, attachment handling, policy validation, confirmation and restart recovery. Do not auto-select missing business facts. Complete when partially completed drafts, rejected validation, timeout and retry cases preserve one external document.
-
-### F2Y-5 — Youcheng release certification
-
-**Goal:** Certify the Youcheng connector and workflows as a production-supported closed loop by running the contract, fault-injection, repeated real-tenant and cross-feature regression suites, documenting the supported Youcheng version and disabling mutation on compatibility mismatch.
-
-Scope: reliability evidence and release documentation. Do not lower thresholds to pass a flaky provider.
+核验全部必交付财务功能、客户账套保护、恢复、升级保留及外部结果。须用户确认验收；报销继续暂缓，等待另行要求。
 
 ### F2S-1 — SDOO Agent API contract
 
@@ -366,13 +355,15 @@ Each task ends with focused checks before broad checks. User-visible behavior re
 
 ## Alternatives considered
 
+**合并财务与报销，或先建设双模块框架。** 不采用：本期用户只要求财务，额外模块建设增加无当前消费者的工作。按可验收财务功能推进，保留客户账套保护；报销及其架构等待另行要求。
+
 **Put all finance behavior in one system prompt.** Rejected because prompts cannot enforce client scope, deterministic calculations, approval, idempotency, durable progress or connector compatibility, and changes would be hard to test and remove.
 
 **Build a local full-text regulation library first.** Rejected for the current stage because source completeness, effective-date tracking and commercial reuse rights are not yet established. Official retrieval with an auditable bounded cache supplies a safer foundation; a full corpus requires a separate source-rights project.
 
 **Use generic browser automation for every finance system.** Rejected because a generic page tool cannot promise stable domain objects, exactly-once mutations or vendor-version compatibility. It remains transport infrastructure for a vendor-specific adapter where an approved API is unavailable.
 
-**Require Youcheng API before any integration.** Rejected because the public site exposes developer documentation but actual tenant capabilities remain unknown, and a stable vendor-specific DOM adapter may cover missing operations. The connector contract allows both while keeping business workflows independent.
+**在交付前同时建设 API 和 DOM 提供方。** 首版有成方案不采用：尚未证明必要接口缺口就增加两套兼容维护。先核验官方 API 并记录未支持动作，必要且获授权后才评估浏览器适配。
 
 **Expose generic Odoo ORM/RPC directly to the model.** Rejected because it grants excessive authority, couples every Skill to Odoo internals and makes business invariants, version upgrades and auditing unreliable. SDOO exposes versioned domain operations instead.
 

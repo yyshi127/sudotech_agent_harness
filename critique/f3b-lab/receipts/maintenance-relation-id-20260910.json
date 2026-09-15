@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-09-10T11:44:59.412Z",
+  "ledger": { "id": "35616", "name": "施的演示账套" },
+  "command": "node --import tsx/esm critique/f3b-lab/inspect-maintenance-links.mjs",
+  "requests": 9,
+  "businessWrites": 0,
+  "checks": {
+    "scriptSyntax": "node --check:exit0",
+    "liveAssertions": "Both directions matched; no creation, deletion or settlement endpoint allowed",
+    "buildAndLint": "pnpm run lint:exit0",
+    "namedPairs": "2 consistent",
+    "docSync": "26 passed,2 existing replica pairing/wrap failures,103.10s",
+    "diffCheck": "exit0",
+    "snapshots": "Not rerun: no product code, tool descriptions or UI output changed"
+  },
+  "restarted3092": false,
+  "links": [
+    { "openItemId": "72606", "direction": "receivable", "receiptId": "65833", "journalId": "141108", "relationId": "65833", "cashAccountId": "174622", "amount": "0.02", "date": "2022-01-09", "currencyCode": "RMB", "counterpartMatched": true, "content": "matched", "settlement": "matched" },
+    { "openItemId": "72607", "direction": "payable", "receiptId": "65834", "journalId": "141109", "relationId": "65834", "cashAccountId": "174622", "amount": "0.02", "date": "2022-01-09", "currencyCode": "RMB", "counterpartMatched": true, "content": "matched", "settlement": "matched" }
+  ],
+  "evidence": {
+    "rawJournalEndpoint": "/finance/cashjournal/getListPage.rjson",
+    "rawOpenItemEndpoint": "/finance/cashjournal/getCashierList",
+    "journalSource": "WRITE_OFF",
+    "identityCheck": "Original accepted outcomes and before-state are read from consumed experiment records; no new intent or request is sent",
+    "matching": "Exact receipt/relationId, date, direction, amount, cash account, currency and original counterparty; unchanged open-item content, zero balance and exact settlement delta",
+    "earlierOmission": "Earlier journalLinks projection omitted relationId; empty cashManagementId was not proof that raw journal rows lacked an operation link",
+    "limit": "Two known approved fixtures in the selected January page; not a generalized uniqueness, full-ledger, bank movement or production-tool acceptance proof"
+  },
+  "initialProbes": [
+    "First in-memory probe omitted the adapter maxRows argument; no business write was permitted",
+    "Second probe assumed raw open-item data was an array; the actual data.list envelope requires separate extraction; this local capture error was not a vendor outage"
+  ],
+  "browser": {
+    "attempt": "Existing Chrome through installed control-chrome runtime, no new browser",
+    "result": "Initialization failed before browser selection",
+    "missingModule": "E:/CodexHome/plugins/cache/openai-bundled/browser/26.903.61454/scripts/browser-service.mjs",
+    "observedInstalledVersions": ["26.721.31836", "26.901.51231"],
+    "pluginChanged": false
+  },
+  "next": [
+    "Add bounded, counted receipt-linked journal readback using relationId; preserve unknown on missing, duplicate or changed evidence",
+    "Integrate accepted-receipt readback into Host without changing durable send state or enabling retries",
+    "Verify raw eligibility and period/currency prerequisites before enabling mandatory execution entry"
+  ],
+  "f3bComplete": false
+}

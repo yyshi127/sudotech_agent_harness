@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-10",
+  "scope": "CF24/CF25 Host full-settlement execution and exact-version confirmation",
+  "goalStatus": "active",
+  "implementation": [
+    "Separate finance_write_off_open_item tool delegates exact id/version to the bound Host",
+    "Current enabled base-only cash subject qualifies original/base currency without numeric ID decoding",
+    "Fresh source, business identity, cash and subject comparisons surround mandatory confirmation and precede dispatch",
+    "Same-version durable replacement before reservation rejects before approval",
+    "Existing durable target claim and single sender retain accepted, rejected and uncertain outcomes",
+    "Independent business identity, content, settlement and receipt-linked journal recovery remain separate",
+    "Period-lock state remains explicitly unverified; no remote concurrency lock is claimed"
+  ],
+  "verification": [
+    { "check": "Cash qualification and tool tests", "passed": 57, "files": 2 },
+    { "check": "Host execution first attempts", "failed": 2, "reason": "New fixture used numeric receipt instead of qualified string and omitted terminal empty journal page; corrected fixture, not product classification" },
+    { "check": "Focused Host, qualification, tool, records, sender and journal tests", "passed": 368, "files": 6, "durationSeconds": 9.74 },
+    { "check": "Final Host execution tests including before-reservation replacement", "passed": 2, "skipped": 133, "directions": 2, "scenariosPerDirection": 10, "durationSeconds": 3.51 },
+    { "check": "Final shipping preset snapshot refresh", "passed": 1, "scenarios": 10, "durationSeconds": 14.09 },
+    { "check": "Final shipping preset snapshot replay", "passed": 1, "scenarios": 10, "durationSeconds": 15.41 },
+    { "check": "pnpm run lint", "hostBuildPassed": true, "exitCode": 1, "reason": "Test unbound-method lint finding; changed captured method to a bound method" },
+    { "check": "pnpm run lint:contracts-ready after correction", "exitCode": 0 },
+    { "check": "git diff --check", "exitCode": 0 }
+  ],
+  "liveReferenceEvidence": "writeoff-base-cash-20260910.json",
+  "liveReads": 12,
+  "liveBusinessWrites": 0,
+  "backendRestarted": false,
+  "deployedTo3092": false,
+  "liveMainAppWriteOffAccepted": false,
+  "remaining": [
+    "Real main-app acceptance of both directions after deployment",
+    "Broader currency/link eligibility and cross-operation concurrency qualification",
+    "AR/AP deletion execution integration and linked-deletion constraints",
+    "Remaining voucher/journal provenance, attachment/link and confirmation UX acceptance"
+  ],
+  "f3bComplete": false
+}

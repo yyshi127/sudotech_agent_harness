@@ -1,0 +1,506 @@
+{
+  "date": "2026-09-14T04:47:06.495Z",
+  "runId": "f3b-20260914T044135Z-119ff626",
+  "ledger": "35616",
+  "disposition": "F3 supported-scope closeout with explicit deferred issues; not unrestricted completion or F4 acceptance",
+  "cases": [
+    {
+      "key": "CF22",
+      "acceptance": {
+        "checkedAt": "2026-09-14T04:43:16.379Z",
+        "runId": "f3b-20260914T044135Z-119ff626",
+        "key": "CF22",
+        "ledger": {
+          "id": "35616",
+          "name": "施的演示账套"
+        },
+        "marker": "F3B-f3b-20260914T044135Z-119ff626-CF22",
+        "targetId": "72620",
+        "classification": "verified",
+        "fixture": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "maintenance": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 2
+        },
+        "independentReadbacks": 2,
+        "newSessionInspect": true,
+        "limitations": [
+          "回查只覆盖原方向和期间。",
+          "公开接口无法完整排除供应商未返回的连带删除影响。"
+        ]
+      },
+      "operationId": "7c83b8c6-d4fd-4a4c-a639-f6c4cd1ceb99",
+      "finding": {
+        "target": "not-observed",
+        "scope": "selected-direction-periods",
+        "content": "matched",
+        "remainingBalances": "matched",
+        "balances": {
+          "original": {
+            "state": "matched",
+            "remaining": "matched",
+            "changes": [
+              {
+                "currencyCode": "RMB",
+                "before": "0.27",
+                "after": "0.26",
+                "removed": "0.01",
+                "expectedAfter": "0.26",
+                "state": "matched",
+                "basis": "reported"
+              }
+            ]
+          },
+          "base": {
+            "state": "matched",
+            "remaining": "matched",
+            "changes": [
+              {
+                "currencyCode": "RMB",
+                "before": "0.27",
+                "after": "0.26",
+                "removed": "0.01",
+                "expectedAfter": "0.26",
+                "state": "matched",
+                "basis": "same-currency"
+              }
+            ]
+          }
+        },
+        "otherDirection": "matched",
+        "unrelatedSurfaces": "matched"
+      },
+      "mainSessionId": "9a89636e-20f9-4467-87cc-327312f414a0",
+      "recoverySessionId": "494e0cc2-2ede-42bb-83e8-c9acb1a27b82",
+      "preservedVoucherCount": 41
+    },
+    {
+      "key": "CF23",
+      "acceptance": {
+        "checkedAt": "2026-09-14T04:47:01.032Z",
+        "runId": "f3b-20260914T044135Z-119ff626",
+        "key": "CF23",
+        "ledger": {
+          "id": "35616",
+          "name": "施的演示账套"
+        },
+        "marker": "F3B-f3b-20260914T044135Z-119ff626-CF23",
+        "targetId": "72621",
+        "classification": "verified",
+        "fixture": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "maintenance": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 2
+        },
+        "independentReadbacks": 2,
+        "newSessionInspect": true,
+        "limitations": [
+          "回查只覆盖原方向和期间。",
+          "公开接口无法完整排除供应商未返回的连带删除影响。"
+        ]
+      },
+      "operationId": "7ad129e4-eb5e-472e-8a5a-661b96c2ba5a",
+      "finding": {
+        "target": "not-observed",
+        "scope": "selected-direction-periods",
+        "content": "matched",
+        "remainingBalances": "matched",
+        "balances": {
+          "original": {
+            "state": "matched",
+            "remaining": "matched",
+            "changes": [
+              {
+                "currencyCode": "RMB",
+                "before": "0.30",
+                "after": "0.29",
+                "removed": "0.01",
+                "expectedAfter": "0.29",
+                "state": "matched",
+                "basis": "reported"
+              }
+            ]
+          },
+          "base": {
+            "state": "matched",
+            "remaining": "matched",
+            "changes": [
+              {
+                "currencyCode": "RMB",
+                "before": "0.30",
+                "after": "0.29",
+                "removed": "0.01",
+                "expectedAfter": "0.29",
+                "state": "matched",
+                "basis": "same-currency"
+              }
+            ]
+          }
+        },
+        "otherDirection": "matched",
+        "unrelatedSurfaces": "matched"
+      },
+      "mainSessionId": "d180b5d7-80f1-42e2-a708-a09e74ca486a",
+      "recoverySessionId": "a8ad7dfa-0524-46e1-a6ea-7fb64e163518",
+      "preservedVoucherCount": 41
+    }
+  ],
+  "inheritedF3A": [
+    {
+      "key": "CF14",
+      "evidence": "critique/f3a-lab/receipts/journal-live-host/audit.json",
+      "complete": true,
+      "status": "supported-path-verified"
+    },
+    {
+      "key": "CF20",
+      "evidence": "critique/f3a-lab/receipts/open-item-live-host/receivable/audit.json",
+      "complete": true,
+      "status": "supported-path-verified"
+    },
+    {
+      "key": "CF21",
+      "evidence": "critique/f3a-lab/receipts/open-item-live-host/payable/audit.json",
+      "complete": true,
+      "status": "supported-path-verified"
+    },
+    {
+      "key": "CF08",
+      "evidence": "critique/f3a-lab/receipts/master-data-live-host/subject/audit.json",
+      "complete": true,
+      "status": "supported-path-verified"
+    },
+    {
+      "key": "CF09",
+      "evidence": "critique/f3a-lab/receipts/master-data-live-host/auxiliary-item/audit.json",
+      "complete": false,
+      "status": "creation-and-identity-verified; public enable-state deferred"
+    }
+  ],
+  "inheritedF3B": [
+    {
+      "acceptance": {
+        "checkedAt": "2026-09-14T03:20:38.547Z",
+        "runId": "f3b-20260914T031930Z-7da051c2",
+        "key": "CF12",
+        "ledger": {
+          "id": "35616",
+          "name": "施的演示账套"
+        },
+        "marker": "F3B-f3b-20260914T015413Z-f259b3e3-CF12",
+        "targetId": "244401",
+        "classification": "verified",
+        "fixture": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 0,
+          "approvalLayers": 0,
+          "sourceRunId": "f3b-20260914T015413Z-f259b3e3",
+          "reusedVerifiedFixture": true
+        },
+        "maintenance": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 2
+        },
+        "independentReadbacks": 2,
+        "newSessionInspect": true,
+        "limitations": [
+          "回查范围按产品预览和独立清单限定，不构成全账套证明。"
+        ]
+      },
+      "operationId": "938c7d3c-08c1-46de-92dc-ea267c1f2c7f",
+      "finding": {
+        "target": "not-observed",
+        "content": "matched",
+        "unrelatedSurfaces": "matched",
+        "attachmentCountBefore": 1,
+        "importedSourcePreserved": true,
+        "stagingSourcePreserved": true,
+        "vendorAttachmentAfterDeletion": "not-observable-after-voucher-absence"
+      },
+      "acceptanceSha256": "ecc09206eb9505847fd799638d8c964f23cc2c42706c9410834fc9f27735474f",
+      "auditSha256": "626398a7fd71c0f981aa9b2d7fec0d2f17469f644ea1b7e0491ba7890426a2ff"
+    },
+    {
+      "acceptance": {
+        "checkedAt": "2026-09-14T02:27:20.676Z",
+        "runId": "f3b-20260914T021845Z-2e07e791",
+        "key": "CF15",
+        "ledger": {
+          "id": "35616",
+          "name": "施的演示账套"
+        },
+        "marker": "F3B-f3b-20260914T021845Z-2e07e791-CF15",
+        "targetId": "141168",
+        "classification": "verified",
+        "fixture": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "maintenance": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 2
+        },
+        "independentReadbacks": 2,
+        "newSessionInspect": true,
+        "limitations": [
+          "回查范围按产品预览和独立清单限定，不构成全账套证明。"
+        ]
+      },
+      "operationId": "2cd94883-68f1-48a8-8a1f-31c8dfc849f0",
+      "finding": {
+        "target": "not-observed",
+        "content": "matched",
+        "balances": "matched",
+        "scope": "selected-month",
+        "cf24WriteOffJournal": "preserved",
+        "unrelatedSurfaces": "matched"
+      },
+      "acceptanceSha256": "7c087513ccfcb3926016801e4763d404eae39777c509088c0cf735ff34038460",
+      "auditSha256": "7d0944d74fa4e310cd917ebb6ca1e94be20eb9a433f14b9d7eb95e8b7ffd3c75"
+    },
+    {
+      "acceptance": {
+        "checkedAt": "2026-09-14T01:58:53.822Z",
+        "runId": "f3b-20260914T015413Z-f259b3e3",
+        "key": "CF24",
+        "ledger": {
+          "id": "35616",
+          "name": "施的演示账套"
+        },
+        "marker": "F3B-f3b-20260914T015413Z-f259b3e3-CF24",
+        "targetId": "72615",
+        "classification": "verified",
+        "fixture": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "maintenance": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "independentReadbacks": 2,
+        "newSessionInspect": true,
+        "writeOffJournalId": "141166",
+        "limitations": [
+          "有成未提供期间锁定状态。",
+          "核销只记载已收已付，不证明银行资金实际划转。"
+        ]
+      },
+      "operationId": "bd2dd649-56b4-4bd5-975c-d93b3a1461b7",
+      "finding": {
+        "content": "matched",
+        "settlement": "matched",
+        "operation": "matched",
+        "journalLink": {
+          "state": "matched",
+          "receiptId": "65849",
+          "journalId": "141166",
+          "channel": "WRITE_OFF"
+        },
+        "otherDirection": "matched",
+        "unrelatedSurfaces": "matched"
+      },
+      "acceptanceSha256": "c86437abd57c048b01664769af28022698fe8010ee030ef52eb3f8df79cb749a",
+      "auditSha256": "623066012ad3ca7ad56ec13af6bdd2fe42d6bae35c38aae40b80510efc0992bd"
+    },
+    {
+      "acceptance": {
+        "checkedAt": "2026-09-14T02:29:12.493Z",
+        "runId": "f3b-20260914T022727Z-3fd77a15",
+        "key": "CF25",
+        "ledger": {
+          "id": "35616",
+          "name": "施的演示账套"
+        },
+        "marker": "F3B-f3b-20260914T022727Z-3fd77a15-CF25",
+        "targetId": "72619",
+        "classification": "verified",
+        "fixture": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "maintenance": {
+          "classification": "accepted-pending-verification",
+          "writeToolCalls": 1,
+          "approvalLayers": 1
+        },
+        "independentReadbacks": 2,
+        "newSessionInspect": true,
+        "writeOffJournalId": "141169",
+        "limitations": [
+          "有成未提供期间锁定状态。",
+          "核销只记载已收已付，不证明银行资金实际划转。"
+        ]
+      },
+      "operationId": "89c1bd30-d819-4ba1-a6e1-2f54bcc13c64",
+      "finding": {
+        "content": "matched",
+        "settlement": "matched",
+        "operation": "matched",
+        "journalLink": {
+          "state": "matched",
+          "receiptId": "65850",
+          "journalId": "141169",
+          "channel": "WRITE_OFF"
+        },
+        "otherDirection": "matched",
+        "unrelatedSurfaces": "matched"
+      },
+      "acceptanceSha256": "09ef295cc2a078e6f167af59009d74cd9c7434cdbe5a1e0d68ce4dd437a24a86",
+      "auditSha256": "1b6c7bb62ca4c4d0c0b4c5832a9e017b33af71b6712f05e6309c215f8b382794"
+    }
+  ],
+  "freshBusinessWrites": {
+    "creations": 2,
+    "deletions": 2,
+    "writeOffs": 0,
+    "actualPayments": 0
+  },
+  "historicalIntentsReplayed": false,
+  "fullF3WithoutLimitations": false,
+  "f4Started": false,
+  "deferred": [
+    "001 first AR/AP account discovery",
+    "002 public auxiliary enable-state",
+    "004 manual/external voucher provenance"
+  ],
+  "repositoryReleaseChecks": "Existing generated-declaration lint and catalog/API-replica documentation failures remain tracked separately",
+  "codeCheckpoint": {
+    "branch": "codex/finance-f1-2",
+    "head": "4a0fa71329ee40646477adb9f13befb17d1502ee",
+    "sourceHashes": [
+      {
+        "path": "packages/xiaojing/xiaojing-finance-domain/src/index.ts",
+        "sha256": "5d3ea5186592d701815f4bb1caca8f5de8746636a58f43803b7c2ada5e97d4a2"
+      },
+      {
+        "path": "packages/xiaojing/xiaojing-finance-domain/src/open-item-deletion.ts",
+        "sha256": "084fba69d4927828e08b833a0c5e270007ef9b9b531a9145ed7bc6dddde3ebdd"
+      },
+      {
+        "path": "packages/xiaojing/xiaojing-finance-domain/src/open-item-deletion-balances.ts",
+        "sha256": "1a1e8a1364747c40cb6fc35119a5764995e3b40979d75f15c8acabb2b0c4caff"
+      },
+      {
+        "path": "packages/xiaojing/xiaojing-finance-domain/src/open-item-deletion-records.ts",
+        "sha256": "61d61e9becb1a0ec4abe27c5b04bbc2adc5f1d399d8696bda6f585f4fb0d196c"
+      },
+      {
+        "path": "packages/xiaojing/xiaojing-finance-domain/lib/index.js",
+        "sha256": "b947c3e7f9f85ec7800ab83547aa26b05a007e9312040f654a4011ee215bef9c"
+      },
+      {
+        "path": "apps/web/tests/finance-open-item-deletion.e2e.ts",
+        "sha256": "73eea3752c5ec874cd020f967a80be21def4ce8330b42b0b95c1de5ccf460c56"
+      },
+      {
+        "path": "critique/f3b-lab/f3b-run-main-app.mjs",
+        "sha256": "a6e4bf1dfb3c84401f6e1cdff772d3da249fd89fba76b9223e497c17a9cc3054"
+      },
+      {
+        "path": "critique/f3b-lab/f3b-run-guard.mjs",
+        "sha256": "a793ffb5c5bb45535530008f25d5d37c4e72e28f2c344de5c22fc13cb1bba41f"
+      }
+    ],
+    "committedOrPushedThisRun": false,
+    "hashesAreNotABackup": true
+  },
+  "sources": [
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF22/acceptance.json",
+      "sha256": "6d78cdf8192173298cc1be913dd0c8a8ba8a2217d76bad14d3ad23fbb5b12b19"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF22/audit.json",
+      "sha256": "56a755f3866f7201b7451e3549c69dfa159ad52a6313ab75091590d8f71ebc39"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF22/recovery.json",
+      "sha256": "a29eea91f80b0a29b971416ff8e67e184872d8063e6a5085d1f68a24e9d6ab97"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF22/fixture-outcome.json",
+      "sha256": "4750234fcedde81832131869cfbba3b423ed7789df9b52d921a44d696c6d64ac"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF22/operation-outcome.json",
+      "sha256": "ea94c7378d77752a40e9f1e5908e9092acfc7668e16826479cc2ad36878f0fa3"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF22/main-session-intent.json",
+      "sha256": "7d536e3622f71a8ff0b2f7e1be0850c14653db4d6d82e299dce67f6f4f22e5f5"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF23/acceptance.json",
+      "sha256": "6db6a5aea7e9eb0d84d74c3f58d33388a866355005dac1abe07f2b303fba5621"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF23/audit.json",
+      "sha256": "5f2562c88ceac99b2de9660161369a1d1eb75571358ff5e4c064a9cddc7f988b"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF23/recovery.json",
+      "sha256": "fdbeaf1ff78fe9d0571ddeffeba709ca8c99751ccd7971225022a0ec08ea2599"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF23/fixture-outcome.json",
+      "sha256": "6388307efbeb960327f7598079247fe4634831215de337b4a618e9af16049144"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF23/operation-outcome.json",
+      "sha256": "676d79196f81ef774072b307395f19d66415dfa56c13aad4ea7fe84ce28631ec"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T044135Z-119ff626/CF23/main-session-intent.json",
+      "sha256": "e043850a89203fffbe79477d4645771bb52089952b9e600d6db4d026724f11f2"
+    },
+    {
+      "path": "critique/f3b-lab/receipts/f3b-main-app-acceptance-20260914.json",
+      "sha256": "1a0db237185c8c5219e9919a9f392e17fa9e0a5e03e956276d2ba44c95c57dff"
+    },
+    {
+      "path": "critique/f3a-lab/receipts/journal-live-host/audit.json",
+      "sha256": "f4efe35888b5ec3ba5190614b7a66616d342c573104a7443f6377b15b4034748"
+    },
+    {
+      "path": "critique/f3a-lab/receipts/open-item-live-host/receivable/audit.json",
+      "sha256": "92edc706e7fb7cf063c6be93290f6b14a33d0bb978c69be6de72569adc76ebc5"
+    },
+    {
+      "path": "critique/f3a-lab/receipts/open-item-live-host/payable/audit.json",
+      "sha256": "53f0f6a81a37270cc0f042243af3d2af4363e50ce549a95d37b09b29e83382da"
+    },
+    {
+      "path": "critique/f3a-lab/receipts/master-data-live-host/subject/audit.json",
+      "sha256": "d37d7b10ffd1fca2634585604b690d94b384f5df288e542eb421106774e9a834"
+    },
+    {
+      "path": "critique/f3a-lab/receipts/master-data-live-host/auxiliary-item/audit.json",
+      "sha256": "41c527f53b62a330acb7ec38418dd92f97cd36bf3282f73479b6f51052b986b5"
+    },
+    {
+      "path": "critique/f3b-lab/receipts/f3-remainder-20260914.json",
+      "sha256": "e2f0dc9c73987294ec3fc1f347a04e9f3a44295035b1911e1d6c2a65f2d4ffbf"
+    },
+    {
+      "path": "critique/f3b-lab/receipts/open-item-deletion-balance-fix-20260914.json",
+      "sha256": "dbc46ee528c8ec6c176a670c31580858dd46b053e30564d1971c032eaa546f3b"
+    }
+  ]
+}

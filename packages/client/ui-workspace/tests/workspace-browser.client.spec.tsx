@@ -290,6 +290,7 @@ describe('WorkspaceBrowser', () => {
   })
 
   it('routes consultation and client Workspace actions through their product category', async () => {
+    const activateWorkspaceBadge = vi.fn(async () => {})
     const renameWorkspaceInCategory = vi.fn(async () => {})
     const removeWorkspaceFromCategory = vi.fn(async () => {})
     const browser = mount({
@@ -306,6 +307,7 @@ describe('WorkspaceBrowser', () => {
           reservedWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
           manageableWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
           newSessionDisabledWorkspaceIds: [],
+          workspaceBadges: [{ workspaceId: wid('finance-client'), state: 'idle', label: '未核验', actionLabel: '连接账套' }],
           sections: [
             { id: 'consultations', label: '咨询', icon: 'discussion', workspaceIds: [wid('finance-standard')] },
             { id: 'clients', label: '客户', icon: 'person', workspaceIds: [wid('finance-client')] },
@@ -314,10 +316,17 @@ describe('WorkspaceBrowser', () => {
       }),
       renameWorkspaceInCategory,
       removeWorkspaceFromCategory,
+      activateWorkspaceBadge,
     })
 
     fireEvent.click(screen.getByRole('button', { name: '财务工作区' }))
     await waitFor(() => { expect(screen.getByText('数豆科技')).toBeTruthy() })
+
+    const clientRow = screen.getByText('数豆科技').closest('[role="treeitem"]')!
+    const expanded = clientRow.getAttribute('aria-expanded')
+    fireEvent.click(screen.getByRole('button', { name: '连接账套' }))
+    expect(activateWorkspaceBadge).toHaveBeenCalledExactlyOnceWith('finance', wid('finance-client'))
+    expect(clientRow.getAttribute('aria-expanded')).toBe(expanded)
 
     fireEvent.click(screen.getByRole('button', { name: '工作区“咨询”的操作' }))
     fireEvent.click(screen.getByRole('menuitem', { name: '重命名' }))
@@ -336,7 +345,7 @@ describe('WorkspaceBrowser', () => {
     await waitFor(() => {
       expect(removeWorkspaceFromCategory).toHaveBeenCalledWith('finance', wid('finance-client'))
     })
-    expect(screen.getByRole('status').textContent).toBe('正在移除工作区…')
+    expect(screen.getByText('正在移除工作区…').getAttribute('role')).toBe('status')
 
     rerender(browser, {
       useWorkspaceCategories: hook({
@@ -692,6 +701,37 @@ describe('WorkspaceBrowser', () => {
     expect(screen.queryByText('新会话')).toBeNull()
     fireEvent.change(screen.getByPlaceholderText('搜索会话…'), { target: { value: '新会话' } })
     expect(screen.queryByText('新会话')).toBeNull()
+  })
+
+  it.each(['workspace', 'flat'] as const)('activates the category for a blank row but opens history directly in %s view', async (groupBy) => {
+    const current = summary('blank', 9, { blank: true })
+    const browser = mount({
+      useSessions: hook(sessionState([current, summary('history', 8)], { current: current.id })),
+      useWorkspaces: hook(workspaceState([workspace('product', ['blank', 'history'])])),
+      useWorkspaceCategories: hook({ categories: [{
+        id: 'product', label: 'Product', workspaceIds: [wid('product')], newSessionDisabledWorkspaceIds: [],
+      }] }),
+    })
+    act(() => { browser.store.actions.setGroupBy(groupBy) })
+    fireEvent.click(screen.getByText('新会话'))
+    expect(browser.props.activateWorkspaceCategory).toHaveBeenCalledWith('product', wid('product'))
+    expect(browser.props.open).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByText('history'))
+    expect(browser.props.open).toHaveBeenCalledWith(sid('history'))
+  })
+
+  it.each([false, true])('opens a blank directly when its category cannot create: %s', (disabledCategory) => {
+    const current = summary('blank', 9, { blank: true })
+    const browser = mount({
+      useSessions: hook(sessionState([current], { current: current.id })),
+      useWorkspaces: hook(workspaceState([workspace('workspace', ['blank'])])),
+      useWorkspaceCategories: hook({ categories: disabledCategory ? [{
+        id: 'product', label: 'Product', workspaceIds: [wid('workspace')], newSessionDisabledWorkspaceIds: [wid('workspace')],
+      }] : [] }),
+    })
+    fireEvent.click(screen.getByText('新会话'))
+    expect(browser.props.activateWorkspaceCategory).not.toHaveBeenCalled()
+    expect(browser.props.open).toHaveBeenCalledWith(current.id)
   })
 
   it('promotes the blank selected by New Session in its grouped and flat orders', async () => {

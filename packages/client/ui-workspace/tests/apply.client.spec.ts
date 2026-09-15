@@ -1,6 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore, SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { WorkspaceBrowserInjected, WorkspacePickerInjected } from '@deepseek-ai/dsh-client-ui-workspace/client'
@@ -165,5 +165,25 @@ describe('ui-workspace apply', () => {
     expect(b.slots.entries('sidebar.workspaces')).toHaveLength(0)
     expect(b.slots.entries('conversation.hero.workspace')).toHaveLength(0)
     // expect(b.slots.entries('conversation.empty.workspace')).toHaveLength(0)
+  })
+
+  it('forwards inline status actions to the registered provider and drops them on disposal', async () => {
+    const b = await bench()
+    declare(b.slots, 'sidebar.workspaces')
+    const fiber = b.ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    const browser = (b.slots.entries('sidebar.workspaces')[0]!.inject as () => WorkspaceBrowserInjected)()
+    const activateWorkspaceBadge = vi.fn(async () => {})
+    const source = createSnapshotStore({ label: 'External', workspaceIds: ['ws' as never], newSessionDisabledWorkspaceIds: [] })
+    const dispose = b.ctx.workspaceCategories.register({ id: 'external', order: 0, source, activate: vi.fn(), activateWorkspaceBadge })
+    await browser.activateWorkspaceBadge!('external', 'ws' as never)
+    expect(activateWorkspaceBadge).toHaveBeenCalledExactlyOnceWith('ws')
+    dispose()
+    await expect(browser.activateWorkspaceBadge!('external', 'ws' as never)).rejects.toThrow('unknown workspace category')
+    const disposeWithoutAction = b.ctx.workspaceCategories.register({ id: 'external', order: 0, source, activate: vi.fn() })
+    await expect(browser.activateWorkspaceBadge!('external', 'ws' as never)).rejects.toThrow('does not support status actions')
+    disposeWithoutAction()
+    await fiber.dispose()
+    await b.ctx.fiber.dispose()
   })
 })

@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-09-10T02:35:10.922Z",
+  "compared": {
+    "content": "matched",
+    "configuration": "matched",
+    "complete": true
+  },
+  "payloadMatchesOriginalIntent": true,
+  "preservedVouchers": 41,
+  "unchangedExistingSubjects": true,
+  "businessWrites": 0,
+  "mainRuntimeRootCreationTested": false
+}

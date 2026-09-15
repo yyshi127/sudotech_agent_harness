@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-14",
+  "stage": "F4.1",
+  "status": "in-progress",
+  "scope": "Approved Finance capabilities: combined regression and evidence reconciliation, not full release acceptance",
+  "productCodeChanged": false,
+  "businessWrites": 0,
+  "paidModelCalls": 0,
+  "userRuntimeRestarted": false,
+  "runtimeAtFinalCheck": { "port": 3092, "pid": 24864, "sessions": 82, "runningModelSessions": 0 },
+  "documentation": {
+    "namedPairs": { "checked": 3, "passed": 3 },
+    "gitDiffCheck": "passed",
+    "docSync": { "passed": 23, "failed": 5, "durationMs": 114250, "failedGates": ["cordis catalog", "translation pairing", "markdown wrap", "export jsdoc", "persistence catalog"] },
+    "interpretation": "The same five gate categories failed as the saved F3 check; full repository release checks are not passing. Focused F4 document pairs pass."
+  },
+  "tests": {
+    "assembledWeb": { "files": 15, "passed": 46, "failed": 0, "skipped": 0, "durationMs": 250730, "mode": "replay", "vendor": "mock", "reimbursementExcluded": true },
+    "durableRecordsAndStores": { "files": 10, "passed": 220, "durationMs": 2370 },
+    "financeHost": { "files": 1, "passed": 137, "durationMs": 17230 },
+    "desktopDataCompatibility": { "result": "passed", "fixtureVersion": "0.1.9", "readerVersion": "0.2.3", "isolatedSyntheticData": true, "realInstallerExecuted": false }
+  },
+  "evidenceIntegrity": {
+    "f1": { "audit": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f13-35601/f1-final-audit-20260909.json", "workbooksMatched": 6, "receiptsMatched": 10 },
+    "f2": { "audit": "critique/f2-final-audit.json", "externalFilesMatched": 11, "sourceFilesNotTreatedAsImmutable": true },
+    "f3": { "audit": "critique/f3b-lab/receipts/f3-supported-scope-closeout-20260914.json", "sourceEvidenceFilesMatched": 20, "codeCheckpointFilesMatched": 8 },
+    "meaning": "Existing bytes match saved hashes; historical experiments were not rerun and hashes are not backups"
+  },
+  "commandsRun": [
+    "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=replay vitest run --config vitest.web.config.ts <15 finance-*.e2e.ts files excluding finance-reimbursement.e2e.ts> --reporter=dot",
+    "vitest run <10 finance-domain records/store spec files> --reporter=dot",
+    "vitest run packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts --reporter=dot",
+    "pnpm run verify:xiaojing-user-data",
+    "Get-FileHash -Algorithm SHA256 on the referenced F1/F2/F3 evidence and F3 code checkpoint files"
+  ],
+  "remaining": [
+    "Reconcile D01-D06 report delivery: complete evidence or explicit scope decision, not silently passed",
+    "Packaged desktop fresh installation and in-place upgrade on default/custom paths",
+    "Determine any remaining current-version external observation gaps without resending consumed intents",
+    "Resolve or explicitly retain repository-wide release-check failures",
+    "Explicit user acceptance"
+  ],
+  "deferredVendorIssues": ["001 complete business-account discovery", "002 auxiliary enable state", "004 manual/external voucher provenance"],
+  "notClaimed": ["All 28 capabilities unrestricted", "F4 complete", "Production release ready", "Control of the user's existing Chrome tabs", "Permanent attachment retention", "A new Codex Goal was created"]
+}

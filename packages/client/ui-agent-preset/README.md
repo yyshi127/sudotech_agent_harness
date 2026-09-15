@@ -12,7 +12,7 @@ A session's preset is fixed when the session is created — the host refuses to 
 
 A second surface, beside the workspace picker on the new-session screen. It sits there rather than in the composer because that is where the choice is still open: a control that spends most of its life disabled belongs on the screen where it still works.
 
-The chip opens on the deployment default and its pick is *staged* — the screen precedes the session it would apply to. The stage reaches a session when one becomes current and is still blank, which covers both the session the workspace connect created and the blank one it reused; riding along on `sessions.create` would miss the second. It is spent on first use, so the next new session opens on the default again, exactly like the workspace picker beside it.
+Without a current session, the chip opens on the deployment default and its pick is staged. The stage reaches a session when one becomes current and is still blank, covering both newly created and reused blank sessions, and is consumed on first use. With no pending choice, the chip follows the current session's committed preset, including navigation and switches initiated by other plugins or tabs. This display synchronization does not submit another preset selection; clearing the current session restores the deployment default.
 
 After a chip choice has been staged, the Client broadcasts `agent-preset/staged` with the selected preset id. Product plugins may use this transient browser event to prepare the blank-session surface before a session exists; it is not a durable session event, and consumers must still let the Host validate and commit the preset when the session opens.
 

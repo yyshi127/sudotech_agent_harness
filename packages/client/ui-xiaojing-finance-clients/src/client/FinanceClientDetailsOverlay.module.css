@@ -1,0 +1,66 @@
+.dialog {
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  width: min(860px, 100%);
+  max-height: min(800px, calc(100dvh - 48px));
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.message {
+  flex: none;
+  max-height: 20dvh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  margin: 0;
+  padding: 12px 24px;
+}
+
+@media (max-width: 640px) {
+  .header,
+  .message {
+    padding-inline: 16px;
+  }
+}

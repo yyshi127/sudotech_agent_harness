@@ -1,0 +1,45 @@
+{
+  "ledgerId": "35616",
+  "company": "瑞华云",
+  "ledgerName": "施的演示账套",
+  "intent": "ui-control-1-intent.json",
+  "dispatch": "ui-control-1-dispatch.json",
+  "outcome": "One UI-created ordinary receivable independently verified through the public API and page refresh.",
+  "record": {
+    "id": "72593",
+    "date": "2022-01-09",
+    "summary": "小兢F3A-35616-UI对照-20260909-01",
+    "money": "0.04",
+    "balance": "0.04",
+    "currencyCode": "RMB",
+    "counterpartyId": "191501",
+    "counterpartyName": "淘云科技",
+    "subjectName": "应收账款",
+    "subjectCode": ""
+  },
+  "independentVerification": {
+    "checkedAt": "2026-09-09T14:30:35.184Z",
+    "script": "inspect-open-item-context.mjs --open-items --verify-control",
+    "passed": true,
+    "receivables": 1,
+    "payables": 0,
+    "originalVouchers": 41,
+    "voucherIdsAndCompleteRowHashUnchanged": true
+  },
+  "confirmed": [
+    "The existing authorized account and customer support a normal UI receivable creation.",
+    "The public getCashierList endpoint returns a nonempty row with setOfBooksId35616 and the same marked amount and customer.",
+    "The existing product projector accepts this real nonempty row without changing ledger checks.",
+    "The UI initially displayed 2019-10. Both selectors were changed to2022-01 before the test; no accounting period configuration was changed.",
+    "subjectCode is empty. Preserve the returned value; do not substitute linked accounting subject112201."
+  ],
+  "notEstablished": [
+    "Public receivable/payable creation is not qualified by a UI success.",
+    "The exact cause of public201未指定往来单位 remains unverified; do not label it a proven vendor defect.",
+    "The existing form-body parser-unknown and earlier customer unknown receipts remain unchanged and must not be retried."
+  ],
+  "remainingWork": "Determine the public write endpoint's ledger/counterparty mapping from authoritative evidence, then qualify its write and readback. Do not substitute the private browser endpoint in the product.",
+  "productCodeChanged": false,
+  "f3aComplete": false,
+  "cleanup": "Test receivable72593 is retained as an explicitly labeled development fixture. No records deleted, no voucher generated, no settlement or payment performed."
+}

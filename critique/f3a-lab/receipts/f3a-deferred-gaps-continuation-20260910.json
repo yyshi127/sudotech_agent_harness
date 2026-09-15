@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-10",
+  "scope": "F3A independent local closeout after the user directed that vendor gaps be deferred",
+  "fullF3AComplete": false,
+  "deferredIssues": [
+    { "id": "001", "issue": "First-record AR/AP account discovery", "resolved": false },
+    { "id": "002", "issue": "Public auxiliary enabled/disabled status readback", "resolved": false }
+  ],
+  "desktopRegister": "C:/Users/Administrator/Desktop/小兢会计-暂未解决问题清单.md",
+  "changes": [
+    "Expanded two JSDoc comments into separately parsed tags, resolving three export-documentation violations without changing function behavior",
+    "Moved the existing Model Experience block before Known Limitations in both finance README languages without changing its content",
+    "Registered BalanceAnalysisQuery and BalanceAnalysisResult under their existing finance README documentation owner",
+    "Regenerated Cordis API artifacts and the finance-published-file client slot registration; synchronized the config source line and bilingual records",
+    "Recorded vendor gaps as deferred, not solved; no browser extension or fixed-ID mapping implemented"
+  ],
+  "validation": {
+    "unitCommand": "pnpm run test -- packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/journal-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/master-data-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/subject-submission.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/master-data-submission.spec.ts scripts/gen-client-catalog.spec.ts scripts/gen-cordis-catalog-record.spec.ts scripts/gen-cordis-catalog-partition.spec.ts",
+    "unit": { "exitCode": 0, "files": 9, "passed": 243, "durationMs": 15050 },
+    "lint": { "command": "pnpm run lint", "exitCode": 0, "includes": ["tsc -b tsconfig.host.json", "tsdown --env.DSH_BUILD_FACE host", "tsx scripts/run-oxlint.ts ."] },
+    "docsBefore": { "command": "pnpm run doc-sync", "passed": 20, "failed": 8, "durationMs": 84170 },
+    "docsAfter": { "command": "pnpm run doc-sync", "exitCode": 1, "passed": 26, "failed": 2, "durationMs": 157140 },
+    "remainingDocFailures": [
+      "docs/integrations/youcheng-openapi-replica.md lacks a bilingual counterpart",
+      "docs/integrations/youcheng-openapi-replica.md contains hard-wrapped paragraphs"
+    ],
+    "namedPairs": { "count": 4, "exitCode": 0, "paths": ["packages/xiaojing/xiaojing-finance-domain/README.md", "docs/config-catalog.md", "docs/subsystems/extensions.md", "docs/integrations/youcheng-finance-development-status.md"] },
+    "diffCheck": { "command": "git diff --check", "exitCode": 0 },
+    "assembledSnapshots": "Not rerun: no model-facing instruction, approval or business behavior changed. Retained prior assembled acceptance evidence remains separate from this local regression.",
+    "liveAcceptance": "Not rerun; existing five-capability receipts are retained evidence, not new live verification."
+  },
+  "externalBusinessWrites": 0,
+  "runtimeRestarted": false,
+  "credentialsChanged": false,
+  "scopeExpandedToF3B": false,
+  "remainingBoundary": "Ordinary roots/branches are qualified; leaf promotion and specialized auxiliary/currency subject configurations remain unsupported or unqualified. Deferred gaps do not become successful verification."
+}

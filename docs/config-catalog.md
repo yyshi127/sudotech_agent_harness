@@ -3368,7 +3368,7 @@ Source: [`packages/xiaojing/xiaojing-finance-documents/src/index.ts:45`](../pack
 
 ## `@deepseek-ai/dsh-xiaojing-finance-domain`
 
-Requires: `sessions` · `sessionProjections` · `workspaceRegistry`
+Requires: `credentials` · `sessions` · `sessionProjections` · `workspaceRegistry`
 
 ```ts config-catalog
 /** Deployment settings for Finance client storage. */
@@ -3379,10 +3379,70 @@ export interface Config {
   workspaceRoot?: string
   /** Local upload directory whose completed files may enter customer source materials. */
   uploadRoot?: string
+  /** HTTPS Finance API origin for the internal test label. */
+  youchengTestApiUrl?: string
+  /** HTTPS Finance API origin for the internal production label. */
+  youchengProductionApiUrl?: string
+  /** Deadline for authentication plus ledger lookup in milliseconds. */
+  youchengRequestTimeoutMs?: number
+  /** Retry each read request once after a recognized transient transport failure, within its existing deadline. */
+  youchengRetryTransientReads?: boolean
+  /** Stable source application identity for voucher creation; never supplied by the model. */
+  youchengVoucherAppId?: string
+  /** Maximum UTF-8 bytes in one complete voucher-query result. */
+  youchengVoucherMaxResultBytes?: number
+  /** Requested and accepted reference-row cap; APIs have no documented cursor. */
+  youchengReferenceMaxRows?: number
+  /** Maximum reference response and complete tool-result bytes. */
+  youchengReferenceMaxBytes?: number
+  /** Complete balance report row cap, including vendor summaries. */
+  youchengBalanceMaxRows?: number
+  /** Raw and projected balance report byte cap. */
+  youchengBalanceMaxBytes?: number
+  /** Journal and cash-account row cap, including vendor summary markers. */
+  youchengJournalMaxRows?: number
+  /** Raw and projected journal byte cap. */
+  youchengJournalMaxBytes?: number
+  /** Whole open-item page cap including vendor summaries. */
+  youchengOpenItemMaxRows?: number
+  /** Raw response and emitted open-item result byte cap. */
+  youchengOpenItemMaxBytes?: number
+  /** Page size for open-item and journal collection before local analytics. */
+  youchengAnalysisPageSize?: number
+  /** Initial computer-wide OSS settings; no credentials are included in composition. */
+  attachmentStorageDefaults?: AttachmentStorageConfig
+  /** Per-request transfer deadline in milliseconds. */
+  attachmentRequestTimeoutMs?: number
+  /** Temporary signed download URL lifetime, at most seven days. */
+  attachmentUrlExpiresSeconds?: number
+  /** Maximum original invoice bytes per cloud upload. */
+  attachmentMaxFileBytes?: number
+  /** Exact trusted Youcheng copy hosts; never inherited from arbitrary detail URLs. */
+  youchengAttachmentHosts?: string[]
+  /** Aggregate bytes allowed for one submitted-voucher original verification. */
+  youchengAttachmentVerificationMaxBytes?: number
+  /** Default reimbursement origin, independent of the finance environment label. */
+  reimbursementApiUrl?: string
+  /** Deadline for each reimbursement API request. */
+  reimbursementRequestTimeoutMs?: number
+  /** Maximum complete vendor response, including the full template tree. */
+  reimbursementMaxResponseBytes?: number
+}
+
+/** Non-secret, computer-wide attachment storage configuration. */
+export interface AttachmentStorageConfig {
+  /** Private OSS bucket name. */
+  bucket: string
+  /** OSS region identifier used for request signatures. */
+  region: string
+  /** HTTPS custom origin bound to the bucket. */
+  endpoint: string
+  /** Allowed object-key prefix, including the trailing slash. */
+  prefix: string
 }
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts:80`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts:142`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
 
 <a id="deepseek-aidsh-xiaojing-finance-evidence"></a>
 

@@ -374,6 +374,65 @@ Host service owning local client CRUD, pre-turn staging, and durable session bin
 @Remote('list') list(): Promise<FinanceClientListView>
 
 /**
+ * Read computer-wide attachment settings.
+ * @returns Configuration without AccessKey values.
+ */
+@Remote('readAttachmentStorage') readAttachmentStorage(): Promise<AttachmentStorageView>
+
+/**
+ * Read the independently saved reimbursement connection.
+ * @param clientId - Selected account-book.
+ * @returns Non-secret reimbursement settings.
+ */
+@Remote('readReimbursementConnection') async readReimbursementConnection(clientId: FinanceClientId): Promise<ReimbursementConnectionView>
+
+/**
+ * Replace reimbursement credentials without changing Finance authorization.
+ * @param request - Revision-checked reimbursement credentials.
+ * @returns Saved non-secret settings.
+ */
+@Remote('saveReimbursementConnection') async saveReimbursementConnection(request: SaveReimbursementConnectionRequest): Promise<ReimbursementConnectionView>
+
+/**
+ * Verify reimbursement authorization through a read-only department query.
+ * @param clientId - Account-book whose saved credential is tested.
+ * @returns Read-only authorization outcome.
+ */
+@Remote('testReimbursementConnection') async testReimbursementConnection(clientId: FinanceClientId): Promise<string>
+
+/**
+ * Discover reimbursement fields or save an explicitly confirmed, invoice-backed draft.
+ * @param agent - Bound Finance session; callers cannot override account-book identity.
+ * @param input - Untrusted tool JSON, parsed before authentication.
+ * @param signal - Caller cancellation.
+ * @returns Credential-free metadata or a durable draft receipt; incomplete writes remain explicit.
+ */
+async reimbursement(agent: Agent, input: unknown, signal: AbortSignal): Promise<object>
+
+/**
+ * Replace computer-wide attachment configuration.
+ * @param request - Revision-checked settings with optional new key pair.
+ * @returns Sanitized saved settings.
+ */
+@Remote('saveAttachmentStorage') saveAttachmentStorage(request: SaveAttachmentStorageRequest): Promise<AttachmentStorageView>
+
+/**
+ * Test a synthetic object without uploading customer documents.
+ * @param revision - Saved configuration selected for testing.
+ * @returns Real upload, download, and cleanup outcomes.
+ */
+@Remote('testAttachmentStorage') async testAttachmentStorage(revision: number): Promise<AttachmentStorageTestResult>
+
+/**
+ * Upload one unchanged original invoice imported into the calling account-book session.
+ * @param agent - Bound Finance agent whose workspace and import log authorize the file.
+ * @param sourcePath - Exact imported path or an unambiguous imported filename.
+ * @param signal - Caller cancellation.
+ * @returns Host-only receipt; consumers must omit downloadUrl from model-visible output.
+ */
+async uploadFinanceAttachment(agent: Agent, sourcePath: string, signal: AbortSignal): Promise<FinanceAttachmentUpload>
+
+/**
  * List standard and customer Workspaces owned by Finance.
  * @returns Browser-safe Workspace identities in customer-catalog order.
  */
@@ -412,7 +471,336 @@ Host service owning local client CRUD, pre-turn staging, and durable session bin
  * @param clientId - Client identity.
  * @returns Full loopback-only record.
  */
-@Remote('read') read(clientId: FinanceClientId): Promise<FinanceClientReadView>
+@Remote('read') async read(clientId: FinanceClientId): Promise<FinanceClientReadView>
+
+/**
+ * Read available ledgers using unsaved credentials without changing the customer, secret, or badge.
+ * @param request - Editor revision, application identity, and optional write-only replacement secret.
+ * @returns Ledger choices or a safe connection failure; rejects stale revisions and archived clients.
+ */
+@Remote('listYouchengAccounts') async listYouchengAccounts(request: ListFinanceYouchengAccountsRequest): Promise<FinanceYouchengAccountsResult>
+
+/**
+ * Verify the saved Youcheng credentials and exact ledger without any accounting mutation.
+ * @param clientId - Local customer owning the saved connection.
+ * @returns Sanitized current check; a concurrent edit invalidates the old result.
+ */
+@Remote('checkConnection') async checkConnection(clientId: FinanceClientId): Promise<FinanceConnectionStatus>
+
+/**
+ * Query vouchers using the owning Finance session's saved ledger and Host credential.
+ * @param agent - Bound Finance agent; consultation and other workspaces are rejected.
+ * @param query - Month and page, with no customer, ledger, URL, or credential overrides.
+ * @param signal - Caller cancellation.
+ * @returns One bounded read-only page; concurrent record edits discard its result.
+ */
+async queryVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<VoucherPage>
+
+/**
+ * Read a specified voucher using the bound session's saved connection.
+ * @param agent - Client-bound Finance agent in its own workspace.
+ * @param voucherId - ID from the list or user, not a voucher display number.
+ * @param signal - Caller cancellation.
+ * @returns Verified detail; changed configuration or credentials discard the result.
+ */
+async queryVoucherDetail(agent: Agent, voucherId: string, signal: AbortSignal): Promise<VoucherDetail>
+
+/**
+ * Query balances using only the bound Finance session's saved connection.
+ * @param agent - Client-bound Finance agent in its own workspace.
+ * @param query - Inclusive accounting periods without ledger overrides.
+ * @param signal - Caller cancellation.
+ * @returns Bounded report; changed configuration or credentials discard the result.
+ */
+async queryBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<BalanceResult>
+
+/**
+ * Compare explicit single-level base-currency balances under one saved-client revision.
+ * @param agent - Bound Finance session.
+ * @param query - Months and one subject level.
+ * @param signal - Caller cancellation.
+ * @returns Exact differences with original rows and unverified coverage retained.
+ */
+async analyzeBalances(agent: Agent, query: BalanceAnalysisQuery, signal: AbortSignal): Promise<BalanceAnalysisResult>
+
+/**
+ * Publish a freshly read balance analysis with source rows and exact-text amounts.
+ * @param agent - Bound Finance session.
+ * @param query - Months and one subject level, not caller-authored rows.
+ * @param signal - Caller cancellation.
+ * @returns The analyzed report and committed local workbook.
+ */
+async exportBalanceAnalysis(agent: Agent, query: BalanceAnalysisQuery, signal: AbortSignal): Promise<{ report: BalanceAnalysisResult file: FinanceManagedFile }>
+
+/**
+ * Query journals using the session-bound client's saved connection.
+ * @param agent - Bound Finance agent in its own workspace.
+ * @param query - Single-month date range, page and optional cash-account selection.
+ * @param signal - Caller cancellation.
+ * @returns Bounded read; concurrent client or credential changes discard the result.
+ */
+async queryJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<JournalResult>
+
+/**
+ * Reconcile one cash account's journals and compare same-currency periods.
+ * @param agent - Bound Finance agent in its own workspace.
+ * @param query - Explicit account and date ranges without connection overrides.
+ * @param signal - Caller cancellation.
+ * @returns Reconciled totals; concurrent client or credential changes discard the entire report.
+ */
+async analyzeJournals(agent: Agent, query: JournalAnalysisQuery, signal: AbortSignal): Promise<JournalAnalysisResult>
+
+/**
+ * Query and publish a reconciled journal comparison with exact source rows.
+ * @param agent - Owning bound Finance session.
+ * @param query - Account and date ranges, not a previous-result snapshot.
+ * @param signal - Cancellation checked before writing and before publication starts.
+ * @returns Exact report and committed local workbook; no publication follows failed reconciliation.
+ */
+async exportJournalAnalysis(agent: Agent, query: JournalAnalysisQuery, signal: AbortSignal): Promise<{ report: JournalAnalysisResult file: FinanceManagedFile }>
+
+/**
+ * Query receivables or payables using the session-bound saved connection.
+ * @param agent - Bound Finance agent in its own workspace.
+ * @param query - Direction, accounting periods and page without connection overrides.
+ * @param signal - Caller cancellation.
+ * @returns Bounded page; changed client configuration or credentials discard the result.
+ */
+async queryOpenItems(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<OpenItemResult>
+
+/**
+ * Aggregate or compare complete vendor-count-reconciled open-item pages.
+ * @param agent - Bound Finance agent in its own workspace.
+ * @param query - Direction, periods and grouping; no model-supplied records.
+ * @param signal - Caller cancellation.
+ * @returns Exact same-currency groups; concurrent configuration changes discard the entire report.
+ */
+async analyzeOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<OpenItemAnalysisResult>
+
+/**
+ * Query and publish a local XLSX of this invocation's open-item analysis.
+ * @param agent - Owning bound Finance session.
+ * @param query - Query criteria, not a previous-result snapshot or caller-authored rows.
+ * @param signal - Cancellation checked before writing and before publication begins.
+ * @returns Published file and the exact report serialized; publication commits preserve the work copy.
+ */
+async exportOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<{ report: OpenItemAnalysisResult file: FinanceManagedFile }>
+
+/**
+ * Query and publish one explicitly bounded voucher page without ledger-wide completeness claims.
+ * @param agent - Owning bound Finance session.
+ * @param query - Page and filters, not caller-authored accounting data.
+ * @param signal - Cancellation checked before writing and before publication starts.
+ * @returns Exact queried page and committed local file; the work copy is preserved.
+ */
+async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<{ report: VoucherPage file: FinanceManagedFile }>
+
+/**
+ * Query and publish balance source columns with their unverified coverage notice intact.
+ * @param agent - Owning bound Finance session.
+ * @param query - Inclusive accounting periods.
+ * @param signal - Cancellation checked before writing and before publication starts.
+ * @returns Exact queried report and committed local workbook; no inferred totals or currency.
+ */
+async exportBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<{ report: BalanceResult file: FinanceManagedFile }>
+
+/**
+ * Query and publish one journal page, retaining its missing completeness evidence.
+ * @param agent - Owning bound Finance session.
+ * @param query - Dates, account selector and bounded page.
+ * @param signal - Cancellation checked before writing and publication.
+ * @returns Exact source report and committed workbook, with summaries separated.
+ */
+async exportJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<{ report: JournalResult file: FinanceManagedFile }>
+
+/**
+ * Query and publish one raw receivable/payable page without additional aggregation.
+ * @param agent - Owning bound Finance session.
+ * @param query - Direction, periods and bounded page.
+ * @param signal - Cancellation checked before writing and publication.
+ * @returns Exact source report and committed workbook; settlement is not a bank payment claim.
+ */
+async exportOpenItemPage(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<{ report: OpenItemResult file: FinanceManagedFile }>
+
+/**
+ * Prepare/revise local subject or auxiliary values, or inspect the original submission without sending.
+ * @param agent - Owning client-bound Finance session.
+ * @param input - Explicit proposal or original local ID/version.
+ * @param signal - Caller cancellation.
+ * @param maxBytes - Complete preview and durable record limit.
+ * @returns Exact preview or persisted outcome with an independent content comparison.
+ */
+async prepareMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>
+
+/**
+ * Confirm and reserve an exact subject/auxiliary proposal before one public API write.
+ * @param agent - Owning Finance agent for mandatory approval.
+ * @param input - Existing preparation ID and exact version only.
+ * @param signal - Caller cancellation; no cancellation after dispatch grants retry authority.
+ * @param maxBytes - Complete preview, persistent record and response limit.
+ * @returns Durable transport result followed by a separate, possibly unavailable readback.
+ */
+async createMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>
+
+/**
+ * Read account observations on one explicit existing-open-item page, not a complete account directory.
+ * @param agent - Client-bound Finance session in its own workspace.
+ * @param input - Direction, period range and page selected for this read.
+ * @param signal - Caller cancellation.
+ * @returns Returned account identities, attributes and source coverage; missing accounts remain unresolved.
+ */
+async queryObservedOpenItemAccounts(agent: Agent, input: unknown, signal: AbortSignal): Promise<OpenItemAccountReferences>
+
+/**
+ * Prepare/revise a local open item or inspect its original durable submission without resending.
+ * @param agent - Owning client-bound Finance session.
+ * @param input - Complete sourced proposal or original local operation ID.
+ * @param signal - Caller cancellation.
+ * @param maxBytes - Complete local record and result limit.
+ * @returns Local preview or durable outcome and independent readback; neither proves receipt or payment.
+ */
+async prepareOpenItem(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>
+
+/**
+ * Confirm one exact open-item version, reserve durably, send once and independently compare its returned ID.
+ * @param agent - Owning Finance session and mandatory-approval context.
+ * @param input - Persisted local ID and version only.
+ * @param signal - Cancellation; received transport outcomes remain durable after cancellation.
+ * @param maxBytes - Complete record, request and result cap.
+ * @returns Durable outcome plus content/association/balance checks, not settlement or payment execution.
+ */
+async createOpenItem(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>
+
+/**
+ * Prepare or revise a local journal, or inspect the original accepted/unknown submission without resending.
+ * @param agent - Client-bound Finance session in its own workspace.
+ * @param input - Preparation command or original local operation ID.
+ * @param signal - Caller cancellation.
+ * @param maxBytes - Deployment record/result byte cap.
+ * @returns Exact local preview or durable transport state with independent readback.
+ */
+async prepareJournal(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>
+
+/**
+ * Confirm an exact journal version, durably reserve it, send once and inspect the original result.
+ * @param agent - Owning Finance agent, supplying mandatory approval context.
+ * @param input - Existing local ID and version only.
+ * @param signal - Caller cancellation; a received ID persists even if cancellation follows dispatch.
+ * @param maxBytes - Deployment record/request/result byte limit.
+ * @returns Sanitized durable transport and readback states, never a retry instruction.
+ */
+async createJournal(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>
+
+/**
+ * Prepare/revise an unsent voucher, or inspect its durable submission record in the owning Finance session.
+ * @param agent - Bound Finance agent; identity and credentials cannot be supplied in the request.
+ * @param input - Preparation-only command, including proposed entries or a prior local ID/version.
+ * @param signal - Cancellation before publication.
+ * @param limits - Deployment-controlled maximum entries and complete input/result size.
+ * @returns Local preview or submission observation with pending checks;
+ * accepted IDs receive read-only basic accounting comparison, never resubmission.
+ */
+async prepareVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number }): Promise<object>
+
+/**
+ * Confirm and send an exact saved version once; acceptance remains distinct from verified completion.
+ * @param agent - Owning Finance session; supplies the account and mandatory approval context.
+ * @param input - Local proposal ID and version only, with no destination or approval overrides.
+ * @param signal - Cancellation; observations after dispatch are persisted even when cancelled.
+ * @param limits - Maximum entries and complete record/response bytes.
+ * @returns Durable transport outcome and optional basic readback, never an automatic resend.
+ */
+async createVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number }): Promise<object>
+
+/**
+ * Prepare or inspect a deletion using a fresh voucher detail within the currently bound client.
+ * @param agent - Client-bound Finance session owning the request.
+ * @param input - Preparation/revision references or an existing deletion record ID; no credentials or consent overrides.
+ * @param signal - Caller cancellation.
+ * @param limits - Complete record/input limits and maximum pages per absence-verification pass.
+ * @returns Saved exact preview or read-only recovery result; never sends a deletion.
+ */
+async prepareVoucherDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number; maxPages: number }): Promise<object>
+
+/**
+ * Force confirmation of an exact deletion version and persist the shared target claim before dispatch.
+ * @param agent - Initiating client-bound session.
+ * @param input - Local deletion ID and version only.
+ * @param signal - Caller cancellation; transport observations remain durable after dispatch.
+ * @param limits - Full record/result bounds and maximum pages per readback pass.
+ * @returns Transport observation and independent readback; never automatically resends an uncertain operation.
+ */
+async deleteVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number; maxPages: number }): Promise<object>
+
+/**
+ * Prepare or recover one journal deletion within an explicit cash account and month.
+ * @param agent - Session bound to the current Finance client.
+ * @param input - Exact target/month/account for preparation or a local operation ID for read-only recovery.
+ * @param signal - Caller cancellation.
+ * @param limits - Complete record/output and independent inventory bounds.
+ * @returns Versioned target preview or scoped readback; never sends a business write or claims global absence.
+ */
+async prepareJournalDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>
+
+/**
+ * Enforce exact journal/version approval and reserve a shared target before a single dispatch.
+ * @param agent - Initiating bound Finance session.
+ * @param input - Local prepared operation ID and exact version, without consent or destination overrides.
+ * @param signal - Caller cancellation; a received transport outcome remains durable.
+ * @param limits - Record, result and two-pass inventory bounds.
+ * @returns Persisted transport outcome and separate scoped target/content/balance observations, never an automatic retry.
+ */
+async deleteJournal(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>
+
+/**
+ * Prepare or inspect AR/AP deletion evidence without exposing the internal sender.
+ * @param agent - Finance session bound to its current client and workspace.
+ * @param input - Exact target/direction/periods, or an owned local operation ID for recovery.
+ * @param signal - Caller cancellation, combined with Host disposal.
+ * @param limits - Complete persisted/output byte cap and counted inventory bounds.
+ * @returns Versioned restrictions and scoped observations; known blockers prevent execution and unknown effects
+ * require explicit confirmation.
+ */
+async prepareOpenItemDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>
+
+/**
+ * Prepare full-settlement evidence or inspect an original operation without granting write authority.
+ * @param agent - Finance session bound to its own client workspace.
+ * @param input - Complete local intent for preparation/revision, or saved local ID for inspection.
+ * @param signal - Caller cancellation combined with Host disposal.
+ * @param limits - Complete record/output cap and source/reference row bounds.
+ * @returns Original preview and transport state, with independent balance and receipt-linked journal observations; no execution.
+ */
+async prepareOpenItemWriteOff(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxRows: number }): Promise<object>
+
+/**
+ * Confirm and reserve an exact receivable/payable deletion before one business request.
+ * @param agent - Finance session bound to the owning saved client and workspace.
+ * @param input - Prepared local ID and exact version, without consent or target overrides.
+ * @param signal - Caller cancellation combined with Host disposal.
+ * @param limits - Complete record/result and counted two-pass inventory bounds.
+ * @returns Durable transport outcome and separate scoped recovery; unknown results are never retried.
+ */
+async deleteOpenItem(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>
+
+/**
+ * Confirm and reserve an exact full-settlement version before one business request.
+ * @param agent - Finance session bound to the owning saved client and workspace.
+ * @param input - Prepared local ID and exact version, without consent or account overrides.
+ * @param signal - Caller cancellation combined with Host disposal.
+ * @param limits - Complete record/output and reference row bounds.
+ * @returns Durable transport outcome and independent recovery; unavailable period status is disclosed, not certified.
+ */
+async writeOffOpenItem(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxRows: number }): Promise<object>
+
+/**
+ * Query reference data using only the owning session's current saved ledger.
+ * @param agent - Client-bound Finance agent in its own workspace.
+ * @param query - Reference kind and exact filters, without connection overrides.
+ * @param signal - Caller cancellation.
+ * @returns Bounded reference rows; stale configuration or credentials discard the result.
+ */
+async queryReferences(agent: Agent, query: ReferenceQuery, signal: AbortSignal): Promise<ReferenceResult>
 
 /**
  * Create one client.

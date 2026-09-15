@@ -1,0 +1,1193 @@
+{
+  "checkedAt": "2026-09-10T06:58:18.952Z",
+  "businessWrites": 0,
+  "accountId": "35616",
+  "calls": [
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/cashjournal/getListPage.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/cashjournal/getListPage.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/cashjournal/getListPage.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/cashjournal/getListPage.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/cashjournal/getListPage.rjson"
+  ],
+  "pages": [
+    {
+      "query": {
+        "accountName": "施的演示账套",
+        "periodNumber": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 1,
+        "pageSize": 100
+      },
+      "envelopeFields": [
+        "apiName",
+        "count",
+        "data",
+        "message",
+        "result"
+      ],
+      "envelopeCount": 3,
+      "count": 5,
+      "rawDigest": "2046431354574c2de46c805363dec038653e8081dcb430df69da81efcde895cb",
+      "rows": [
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseCurrencyCode",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "keeperId",
+            "keeperName",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "relationOrderCodeList",
+            "remark",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "初始余额",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0,
+            "baseBalance": 0,
+            "baseCurrencyCode": "",
+            "canWriteOffAmount": 0,
+            "cashManagementId": "",
+            "categoryName": "",
+            "certificateWordAndCode": "",
+            "channel": "",
+            "currencyCode": "",
+            "date": "",
+            "keeperName": "",
+            "oldCode": "",
+            "orderCode": "",
+            "subjectCode": "",
+            "subjectName": ""
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseBorrow",
+            "baseCurrencyCode",
+            "borrow",
+            "borrowExchangeRate",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "id",
+            "keeperId",
+            "keeperName",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "preId",
+            "relationOrderCodeList",
+            "remark",
+            "reviewStatus",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectId",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "小兢F3A-35616-20260909-API-income",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.11,
+            "baseBalance": 0.11,
+            "baseBorrow": 0.11,
+            "baseCurrencyCode": "RMB",
+            "borrow": 0.11,
+            "canWriteOffAmount": 0.11,
+            "cashManagementId": "",
+            "categoryName": "收-其他收入",
+            "certificateWordAndCode": "",
+            "channel": "ADD",
+            "currencyCode": "RMB",
+            "date": "2022-01-01",
+            "id": 141053,
+            "keeperName": "小兢测试",
+            "oldCode": "",
+            "orderCode": "",
+            "preId": 0,
+            "reviewStatus": 0,
+            "subjectCode": "",
+            "subjectId": 174622,
+            "subjectName": "库存现金"
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseCurrencyCode",
+            "baseLoan",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "id",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "loanExchangeRate",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "preId",
+            "relationOrderCodeList",
+            "remark",
+            "reviewStatus",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectId",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "小兢F3A-35616-20260909-API-expense",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.04,
+            "baseBalance": 0.04,
+            "baseCurrencyCode": "RMB",
+            "baseLoan": 0.07,
+            "canWriteOffAmount": 0.07,
+            "cashManagementId": "",
+            "categoryName": "支-其他支出",
+            "certificateWordAndCode": "",
+            "channel": "ADD",
+            "currencyCode": "RMB",
+            "date": "2022-01-01",
+            "id": 141055,
+            "keeperName": "小兢测试",
+            "loan": 0.07,
+            "oldCode": "",
+            "orderCode": "",
+            "preId": 141053,
+            "reviewStatus": 0,
+            "subjectCode": "",
+            "subjectId": 174622,
+            "subjectName": "库存现金"
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseCurrencyCode",
+            "baseLoan",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "id",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "loanExchangeRate",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "preId",
+            "relationOrderCodeList",
+            "remark",
+            "reviewStatus",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectId",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "小兢F3A-35616-20260909-HOST-01",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.02,
+            "baseBalance": 0.02,
+            "baseCurrencyCode": "RMB",
+            "baseLoan": 0.02,
+            "canWriteOffAmount": 0.02,
+            "cashManagementId": "",
+            "categoryName": "支-其他支出",
+            "certificateWordAndCode": "",
+            "channel": "ADD",
+            "currencyCode": "RMB",
+            "date": "2022-01-01",
+            "id": 141057,
+            "keeperName": "小兢测试",
+            "loan": 0.02,
+            "oldCode": "",
+            "orderCode": "",
+            "preId": 141055,
+            "reviewStatus": 0,
+            "subjectCode": "",
+            "subjectId": 174622,
+            "subjectName": "库存现金"
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseBorrow",
+            "baseCurrencyCode",
+            "baseLoan",
+            "borrow",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "relationOrderCodeList",
+            "remark",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "合计",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.02,
+            "baseBalance": 0.02,
+            "baseBorrow": 0.11,
+            "baseCurrencyCode": "",
+            "baseLoan": 0.09,
+            "borrow": 0.11,
+            "canWriteOffAmount": 0,
+            "cashManagementId": "",
+            "categoryName": "",
+            "certificateWordAndCode": "",
+            "channel": "",
+            "currencyCode": "",
+            "date": "",
+            "keeperName": "",
+            "loan": 0.09,
+            "oldCode": "",
+            "orderCode": "",
+            "subjectCode": "",
+            "subjectName": ""
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "query": {
+        "accountName": "施的演示账套",
+        "periodNumber": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 2,
+        "pageSize": 100
+      },
+      "envelopeFields": [
+        "apiName",
+        "count",
+        "data",
+        "message",
+        "result"
+      ],
+      "envelopeCount": 3,
+      "count": 1,
+      "rawDigest": "41dd76237655b0407f82abae0e5a2fc1d5c3c873f5516877a32d5d08bc47bc0b",
+      "rows": [
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseBorrow",
+            "baseCurrencyCode",
+            "baseLoan",
+            "borrow",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "relationOrderCodeList",
+            "remark",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "合计",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.02,
+            "baseBalance": 0.02,
+            "baseBorrow": 0.11,
+            "baseCurrencyCode": "",
+            "baseLoan": 0.09,
+            "borrow": 0.11,
+            "canWriteOffAmount": 0,
+            "cashManagementId": "",
+            "categoryName": "",
+            "certificateWordAndCode": "",
+            "channel": "",
+            "currencyCode": "",
+            "date": "",
+            "keeperName": "",
+            "loan": 0.09,
+            "oldCode": "",
+            "orderCode": "",
+            "subjectCode": "",
+            "subjectName": ""
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "query": {
+        "accountName": "施的演示账套",
+        "periodNumber": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 1,
+        "pageSize": 2
+      },
+      "envelopeFields": [
+        "apiName",
+        "count",
+        "data",
+        "message",
+        "result"
+      ],
+      "envelopeCount": 3,
+      "count": 3,
+      "rawDigest": "0f7755a85631a65ec0076dec7f4c1963b3c64f6830d51f36fb1abfee23f2dddd",
+      "rows": [
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseCurrencyCode",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "keeperId",
+            "keeperName",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "relationOrderCodeList",
+            "remark",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "初始余额",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0,
+            "baseBalance": 0,
+            "baseCurrencyCode": "",
+            "canWriteOffAmount": 0,
+            "cashManagementId": "",
+            "categoryName": "",
+            "certificateWordAndCode": "",
+            "channel": "",
+            "currencyCode": "",
+            "date": "",
+            "keeperName": "",
+            "oldCode": "",
+            "orderCode": "",
+            "subjectCode": "",
+            "subjectName": ""
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseBorrow",
+            "baseCurrencyCode",
+            "borrow",
+            "borrowExchangeRate",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "id",
+            "keeperId",
+            "keeperName",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "preId",
+            "relationOrderCodeList",
+            "remark",
+            "reviewStatus",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectId",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "小兢F3A-35616-20260909-API-income",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.11,
+            "baseBalance": 0.11,
+            "baseBorrow": 0.11,
+            "baseCurrencyCode": "RMB",
+            "borrow": 0.11,
+            "canWriteOffAmount": 0.11,
+            "cashManagementId": "",
+            "categoryName": "收-其他收入",
+            "certificateWordAndCode": "",
+            "channel": "ADD",
+            "currencyCode": "RMB",
+            "date": "2022-01-01",
+            "id": 141053,
+            "keeperName": "小兢测试",
+            "oldCode": "",
+            "orderCode": "",
+            "preId": 0,
+            "reviewStatus": 0,
+            "subjectCode": "",
+            "subjectId": 174622,
+            "subjectName": "库存现金"
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseCurrencyCode",
+            "baseLoan",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "id",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "loanExchangeRate",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "preId",
+            "relationOrderCodeList",
+            "remark",
+            "reviewStatus",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectId",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "小兢F3A-35616-20260909-API-expense",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.04,
+            "baseBalance": 0.04,
+            "baseCurrencyCode": "RMB",
+            "baseLoan": 0.07,
+            "canWriteOffAmount": 0.07,
+            "cashManagementId": "",
+            "categoryName": "支-其他支出",
+            "certificateWordAndCode": "",
+            "channel": "ADD",
+            "currencyCode": "RMB",
+            "date": "2022-01-01",
+            "id": 141055,
+            "keeperName": "小兢测试",
+            "loan": 0.07,
+            "oldCode": "",
+            "orderCode": "",
+            "preId": 141053,
+            "reviewStatus": 0,
+            "subjectCode": "",
+            "subjectId": 174622,
+            "subjectName": "库存现金"
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "query": {
+        "accountName": "施的演示账套",
+        "periodNumber": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 2,
+        "pageSize": 2
+      },
+      "envelopeFields": [
+        "apiName",
+        "count",
+        "data",
+        "message",
+        "result"
+      ],
+      "envelopeCount": 3,
+      "count": 2,
+      "rawDigest": "b9a9e7b094bb78347b586bf022e21e4bffe9140d591c6966bddaab70d0d9fd46",
+      "rows": [
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseCurrencyCode",
+            "baseLoan",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "id",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "loanExchangeRate",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "preId",
+            "relationOrderCodeList",
+            "remark",
+            "reviewStatus",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectId",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "小兢F3A-35616-20260909-HOST-01",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.02,
+            "baseBalance": 0.02,
+            "baseCurrencyCode": "RMB",
+            "baseLoan": 0.02,
+            "canWriteOffAmount": 0.02,
+            "cashManagementId": "",
+            "categoryName": "支-其他支出",
+            "certificateWordAndCode": "",
+            "channel": "ADD",
+            "currencyCode": "RMB",
+            "date": "2022-01-01",
+            "id": 141057,
+            "keeperName": "小兢测试",
+            "loan": 0.02,
+            "oldCode": "",
+            "orderCode": "",
+            "preId": 0,
+            "reviewStatus": 0,
+            "subjectCode": "",
+            "subjectId": 174622,
+            "subjectName": "库存现金"
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        },
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseBorrow",
+            "baseCurrencyCode",
+            "baseLoan",
+            "borrow",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "relationOrderCodeList",
+            "remark",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "合计",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.02,
+            "baseBalance": 0.02,
+            "baseBorrow": 0.11,
+            "baseCurrencyCode": "",
+            "baseLoan": 0.09,
+            "borrow": 0.11,
+            "canWriteOffAmount": 0,
+            "cashManagementId": "",
+            "categoryName": "",
+            "certificateWordAndCode": "",
+            "channel": "",
+            "currencyCode": "",
+            "date": "",
+            "keeperName": "",
+            "loan": 0.09,
+            "oldCode": "",
+            "orderCode": "",
+            "subjectCode": "",
+            "subjectName": ""
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "query": {
+        "accountName": "施的演示账套",
+        "periodNumber": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 3,
+        "pageSize": 2
+      },
+      "envelopeFields": [
+        "apiName",
+        "count",
+        "data",
+        "message",
+        "result"
+      ],
+      "envelopeCount": 3,
+      "count": 1,
+      "rawDigest": "41dd76237655b0407f82abae0e5a2fc1d5c3c873f5516877a32d5d08bc47bc0b",
+      "rows": [
+        {
+          "keys": [
+            "abstractStr",
+            "accountCode",
+            "accountName",
+            "accountStatus",
+            "attach",
+            "attachIdList",
+            "attachList",
+            "auxiliaryItemId",
+            "auxiliaryItemIds",
+            "auxiliaryItemName",
+            "balance",
+            "baseBalance",
+            "baseBorrow",
+            "baseCurrencyCode",
+            "baseLoan",
+            "borrow",
+            "canWriteOffAmount",
+            "cashManagementId",
+            "categoryName",
+            "certificateWordAndCode",
+            "channel",
+            "currencyCode",
+            "date",
+            "keeperId",
+            "keeperName",
+            "loan",
+            "oldCode",
+            "oppositeAccount",
+            "orderCode",
+            "relationOrderCodeList",
+            "remark",
+            "reviewUser",
+            "reviewUserId",
+            "subjectCode",
+            "subjectName"
+          ],
+          "fields": {
+            "abstractStr": "合计",
+            "accountCode": "",
+            "accountName": "",
+            "accountStatus": 0,
+            "attach": "",
+            "auxiliaryItemId": "",
+            "auxiliaryItemIds": "",
+            "balance": 0.02,
+            "baseBalance": 0.02,
+            "baseBorrow": 0.11,
+            "baseCurrencyCode": "",
+            "baseLoan": 0.09,
+            "borrow": 0.11,
+            "canWriteOffAmount": 0,
+            "cashManagementId": "",
+            "categoryName": "",
+            "certificateWordAndCode": "",
+            "channel": "",
+            "currencyCode": "",
+            "date": "",
+            "keeperName": "",
+            "loan": 0.09,
+            "oldCode": "",
+            "orderCode": "",
+            "subjectCode": "",
+            "subjectName": ""
+          },
+          "collections": {
+            "attachIdList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "attachList": {
+              "count": 0,
+              "firstKeys": []
+            },
+            "relationOrderCodeList": {
+              "count": 0,
+              "firstKeys": []
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "projections": [
+    {
+      "selection": {
+        "month": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 1,
+        "pageSize": 100
+      },
+      "rowIds": [
+        "141053",
+        "141055",
+        "141057"
+      ],
+      "coverage": "unverified"
+    },
+    {
+      "selection": {
+        "month": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 2,
+        "pageSize": 100
+      },
+      "rowIds": [],
+      "coverage": "unverified"
+    },
+    {
+      "selection": {
+        "month": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 1,
+        "pageSize": 2
+      },
+      "rowIds": [
+        "141053",
+        "141055"
+      ],
+      "coverage": "unverified"
+    },
+    {
+      "selection": {
+        "month": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 2,
+        "pageSize": 2
+      },
+      "rowIds": [
+        "141057"
+      ],
+      "coverage": "unverified"
+    },
+    {
+      "selection": {
+        "month": "2022-01",
+        "dateStart": "2022-01-01",
+        "dateEnd": "2022-01-31",
+        "page": 3,
+        "pageSize": 2
+      },
+      "rowIds": [],
+      "coverage": "unverified"
+    }
+  ],
+  "limitation": "Observed pages do not prove completeness, deletion permission or exhaustive linkage coverage."
+}

@@ -318,6 +318,7 @@ describe('the shipped Web composition', () => {
         'finance_document',
         'finance_evidence',
         'finance_files',
+        'finance_vouchers',
       ].sort())
       expect(toolParameterNames(ctx, finance.agent, 'finance_document'))
         .toEqual(['action', 'cursor', 'document_id'])
@@ -336,6 +337,8 @@ describe('the shipped Web composition', () => {
         .toEqual(['as_of_date', 'locality', 'query'])
       expect(toolParameterNames(ctx, finance.agent, 'finance_files'))
         .toEqual(['action', 'preferredName', 'sourcePath'])
+      expect(toolParameterNames(ctx, finance.agent, 'finance_vouchers'))
+        .toEqual(['month', 'page', 'pageSize'])
       const standardAssembly = await ctx.systemPrompt.assemble(assembleContextFor(standard.agent))
       const financeAssembly = await ctx.systemPrompt.assemble(assembleContextFor(finance.agent))
       expect(financeAssembly.tools.map(tool => tool.name)).toEqual([
@@ -344,6 +347,7 @@ describe('the shipped Web composition', () => {
         'finance_document',
         'finance_evidence',
         'finance_files',
+        'finance_vouchers',
       ].sort())
       expect(financeAssembly.sections.filter(section => section.name !== 'deployment:persona'))
         .toEqual(standardAssembly.sections.filter(section => section.name !== 'deployment:persona'))

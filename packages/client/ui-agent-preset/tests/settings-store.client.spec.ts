@@ -356,6 +356,22 @@ describe('the new-session chip controller', () => {
     expect(writes).toEqual([{ ns: 'select', patch: 'minimal' }])
   })
 
+  it('follows committed preset changes and session navigation without selecting again', async () => {
+    const writes: Recorded[] = []
+    const current = { id: 's1', blank: true, agentPreset: 'standard' }
+    const controller = chip(ROSTER, current, { writes })
+    await controller.load()
+
+    current.agentPreset = 'minimal'
+    await controller.apply()
+    expect(controller.store.getSnapshot().current).toBe('minimal')
+    current.id = 's2'
+    current.agentPreset = 'standard'
+    await controller.apply()
+    expect(controller.store.getSnapshot().current).toBe('standard')
+    expect(writes).toEqual([])
+  })
+
   it('drops the stage against a session that already started', async () => {
     const writes: Recorded[] = []
     const controller = chip(ROSTER, { id: 's1', blank: false, agentPreset: 'standard' }, { writes })

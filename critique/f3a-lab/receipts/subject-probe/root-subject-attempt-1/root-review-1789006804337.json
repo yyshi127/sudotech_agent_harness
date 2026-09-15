@@ -1,0 +1,45 @@
+{
+  "payload": {
+    "subjectCode": "1099",
+    "subjectName": "F3一级科目测试",
+    "subjectCategory": "1",
+    "subjectType": "流动资产",
+    "balanceDirection": false,
+    "enableStatus": 1,
+    "auxiliaryCategorySimpleList": [],
+    "foreignCurrencySimpleList": [],
+    "subjectAuxiliary": false,
+    "documentMaker": "施",
+    "accountName": "施的演示账套"
+  },
+  "rootRows": [
+    {
+      "auxiliaryList": [],
+      "balanceDirection": "0",
+      "currencyList": [],
+      "enableStatus": "1",
+      "hasChild": false,
+      "numberUnit": "",
+      "parentSubjectCode": "",
+      "subjectCode": "1099",
+      "subjectName": "F3一级科目测试",
+      "subjectType": "流动资产"
+    }
+  ],
+  "matching": [
+    {
+      "id": "1099",
+      "code": "1099",
+      "name": "F3一级科目测试",
+      "status": "enabled",
+      "parentCode": "",
+      "hasChildren": false,
+      "directionRaw": "0",
+      "auxiliaryCodes": [],
+      "currencyCodes": []
+    }
+  ],
+  "preservedVouchers": 41,
+  "unchangedExistingSubjects": true,
+  "productRootCreationQualified": false
+}

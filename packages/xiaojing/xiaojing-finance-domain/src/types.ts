@@ -2,6 +2,52 @@
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
 
+/** Non-secret, computer-wide attachment storage configuration. */
+export interface AttachmentStorageConfig {
+  /** Private OSS bucket name. */
+  bucket: string
+  /** OSS region identifier used for request signatures. */
+  region: string
+  /** HTTPS custom origin bound to the bucket. */
+  endpoint: string
+  /** Allowed object-key prefix, including the trailing slash. */
+  prefix: string
+}
+
+/** Sanitized configuration; credentials are never returned to the Client. */
+export interface AttachmentStorageView {
+  revision: number
+  config: AttachmentStorageConfig
+  configured: boolean
+  writable: boolean
+}
+
+/** Atomic settings replacement; omit both keys to retain the saved pair. */
+export interface SaveAttachmentStorageRequest {
+  expectedRevision: number
+  config: AttachmentStorageConfig
+  accessKeyId?: string
+  accessKeySecret?: string
+}
+
+/** Real PUT, signed GET, and cleanup outcomes for the saved configuration. */
+export interface AttachmentStorageTestResult {
+  revision: number
+  uploaded: boolean
+  downloaded: boolean
+  deleted: boolean
+  message: string
+}
+
+/** Host-only upload receipt; consumers must not log the temporary download URL. */
+export interface FinanceAttachmentUpload {
+  name: string
+  objectKey: string
+  size: number
+  expiresAt: number
+  downloadUrl: string
+}
+
 /** Stable identity of one locally maintained taxpayer entity. */
 export type FinanceClientId = Branded<'FinanceClientId'>
 
@@ -55,6 +101,81 @@ export interface FinanceExternalSystemRef {
   accountSetId?: string
 }
 
+/** Finance systems selectable from one client record. */
+export type FinanceSystemKind = 'youcheng' | 'sdoo' | 'yonyou' | 'kingdee'
+
+/** Internal deployment label; test and production may resolve to the same API origin. */
+export type FinanceYouchengEnvironment = 'test' | 'production'
+
+/** Host-maintained Youcheng origins, displayed read-only by the editor. */
+export type FinanceYouchengApiUrls = Record<FinanceYouchengEnvironment, string>
+
+/** A vendor-returned ledger available to the supplied credentials. */
+export interface FinanceYouchengAccount {
+  /** Vendor ledger ID used for the saved accountCode. */
+  id: string
+  /** Vendor ledger name; never inferred from the local customer name. */
+  name: string
+}
+
+/** Unsaved connection details for a loopback-only ledger lookup; no fields are persisted. */
+export interface ListFinanceYouchengAccountsRequest {
+  /** Customer whose stored secret may be reused when no replacement is supplied. */
+  clientId: FinanceClientId
+  /** Catalog revision captured when the editor opened. */
+  expectedRevision: number
+  /** Internal label resolved to an origin by the Host. */
+  environment: FinanceYouchengEnvironment
+  /** Application identity to authenticate. */
+  appKey: string
+  /** Optional write-only replacement used for this lookup, not saved. */
+  youchengAppSecret?: string
+}
+
+/** Safe ledger discovery result; an empty successful list differs from a failed lookup. */
+export type FinanceYouchengAccountsResult =
+  | { state: 'ready'; accounts: FinanceYouchengAccount[] }
+  | { state: 'failed'; failure: FinanceConnectionFailure }
+
+/** Safe reason for a failed connection check; vendor bodies and credentials are never returned. */
+export type FinanceConnectionFailure = 'credentials-missing' | 'authentication' | 'ip-not-allowed'
+  | 'account-query' | 'account-unavailable' | 'network' | 'timeout' | 'access-denied' | 'invalid-response'
+
+/** Latest read-only authentication and exact-ledger verification in this Host lifetime. */
+export interface FinanceConnectionStatus {
+  /** A successful check is historical evidence, not a grant of business-operation permissions. */
+  state: 'unverified' | 'checking' | 'connected' | 'failed'
+  /** Exact configured ledger identity; never inferred from the first returned account. */
+  accountId: string
+  /** Name returned for this exact ledger by a successful check. */
+  accountName?: string
+  /** Completion time in Unix milliseconds, absent before completion. */
+  checkedAt?: number
+  /** Sanitized failure classification. */
+  failure?: FinanceConnectionFailure
+}
+
+/** Non-secret Youcheng connection settings. */
+export interface FinanceYouchengSystemConfig {
+  /** External product discriminator. */
+  system: 'youcheng'
+  /** Internal environment label resolved by Host configuration. */
+  environment: FinanceYouchengEnvironment
+  /** Application identity issued by Youcheng. */
+  appKey: string
+  /** Youcheng ledger ID sent as setOfBooksId; the stored field name is retained. */
+  accountCode: string
+}
+
+/** Placeholder selection for a finance system whose connector is not implemented. */
+export interface FinanceDeferredSystemConfig {
+  /** External product discriminator. */
+  system: Exclude<FinanceSystemKind, 'youcheng'>
+}
+
+/** One selected finance system and its non-secret connection settings. */
+export type FinanceSystemConfig = FinanceYouchengSystemConfig | FinanceDeferredSystemConfig
+
 /** User-editable client fields. */
 export interface FinanceClientDraft {
   /** Registered legal entity name. */
@@ -73,6 +194,8 @@ export interface FinanceClientDraft {
   industry?: string
   /** Optional client-specific finance policy notes. */
   financePolicyNotes?: string
+  /** Selected finance system and non-secret connection settings. */
+  financeSystem?: FinanceSystemConfig
   /** Account-code mappings used by later finance connectors. */
   chartMappings: FinanceChartMapping[]
   /** Non-secret external-system references used by later connectors. */
@@ -97,8 +220,8 @@ export interface FinanceClientRecord extends FinanceClientDraft {
   archivedAt?: number
 }
 
-/** Immutable client fields copied into one Finance session. */
-export type FinanceClientSnapshot = Readonly<FinanceClientDraft & { id: FinanceClientId }>
+/** Immutable business fields copied into one Finance session; connection settings remain Host-only. */
+export type FinanceClientSnapshot = Readonly<Omit<FinanceClientDraft, 'financeSystem'> & { id: FinanceClientId }>
 
 /** Durable event payload fixing one client snapshot to one Finance session. */
 export interface FinanceClientBinding {
@@ -173,6 +296,8 @@ export type FinanceGeneralWorkspaceEntry = FinanceStandardWorkspaceEntry | Finan
 export type FinanceClientWorkspaceEntry = FinanceWorkspaceBase & {
   kind: 'client'
   clientId: FinanceClientId
+  /** Present only for a configured Youcheng client; contains no application credentials. */
+  connection?: FinanceConnectionStatus
 }
 
 /** One generated Workspace owned by the Finance module. */
@@ -199,6 +324,24 @@ export interface FinanceClientReadView {
   revision: number
   /** Complete local client record. */
   client: FinanceClientRecord
+  /** Secret presence and writability without exposing a stored value. */
+  credentialStatus: FinanceClientCredentialStatus
+  /** Effective origins for the read-only address field. */
+  youchengApiUrls: FinanceYouchengApiUrls
+}
+
+/** Browser-safe status of credentials owned by one client connection. */
+export interface FinanceClientCredentialStatus {
+  /** Whether a Youcheng AppSecret is stored for this client. */
+  youchengAppSecretConfigured: boolean
+  /** Whether the active credential provider can replace the stored AppSecret. */
+  youchengAppSecretWritable: boolean
+}
+
+/** Write-only credential values accepted by a client mutation. */
+export interface FinanceClientCredentialInput {
+  /** New Youcheng AppSecret; omission preserves any existing value. */
+  youchengAppSecret?: string
 }
 
 /** Create request guarded by the catalog revision. */
@@ -209,6 +352,8 @@ export interface CreateFinanceClientRequest {
   client: FinanceClientDraft
   /** Host directory selected for this client. */
   workspacePath: string
+  /** Optional write-only credentials; values are never copied into the client record. */
+  credentialInput?: FinanceClientCredentialInput
 }
 
 /** Add one user-selected consultation Workspace. */
@@ -245,6 +390,8 @@ export interface UpdateFinanceClientRequest {
   expectedRevision: number
   /** Replacement editable fields. */
   client: FinanceClientDraft
+  /** Optional write-only credentials; omission preserves stored values. */
+  credentialInput?: FinanceClientCredentialInput
 }
 
 /** Archive request guarded by the catalog revision. */
@@ -350,6 +497,24 @@ export interface ArchiveFinanceFileRequest {
   sourcePath: string
   /** Optional basename for the archived copy. */
   preferredName?: string
+}
+
+/** Non-secret reimbursement settings, independent of the financial ledger credential. */
+export interface ReimbursementConnectionView {
+  revision: number
+  apiUrl: string
+  appKey: string
+  configured: boolean
+  writable: boolean
+}
+
+/** One account-book's independently saved reimbursement authorization. */
+export interface SaveReimbursementConnectionRequest {
+  clientId: FinanceClientId
+  expectedRevision: number
+  apiUrl: string
+  appKey: string
+  appSecret?: string
 }
 
 /** Session-log payload proving one Finance file lifecycle commit. */

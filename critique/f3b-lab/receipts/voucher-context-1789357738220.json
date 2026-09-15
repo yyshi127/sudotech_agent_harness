@@ -1,0 +1,572 @@
+{
+  "checkedAt": "2026-09-14T03:48:58.219Z",
+  "accountId": "35616",
+  "businessWrites": 0,
+  "vendorCount": 41,
+  "returnedIds": [
+    "243978",
+    "243979",
+    "243980",
+    "243981",
+    "243982",
+    "243983",
+    "243984",
+    "243985",
+    "243986",
+    "243987",
+    "243988",
+    "243989",
+    "243990",
+    "243991",
+    "243992",
+    "243993",
+    "243994",
+    "243995",
+    "243996",
+    "243997",
+    "243998",
+    "243999",
+    "244000",
+    "244001",
+    "244002",
+    "244003",
+    "244004",
+    "244005",
+    "244006",
+    "244007",
+    "244008",
+    "244009",
+    "244010",
+    "244011",
+    "244058",
+    "244063",
+    "244067",
+    "244069",
+    "244078",
+    "244081",
+    "244083"
+  ],
+  "calls": [
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson"
+  ],
+  "observations": [
+    {
+      "voucherId": "243978",
+      "keys": [
+        "accountId",
+        "accountName",
+        "adjustPeriods",
+        "adjustPeriodsStatus",
+        "attachmentList",
+        "attachmentStatus",
+        "auditingStatus",
+        "auditingUser",
+        "calculate",
+        "certificateCode",
+        "certificateDate",
+        "certificateId",
+        "certificateLists",
+        "certificateWord",
+        "channel",
+        "corpBalanceSheetCertificateList",
+        "createdUser",
+        "documentMaker",
+        "documentNumber",
+        "modified",
+        "monthStr",
+        "orderCode",
+        "orderId",
+        "orderScenarioMap",
+        "periods",
+        "position",
+        "relationCode",
+        "settleStatus",
+        "subjectCertificateWrites",
+        "sysCreate",
+        "templateInsCode"
+      ],
+      "fields": {
+        "appId": {
+          "provided": false
+        },
+        "flowId": {
+          "provided": false
+        },
+        "channel": {
+          "provided": true,
+          "value": "ADD"
+        },
+        "relationCode": {
+          "provided": true,
+          "value": ""
+        },
+        "sysCreate": {
+          "provided": true,
+          "value": false
+        },
+        "modified": {
+          "provided": true,
+          "value": "2026-09-09"
+        },
+        "auditingStatus": {
+          "provided": true,
+          "value": false
+        },
+        "settleStatus": {
+          "provided": true,
+          "value": false
+        },
+        "adjustPeriodsStatus": {
+          "provided": true,
+          "value": 0
+        },
+        "attachmentStatus": {
+          "provided": true,
+          "value": false
+        }
+      },
+      "attachments": {
+        "provided": true,
+        "count": 0
+      },
+      "entries": [
+        {
+          "keys": [
+            "abstractName",
+            "auxiliaryList",
+            "auxiliarySubjectCode",
+            "borrorMoney",
+            "borrorMoneySelf",
+            "borrorMoneyStr",
+            "cashProjectName",
+            "cashSubjectCode",
+            "cashSubjectName",
+            "certificateId",
+            "certificateSubjectId",
+            "currencyCode",
+            "currencyName",
+            "direction",
+            "foreignCurrencySimpleList",
+            "journalizing",
+            "loanMoneyStr",
+            "orderCode",
+            "processCurrency",
+            "subInvoiceType",
+            "subjectCode",
+            "subjectCodeExt",
+            "subjectId",
+            "subjectName",
+            "subjectNameExt",
+            "taxRate",
+            "unit"
+          ],
+          "auxiliaryCount": 1,
+          "currencyCode": ""
+        },
+        {
+          "keys": [
+            "abstractName",
+            "auxiliaryList",
+            "auxiliarySubjectCode",
+            "borrorMoneyStr",
+            "cashProjectName",
+            "cashSubjectCode",
+            "cashSubjectName",
+            "certificateId",
+            "certificateSubjectId",
+            "currencyCode",
+            "currencyName",
+            "direction",
+            "foreignCurrencySimpleList",
+            "journalizing",
+            "loanMoney",
+            "loanMoneySelf",
+            "loanMoneyStr",
+            "orderCode",
+            "processCurrency",
+            "subInvoiceType",
+            "subjectCode",
+            "subjectCodeExt",
+            "subjectId",
+            "subjectName",
+            "subjectNameExt",
+            "taxRate",
+            "unit"
+          ],
+          "auxiliaryCount": 1,
+          "currencyCode": ""
+        }
+      ],
+      "relatedCollections": [
+        {
+          "key": "corpBalanceSheetCertificateList",
+          "provided": true,
+          "count": 0
+        },
+        {
+          "key": "subjectCertificateWrites",
+          "provided": true,
+          "count": 0
+        }
+      ]
+    },
+    {
+      "voucherId": "244058",
+      "keys": [
+        "accountId",
+        "accountName",
+        "adjustPeriods",
+        "adjustPeriodsStatus",
+        "attachmentList",
+        "attachmentStatus",
+        "auditingStatus",
+        "auditingUser",
+        "calculate",
+        "certificateCode",
+        "certificateDate",
+        "certificateId",
+        "certificateLists",
+        "certificateWord",
+        "channel",
+        "corpBalanceSheetCertificateList",
+        "createdUser",
+        "documentMaker",
+        "documentNumber",
+        "modified",
+        "monthStr",
+        "orderCode",
+        "orderId",
+        "orderScenarioMap",
+        "periods",
+        "position",
+        "relationCode",
+        "settleStatus",
+        "subjectCertificateWrites",
+        "sysCreate",
+        "templateInsCode"
+      ],
+      "fields": {
+        "appId": {
+          "provided": false
+        },
+        "flowId": {
+          "provided": false
+        },
+        "channel": {
+          "provided": true,
+          "value": "EXTERNAL_ACCESS"
+        },
+        "relationCode": {
+          "provided": true,
+          "value": ""
+        },
+        "sysCreate": {
+          "provided": true,
+          "value": false
+        },
+        "modified": {
+          "provided": true,
+          "value": "2026-09-09"
+        },
+        "auditingStatus": {
+          "provided": true,
+          "value": false
+        },
+        "settleStatus": {
+          "provided": true,
+          "value": false
+        },
+        "adjustPeriodsStatus": {
+          "provided": true,
+          "value": 0
+        },
+        "attachmentStatus": {
+          "provided": true,
+          "value": true
+        }
+      },
+      "attachments": {
+        "provided": true,
+        "count": 1
+      },
+      "entries": [
+        {
+          "keys": [
+            "abstractName",
+            "auxiliaryList",
+            "auxiliarySubjectCode",
+            "borrorMoney",
+            "borrorMoneySelf",
+            "borrorMoneyStr",
+            "cashProjectName",
+            "cashSubjectCode",
+            "cashSubjectName",
+            "certificateId",
+            "certificateSubjectId",
+            "currencyCode",
+            "currencyName",
+            "direction",
+            "foreignCurrencySimpleList",
+            "journalizing",
+            "loanMoneyStr",
+            "orderCode",
+            "processCurrency",
+            "subInvoiceType",
+            "subjectCode",
+            "subjectCodeExt",
+            "subjectId",
+            "subjectName",
+            "subjectNameExt",
+            "taxRate",
+            "unit"
+          ],
+          "auxiliaryCount": 0,
+          "currencyCode": ""
+        },
+        {
+          "keys": [
+            "abstractName",
+            "auxiliaryList",
+            "auxiliarySubjectCode",
+            "borrorMoneyStr",
+            "cashProjectName",
+            "cashSubjectCode",
+            "cashSubjectName",
+            "certificateId",
+            "certificateSubjectId",
+            "currencyCode",
+            "currencyName",
+            "direction",
+            "foreignCurrencySimpleList",
+            "journalizing",
+            "loanMoney",
+            "loanMoneySelf",
+            "loanMoneyStr",
+            "orderCode",
+            "processCurrency",
+            "subInvoiceType",
+            "subjectCode",
+            "subjectCodeExt",
+            "subjectId",
+            "subjectName",
+            "subjectNameExt",
+            "taxRate",
+            "unit"
+          ],
+          "auxiliaryCount": 0,
+          "currencyCode": ""
+        }
+      ],
+      "relatedCollections": [
+        {
+          "key": "corpBalanceSheetCertificateList",
+          "provided": true,
+          "count": 0
+        },
+        {
+          "key": "subjectCertificateWrites",
+          "provided": true,
+          "count": 0
+        }
+      ]
+    },
+    {
+      "voucherId": "244083",
+      "keys": [
+        "accountId",
+        "accountName",
+        "adjustPeriods",
+        "adjustPeriodsStatus",
+        "attachmentList",
+        "attachmentStatus",
+        "auditingStatus",
+        "auditingUser",
+        "calculate",
+        "certificateCode",
+        "certificateDate",
+        "certificateId",
+        "certificateLists",
+        "certificateWord",
+        "channel",
+        "corpBalanceSheetCertificateList",
+        "createdUser",
+        "documentMaker",
+        "documentNumber",
+        "modified",
+        "monthStr",
+        "orderCode",
+        "orderId",
+        "orderScenarioMap",
+        "periods",
+        "position",
+        "relationCode",
+        "settleStatus",
+        "subjectCertificateWrites",
+        "sysCreate",
+        "templateInsCode"
+      ],
+      "fields": {
+        "appId": {
+          "provided": false
+        },
+        "flowId": {
+          "provided": false
+        },
+        "channel": {
+          "provided": true,
+          "value": "EXTERNAL_ACCESS"
+        },
+        "relationCode": {
+          "provided": true,
+          "value": ""
+        },
+        "sysCreate": {
+          "provided": true,
+          "value": false
+        },
+        "modified": {
+          "provided": true,
+          "value": "2026-09-09"
+        },
+        "auditingStatus": {
+          "provided": true,
+          "value": false
+        },
+        "settleStatus": {
+          "provided": true,
+          "value": false
+        },
+        "adjustPeriodsStatus": {
+          "provided": true,
+          "value": 0
+        },
+        "attachmentStatus": {
+          "provided": true,
+          "value": true
+        }
+      },
+      "attachments": {
+        "provided": true,
+        "count": 1
+      },
+      "entries": [
+        {
+          "keys": [
+            "abstractName",
+            "auxiliaryList",
+            "auxiliarySubjectCode",
+            "borrorMoney",
+            "borrorMoneySelf",
+            "borrorMoneyStr",
+            "cashProjectName",
+            "cashSubjectCode",
+            "cashSubjectName",
+            "certificateId",
+            "certificateSubjectId",
+            "currencyCode",
+            "currencyName",
+            "direction",
+            "foreignCurrencySimpleList",
+            "journalizing",
+            "loanMoneyStr",
+            "orderCode",
+            "processCurrency",
+            "subInvoiceType",
+            "subjectCode",
+            "subjectCodeExt",
+            "subjectId",
+            "subjectName",
+            "subjectNameExt",
+            "taxRate",
+            "unit"
+          ],
+          "auxiliaryCount": 0,
+          "currencyCode": ""
+        },
+        {
+          "keys": [
+            "abstractName",
+            "auxiliaryList",
+            "auxiliarySubjectCode",
+            "borrorMoneyStr",
+            "cashProjectName",
+            "cashSubjectCode",
+            "cashSubjectName",
+            "certificateId",
+            "certificateSubjectId",
+            "currencyCode",
+            "currencyName",
+            "direction",
+            "foreignCurrencySimpleList",
+            "journalizing",
+            "loanMoney",
+            "loanMoneySelf",
+            "loanMoneyStr",
+            "orderCode",
+            "processCurrency",
+            "subInvoiceType",
+            "subjectCode",
+            "subjectCodeExt",
+            "subjectId",
+            "subjectName",
+            "subjectNameExt",
+            "taxRate",
+            "unit"
+          ],
+          "auxiliaryCount": 0,
+          "currencyCode": ""
+        }
+      ],
+      "relatedCollections": [
+        {
+          "key": "corpBalanceSheetCertificateList",
+          "provided": true,
+          "count": 0
+        },
+        {
+          "key": "subjectCertificateWrites",
+          "provided": true,
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "inspections": [
+    {
+      "voucherId": "243978",
+      "fingerprint": "ab6aa7c836ab1cc8ed851081e334729231dedfb5ca68c590d422364209370665",
+      "blockers": [],
+      "attachmentCount": 0,
+      "auxiliaryEntryCount": 2,
+      "currencyCodes": []
+    },
+    {
+      "voucherId": "244058",
+      "fingerprint": "07714d0ac2ea0683753055901314ed17ed559d0bd30bca7d112b02ee52317a1b",
+      "blockers": [],
+      "attachmentCount": 1,
+      "auxiliaryEntryCount": 0,
+      "currencyCodes": []
+    },
+    {
+      "voucherId": "244083",
+      "fingerprint": "b6fc4bc01ea0d143db4e698c756ae1bdc5c9634898830a5eecbe430afa26a65c",
+      "blockers": [],
+      "attachmentCount": 1,
+      "auxiliaryEntryCount": 0,
+      "currencyCodes": []
+    }
+  ],
+  "limitation": "Bounded read samples only; field presence is not permission to delete, complete linkage coverage or proof of deletion semantics."
+}

@@ -8,6 +8,7 @@ import type { RowDragProps } from '../src/client/rows/Rows.tsx'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from '../src/client/rows/Rows.tsx'
 import type { GroupNode, SearchResultNode, SessionNode } from '../src/client/tree.ts'
 import { zh } from '../src/client/locales.ts'
+import css from '../src/client/rows/Rows.module.css'
 
 afterEach(cleanup)
 
@@ -57,6 +58,44 @@ function fireDrag(row: HTMLElement, kind: 'dragOver' | 'drop', clientY: number):
 }
 
 describe('workspace browser rows', () => {
+  it.each(['idle', 'pending', 'success', 'error'] as const)('keeps the %s badge action separate from row activation', (state) => {
+    const group: GroupNode = { key: 'workspace:test', label: '客户公司', workspaceId: wid('test'), expanded: false, sessions: [], containsCurrent: false, cwd: undefined, createdAt: undefined, sessionCount: 0 }
+    const onToggle = vi.fn()
+    const onCreate = vi.fn()
+    const onBadgeAction = vi.fn()
+    render(<ProjectRowItem group={group} onToggle={onToggle} onCreate={onCreate} onBadgeAction={onBadgeAction} t={t}
+      badge={{ workspaceId: wid('test'), text: '绑定账套', state, label: '账套状态', actionLabel: '连接账套' }} />)
+    const button = screen.getByRole('button', { name: '连接账套' }) as HTMLButtonElement
+    expect(button.previousElementSibling).toBe(screen.getByText('客户公司'))
+    expect(button.nextElementSibling).toBe(screen.getByRole('status'))
+    expect(screen.getByRole('status').textContent).toBe('绑定账套')
+    expect(button.classList.contains(css.badgeActionSuccess!)).toBe(state === 'success')
+    expect(button.disabled).toBe(state === 'pending')
+    expect(button.getAttribute('aria-busy')).toBe(String(state === 'pending'))
+    act(() => { button.click() })
+    expect(onBadgeAction).toHaveBeenCalledTimes(state === 'pending' ? 0 : 1)
+    expect(onToggle).not.toHaveBeenCalled()
+    expect(onCreate).not.toHaveBeenCalled()
+    expect(screen.getByRole('treeitem').getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('renders an accessible product label and dot without changing workspace actions', () => {
+    const group: GroupNode = { key: 'workspace:test', label: '客户公司', workspaceId: wid('test'), expanded: true, sessions: [], containsCurrent: false, cwd: undefined, createdAt: undefined, sessionCount: 0 }
+    const details = vi.fn()
+    const view = render(<ProjectRowItem group={group} onToggle={vi.fn()} t={t}
+      badge={{ workspaceId: wid('test'), text: '绑定账套', state: 'success', label: '已核验 ID 35581' }}
+      actions={{ rename: vi.fn(), delete: vi.fn(), deleteLabel: '移除工作区', details, detailsLabel: '客户资料' }} />)
+    expect(screen.getByRole('status').textContent).toContain('绑定账套')
+    expect(screen.getByRole('status').textContent).toBe(' - 绑定账套')
+    expect(screen.getByRole('status').getAttribute('aria-label')).toBe('已核验 ID 35581')
+    expect(screen.getByRole('status').querySelector('[data-state="done"]')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /客户公司/ }))
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual(['客户资料', '重命名', '移除工作区'])
+    fireEvent.click(screen.getByRole('menuitem', { name: '客户资料' }))
+    expect(details).toHaveBeenCalledOnce()
+    view.rerender(<ProjectRowItem group={group} onToggle={vi.fn()} t={t} />)
+    expect(screen.queryByRole('status')).toBeNull()
+  })
   it('omits only an empty leading status slot in the hierarchy-free flat list', () => {
     const idle: SessionNode = {
       id: sid('flat'), title: 'Flat Session', blank: false, running: false,

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-f3-closeout.md
+youcheng-finance-f3-closeout.md: e41b36177b788b1a42fd2f151e586f3f51ab9cba
+youcheng-finance-f3-closeout.zh.md: 71e24ff960ba8496f1f3033b3a56f5cb3e410850

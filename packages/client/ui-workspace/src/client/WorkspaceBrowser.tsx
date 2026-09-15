@@ -20,7 +20,7 @@ import type {
   SessionId, SessionListState, SessionSearchResultItem, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceBrowserProps } from './contract/slots.ts'
-import type { WorkspaceCategorySection } from './category-registry.ts'
+import type { WorkspaceCategorySection, WorkspaceCategoryState } from './category-registry.ts'
 import type { SessionNode, SessionOrderBy } from './tree.ts'
 import { deriveFlat, deriveGroups, deriveSearchResults, UNGROUPED_KEY } from './tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './rows/Rows.tsx'
@@ -270,6 +270,11 @@ type SessionTreeProps = Pick<
   manageableWorkspaceIds: ReadonlySet<WorkspaceId>
   /** Product-category remove label; ordinary Workspaces retain delete wording. */
   removeWorkspaceLabel?: string | undefined
+  workspaceDetailsLabel?: string | undefined
+  workspaceDetailsWorkspaceIds: ReadonlySet<WorkspaceId>
+  workspaceBadges: NonNullable<WorkspaceCategoryState['workspaceBadges']>
+  onWorkspaceDetails: (workspaceId: WorkspaceId) => void
+  onWorkspaceBadgeAction: (workspaceId: WorkspaceId) => void
   /** Open the browser-owned rename dialog for a real Workspace group. */
   onRenameRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
   /** Open the browser-owned delete-confirmation dialog for a real Workspace group. */
@@ -290,8 +295,8 @@ function SessionTree({
   groupExpansion, setGroupExpanded,
   sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
   visibleSessionIds, newSessionDisabledWorkspaceIds, manageWorkspaces, manageableWorkspaceIds,
-  removeWorkspaceLabel,
-  workspaceSections, sectionAddAvailable, onSectionAdd,
+  removeWorkspaceLabel, workspaceDetailsLabel, workspaceDetailsWorkspaceIds, onWorkspaceDetails, workspaceBadges,
+  workspaceSections, sectionAddAvailable, onSectionAdd, onWorkspaceBadgeAction,
 }: SessionTreeProps) {
   const list = useSessions(s => s)
   const current = list.current
@@ -626,6 +631,8 @@ function SessionTree({
             >
               <ProjectRowItem
                 group={group}
+                badge={workspaceBadges.find(badge => badge.workspaceId === group.workspaceId)}
+                onBadgeAction={workspaceId === undefined ? undefined : () => { onWorkspaceBadgeAction(workspaceId) }}
                 home={home}
                 t={t}
                 onToggle={() => {
@@ -646,6 +653,12 @@ function SessionTree({
                 actions={group.workspaceId === undefined || !manageableWorkspaceIds.has(group.workspaceId)
                   ? undefined
                   : {
+                    ...(workspaceDetailsLabel === undefined || !workspaceDetailsWorkspaceIds.has(group.workspaceId) ? {} : {
+                      details: () => {
+                        if (group.workspaceId !== undefined) onWorkspaceDetails(group.workspaceId)
+                      },
+                      detailsLabel: workspaceDetailsLabel,
+                    }),
                     rename: () => {
                     /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
                       if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
@@ -962,6 +975,8 @@ export function WorkspaceBrowser({
   addWorkspaceToCategory,
   renameWorkspaceInCategory,
   removeWorkspaceFromCategory,
+  openWorkspaceDetails = () => {},
+  activateWorkspaceBadge,
   useDirectoryFlow,
   useHostDescription,
   useWorkspaceCategories,
@@ -1037,6 +1052,16 @@ export function WorkspaceBrowser({
     const current = state.current
     return current !== undefined && state.byId[current]?.blank === true ? current : undefined
   })
+  const openVisibleSession = (sessionId: SessionId): void => {
+    const workspaceId = sessionId === currentBlankSessionId
+      ? visibleWorkspaces.find(workspace => workspace.sessionIds.includes(sessionId))?.workspaceId
+      : undefined
+    if (activeCategory !== undefined && workspaceId !== undefined && !newSessionDisabledWorkspaceIds.has(workspaceId)) {
+      startVisibleSession(workspaceId)
+      return
+    }
+    open(sessionId)
+  }
   const currentBlankAccount = currentBlankSessionId === undefined
     ? undefined
     : (visibleWorkspaces.find(workspace => workspace.sessionIds.includes(currentBlankSessionId))
@@ -1453,7 +1478,7 @@ export function WorkspaceBrowser({
           ? (
             <SearchResults
               useSessions={useSessions}
-              open={open}
+              open={openVisibleSession}
               workspaces={visibleWorkspaces}
               archivedSessionIds={archivedSessionIds}
               query={normalizedQuery}
@@ -1466,7 +1491,7 @@ export function WorkspaceBrowser({
           : groupBy === 'flat'
             ? (
               <FlatList
-                useSessions={useSessions} open={open} forkSession={forkSession}
+                useSessions={useSessions} open={openVisibleSession} forkSession={forkSession}
                 onSessionRename={onSessionRename} onSessionArchive={onSessionArchive}
                 archivedSessionIds={archivedSessionIds}
                 visibleSessionIds={visibleSessionIds}
@@ -1493,7 +1518,7 @@ export function WorkspaceBrowser({
                 setSessionOrder={actions.setSessionOrder}
                 archivedSessionIds={archivedSessionIds}
                 startSession={startVisibleSession}
-                open={open}
+                open={openVisibleSession}
                 insertWorkspaceBefore={insertWorkspaceBefore}
                 insertSessionBefore={insertSessionBefore}
                 orderBy={orderBy}
@@ -1511,6 +1536,17 @@ export function WorkspaceBrowser({
                 manageWorkspaces={activeCategory === undefined}
                 manageableWorkspaceIds={manageableWorkspaceIds}
                 {...activeCategory === undefined ? {} : { removeWorkspaceLabel: t('remove.workspace') }}
+                {...activeCategory?.workspaceDetailsLabel === undefined
+                  ? {}
+                  : { workspaceDetailsLabel: activeCategory.workspaceDetailsLabel }}
+                workspaceDetailsWorkspaceIds={new Set(activeCategory?.workspaceDetailsWorkspaceIds ?? [])}
+                workspaceBadges={activeCategory?.workspaceBadges ?? []}
+                onWorkspaceDetails={(workspaceId) => {
+                  if (activeCategory !== undefined) openWorkspaceDetails(activeCategory.id, workspaceId)
+                }}
+                onWorkspaceBadgeAction={(workspaceId) => {
+                  if (activeCategory !== undefined) void activateWorkspaceBadge?.(activeCategory.id, workspaceId)
+                }}
                 home={home}
                 t={t}
                 onRenameRequest={(workspaceId, currentTitle) => {

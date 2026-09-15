@@ -1,0 +1,55 @@
+{
+  "scope": "CF22/CF23 deletion balance verification; original/base separated; exact scoped per-currency deltas",
+  "date": "2026-09-14",
+  "build": "passing",
+  "tests": "passing",
+  "focusedTests": 314,
+  "web": { "testFiles": 1, "topLevelTests": 1, "scenarios": 10, "refresh": "passed", "independentReplay": "passed", "replayDurationMs": 24870 },
+  "historicalVendorEvidence": {
+    "receipt": "open-item-balances-recheck-1789360247401.json",
+    "independentComparisons": 4,
+    "receivable": { "id": "72617", "before": "0.27", "after": "0.26", "removed": "0.01" },
+    "payable": { "id": "72618", "before": "0.30", "after": "0.29", "removed": "0.01" },
+    "originalFilesUnchanged": true,
+    "freshDeletion": false
+  },
+  "mainApplication": {
+    "receipt": "balance-recovery-host-20260914.json",
+    "url": "http://127.0.0.1:3092/",
+    "listenerPidAtCheck": 24864,
+    "executionSession": 62427,
+    "modelSession": "0235e717-f8a6-442c-b97d-e4b46a9608c1",
+    "modelSessionFinished": true,
+    "inspectCalls": 2,
+    "receivable": "original and same-currency-derived base balances matched",
+    "payable": "current inventory differs from original inventory: content mismatch; balance verification remains unavailable",
+    "approvalRequests": 0,
+    "businessWrites": 0
+  },
+  "commandsPassed": [
+    "pnpm.cmd exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/open-item-deletion-balances.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-deletion.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts",
+    "pnpm.cmd run build:xiaojing",
+    "pnpm.cmd exec tsc -b tsconfig.host.json",
+    "pnpm.cmd exec tsdown --env.DSH_BUILD_FACE host --filter @deepseek-ai/dsh-xiaojing-finance-domain",
+    "DSH_SNAPSHOT=refresh pnpm.cmd exec vitest run --config vitest.web.config.ts apps/web/tests/finance-open-item-deletion.e2e.ts",
+    "DSH_SNAPSHOT=replay pnpm.cmd exec vitest run --config vitest.web.config.ts apps/web/tests/finance-open-item-deletion.e2e.ts",
+    "node critique/f3b-lab/recheck-open-item-balances.mjs",
+    "node critique/f3b-lab/check-balance-recovery-host.mjs",
+    "pnpm.cmd run verify-translation-pairing packages/xiaojing/xiaojing-finance-domain/README.md .agents/notes/implemented/bug-fix/2026-09-14-open-item-deletion-balances.md docs/integrations/youcheng-finance-development-status.md docs/integrations/youcheng-finance-f3b-handoff.md",
+    "git diff --check"
+  ],
+  "focusedLint": "eight changed TypeScript files passed in two focused commands",
+  "repositoryLint": "pnpm.cmd run lint exited 1 after its Host build passed; repository-wide scan reports existing generated src/*.d.ts formatting/type-style errors; full output exceeded the tool output limit",
+  "documentationGate": {
+    "passed": 23,
+    "failed": 5,
+    "remainingIssues": ["stale Cordis catalog", "existing API replica pairing and config catalog pair", "API replica hard wrapping", "generated declaration JSDoc", "duplicate events in generated declarations"],
+    "ownIssueFixed": "Handoff link-fragment pair mismatch fixed; all four changed named pairs independently passed afterward"
+  },
+  "limitations": [
+    "Missing foreign-currency base balances or currency codes remain unavailable; no exchange-rate estimate or zero fill",
+    "Changed current inventory must not be treated as a matching historical deletion",
+    "No repeat of consumed deletion intents or alteration of historical receipts",
+    "Deferred F3 account IDs, auxiliary enable-state and manual/external voucher provenance are not fixed by this change"
+  ]
+}

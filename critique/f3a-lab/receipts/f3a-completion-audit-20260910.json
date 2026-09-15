@@ -1,0 +1,60 @@
+{
+  "scope": "F3A: CF14, CF20, CF21, CF08, CF09; no reimbursement, F3B or F4",
+  "checkedOn": "2026-09-10",
+  "previousGoalTurn": "progress: loaded the reference fix and verified a real-model read-only answer in the existing Chrome tab",
+  "capabilities": [
+    {
+      "id": "CF14",
+      "status": "qualified-with-stated-limits",
+      "evidence": ["live-journals/income-outcome.json", "live-journals/income-readback.json", "live-journals/expense-outcome.json", "live-journals/expense-readback.json", "journal-live-host/audit.json"],
+      "verifiedIds": ["141053", "141055", "141057"],
+      "limitations": "Technical record creation only, not actual money movement or voucher generation."
+    },
+    {
+      "id": "CF20",
+      "status": "incomplete-public-write-mapping",
+      "evidence": ["open-item-probe/public-writer-investigation.json", "open-item-probe/id-suggestions-review-20260910.json"],
+      "result": "HTTP200/business201/未指定往来单位",
+      "limitations": "UI control72593 proves readable data and a working UI account/customer, not public creation."
+    },
+    {
+      "id": "CF21",
+      "status": "incomplete-public-write-mapping",
+      "evidence": ["open-item-probe/payable-document-review.json", "open-item-probe/payable-document-attempt-1/response.json"],
+      "result": "HTTP200/business201/未指定往来单位",
+      "limitations": "Independent payable request is rejected; receivable evidence cannot establish payable acceptance."
+    },
+    {
+      "id": "CF08",
+      "status": "ordinary-root-and-existing-branch-qualified",
+      "evidence": ["master-data-live-host/subject/audit.json", "master-data-live-host/root-subject/audit.json", "reference-attributes-live/receipt.json", "reference-attributes-live/runtime-ui-verification.json"],
+      "verifiedCodes": ["100295", "1097"],
+      "limitations": "No leaf promotion, quantity, auxiliary or foreign-currency configuration qualification."
+    },
+    {
+      "id": "CF09",
+      "status": "creation-and-identity-qualified-status-ui-only",
+      "evidence": ["master-data-live-host/auxiliary-item/audit.json", "master-data-live-host/auxiliary-item/ui-readback.json"],
+      "verifiedId": "191573",
+      "limitations": "Public status is unavailable; product complete=false remains correct. Earlier unknown customer attempt remains reserved and cannot be resent."
+    }
+  ],
+  "safetyReview": {
+    "masterDataMandatoryApproval": "index.ts requires allowed-once inside durable reservation before sending; missing approval rejects",
+    "journalMandatoryApproval": "index.ts requires exact-version mandatory approval before sending",
+    "restartStaleAndDuplicateCoverage": "Existing journal-records and master-data-records tests cover denied/stale/concurrent/restarted operations, including root/branch/auxiliary variants; not rerun unchanged in this audit",
+    "priorDataEvidence": "All three main-Host master-data audits preserve41 vouchers and original references; journal main-Host audit preserves41 vouchers",
+    "newBusinessWritesThisAudit": 0
+  },
+  "completion": false,
+  "remainingExternalEvidence": "Correct public receivable/payable counterparty field, value syntax and location, or service-side diagnosis for the retained requests. The support packet is prepared but has not been sent by this agent.",
+  "blockedAudit": {
+    "condition": "No qualified public receivable/payable write mapping after documented requests and evidence-based variants; no new technical reply is available",
+    "consecutiveTurnsAtImpasse": 3,
+    "secondTurnRecheck": "Retained singular-ID and names-as-ID responses both explicitly remain201. The web document reader could not open the official endpoint; no corrected parameter evidence was obtained. This does not establish that the vendor documentation is unchanged. No business request was resent.",
+    "thirdTurnRecheck": "Re-read documented-name, singular-ID, names-as-ID and independent payable receipts: all explicitly return business201/未指定往来单位. The prepared support packet exists. No new verified vendor parameter mapping is available and no business request was resent.",
+    "goalRemainsActive": false,
+    "goalStatus": "blocked",
+    "policy": "Do not repeat old write flags, invent new field permutations or substitute private UI endpoints. Revalidate the same blocker in later goal turns; only mark blocked after three consecutive impasse turns."
+  }
+}

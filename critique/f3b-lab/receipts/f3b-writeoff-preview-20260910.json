@@ -1,0 +1,22 @@
+{
+  "scope": "Finance Host and shipping-preset full-settlement preparation, versioning and read-only recovery",
+  "executionEnabled": false,
+  "f3bComplete": false,
+  "businessWrites": 0,
+  "restarted3092": false,
+  "approvalsReplayed": false,
+  "checks": [
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off-tool.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off-submission.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off.spec.ts", "passed": 294, "files": 5, "durationMs": 9240, "exitCode": 0 },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=refresh pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-open-item-write-off.e2e.ts", "passed": 1, "directions": 2, "durationMs": 6730, "exitCode": 0 },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=replay pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-open-item-write-off.e2e.ts", "passed": 1, "directions": 2, "durationMs": 6040, "exitCode": 0 },
+    { "command": "pnpm run lint", "exitCode": 0, "note": "Host TypeScript/build and lint passed after narrowing a test loop's literal values" },
+    { "command": "pnpm run gen-cordis-catalog", "exitCode": 0, "computed": 97, "written": 3, "pairsRefreshed": 1 },
+    { "command": "pnpm run gen-config-catalog", "exitCode": 0 },
+    { "command": "pnpm run verify-translation-pairing (five named pairs)", "exitCode": 0, "pairs": 5 },
+    { "command": "pnpm run doc-sync", "exitCode": 1, "passed": 26, "failed": 2, "durationMs": 70310 },
+    { "command": "git diff --check", "exitCode": 0 }
+  ],
+  "correctedChecks": ["Initial web run lacked the newly added tool build artifact; rebuilt without replacing the real preset", "Host test loop needed literal-union narrowing", "Transient Windows UNKNOWN opening config-catalog.i18n.yaml; identical pairing command retry passed"],
+  "remainingCheckFailures": ["Existing youcheng-openapi-replica.md lacks bilingual pair", "Existing replica hard-wrapped paragraphs"],
+  "evidenceLimits": ["Scripted LLM and simulated vendor network, not real-model semantic acceptance", "Original page readback does not establish global coverage or operation attribution", "Execution prerequisites and cross-operation locking still need qualification", "No mandatory execution confirmation or live product write-off acceptance yet"]
+}

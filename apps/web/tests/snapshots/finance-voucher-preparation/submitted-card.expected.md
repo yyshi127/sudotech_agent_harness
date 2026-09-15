@@ -1,0 +1,5 @@
+- button "Tool call finance_create_voucher · {{uuid}}" [expanded]:
+  - img
+  - text: Tool call finance_create_voucher · {{uuid}}
+- text: "IN { \"id\": \"{{uuid}}\", \"version\": 1 } OUT {\"id\":\"{{uuid}}\",\"version\":1,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\",\"voucherId\":\"270826\"},\"readback\":{\"accounting\":\"matched\",\"auxiliary\":\"matched\",\"currency\":\"matched\",\"originals\":{\"association\":\"not-required\",\"retention\":\"not-required\",\"verifiedCount\":0,\"metadataWarning\":false},\"complete\":true},\"originals\":[],\"complete\":true,\"notice\":\"已保存发送结果，不会自动重发；回查失败不等于未创建。complete 仅表示本张凭证的会计数据、辅助核算、原币／汇率及所选原件技术核验，不证明票据真实、会计处理恰当或已审核过账。原件以 readback.originals 为准；pending 需等源链接到期后按原记录ID再查，unavailable 不等于没有附件。不要重新准备相同凭证。\"}"
+- button "Inspect"

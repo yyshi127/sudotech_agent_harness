@@ -1,0 +1,403 @@
+{
+  "checkedAt": "2026-09-15T01:45:41.443Z",
+  "ledgerId": "35616",
+  "ledgerName": "施的演示账套",
+  "businessWrites": 0,
+  "browserUsed": false,
+  "cookiesSent": false,
+  "credentialsSentOnlyToConfiguredOrigin": true,
+  "candidateCount": 18,
+  "observations": [
+    {
+      "kind": "D01",
+      "route": "configured-origin-native-path",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/books/generalLedger/getList.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 62,
+        "responseHash": "edc9497786275aff257c7e6d8e3433522aaee27bfd3ba3986a2b86f1f1cca4d3",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "RequestMapping配置不符合规则",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D01",
+      "route": "configured-origin-finance-prefix",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/finance/books/generalLedger/getList.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 51,
+        "responseHash": "38761caaea18f8b300a08c5857ced3a4303001427d6b9a34a66db4edce5d3d7d",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "此接口未对外开放",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D01",
+      "route": "web-origin-no-auth-control",
+      "observation": {
+        "origin": "https://cwpc.yiqiyun.com",
+        "path": "/books/generalLedger/getList.rjson",
+        "authentication": "none",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 44,
+        "responseHash": "0f3f2c2b6c67f19317cc513b6960b8cb9fc31277e6a35e1e36bbb40d0195ca3e",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "token参数缺失",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D02",
+      "route": "configured-origin-native-path",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/books/subsidiaryLedger/pagination/getList.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 62,
+        "responseHash": "edc9497786275aff257c7e6d8e3433522aaee27bfd3ba3986a2b86f1f1cca4d3",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "RequestMapping配置不符合规则",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D02",
+      "route": "configured-origin-finance-prefix",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/finance/books/subsidiaryLedger/pagination/getList.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 51,
+        "responseHash": "38761caaea18f8b300a08c5857ced3a4303001427d6b9a34a66db4edce5d3d7d",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "此接口未对外开放",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D02",
+      "route": "web-origin-no-auth-control",
+      "observation": {
+        "origin": "https://cwpc.yiqiyun.com",
+        "path": "/books/subsidiaryLedger/pagination/getList.rjson",
+        "authentication": "none",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 44,
+        "responseHash": "0f3f2c2b6c67f19317cc513b6960b8cb9fc31277e6a35e1e36bbb40d0195ca3e",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "token参数缺失",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D03",
+      "route": "configured-origin-native-path",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/books/subsidiaryLedgerAuxiliary/pagination/getList.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 62,
+        "responseHash": "edc9497786275aff257c7e6d8e3433522aaee27bfd3ba3986a2b86f1f1cca4d3",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "RequestMapping配置不符合规则",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D03",
+      "route": "configured-origin-finance-prefix",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/finance/books/subsidiaryLedgerAuxiliary/pagination/getList.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 51,
+        "responseHash": "38761caaea18f8b300a08c5857ced3a4303001427d6b9a34a66db4edce5d3d7d",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "此接口未对外开放",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D03",
+      "route": "web-origin-no-auth-control",
+      "observation": {
+        "origin": "https://cwpc.yiqiyun.com",
+        "path": "/books/subsidiaryLedgerAuxiliary/pagination/getList.rjson",
+        "authentication": "none",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 44,
+        "responseHash": "0f3f2c2b6c67f19317cc513b6960b8cb9fc31277e6a35e1e36bbb40d0195ca3e",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "token参数缺失",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D04",
+      "route": "configured-origin-native-path",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/reportforms/get/balance/list.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 62,
+        "responseHash": "edc9497786275aff257c7e6d8e3433522aaee27bfd3ba3986a2b86f1f1cca4d3",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "RequestMapping配置不符合规则",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D04",
+      "route": "configured-origin-finance-prefix",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/finance/reportforms/get/balance/list.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 404,
+        "contentType": "text/html",
+        "byteLength": 1112,
+        "responseHash": "9719a2f1fb065536c262f3e6339821336ad128d0b5655b2bf4b700b72252a2c6",
+        "responseKind": "html",
+        "looksLikeLogin": false
+      }
+    },
+    {
+      "kind": "D04",
+      "route": "web-origin-no-auth-control",
+      "observation": {
+        "origin": "https://cwpc.yiqiyun.com",
+        "path": "/reportforms/get/balance/list.rjson",
+        "authentication": "none",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 44,
+        "responseHash": "0f3f2c2b6c67f19317cc513b6960b8cb9fc31277e6a35e1e36bbb40d0195ca3e",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "token参数缺失",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D05",
+      "route": "configured-origin-native-path",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/reportforms/get/profit/list.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 62,
+        "responseHash": "edc9497786275aff257c7e6d8e3433522aaee27bfd3ba3986a2b86f1f1cca4d3",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "RequestMapping配置不符合规则",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D05",
+      "route": "configured-origin-finance-prefix",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/finance/reportforms/get/profit/list.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 404,
+        "contentType": "text/html",
+        "byteLength": 1111,
+        "responseHash": "32ea9cfa99feb776f70e58527f1c05b0566d825a565dac5e3afc07408bc0dfda",
+        "responseKind": "html",
+        "looksLikeLogin": false
+      }
+    },
+    {
+      "kind": "D05",
+      "route": "web-origin-no-auth-control",
+      "observation": {
+        "origin": "https://cwpc.yiqiyun.com",
+        "path": "/reportforms/get/profit/list.rjson",
+        "authentication": "none",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 44,
+        "responseHash": "0f3f2c2b6c67f19317cc513b6960b8cb9fc31277e6a35e1e36bbb40d0195ca3e",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "token参数缺失",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D06",
+      "route": "configured-origin-native-path",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/reportforms/get/cash/list.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 62,
+        "responseHash": "edc9497786275aff257c7e6d8e3433522aaee27bfd3ba3986a2b86f1f1cca4d3",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "RequestMapping配置不符合规则",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    },
+    {
+      "kind": "D06",
+      "route": "configured-origin-finance-prefix",
+      "observation": {
+        "origin": "https://cwdata.yiqiyun.com",
+        "path": "/finance/reportforms/get/cash/list.rjson",
+        "authentication": "app-key-token",
+        "httpStatus": 404,
+        "contentType": "text/html",
+        "byteLength": 1109,
+        "responseHash": "9646c022dc8b684c9ad51647eb8c6677058b70d27e4ccc20efd79dceb7673e0d",
+        "responseKind": "html",
+        "looksLikeLogin": false
+      }
+    },
+    {
+      "kind": "D06",
+      "route": "web-origin-no-auth-control",
+      "observation": {
+        "origin": "https://cwpc.yiqiyun.com",
+        "path": "/reportforms/get/cash/list.rjson",
+        "authentication": "none",
+        "httpStatus": 200,
+        "contentType": "text/html",
+        "byteLength": 44,
+        "responseHash": "0f3f2c2b6c67f19317cc513b6960b8cb9fc31277e6a35e1e36bbb40d0195ca3e",
+        "responseKind": "json",
+        "jsonKind": "object",
+        "topLevelFields": [
+          "message",
+          "result"
+        ],
+        "resultCode": 201,
+        "message": "token参数缺失",
+        "dataKind": "undefined",
+        "dataHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+      }
+    }
+  ],
+  "conclusion": "Classification only; a route qualifies for implementation only when the configured origin returns the expected native JSON fields and ledger-scoped rows."
+}

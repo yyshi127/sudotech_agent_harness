@@ -422,7 +422,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'finance/client-bound': FinanceClientBinding
 ```
 
-来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:374`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:539`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financeconsultation-file-imported--log-only"></a>
 
@@ -436,7 +436,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'finance/consultation-file-imported': FinanceConsultationFileImportedEvent
 ```
 
-来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:384`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:549`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financefile-archived--log-only"></a>
 
@@ -450,7 +450,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'finance/file-archived': FinanceFileCommittedEvent
 ```
 
-来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:394`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:559`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financefile-imported--log-only"></a>
 
@@ -464,7 +464,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'finance/file-imported': FinanceFileCommittedEvent
 ```
 
-来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:379`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:544`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financefile-published--log-only"></a>
 
@@ -478,7 +478,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'finance/file-published': FinanceFileCommittedEvent
 ```
 
-来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:389`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+来源：[`packages/xiaojing/xiaojing-finance-domain/src/types.ts:554`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 ### `goal/*`
 

@@ -1,0 +1,201 @@
+{
+  "checkedAt": "2026-09-09T06:37:45.398Z",
+  "scope": "F2.1/CF10, F2.2/CF11, A01 technical acceptance; not F3/F4 or all finance",
+  "businessWrites": false,
+  "currentLedger": {
+    "id": "35616",
+    "total": 38,
+    "original34Preserved": true,
+    "ids": [
+      "243978",
+      "243979",
+      "243980",
+      "243981",
+      "243982",
+      "243983",
+      "243984",
+      "243985",
+      "243986",
+      "243987",
+      "243988",
+      "243989",
+      "243990",
+      "243991",
+      "243992",
+      "243993",
+      "243994",
+      "243995",
+      "243996",
+      "243997",
+      "243998",
+      "243999",
+      "244000",
+      "244001",
+      "244002",
+      "244003",
+      "244004",
+      "244005",
+      "244006",
+      "244007",
+      "244008",
+      "244009",
+      "244010",
+      "244011",
+      "244058",
+      "244063",
+      "244067",
+      "244069"
+    ]
+  },
+  "calls": [
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson"
+  ],
+  "requirements": [
+    {
+      "item": 1,
+      "requirement": "Financial endpoint, required fields, stable appId/flowId and original mechanism",
+      "proof": [
+        "voucher-submission.spec.ts",
+        "244058 and 244069 real creation receipts"
+      ],
+      "limit": "Supplier cross-device duplicate handling is not assumed; local records forbid blind resending."
+    },
+    {
+      "item": 2,
+      "requirement": "Natural-language and file-based preparation with traceable sources and revisions",
+      "proof": [
+        "f2-semantic-35616/receipt.json",
+        "f2-material-35616/receipt.json and source.json"
+      ]
+    },
+    {
+      "item": 3,
+      "requirement": "Ledger, subject, auxiliary, date/period, currency and balanced exact amounts",
+      "proof": [
+        "voucher-preparation.spec.ts",
+        "voucher-references.spec.ts",
+        "244063/244067 FX",
+        "244069 combined"
+      ],
+      "limit": "2022-01 is live-qualified; other writable periods are validated by the vendor on submission. No rate appropriateness or invoice-authenticity claim."
+    },
+    {
+      "item": 4,
+      "requirement": "Exact-version mandatory approval and stale-confirmation rejection",
+      "proof": [
+        "finance-voucher-preparation.e2e.ts actual Reject/Allow once clicks",
+        "approval.expected.md",
+        "changed-preview scenario"
+      ]
+    },
+    {
+      "item": 5,
+      "requirement": "Durable reservation before one send; acceptance, rejection and uncertainty remain distinct",
+      "proof": [
+        "voucher-records.spec.ts",
+        "voucher-submission.spec.ts",
+        "assembled response-loss and duplicate scenarios"
+      ]
+    },
+    {
+      "item": 6,
+      "requirement": "Accurate readback, original upload, association, readable copied bytes and retention after source expiry",
+      "proof": [
+        "244058 PDF and 244069 PNG recovery/expiry receipts",
+        "voucher-originals.spec.ts",
+        "partial-upload failure scenario"
+      ]
+    },
+    {
+      "item": 7,
+      "requirement": "Cancellation, configuration changes, restart and lost-response recovery without unsafe retry",
+      "proof": [
+        "voucher-records.spec.ts",
+        "voucher-submission.spec.ts",
+        "fresh Host recovery receipts",
+        "assembled cancel-after-send scenario"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-live-35616/baseline-check.json",
+      "sha256": "febbd270b9a74152d8f72a3106df4b17fa4ad086284c405d5fa1cafecf115dcc"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-live-35616/host-recovery.json",
+      "sha256": "2a678287feae52115c1f15a7f64e61e373058a9e21dcff2b9666898870e9d7b6"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-live-combined-35616/host-recovery.json",
+      "sha256": "dd103cf7fdd6e74afd935ca456364ee763e28a8a89dfe1db1d2ed8db89abd1f9"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-live-35616/original-check-1788929506781.json",
+      "sha256": "92a2d311442ce98ef7d078912e5bb70d51df4bf5ef87aa325549d0cf48088b33"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-live-combined-35616/original-check-1788933580308.json",
+      "sha256": "fdd1307784ebe0513e344ce063c3199b3f4779f51998a19e29da9e9a8ea27e65"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-fx-35616/readback.json",
+      "sha256": "d105adbce98530853b2c5d79b86080019139cd2368f6503674e13886cda0fb6e"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-fx-35616-rounded/readback.json",
+      "sha256": "20c5c819228919ca37f2221f15e1ef64b6d3c89576adefb1ba0065169fd06bec"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-semantic-35616/receipt.json",
+      "sha256": "5f8ed7a02cc5b329b766b1c316c7f570db08a108329fea68e34ef85057d76c96"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-semantic-35616/rejection-receipt.json",
+      "sha256": "7aa44f44ba5c04ee8cfa03feb30f921d84065335d7c4c944769373e2a58f9424"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-material-35616/receipt.json",
+      "sha256": "f53c1072a47e9715d5890e018b6a9dd6f6cbcb1fc718bf980d057bd4a294029b"
+    },
+    {
+      "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f2-material-35616/source.json",
+      "sha256": "2edf009b9c9b35415e7c925030c541a62e3f479bc54082264dc974fbce491ddd"
+    },
+    {
+      "path": "apps/web/tests/snapshots/finance-voucher-preparation/creation.expected.md",
+      "sha256": "9fafdb7aa83d02880f91d5502335f3db64fbabc9d3c091ba4d6b446d4dda2e54"
+    },
+    {
+      "path": "packages/xiaojing/xiaojing-finance-domain/src/index.ts",
+      "sha256": "3f6080e05a03d9866710af93c778abbe25da299988aee3aae401c61db2d15f9c"
+    },
+    {
+      "path": "packages/xiaojing/xiaojing-finance-domain/src/voucher-preparation.ts",
+      "sha256": "bdb88a4f0b55e24dd3d7f3b622485e6f150699037d647637e15fda9ae8f07de5"
+    },
+    {
+      "path": "packages/xiaojing/xiaojing-finance-domain/src/voucher-records.ts",
+      "sha256": "2fa3ae4b1ac1f43dd77a3736ea2366b4513e03695a34bd2736044a060e47e4f0"
+    },
+    {
+      "path": "packages/xiaojing/xiaojing-finance-domain/src/voucher-submission.ts",
+      "sha256": "d802c4492c2997232feda083ec9eed6edd75e113f52ca038a954d54856ba57be"
+    },
+    {
+      "path": "packages/xiaojing/xiaojing-finance-domain/src/voucher-originals.ts",
+      "sha256": "f53296b4551b162f84b81c27e117be320743e7278f6a5ae5b3e123e2368f2d7c"
+    },
+    {
+      "path": "packages/xiaojing/xiaojing-finance-domain/src/youcheng.ts",
+      "sha256": "e9c256c9edf349bb280b4ed26ddae81bb0abcc1d348c624b4e0e59346001d4b9"
+    },
+    {
+      "path": "apps/web/tests/finance-voucher-preparation.e2e.ts",
+      "sha256": "59d262ec84421bc9ae1ea2aaa3f4be71dd0d2912f50e704309577e3428373d91"
+    }
+  ],
+  "browserLimit": "The isolated shipped-app browser acceptance passes; the existing user Chrome Xiaojing tab still lacks debugger attachment. This audit does not claim control of that tab."
+}

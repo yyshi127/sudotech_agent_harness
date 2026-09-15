@@ -1,0 +1,5 @@
+- button "Tool call finance_create_master_data · {{uuid}}" [expanded]:
+  - img
+  - text: Tool call finance_create_master_data · {{uuid}}
+- text: "IN { \"id\": \"{{uuid}}\", \"version\": 2 } OUT {\"id\":\"{{uuid}}\",\"version\":2,\"phase\":\"outcome-unknown\",\"outcome\":{\"state\":\"outcome-unknown\"},\"readback\":{\"content\":\"matched\",\"status\":\"unavailable\",\"complete\":false},\"complete\":false,\"notice\":\"已保存发送结果，不会自动重发。accepted不包含有成新建ID；按原编码独立比较。未知结果即使找到同编码资料也不转成成功；辅助启用状态未核验。\"}"
+- button "Inspect"

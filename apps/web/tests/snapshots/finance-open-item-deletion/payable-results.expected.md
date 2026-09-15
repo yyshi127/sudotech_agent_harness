@@ -1,0 +1,54 @@
+[
+  [
+    {
+      "type": "tool-result",
+      "toolCallId": "open-deletion-1",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"id\":\"<deletion-id>\",\"version\":1,\"phase\":\"prepared\",\"preview\":{\"accountId\":\"35616\",\"accountName\":\"往来删除演示账套\",\"direction\":\"payable\",\"businessAccountId\":\"174624\",\"row\":{\"amount\":\"0.01\",\"balance\":\"0.01\",\"baseAmount\":null,\"baseBalance\":null,\"settledAmount\":\"0.00\",\"badDebtAmount\":\"0.00\",\"offsetAmount\":\"0.00\",\"returnAmount\":\"0.00\",\"id\":\"72604\",\"date\":\"2022-01-01\",\"summary\":\"删除检查专用\",\"subjectCode\":\"\",\"subjectName\":\"往来账户\",\"auxiliaryItemIds\":\"191501\",\"auxiliaryItemName\":\"测试往来单位\",\"currencyCode\":\"RMB\",\"baseCurrencyCode\":\"RMB\",\"initialBalance\":false,\"finished\":false,\"categoryName\":\"其他收支\",\"remark\":\"\"},\"fingerprint\":\"9f124c28a16cfc553961a68eed070e585307fa97372a863e2c81f976f91c42da\",\"attachmentCount\":0,\"blockers\":[\"往来已关联凭证或订单，不自动联动删除。\"],\"unverified\":[\"查询方向由原请求限定；列表未独立提供方向字段。\",\"审核状态和记录来源字段未提供，不能据此认定无审批或外部来源限制。\",\"有成网页提示删除可能连带删除对冲、核销或收入记录；公开接口的完整关联影响未核实，本检查不能排除该影响。\",\"其他核销金额未提供，不按零处理。\"]},\"selection\":{\"direction\":\"payable\",\"periodStart\":\"2022-01\",\"periodEnd\":\"2022-01\"},\"baselineCount\":1,\"execution\":{\"state\":\"unavailable\",\"reason\":\"目标状态或已知关联阻止删除。\"},\"notice\":\"仅保存应收或应付删除前检查，没有删除。已知限制和待核实项分别展示；未返回关联字段不等于无关联，不自动联动删除凭证、流水或核销记录。修改预览会更新版本。\"}"
+        }
+      ],
+      "isError": false
+    }
+  ],
+  [
+    {
+      "type": "tool-result",
+      "toolCallId": "open-deletion-2",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"id\":\"<deletion-id>\",\"version\":2,\"phase\":\"prepared\",\"preview\":{\"accountId\":\"35616\",\"accountName\":\"往来删除演示账套\",\"direction\":\"payable\",\"businessAccountId\":\"174624\",\"row\":{\"amount\":\"0.01\",\"balance\":\"0.01\",\"baseAmount\":null,\"baseBalance\":null,\"settledAmount\":\"0.00\",\"badDebtAmount\":\"0.00\",\"offsetAmount\":\"0.00\",\"returnAmount\":\"0.00\",\"id\":\"72604\",\"date\":\"2022-01-01\",\"summary\":\"删除检查专用\",\"subjectCode\":\"\",\"subjectName\":\"往来账户\",\"auxiliaryItemIds\":\"191501\",\"auxiliaryItemName\":\"测试往来单位\",\"currencyCode\":\"RMB\",\"baseCurrencyCode\":\"RMB\",\"initialBalance\":false,\"finished\":false,\"categoryName\":\"其他收支\",\"remark\":\"\"},\"fingerprint\":\"9f124c28a16cfc553961a68eed070e585307fa97372a863e2c81f976f91c42da\",\"attachmentCount\":0,\"blockers\":[\"往来已关联凭证或订单，不自动联动删除。\"],\"unverified\":[\"查询方向由原请求限定；列表未独立提供方向字段。\",\"审核状态和记录来源字段未提供，不能据此认定无审批或外部来源限制。\",\"有成网页提示删除可能连带删除对冲、核销或收入记录；公开接口的完整关联影响未核实，本检查不能排除该影响。\",\"其他核销金额未提供，不按零处理。\"]},\"selection\":{\"direction\":\"payable\",\"periodStart\":\"2022-01\",\"periodEnd\":\"2022-01\"},\"baselineCount\":1,\"execution\":{\"state\":\"unavailable\",\"reason\":\"目标状态或已知关联阻止删除。\"},\"notice\":\"仅保存应收或应付删除前检查，没有删除。已知限制和待核实项分别展示；未返回关联字段不等于无关联，不自动联动删除凭证、流水或核销记录。修改预览会更新版本。\"}"
+        }
+      ],
+      "isError": false
+    }
+  ],
+  [
+    {
+      "type": "tool-result",
+      "toolCallId": "open-deletion-3",
+      "content": [
+        {
+          "type": "text",
+          "text": "Error: 应收应付删除版本已变化或存在发送记录，不得重发。"
+        }
+      ],
+      "isError": true
+    }
+  ],
+  [
+    {
+      "type": "tool-result",
+      "toolCallId": "open-deletion-4",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"id\":\"<deletion-id>\",\"version\":2,\"phase\":\"prepared\",\"preview\":{\"accountId\":\"35616\",\"accountName\":\"往来删除演示账套\",\"direction\":\"payable\",\"businessAccountId\":\"174624\",\"row\":{\"amount\":\"0.01\",\"balance\":\"0.01\",\"baseAmount\":null,\"baseBalance\":null,\"settledAmount\":\"0.00\",\"badDebtAmount\":\"0.00\",\"offsetAmount\":\"0.00\",\"returnAmount\":\"0.00\",\"id\":\"72604\",\"date\":\"2022-01-01\",\"summary\":\"删除检查专用\",\"subjectCode\":\"\",\"subjectName\":\"往来账户\",\"auxiliaryItemIds\":\"191501\",\"auxiliaryItemName\":\"测试往来单位\",\"currencyCode\":\"RMB\",\"baseCurrencyCode\":\"RMB\",\"initialBalance\":false,\"finished\":false,\"categoryName\":\"其他收支\",\"remark\":\"\"},\"fingerprint\":\"9f124c28a16cfc553961a68eed070e585307fa97372a863e2c81f976f91c42da\",\"attachmentCount\":0,\"blockers\":[\"往来已关联凭证或订单，不自动联动删除。\"],\"unverified\":[\"查询方向由原请求限定；列表未独立提供方向字段。\",\"审核状态和记录来源字段未提供，不能据此认定无审批或外部来源限制。\",\"有成网页提示删除可能连带删除对冲、核销或收入记录；公开接口的完整关联影响未核实，本检查不能排除该影响。\",\"其他核销金额未提供，不按零处理。\"]},\"selection\":{\"direction\":\"payable\",\"periodStart\":\"2022-01\",\"periodEnd\":\"2022-01\"},\"readback\":{\"target\":\"present\",\"content\":\"unavailable\",\"remainingBalances\":\"unavailable\",\"scope\":\"selected-direction-periods\"},\"execution\":{\"state\":\"not-requested\"},\"notice\":\"只读检查原记录，不发送或重发。preview 是已保存的原版本；not-observed 仅限原方向和期间，不证明全账套删除。balances分别核验原币和本位币的保留记录及分币种合计差额；basis=same-currency表示币种明确相同时依据原币余额计算，不是接口返回了本位币余额。查询失败不表示不存在，缺失值不补零。\"}"
+        }
+      ],
+      "isError": false
+    }
+  ]
+]

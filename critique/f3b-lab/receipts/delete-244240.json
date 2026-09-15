@@ -1,0 +1,2580 @@
+{
+  "checkedAt": "2026-09-10T06:32:32.406Z",
+  "accountId": "35616",
+  "approvedTarget": "244240",
+  "outcome": {
+    "state": "accepted"
+  },
+  "dispatched": 1,
+  "absenceObserved": true,
+  "verification": "Two successful unfiltered all-period complete pages; exact prior41 IDs and projected entries retained.",
+  "baseline": {
+    "accountId": "35616",
+    "accountName": "施的演示账套",
+    "month": "不限月份",
+    "page": 1,
+    "pageSize": 100,
+    "total": 42,
+    "hasMore": false,
+    "voucherCount": 42,
+    "notice": "total 为接口报告的本次筛选总张数，voucherCount 为本页张数，rows 为分录行；本页不是全部结果。month/monthEnd 按起止会计期间传给接口，日期为凭证日期，列表未返回独立会计期间，期间筛选未逐笔复核。summary 由接口筛选，精确或模糊匹配语义未核验；保留返回凭证的全部分录，不把未命中行删掉。翻页须保留筛选条件和 pageSize，期间数据可能变化。",
+    "rows": [
+      {
+        "voucherId": "243978",
+        "date": "2022-01-01",
+        "number": "记-1",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243978",
+        "date": "2022-01-01",
+        "number": "记-1",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243979",
+        "date": "2022-01-01",
+        "number": "记-2",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243979",
+        "date": "2022-01-01",
+        "number": "记-2",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243980",
+        "date": "2022-01-01",
+        "number": "记-3",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243980",
+        "date": "2022-01-01",
+        "number": "记-3",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243981",
+        "date": "2022-01-01",
+        "number": "记-4",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "12000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243981",
+        "date": "2022-01-01",
+        "number": "记-4",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "12000.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "12000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "500101",
+        "subjectName": "主营业务收入_销售商品主营收入",
+        "debit": "0.00",
+        "credit": "11280.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "22210107",
+        "subjectName": "应交税费_应交增值税_销项税额",
+        "debit": "0.00",
+        "credit": "720.00"
+      },
+      {
+        "voucherId": "243983",
+        "date": "2022-01-01",
+        "number": "记-6",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243983",
+        "date": "2022-01-01",
+        "number": "记-6",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243984",
+        "date": "2022-01-01",
+        "number": "记-7",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "56000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243984",
+        "date": "2022-01-01",
+        "number": "记-7",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "56000.00"
+      },
+      {
+        "voucherId": "243985",
+        "date": "2022-01-01",
+        "number": "记-8",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "9000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243985",
+        "date": "2022-01-01",
+        "number": "记-8",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "9000.00"
+      },
+      {
+        "voucherId": "243986",
+        "date": "2022-01-01",
+        "number": "记-9",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "28900.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243986",
+        "date": "2022-01-01",
+        "number": "记-9",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "28900.00"
+      },
+      {
+        "voucherId": "243987",
+        "date": "2022-01-01",
+        "number": "记-10",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "189798.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243987",
+        "date": "2022-01-01",
+        "number": "记-10",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "189798.00"
+      },
+      {
+        "voucherId": "243988",
+        "date": "2022-01-01",
+        "number": "记-11",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "45000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243988",
+        "date": "2022-01-01",
+        "number": "记-11",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "45000.00"
+      },
+      {
+        "voucherId": "243989",
+        "date": "2022-01-01",
+        "number": "记-12",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "25000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243989",
+        "date": "2022-01-01",
+        "number": "记-12",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "25000.00"
+      },
+      {
+        "voucherId": "243990",
+        "date": "2022-01-01",
+        "number": "记-13",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243990",
+        "date": "2022-01-01",
+        "number": "记-13",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243991",
+        "date": "2022-01-01",
+        "number": "记-14",
+        "summary": "收到补助",
+        "subjectCode": "100202",
+        "subjectName": "银行存款_招商银行",
+        "debit": "50000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243991",
+        "date": "2022-01-01",
+        "number": "记-14",
+        "summary": "收到补助",
+        "subjectCode": "530107",
+        "subjectName": "营业外收入_政府补助",
+        "debit": "0.00",
+        "credit": "50000.00"
+      },
+      {
+        "voucherId": "243992",
+        "date": "2022-01-01",
+        "number": "记-15",
+        "summary": "林一借款",
+        "subjectCode": "1221",
+        "subjectName": "其他应收款",
+        "debit": "3000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243992",
+        "date": "2022-01-01",
+        "number": "记-15",
+        "summary": "林一借款",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "3000.00"
+      },
+      {
+        "voucherId": "243993",
+        "date": "2022-01-01",
+        "number": "记-16",
+        "summary": "1月1日下午茶",
+        "subjectCode": "560214",
+        "subjectName": "管理费用_招待费",
+        "debit": "500.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243993",
+        "date": "2022-01-01",
+        "number": "记-16",
+        "summary": "1月1日下午茶",
+        "subjectCode": "2202",
+        "subjectName": "应付账款",
+        "debit": "0.00",
+        "credit": "500.00"
+      },
+      {
+        "voucherId": "243994",
+        "date": "2022-01-01",
+        "number": "记-17",
+        "summary": "购入苹果电脑0003",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243994",
+        "date": "2022-01-01",
+        "number": "记-17",
+        "summary": "购入苹果电脑0003",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243995",
+        "date": "2022-01-01",
+        "number": "记-18",
+        "summary": "购入苹果电脑0004",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243995",
+        "date": "2022-01-01",
+        "number": "记-18",
+        "summary": "购入苹果电脑0004",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243996",
+        "date": "2022-01-01",
+        "number": "记-19",
+        "summary": "购入DELL电脑0004",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243996",
+        "date": "2022-01-01",
+        "number": "记-19",
+        "summary": "购入DELL电脑0004",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "243997",
+        "date": "2022-01-01",
+        "number": "记-20",
+        "summary": "购入苹果电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243997",
+        "date": "2022-01-01",
+        "number": "记-20",
+        "summary": "购入苹果电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243998",
+        "date": "2022-01-01",
+        "number": "记-21",
+        "summary": "购入DELL电脑0003",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243998",
+        "date": "2022-01-01",
+        "number": "记-21",
+        "summary": "购入DELL电脑0003",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "243999",
+        "date": "2022-01-01",
+        "number": "记-22",
+        "summary": "购入苹果电脑0006",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243999",
+        "date": "2022-01-01",
+        "number": "记-22",
+        "summary": "购入苹果电脑0006",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "244000",
+        "date": "2022-01-01",
+        "number": "记-23",
+        "summary": "购入DELL电脑0002",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244000",
+        "date": "2022-01-01",
+        "number": "记-23",
+        "summary": "购入DELL电脑0002",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244001",
+        "date": "2022-01-01",
+        "number": "记-24",
+        "summary": "购入苹果电脑0001",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "12900.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244001",
+        "date": "2022-01-01",
+        "number": "记-24",
+        "summary": "购入苹果电脑0001",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "12900.00"
+      },
+      {
+        "voucherId": "244002",
+        "date": "2022-01-01",
+        "number": "记-25",
+        "summary": "购入苹果电脑0002",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "5600.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244002",
+        "date": "2022-01-01",
+        "number": "记-25",
+        "summary": "购入苹果电脑0002",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "5600.00"
+      },
+      {
+        "voucherId": "244003",
+        "date": "2022-01-01",
+        "number": "记-26",
+        "summary": "购入DELL电脑0001",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244003",
+        "date": "2022-01-01",
+        "number": "记-26",
+        "summary": "购入DELL电脑0001",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244004",
+        "date": "2022-01-01",
+        "number": "记-27",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244004",
+        "date": "2022-01-01",
+        "number": "记-27",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244005",
+        "date": "2022-01-01",
+        "number": "记-28",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244005",
+        "date": "2022-01-01",
+        "number": "记-28",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244006",
+        "date": "2022-01-01",
+        "number": "记-29",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244006",
+        "date": "2022-01-01",
+        "number": "记-29",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244007",
+        "date": "2022-01-01",
+        "number": "记-30",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244007",
+        "date": "2022-01-01",
+        "number": "记-30",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244008",
+        "date": "2022-01-01",
+        "number": "记-31",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244008",
+        "date": "2022-01-01",
+        "number": "记-31",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244009",
+        "date": "2022-01-01",
+        "number": "记-32",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244009",
+        "date": "2022-01-01",
+        "number": "记-32",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244010",
+        "date": "2022-01-01",
+        "number": "记-33",
+        "summary": "充电桩盈利",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "31009.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244010",
+        "date": "2022-01-01",
+        "number": "记-33",
+        "summary": "充电桩盈利",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "31009.00"
+      },
+      {
+        "voucherId": "244011",
+        "date": "2022-01-01",
+        "number": "记-34",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244011",
+        "date": "2022-01-01",
+        "number": "记-34",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "244058",
+        "date": "2022-01-01",
+        "number": "记-35",
+        "summary": "F2-LAB-35616-20260909-ORIGINAL-01",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "0.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244058",
+        "date": "2022-01-01",
+        "number": "记-35",
+        "summary": "F2-LAB-35616-20260909-ORIGINAL-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "0.01"
+      },
+      {
+        "voucherId": "244063",
+        "date": "2022-01-01",
+        "number": "记-36",
+        "summary": "F2-LAB-35616-20260909-FX-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "6.36",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244063",
+        "date": "2022-01-01",
+        "number": "记-36",
+        "summary": "F2-LAB-35616-20260909-FX-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "6.36"
+      },
+      {
+        "voucherId": "244067",
+        "date": "2022-01-01",
+        "number": "记-37",
+        "summary": "F2-LAB-35616-20260909-FX-ROUND-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "1.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244067",
+        "date": "2022-01-01",
+        "number": "记-37",
+        "summary": "F2-LAB-35616-20260909-FX-ROUND-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "1.01"
+      },
+      {
+        "voucherId": "244069",
+        "date": "2022-01-01",
+        "number": "记-38",
+        "summary": "F2-LAB-35616-20260909-COMBINED-01",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "0.30",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244069",
+        "date": "2022-01-01",
+        "number": "记-38",
+        "summary": "F2-LAB-35616-20260909-COMBINED-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "0.00",
+        "credit": "0.30"
+      },
+      {
+        "voucherId": "244078",
+        "date": "2022-01-01",
+        "number": "记-39",
+        "summary": "人工验收测试—银行取现",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "12.80",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244078",
+        "date": "2022-01-01",
+        "number": "记-39",
+        "summary": "人工验收测试—银行取现",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "12.80"
+      },
+      {
+        "voucherId": "244240",
+        "date": "2022-01-01",
+        "number": "记-40",
+        "summary": "F3B-35616-DELETE-VOUCHER-20260910-01",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "0.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244240",
+        "date": "2022-01-01",
+        "number": "记-40",
+        "summary": "F3B-35616-DELETE-VOUCHER-20260910-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "0.01"
+      },
+      {
+        "voucherId": "244081",
+        "date": "2025-10-31",
+        "number": "记-1",
+        "summary": "施奕勇苏州-杭州西差旅报销",
+        "subjectCode": "560211",
+        "subjectName": "管理费用_差旅费",
+        "debit": "148.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244081",
+        "date": "2025-10-31",
+        "number": "记-1",
+        "summary": "施奕勇苏州-杭州西差旅报销",
+        "subjectCode": "2241",
+        "subjectName": "其他应付款",
+        "debit": "0.00",
+        "credit": "148.00"
+      },
+      {
+        "voucherId": "244083",
+        "date": "2025-10-31",
+        "number": "记-2",
+        "summary": "施奕勇苏州南-杭州西差旅报销",
+        "subjectCode": "560211",
+        "subjectName": "管理费用_差旅费",
+        "debit": "77.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244083",
+        "date": "2025-10-31",
+        "number": "记-2",
+        "summary": "施奕勇苏州南-杭州西差旅报销",
+        "subjectCode": "2241",
+        "subjectName": "其他应付款",
+        "debit": "0.00",
+        "credit": "77.00"
+      }
+    ]
+  },
+  "after": {
+    "accountId": "35616",
+    "accountName": "施的演示账套",
+    "month": "不限月份",
+    "page": 1,
+    "pageSize": 100,
+    "total": 41,
+    "hasMore": false,
+    "voucherCount": 41,
+    "notice": "total 为接口报告的本次筛选总张数，voucherCount 为本页张数，rows 为分录行；本页不是全部结果。month/monthEnd 按起止会计期间传给接口，日期为凭证日期，列表未返回独立会计期间，期间筛选未逐笔复核。summary 由接口筛选，精确或模糊匹配语义未核验；保留返回凭证的全部分录，不把未命中行删掉。翻页须保留筛选条件和 pageSize，期间数据可能变化。",
+    "rows": [
+      {
+        "voucherId": "243978",
+        "date": "2022-01-01",
+        "number": "记-1",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243978",
+        "date": "2022-01-01",
+        "number": "记-1",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243979",
+        "date": "2022-01-01",
+        "number": "记-2",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243979",
+        "date": "2022-01-01",
+        "number": "记-2",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243980",
+        "date": "2022-01-01",
+        "number": "记-3",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243980",
+        "date": "2022-01-01",
+        "number": "记-3",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243981",
+        "date": "2022-01-01",
+        "number": "记-4",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "12000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243981",
+        "date": "2022-01-01",
+        "number": "记-4",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "12000.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "12000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "500101",
+        "subjectName": "主营业务收入_销售商品主营收入",
+        "debit": "0.00",
+        "credit": "11280.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "22210107",
+        "subjectName": "应交税费_应交增值税_销项税额",
+        "debit": "0.00",
+        "credit": "720.00"
+      },
+      {
+        "voucherId": "243983",
+        "date": "2022-01-01",
+        "number": "记-6",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243983",
+        "date": "2022-01-01",
+        "number": "记-6",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243984",
+        "date": "2022-01-01",
+        "number": "记-7",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "56000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243984",
+        "date": "2022-01-01",
+        "number": "记-7",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "56000.00"
+      },
+      {
+        "voucherId": "243985",
+        "date": "2022-01-01",
+        "number": "记-8",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "9000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243985",
+        "date": "2022-01-01",
+        "number": "记-8",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "9000.00"
+      },
+      {
+        "voucherId": "243986",
+        "date": "2022-01-01",
+        "number": "记-9",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "28900.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243986",
+        "date": "2022-01-01",
+        "number": "记-9",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "28900.00"
+      },
+      {
+        "voucherId": "243987",
+        "date": "2022-01-01",
+        "number": "记-10",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "189798.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243987",
+        "date": "2022-01-01",
+        "number": "记-10",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "189798.00"
+      },
+      {
+        "voucherId": "243988",
+        "date": "2022-01-01",
+        "number": "记-11",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "45000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243988",
+        "date": "2022-01-01",
+        "number": "记-11",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "45000.00"
+      },
+      {
+        "voucherId": "243989",
+        "date": "2022-01-01",
+        "number": "记-12",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "25000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243989",
+        "date": "2022-01-01",
+        "number": "记-12",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "25000.00"
+      },
+      {
+        "voucherId": "243990",
+        "date": "2022-01-01",
+        "number": "记-13",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243990",
+        "date": "2022-01-01",
+        "number": "记-13",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243991",
+        "date": "2022-01-01",
+        "number": "记-14",
+        "summary": "收到补助",
+        "subjectCode": "100202",
+        "subjectName": "银行存款_招商银行",
+        "debit": "50000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243991",
+        "date": "2022-01-01",
+        "number": "记-14",
+        "summary": "收到补助",
+        "subjectCode": "530107",
+        "subjectName": "营业外收入_政府补助",
+        "debit": "0.00",
+        "credit": "50000.00"
+      },
+      {
+        "voucherId": "243992",
+        "date": "2022-01-01",
+        "number": "记-15",
+        "summary": "林一借款",
+        "subjectCode": "1221",
+        "subjectName": "其他应收款",
+        "debit": "3000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243992",
+        "date": "2022-01-01",
+        "number": "记-15",
+        "summary": "林一借款",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "3000.00"
+      },
+      {
+        "voucherId": "243993",
+        "date": "2022-01-01",
+        "number": "记-16",
+        "summary": "1月1日下午茶",
+        "subjectCode": "560214",
+        "subjectName": "管理费用_招待费",
+        "debit": "500.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243993",
+        "date": "2022-01-01",
+        "number": "记-16",
+        "summary": "1月1日下午茶",
+        "subjectCode": "2202",
+        "subjectName": "应付账款",
+        "debit": "0.00",
+        "credit": "500.00"
+      },
+      {
+        "voucherId": "243994",
+        "date": "2022-01-01",
+        "number": "记-17",
+        "summary": "购入苹果电脑0003",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243994",
+        "date": "2022-01-01",
+        "number": "记-17",
+        "summary": "购入苹果电脑0003",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243995",
+        "date": "2022-01-01",
+        "number": "记-18",
+        "summary": "购入苹果电脑0004",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243995",
+        "date": "2022-01-01",
+        "number": "记-18",
+        "summary": "购入苹果电脑0004",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243996",
+        "date": "2022-01-01",
+        "number": "记-19",
+        "summary": "购入DELL电脑0004",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243996",
+        "date": "2022-01-01",
+        "number": "记-19",
+        "summary": "购入DELL电脑0004",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "243997",
+        "date": "2022-01-01",
+        "number": "记-20",
+        "summary": "购入苹果电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243997",
+        "date": "2022-01-01",
+        "number": "记-20",
+        "summary": "购入苹果电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243998",
+        "date": "2022-01-01",
+        "number": "记-21",
+        "summary": "购入DELL电脑0003",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243998",
+        "date": "2022-01-01",
+        "number": "记-21",
+        "summary": "购入DELL电脑0003",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "243999",
+        "date": "2022-01-01",
+        "number": "记-22",
+        "summary": "购入苹果电脑0006",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243999",
+        "date": "2022-01-01",
+        "number": "记-22",
+        "summary": "购入苹果电脑0006",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "244000",
+        "date": "2022-01-01",
+        "number": "记-23",
+        "summary": "购入DELL电脑0002",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244000",
+        "date": "2022-01-01",
+        "number": "记-23",
+        "summary": "购入DELL电脑0002",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244001",
+        "date": "2022-01-01",
+        "number": "记-24",
+        "summary": "购入苹果电脑0001",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "12900.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244001",
+        "date": "2022-01-01",
+        "number": "记-24",
+        "summary": "购入苹果电脑0001",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "12900.00"
+      },
+      {
+        "voucherId": "244002",
+        "date": "2022-01-01",
+        "number": "记-25",
+        "summary": "购入苹果电脑0002",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "5600.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244002",
+        "date": "2022-01-01",
+        "number": "记-25",
+        "summary": "购入苹果电脑0002",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "5600.00"
+      },
+      {
+        "voucherId": "244003",
+        "date": "2022-01-01",
+        "number": "记-26",
+        "summary": "购入DELL电脑0001",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244003",
+        "date": "2022-01-01",
+        "number": "记-26",
+        "summary": "购入DELL电脑0001",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244004",
+        "date": "2022-01-01",
+        "number": "记-27",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244004",
+        "date": "2022-01-01",
+        "number": "记-27",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244005",
+        "date": "2022-01-01",
+        "number": "记-28",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244005",
+        "date": "2022-01-01",
+        "number": "记-28",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244006",
+        "date": "2022-01-01",
+        "number": "记-29",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244006",
+        "date": "2022-01-01",
+        "number": "记-29",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244007",
+        "date": "2022-01-01",
+        "number": "记-30",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244007",
+        "date": "2022-01-01",
+        "number": "记-30",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244008",
+        "date": "2022-01-01",
+        "number": "记-31",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244008",
+        "date": "2022-01-01",
+        "number": "记-31",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244009",
+        "date": "2022-01-01",
+        "number": "记-32",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244009",
+        "date": "2022-01-01",
+        "number": "记-32",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244010",
+        "date": "2022-01-01",
+        "number": "记-33",
+        "summary": "充电桩盈利",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "31009.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244010",
+        "date": "2022-01-01",
+        "number": "记-33",
+        "summary": "充电桩盈利",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "31009.00"
+      },
+      {
+        "voucherId": "244011",
+        "date": "2022-01-01",
+        "number": "记-34",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244011",
+        "date": "2022-01-01",
+        "number": "记-34",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "244058",
+        "date": "2022-01-01",
+        "number": "记-35",
+        "summary": "F2-LAB-35616-20260909-ORIGINAL-01",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "0.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244058",
+        "date": "2022-01-01",
+        "number": "记-35",
+        "summary": "F2-LAB-35616-20260909-ORIGINAL-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "0.01"
+      },
+      {
+        "voucherId": "244063",
+        "date": "2022-01-01",
+        "number": "记-36",
+        "summary": "F2-LAB-35616-20260909-FX-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "6.36",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244063",
+        "date": "2022-01-01",
+        "number": "记-36",
+        "summary": "F2-LAB-35616-20260909-FX-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "6.36"
+      },
+      {
+        "voucherId": "244067",
+        "date": "2022-01-01",
+        "number": "记-37",
+        "summary": "F2-LAB-35616-20260909-FX-ROUND-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "1.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244067",
+        "date": "2022-01-01",
+        "number": "记-37",
+        "summary": "F2-LAB-35616-20260909-FX-ROUND-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "1.01"
+      },
+      {
+        "voucherId": "244069",
+        "date": "2022-01-01",
+        "number": "记-38",
+        "summary": "F2-LAB-35616-20260909-COMBINED-01",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "0.30",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244069",
+        "date": "2022-01-01",
+        "number": "记-38",
+        "summary": "F2-LAB-35616-20260909-COMBINED-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "0.00",
+        "credit": "0.30"
+      },
+      {
+        "voucherId": "244078",
+        "date": "2022-01-01",
+        "number": "记-39",
+        "summary": "人工验收测试—银行取现",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "12.80",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244078",
+        "date": "2022-01-01",
+        "number": "记-39",
+        "summary": "人工验收测试—银行取现",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "12.80"
+      },
+      {
+        "voucherId": "244081",
+        "date": "2025-10-31",
+        "number": "记-1",
+        "summary": "施奕勇苏州-杭州西差旅报销",
+        "subjectCode": "560211",
+        "subjectName": "管理费用_差旅费",
+        "debit": "148.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244081",
+        "date": "2025-10-31",
+        "number": "记-1",
+        "summary": "施奕勇苏州-杭州西差旅报销",
+        "subjectCode": "2241",
+        "subjectName": "其他应付款",
+        "debit": "0.00",
+        "credit": "148.00"
+      },
+      {
+        "voucherId": "244083",
+        "date": "2025-10-31",
+        "number": "记-2",
+        "summary": "施奕勇苏州南-杭州西差旅报销",
+        "subjectCode": "560211",
+        "subjectName": "管理费用_差旅费",
+        "debit": "77.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244083",
+        "date": "2025-10-31",
+        "number": "记-2",
+        "summary": "施奕勇苏州南-杭州西差旅报销",
+        "subjectCode": "2241",
+        "subjectName": "其他应付款",
+        "debit": "0.00",
+        "credit": "77.00"
+      }
+    ]
+  },
+  "afterAgain": {
+    "accountId": "35616",
+    "accountName": "施的演示账套",
+    "month": "不限月份",
+    "page": 1,
+    "pageSize": 100,
+    "total": 41,
+    "hasMore": false,
+    "voucherCount": 41,
+    "notice": "total 为接口报告的本次筛选总张数，voucherCount 为本页张数，rows 为分录行；本页不是全部结果。month/monthEnd 按起止会计期间传给接口，日期为凭证日期，列表未返回独立会计期间，期间筛选未逐笔复核。summary 由接口筛选，精确或模糊匹配语义未核验；保留返回凭证的全部分录，不把未命中行删掉。翻页须保留筛选条件和 pageSize，期间数据可能变化。",
+    "rows": [
+      {
+        "voucherId": "243978",
+        "date": "2022-01-01",
+        "number": "记-1",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243978",
+        "date": "2022-01-01",
+        "number": "记-1",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243979",
+        "date": "2022-01-01",
+        "number": "记-2",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243979",
+        "date": "2022-01-01",
+        "number": "记-2",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243980",
+        "date": "2022-01-01",
+        "number": "记-3",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243980",
+        "date": "2022-01-01",
+        "number": "记-3",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243981",
+        "date": "2022-01-01",
+        "number": "记-4",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "12000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243981",
+        "date": "2022-01-01",
+        "number": "记-4",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "12000.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "12000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "500101",
+        "subjectName": "主营业务收入_销售商品主营收入",
+        "debit": "0.00",
+        "credit": "11280.00"
+      },
+      {
+        "voucherId": "243982",
+        "date": "2022-01-01",
+        "number": "记-5",
+        "summary": "销售10台打印机",
+        "subjectCode": "22210107",
+        "subjectName": "应交税费_应交增值税_销项税额",
+        "debit": "0.00",
+        "credit": "720.00"
+      },
+      {
+        "voucherId": "243983",
+        "date": "2022-01-01",
+        "number": "记-6",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243983",
+        "date": "2022-01-01",
+        "number": "记-6",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243984",
+        "date": "2022-01-01",
+        "number": "记-7",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "56000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243984",
+        "date": "2022-01-01",
+        "number": "记-7",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "56000.00"
+      },
+      {
+        "voucherId": "243985",
+        "date": "2022-01-01",
+        "number": "记-8",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "9000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243985",
+        "date": "2022-01-01",
+        "number": "记-8",
+        "summary": "销售打印机-一批次-淘云",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "9000.00"
+      },
+      {
+        "voucherId": "243986",
+        "date": "2022-01-01",
+        "number": "记-9",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "28900.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243986",
+        "date": "2022-01-01",
+        "number": "记-9",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "28900.00"
+      },
+      {
+        "voucherId": "243987",
+        "date": "2022-01-01",
+        "number": "记-10",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "189798.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243987",
+        "date": "2022-01-01",
+        "number": "记-10",
+        "summary": "销售打印机-一批次-阳光",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "189798.00"
+      },
+      {
+        "voucherId": "243988",
+        "date": "2022-01-01",
+        "number": "记-11",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "45000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243988",
+        "date": "2022-01-01",
+        "number": "记-11",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "45000.00"
+      },
+      {
+        "voucherId": "243989",
+        "date": "2022-01-01",
+        "number": "记-12",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "25000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243989",
+        "date": "2022-01-01",
+        "number": "记-12",
+        "summary": "销售打印机-一批次-一米",
+        "subjectCode": "500103",
+        "subjectName": "主营业务收入_硬件销售收入",
+        "debit": "0.00",
+        "credit": "25000.00"
+      },
+      {
+        "voucherId": "243990",
+        "date": "2022-01-01",
+        "number": "记-13",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243990",
+        "date": "2022-01-01",
+        "number": "记-13",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "243991",
+        "date": "2022-01-01",
+        "number": "记-14",
+        "summary": "收到补助",
+        "subjectCode": "100202",
+        "subjectName": "银行存款_招商银行",
+        "debit": "50000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243991",
+        "date": "2022-01-01",
+        "number": "记-14",
+        "summary": "收到补助",
+        "subjectCode": "530107",
+        "subjectName": "营业外收入_政府补助",
+        "debit": "0.00",
+        "credit": "50000.00"
+      },
+      {
+        "voucherId": "243992",
+        "date": "2022-01-01",
+        "number": "记-15",
+        "summary": "林一借款",
+        "subjectCode": "1221",
+        "subjectName": "其他应收款",
+        "debit": "3000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243992",
+        "date": "2022-01-01",
+        "number": "记-15",
+        "summary": "林一借款",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "3000.00"
+      },
+      {
+        "voucherId": "243993",
+        "date": "2022-01-01",
+        "number": "记-16",
+        "summary": "1月1日下午茶",
+        "subjectCode": "560214",
+        "subjectName": "管理费用_招待费",
+        "debit": "500.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243993",
+        "date": "2022-01-01",
+        "number": "记-16",
+        "summary": "1月1日下午茶",
+        "subjectCode": "2202",
+        "subjectName": "应付账款",
+        "debit": "0.00",
+        "credit": "500.00"
+      },
+      {
+        "voucherId": "243994",
+        "date": "2022-01-01",
+        "number": "记-17",
+        "summary": "购入苹果电脑0003",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243994",
+        "date": "2022-01-01",
+        "number": "记-17",
+        "summary": "购入苹果电脑0003",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243995",
+        "date": "2022-01-01",
+        "number": "记-18",
+        "summary": "购入苹果电脑0004",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243995",
+        "date": "2022-01-01",
+        "number": "记-18",
+        "summary": "购入苹果电脑0004",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243996",
+        "date": "2022-01-01",
+        "number": "记-19",
+        "summary": "购入DELL电脑0004",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243996",
+        "date": "2022-01-01",
+        "number": "记-19",
+        "summary": "购入DELL电脑0004",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "243997",
+        "date": "2022-01-01",
+        "number": "记-20",
+        "summary": "购入苹果电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243997",
+        "date": "2022-01-01",
+        "number": "记-20",
+        "summary": "购入苹果电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "243998",
+        "date": "2022-01-01",
+        "number": "记-21",
+        "summary": "购入DELL电脑0003",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243998",
+        "date": "2022-01-01",
+        "number": "记-21",
+        "summary": "购入DELL电脑0003",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "243999",
+        "date": "2022-01-01",
+        "number": "记-22",
+        "summary": "购入苹果电脑0006",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "11100.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "243999",
+        "date": "2022-01-01",
+        "number": "记-22",
+        "summary": "购入苹果电脑0006",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "11100.00"
+      },
+      {
+        "voucherId": "244000",
+        "date": "2022-01-01",
+        "number": "记-23",
+        "summary": "购入DELL电脑0002",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244000",
+        "date": "2022-01-01",
+        "number": "记-23",
+        "summary": "购入DELL电脑0002",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244001",
+        "date": "2022-01-01",
+        "number": "记-24",
+        "summary": "购入苹果电脑0001",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "12900.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244001",
+        "date": "2022-01-01",
+        "number": "记-24",
+        "summary": "购入苹果电脑0001",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "12900.00"
+      },
+      {
+        "voucherId": "244002",
+        "date": "2022-01-01",
+        "number": "记-25",
+        "summary": "购入苹果电脑0002",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "5600.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244002",
+        "date": "2022-01-01",
+        "number": "记-25",
+        "summary": "购入苹果电脑0002",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "5600.00"
+      },
+      {
+        "voucherId": "244003",
+        "date": "2022-01-01",
+        "number": "记-26",
+        "summary": "购入DELL电脑0001",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244003",
+        "date": "2022-01-01",
+        "number": "记-26",
+        "summary": "购入DELL电脑0001",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244004",
+        "date": "2022-01-01",
+        "number": "记-27",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244004",
+        "date": "2022-01-01",
+        "number": "记-27",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244005",
+        "date": "2022-01-01",
+        "number": "记-28",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244005",
+        "date": "2022-01-01",
+        "number": "记-28",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244006",
+        "date": "2022-01-01",
+        "number": "记-29",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244006",
+        "date": "2022-01-01",
+        "number": "记-29",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244007",
+        "date": "2022-01-01",
+        "number": "记-30",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244007",
+        "date": "2022-01-01",
+        "number": "记-30",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244008",
+        "date": "2022-01-01",
+        "number": "记-31",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244008",
+        "date": "2022-01-01",
+        "number": "记-31",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244009",
+        "date": "2022-01-01",
+        "number": "记-32",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "1601",
+        "subjectName": "固定资产",
+        "debit": "7800.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244009",
+        "date": "2022-01-01",
+        "number": "记-32",
+        "summary": "购入DELL电脑0005",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "7800.00"
+      },
+      {
+        "voucherId": "244010",
+        "date": "2022-01-01",
+        "number": "记-33",
+        "summary": "充电桩盈利",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "31009.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244010",
+        "date": "2022-01-01",
+        "number": "记-33",
+        "summary": "充电桩盈利",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "31009.00"
+      },
+      {
+        "voucherId": "244011",
+        "date": "2022-01-01",
+        "number": "记-34",
+        "summary": "销售商品（应收款）",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "30000.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244011",
+        "date": "2022-01-01",
+        "number": "记-34",
+        "summary": "销售商品（应收款）--押金",
+        "subjectCode": "500102",
+        "subjectName": "主营业务收入_项目主营业务收入",
+        "debit": "0.00",
+        "credit": "30000.00"
+      },
+      {
+        "voucherId": "244058",
+        "date": "2022-01-01",
+        "number": "记-35",
+        "summary": "F2-LAB-35616-20260909-ORIGINAL-01",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "0.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244058",
+        "date": "2022-01-01",
+        "number": "记-35",
+        "summary": "F2-LAB-35616-20260909-ORIGINAL-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "0.01"
+      },
+      {
+        "voucherId": "244063",
+        "date": "2022-01-01",
+        "number": "记-36",
+        "summary": "F2-LAB-35616-20260909-FX-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "6.36",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244063",
+        "date": "2022-01-01",
+        "number": "记-36",
+        "summary": "F2-LAB-35616-20260909-FX-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "6.36"
+      },
+      {
+        "voucherId": "244067",
+        "date": "2022-01-01",
+        "number": "记-37",
+        "summary": "F2-LAB-35616-20260909-FX-ROUND-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "1.01",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244067",
+        "date": "2022-01-01",
+        "number": "记-37",
+        "summary": "F2-LAB-35616-20260909-FX-ROUND-01",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "1.01"
+      },
+      {
+        "voucherId": "244069",
+        "date": "2022-01-01",
+        "number": "记-38",
+        "summary": "F2-LAB-35616-20260909-COMBINED-01",
+        "subjectCode": "112201",
+        "subjectName": "应收账款_vip客户",
+        "debit": "0.30",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244069",
+        "date": "2022-01-01",
+        "number": "记-38",
+        "summary": "F2-LAB-35616-20260909-COMBINED-01",
+        "subjectCode": "100299",
+        "subjectName": "银行存款_F2外币测试",
+        "debit": "0.00",
+        "credit": "0.30"
+      },
+      {
+        "voucherId": "244078",
+        "date": "2022-01-01",
+        "number": "记-39",
+        "summary": "人工验收测试—银行取现",
+        "subjectCode": "1001",
+        "subjectName": "库存现金",
+        "debit": "12.80",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244078",
+        "date": "2022-01-01",
+        "number": "记-39",
+        "summary": "人工验收测试—银行取现",
+        "subjectCode": "100201",
+        "subjectName": "银行存款_工商银行",
+        "debit": "0.00",
+        "credit": "12.80"
+      },
+      {
+        "voucherId": "244081",
+        "date": "2025-10-31",
+        "number": "记-1",
+        "summary": "施奕勇苏州-杭州西差旅报销",
+        "subjectCode": "560211",
+        "subjectName": "管理费用_差旅费",
+        "debit": "148.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244081",
+        "date": "2025-10-31",
+        "number": "记-1",
+        "summary": "施奕勇苏州-杭州西差旅报销",
+        "subjectCode": "2241",
+        "subjectName": "其他应付款",
+        "debit": "0.00",
+        "credit": "148.00"
+      },
+      {
+        "voucherId": "244083",
+        "date": "2025-10-31",
+        "number": "记-2",
+        "summary": "施奕勇苏州南-杭州西差旅报销",
+        "subjectCode": "560211",
+        "subjectName": "管理费用_差旅费",
+        "debit": "77.00",
+        "credit": "0.00"
+      },
+      {
+        "voucherId": "244083",
+        "date": "2025-10-31",
+        "number": "记-2",
+        "summary": "施奕勇苏州南-杭州西差旅报销",
+        "subjectCode": "2241",
+        "subjectName": "其他应付款",
+        "debit": "0.00",
+        "credit": "77.00"
+      }
+    ]
+  },
+  "calls": [
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/auth/getAccessToken.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/finance/certificate/delCertificate.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson"
+  ],
+  "limitation": "No assertion of full unrelated detail equality, vendor transaction locks or deletion of attachments; fixture has no attachments."
+}

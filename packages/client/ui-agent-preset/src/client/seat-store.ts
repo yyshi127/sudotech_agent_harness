@@ -142,7 +142,7 @@ export class AgentPresetSeatController {
   }
 
   /**
-   * Hand the staged choice to the current session, if there is one to take it.
+   * Hand the staged choice to the current session, or reflect its committed preset when no choice is pending.
    *
    * Called both by `select()` and by whoever observes the current session
    * changing, because the session may appear either before or after the pick.
@@ -151,11 +151,17 @@ export class AgentPresetSeatController {
   async apply(): Promise<void> {
     const staged = this.staged
     const session = this.currentSession()
-    if (staged === undefined || session === undefined) return
+    if (staged === undefined) {
+      const current = session?.agentPreset ?? this.fallback
+      if (this.store.getSnapshot().current !== current) this.set({ current })
+      return
+    }
+    if (session === undefined) return
     // A started session's history was produced under its own composition; the
     // host refuses the swap, so the stage is no longer meaningful.
     if (!session.blank || session.agentPreset === staged) {
       this.staged = undefined
+      this.set({ current: session.agentPreset ?? this.fallback })
       return
     }
     this.set({ busy: true, error: null })

@@ -1,0 +1,263 @@
+{
+  "checkedAt": "2026-09-14T08:04:50.166Z",
+  "accountId": "35616",
+  "accountName": "施的演示账套",
+  "month": "2022-01",
+  "monthEnd": "2022-01",
+  "businessWrites": 0,
+  "sources": [
+    {
+      "requestId": "19168.1138",
+      "path": "/auxiliary/category/getList.rjson",
+      "query": {
+        "setOfBooksId": 35616
+      },
+      "result": 100,
+      "rows": [
+        {
+          "categoryCode": "01",
+          "categoryName": "客户",
+          "id": 473814,
+          "isSys": true,
+          "setOfBooksId": 35616
+        },
+        {
+          "categoryCode": "02",
+          "categoryName": "供应商",
+          "id": 473815,
+          "isSys": true,
+          "setOfBooksId": 35616
+        },
+        {
+          "categoryCode": "03",
+          "categoryName": "职员",
+          "id": 473816,
+          "isSys": true,
+          "setOfBooksId": 35616
+        },
+        {
+          "categoryCode": "04",
+          "categoryName": "部门",
+          "id": 473817,
+          "isSys": true,
+          "setOfBooksId": 35616
+        },
+        {
+          "categoryCode": "05",
+          "categoryName": "项目",
+          "id": 473818,
+          "isSys": true,
+          "setOfBooksId": 35616
+        },
+        {
+          "categoryCode": "06",
+          "categoryName": "存货",
+          "id": 473819,
+          "isSys": true,
+          "setOfBooksId": 35616
+        },
+        {
+          "categoryCode": "07",
+          "categoryName": "配件",
+          "id": 473820,
+          "isSys": false,
+          "setOfBooksId": 35616
+        }
+      ],
+      "accountIdHeader": "35616",
+      "method": "POST"
+    },
+    {
+      "requestId": "19168.1142",
+      "path": "/books/subsidiaryLedgerAuxiliary/getSubjectTreePage.rjson",
+      "query": {
+        "setOfBooksId": 35616,
+        "auxiliaryCategoryId": 473814,
+        "pageNo": 1,
+        "pageSize": 100,
+        "auxiliaryItemCode": "",
+        "displaySubject": true,
+        "displayBefourLoss": false,
+        "notDisplayZeroBalance": false,
+        "subjectCode": "",
+        "subjectType": "code",
+        "subjectNames": "",
+        "subjectLevelStart": 1,
+        "auxiliaryItemLabelInValue": [],
+        "abstractName": "",
+        "amountStart": null,
+        "amountEnd": null,
+        "subjectLevelEnd": 4,
+        "periodNumber": "2022-01",
+        "periodNumber2": "2022-01"
+      },
+      "result": 100,
+      "rows": [
+        {
+          "id": -191499,
+          "parentSubjectId": 0,
+          "subjectCode": "01",
+          "subjectLevel": 1,
+          "subjectName": "一米科技"
+        },
+        {
+          "id": 334292,
+          "parentSubjectId": -191499,
+          "subjectCode": "112201_01",
+          "subjectLevel": 2,
+          "subjectName": "应收账款_vip客户_一米科技"
+        },
+        {
+          "id": 334405,
+          "parentSubjectId": -191499,
+          "subjectCode": "500103_01_02",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_一米科技_快麦打印机-618"
+        },
+        {
+          "id": 334406,
+          "parentSubjectId": -191499,
+          "subjectCode": "500103_01_03",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_一米科技_扫描枪"
+        },
+        {
+          "id": -191500,
+          "parentSubjectId": 0,
+          "subjectCode": "02",
+          "subjectLevel": 1,
+          "subjectName": "阳光科技"
+        },
+        {
+          "id": 334407,
+          "parentSubjectId": -191500,
+          "subjectCode": "500103_02_01",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_阳光科技_快麦打印机-118"
+        },
+        {
+          "id": 334408,
+          "parentSubjectId": -191500,
+          "subjectCode": "500103_02_02",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_阳光科技_快麦打印机-618"
+        },
+        {
+          "id": 334409,
+          "parentSubjectId": -191500,
+          "subjectCode": "500103_02_03",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_阳光科技_扫描枪"
+        },
+        {
+          "id": -191501,
+          "parentSubjectId": 0,
+          "subjectCode": "03",
+          "subjectLevel": 1,
+          "subjectName": "淘云科技"
+        },
+        {
+          "id": 334293,
+          "parentSubjectId": -191501,
+          "subjectCode": "112201_03",
+          "subjectLevel": 2,
+          "subjectName": "应收账款_vip客户_淘云科技"
+        },
+        {
+          "id": 334410,
+          "parentSubjectId": -191501,
+          "subjectCode": "500103_03_01",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_淘云科技_快麦打印机-118"
+        },
+        {
+          "id": 334411,
+          "parentSubjectId": -191501,
+          "subjectCode": "500103_03_02",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_淘云科技_快麦打印机-618"
+        },
+        {
+          "id": 334412,
+          "parentSubjectId": -191501,
+          "subjectCode": "500103_03_03",
+          "subjectLevel": 2,
+          "subjectName": "主营业务收入_硬件销售收入_淘云科技_扫描枪"
+        }
+      ],
+      "accountIdHeader": "35616",
+      "method": "POST"
+    },
+    {
+      "requestId": "19168.1143",
+      "path": "/books/subsidiaryLedgerAuxiliary/getSubjectTreePage.rjson",
+      "query": {
+        "setOfBooksId": 35616,
+        "auxiliaryCategoryId": 473814,
+        "pageNo": 1,
+        "pageSize": 100,
+        "auxiliaryItemCode": "",
+        "displaySubject": true,
+        "displayBefourLoss": false,
+        "notDisplayZeroBalance": false,
+        "subjectCode": "",
+        "subjectType": "code",
+        "subjectNames": "",
+        "subjectLevelStart": 1,
+        "auxiliaryItemLabelInValue": [],
+        "abstractName": "",
+        "amountStart": null,
+        "amountEnd": null,
+        "subjectLevelEnd": 4,
+        "periodNumber": "2022-01",
+        "periodNumber2": "2022-01",
+        "parentSubjectId": 0,
+        "isNeedPage": true
+      },
+      "result": 100,
+      "rows": [],
+      "accountIdHeader": "35616",
+      "method": "POST"
+    }
+  ],
+  "selection": {
+    "label": "03 淘云科技",
+    "categoryId": 473814,
+    "subjectInfoId": -191501,
+    "requestId": "19168.1154",
+    "query": {
+      "auxiliaryCategoryId": 473814,
+      "pageNo": 1,
+      "pageSize": 100,
+      "auxiliaryItemCode": "",
+      "displaySubject": true,
+      "displayBefourLoss": false,
+      "notDisplayZeroBalance": false,
+      "subjectCode": "",
+      "subjectType": "code",
+      "subjectNames": "",
+      "subjectLevelStart": 1,
+      "auxiliaryItemLabelInValue": [],
+      "abstractName": "",
+      "amountStart": null,
+      "amountEnd": null,
+      "subjectLevelEnd": 4,
+      "periodNumber": "2022-01",
+      "periodNumber2": "2022-01",
+      "subjectInfoId": -191501,
+      "setOfBooksId": 35616
+    },
+    "accountIdHeader": "35616",
+    "responseSummary": {
+      "result": 100,
+      "count": 12,
+      "returnedRows": 12
+    }
+  },
+  "limitations": [
+    "Read-only native UI evidence, not product acceptance.",
+    "IDs are native returned values, not derived from public auxiliary IDs.",
+    "Returned candidates are query scoped; complete auxiliary inventory is not established.",
+    "Parent-root paged tree response was empty while non-parent candidates and visible roots were present."
+  ]
+}

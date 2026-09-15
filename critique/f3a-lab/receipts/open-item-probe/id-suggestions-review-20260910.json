@@ -1,0 +1,41 @@
+{
+  "ledgerId": "35616",
+  "ledgerName": "施的演示账套",
+  "company": "瑞华云",
+  "suggestionSource": "User screenshot codex-clipboard-20283af2-9b1f-48e9-880e-a115966e526b.png",
+  "suggestionStatus": "Unverified suggestions, not a confirmed API specification",
+  "endpoint": "https://cwdata.yiqiyun.com/finance/cashier/account/management/add.rjson",
+  "experiments": [
+    {
+      "directory": "singular-id-attempt-1/",
+      "change": "Remove auxiliaryItemNames, add numeric auxiliaryItemId191501",
+      "summary": "小兢F3A-35616-20260910-AR-SINGULAR-01",
+      "httpStatus": 200,
+      "result": 201,
+      "message": "未指定往来单位"
+    },
+    {
+      "directory": "names-as-id-attempt-1/",
+      "change": "Keep documented auxiliaryItemNames as a string, replace customer name with ID191501; no additional auxiliary ID/name fields",
+      "summary": "小兢F3A-35616-20260910-AR-NAMES-ID-01",
+      "httpStatus": 200,
+      "result": 201,
+      "message": "未指定往来单位"
+    }
+  ],
+  "readback": {
+    "receivables": 1,
+    "payables": 0,
+    "matchingNewRecords": 0,
+    "existingOpenItemsUnchanged": true,
+    "vouchers": 41,
+    "voucherIdsAndRowsUnchanged": true
+  },
+  "publicClientInspection": {
+    "source": "../../public-client/cwCashier.ac8da7.js",
+    "finding": "Receivable/payable handleSelectAuxiliary joins selected IDs with commas into auxiliaryItemIds and names into auxiliaryItemName. handleSave assigns accountId from subjectId, adds direction and balance, and dispatches cashierAccount.accountAdd. This corroborates the earlier UI capture; it does not establish public endpoint mapping.",
+    "earlierCapture": "browser-dry-capture-20260909.json"
+  },
+  "conclusion": "Both explicit screenshot suggestions were tested and rejected. No product mapping has been qualified. The error alone cannot distinguish missing undocumented input from a server conversion defect.",
+  "retryPolicy": "Both intent reservations are consumed; never repeat --send for either variant. Default invocation only reads."
+}

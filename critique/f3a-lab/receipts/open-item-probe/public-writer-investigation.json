@@ -1,0 +1,62 @@
+{
+  "scope": {"company": "瑞华云", "ledgerName": "施的演示账套", "ledgerId": "35616"},
+  "status": "Public writer remains unqualified; no product write capability enabled by these experiments.",
+  "document": {
+    "id": "B2llxm2D",
+    "url": "https://yiqbopenapi.superboss.cc/doc/share/view?docId=B2llxm2D&shareConfigId=awXPk8nW",
+    "localCopy": "../../public-docs/B2llxm2D.json",
+    "title": "生成应收应付日记账"
+  },
+  "publicRequest": {
+    "method": "POST",
+    "origin": "https://cwdata.yiqiyun.com",
+    "path": "/finance/cashier/account/management/add.rjson",
+    "authentication": "Existing authorized AppKey and accessToken in query parameters, omitted from this report.",
+    "contentType": "application/json; charset=utf-8",
+    "body": {
+      "booksName": "施的演示账套",
+      "categoryName": "其他收入",
+      "auxiliaryItemNames": "淘云科技",
+      "direction": false,
+      "date": "2022-01-01",
+      "abstractStr": "小兢F3A-35616-20260909-AR-PROBE-01",
+      "money": 0.03,
+      "resource": 1,
+      "keeperName": "施",
+      "accountId": 174626
+    },
+    "receivedResponse": {"httpStatus": 200, "result": 201, "message": "未指定往来单位"},
+    "evidence": "document-only-attempt-1/",
+    "replay": "Do not replay: this is a historical request, not a pending action. Any further mutation requires a separately justified and reserved experiment."
+  },
+  "independentControl": {
+    "source": "User-authorized Chrome UI creation followed by page refresh and public getCashierList readback",
+    "recordId": 72593,
+    "subjectId": 174626,
+    "auxiliaryItemIds": "191501",
+    "auxiliaryItemName": "淘云科技",
+    "setOfBooksId": 35616,
+    "money": "0.04",
+    "keeperName": "施",
+    "date": "2022-01-09",
+    "evidence": "ui-control-1-review.json",
+    "limitation": "This validates the existing account/customer and nonempty public reading, not the public creation mapping. The control date and amount differ from the failed marked API request; do not call the requests identical."
+  },
+  "newExperiments": [
+    {"evidence": "ledger-body-attempt-1/", "change": "Add top-level setOfBooksId35616", "result": 201},
+    {"evidence": "ledger-context-attempt-1/", "change": "Add documented corpUserInfo.accountId35616 only; no roles or user identity", "result": 201},
+    {"evidence": "document-only-attempt-1/", "change": "Use only documented fields with verified account/customer/maker, booleanfalse, and no experimental ledger header", "result": 201}
+  ],
+  "preservation": {
+    "vouchers": 41,
+    "voucherIdsAndRowHashUnchanged": true,
+    "receivables": 1,
+    "payables": 0,
+    "existingReceivableContentUnchanged": true,
+    "lastReadback": "document-only-attempt-1/readback-1788964983040.json"
+  },
+  "remainingUncertainty": "Which conversion or lookup rule in the public writer rejects this existing counterparty is not observable from its201 message. Neither an undocumented required field nor a server implementation defect has been proven.",
+  "technicalQuestionIfEscalated": "请核对B2llxm2D公开新增接口：辅助项目名称auxiliaryItemNames传淘云科技、账户accountId传174626时，为何返回201未指定往来单位？同账套35616页面创建记录72593成功，公开查询返回其auxiliaryItemIds191501和subjectId174626。请给出该既有客户在该接口的准确字段格式/参数位置，或按上述请求检查服务端转换日志。无需提供新的密钥。",
+  "nextSafeAction": "Use concrete documentation correction or service-side diagnostic evidence to select the next change; do not continue arbitrary parameter permutations or substitute the private UI endpoint in the product.",
+  "f3aComplete": false
+}

@@ -184,6 +184,10 @@ describe('connection node half', () => {
       // drive the host desktop.
       'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
       'financeClients.read', 'financeClients.create', 'financeClients.update', 'financeClients.archive', 'financeClients.stage',
+      'financeClients.checkConnection',
+      'financeClients.listYouchengAccounts',
+      'financeClients.readAttachmentStorage', 'financeClients.saveAttachmentStorage', 'financeClients.testAttachmentStorage',
+      'financeClients.readReimbursementConnection', 'financeClients.saveReimbursementConnection', 'financeClients.testReimbursementConnection',
     ]) {
       const denied = fakeResponse()
       await routes[0]!.handler(
@@ -344,6 +348,35 @@ describe('connection node half', () => {
     await fiber.dispose()
   })
 
+  it('checks privileged Remote paths before a trusted-host interceptor can use saved credentials', async () => {
+    const ctx = new Context()
+    const routes: WebRoute[] = []
+    ctx.provide('webServer', fakeHttpServer(routes, []) as WebServer)
+    const fiber = ctx.plugin({ inject: [...inject], apply }, { trustedHosts: ['harness.example'] })
+    await fiber.await()
+    const calls: string[] = []
+    const connection = ctx.get('connection') as HostConnectionHandle
+    connection.rpc.intercept('/api', () => true, async (endpoint) => {
+      calls.push(endpoint)
+      return { ok: true, value: null }
+    }, { authority: 'trusted-host' })
+    try {
+      const methods = ['financeClients/checkConnection', 'financeClients/listYouchengAccounts', 'financeClients/read', 'financeClients/update',
+        'financeClients/readAttachmentStorage', 'financeClients/saveAttachmentStorage', 'financeClients/testAttachmentStorage',
+        'financeClients/readReimbursementConnection', 'financeClients/saveReimbursementConnection', 'financeClients/testReimbursementConnection']
+      for (const method of methods) {
+        const body = { type: 'client-request', rpcId: 'privileged-remote', method, payload: { args: {} } }
+        const denied = fakeResponse()
+        await routes[0]!.handler(fakePost({ host: 'harness.example' }, `/api/${method}`, body), denied.response)
+        expect(denied.state).toMatchObject({ status: 403, body: 'forbidden' })
+        const accepted = fakeResponse()
+        await routes[0]!.handler(fakePost({ host: '127.0.0.1:3080' }, `/api/${method}`, body), accepted.response)
+        expect(accepted.state.status).toBe(200)
+      }
+      expect(calls).toEqual(methods)
+    } finally { await fiber.dispose() }
+  })
+
   it('applies the configured trust fence and JSON envelope checks to generic channels', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []
@@ -479,6 +512,8 @@ describe('connection node half over a real HTTP server', () => {
         'llm.discoverModels',
         'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
         'financeClients.read', 'financeClients.create', 'financeClients.update', 'financeClients.archive', 'financeClients.stage',
+        'financeClients.checkConnection',
+        'financeClients.listYouchengAccounts',
       ]) {
         expect([method, await call(port, method, 'harness.example')]).toEqual([method, 403])
       }

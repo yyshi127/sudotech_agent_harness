@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-10",
+  "scope": "CF24/CF25 same-response business-account identity in read-only recovery",
+  "goalStatus": "active",
+  "regression": {
+    "beforeFix": { "failed": 2, "skipped": 131 },
+    "afterFix": { "files": 2, "passed": 187, "durationSeconds": 8.94 },
+    "behavior": [
+      "Changed raw account identity prevents operation matching despite equal names and settlement amounts",
+      "Missing observed identity retains projected content but reports unavailable identity",
+      "Old accepted records missing original identity stay readable and byte-identical"
+    ]
+  },
+  "checks": [
+    { "command": "pnpm run lint", "exitCode": 0 },
+    { "command": "Shipping write-off snapshot refresh, initial attempt", "exitCode": 1, "detail": "Additional accepted scenarios reused claimed fixture IDs; fixed test-only IDs without weakening product claims" },
+    { "command": "Shipping write-off snapshot refresh after fixture correction", "exitCode": 0, "tests": 1, "scenarios": 6, "durationSeconds": 9.73 },
+    { "command": "Shipping write-off snapshot replay", "exitCode": 0, "tests": 1, "scenarios": 6, "durationSeconds": 9.79, "observation": "Prior session72443 no longer existed and its terminal result was unavailable; this is the observed replacement verification, not another scenario count" },
+    { "command": "pnpm run lint:contracts-ready", "exitCode": 0, "observation": "Prior session27907 result unavailable; observed replacement session36921 exited0" },
+    { "command": "pnpm run doc-sync before browser status update", "exitCode": 1, "passed": 26, "failed": 2, "durationSeconds": 71.32, "detail": "Existing youcheng-openapi-replica.md pairing and paragraph-wrap failures" },
+    { "command": "pnpm run doc-sync after browser status update", "exitCode": 1, "passed": 26, "failed": 2, "durationSeconds": 71.73, "detail": "Same existing replica pairing/wrap failures; changed status pair separately verified" },
+    { "command": "Named development-status pairing and git diff --check", "exitCode": 0 }
+  ],
+  "liveEvidence": "writeoff-settled-business-identity-20260910.json",
+  "liveReads": 6,
+  "liveBusinessWrites": 0,
+  "backendRestarted": false,
+  "hostWriteOffExecutorAvailable": false,
+  "remaining": ["Period/currency/association eligibility", "Version-bound Host execution", "Real main-app acceptance in both directions"],
+  "f3bComplete": false
+}

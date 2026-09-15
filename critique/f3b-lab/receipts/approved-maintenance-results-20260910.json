@@ -1,0 +1,27 @@
+{
+  "ledger": { "id": "35616", "name": "施的演示账套" },
+  "approval": "maintenance-approval-20260910.json",
+  "operations": [
+    { "action": "delete-journal", "id": "141107", "amount": "0.01", "requests": 1, "outcome": "rejected", "code": 201, "targetAfter": "present", "responseMessage": "Not retained by the existing product classifier; reason is not established", "evidence": "journal-delete/execution/readback.json" },
+    { "action": "delete-receivable", "id": "72604", "amount": "0.01", "requests": 1, "outcome": "accepted", "code": 100, "targetAfter": "not-observed-in-original-counted-scope", "otherSameDirectionPreserved": true, "otherDirectionPreserved": true, "journalsPreserved": true, "vouchersPreserved": true, "remainingBalances": "unavailable", "evidence": "open-item-maintenance/execution-72604/readback.json" },
+    { "action": "delete-payable", "id": "72605", "amount": "0.01", "requests": 1, "outcome": "accepted", "code": 100, "targetAfter": "not-observed-in-original-counted-scope", "otherSameDirectionPreserved": true, "otherDirectionPreserved": true, "journalsPreserved": true, "vouchersPreserved": true, "remainingBalances": "unavailable", "evidence": "open-item-maintenance/execution-72605/readback.json" },
+    { "action": "write-off-receivable", "id": "72606", "amount": "0.02", "requests": 1, "outcome": "accepted", "code": 100, "responseData": "65833", "remainingBalance": "0.00", "finished": true, "content": "matched", "settlement": "matched", "operationAttribution": "unverified", "createdJournal": { "id": "141108", "direction": "income", "amount": "0.02", "source": "WRITE_OFF", "cashAccountId": "174622" }, "priorJournalsPreserved": true, "otherOpenItemsPreserved": true, "vouchersPreserved": true, "evidence": "open-item-maintenance/execution-72606/readback.json" },
+    { "action": "write-off-payable", "id": "72607", "amount": "0.02", "requests": 1, "outcome": "accepted", "code": 100, "responseData": "65834", "remainingBalance": "0.00", "finished": true, "content": "matched", "settlement": "matched", "operationAttribution": "unverified", "createdJournal": { "id": "141109", "direction": "expense", "amount": "0.02", "source": "WRITE_OFF", "cashAccountId": "174622" }, "priorJournalsPreserved": true, "otherOpenItemsPreserved": true, "vouchersPreserved": true, "evidence": "open-item-maintenance/execution-72607/readback.json" }
+  ],
+  "evidenceRoot": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616",
+  "finalCounts": { "receivables": 4, "payables": 3, "journals": 6, "vouchers": 41 },
+  "writeRequests": 5,
+  "acceptedRequests": 4,
+  "rejectedRequests": 1,
+  "automaticRetries": 0,
+  "bankPayments": 0,
+  "productAcceptanceComplete": false,
+  "limitations": [
+    "Deletion absence is bounded to the original January2022 direction and counted inventories, not every possible ledger query.",
+    "Missing base-balance fields prevent declaring complete remaining-balance verification; surviving projected rows match exactly.",
+    "The write-off response data values differ from generated journal IDs. Direct operation-to-journal identifier linkage remains unqualified; channel WRITE_OFF, amount, direction, date and marker match.",
+    "The journal deletion 201 reason is unknown. No retry or alternative payload was sent.",
+    "Original-ID recovery of deleted records is not qualified. Before/after evidence remains on disk.",
+    "These standalone experiments do not complete the four pending Host/tool/confirmation integrations or F3B as a whole."
+  ]
+}

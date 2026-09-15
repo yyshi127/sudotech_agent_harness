@@ -1,0 +1,4 @@
+- button "Tool call finance_voucher_detail · voucher-1":
+  - img
+  - img
+  - text: Tool call finance_voucher_detail · voucher-1

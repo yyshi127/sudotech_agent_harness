@@ -26,6 +26,62 @@
       "types": "./lib/types/files-tool.d.ts",
       "default": "./lib/files-tool.js"
     },
+    "./references-tool": {
+      "types": "./lib/types/references-tool.d.ts",
+      "default": "./lib/references-tool.js"
+    },
+    "./voucher-preparation-tool": {
+      "types": "./lib/types/voucher-preparation-tool.d.ts",
+      "default": "./lib/voucher-preparation-tool.js"
+    },
+    "./voucher-deletion-tool": {
+      "types": "./lib/types/voucher-deletion-tool.d.ts",
+      "default": "./lib/voucher-deletion-tool.js"
+    },
+    "./open-item-preparation-tool": {
+      "types": "./lib/types/open-item-preparation-tool.d.ts",
+      "default": "./lib/open-item-preparation-tool.js"
+    },
+    "./open-item-deletion-tool": {
+      "types": "./lib/types/open-item-deletion-tool.d.ts",
+      "default": "./lib/open-item-deletion-tool.js"
+    },
+    "./open-item-write-off-tool": {
+      "types": "./lib/types/open-item-write-off-tool.d.ts",
+      "default": "./lib/open-item-write-off-tool.js"
+    },
+    "./journal-deletion-tool": {
+      "types": "./lib/types/journal-deletion-tool.d.ts",
+      "default": "./lib/journal-deletion-tool.js"
+    },
+    "./journal-preparation-tool": {
+      "types": "./lib/types/journal-preparation-tool.d.ts",
+      "default": "./lib/journal-preparation-tool.js"
+    },
+    "./master-data-preparation-tool": {
+      "types": "./lib/types/master-data-preparation-tool.d.ts",
+      "default": "./lib/master-data-preparation-tool.js"
+    },
+    "./journals-tool": {
+      "types": "./lib/types/journals-tool.d.ts",
+      "default": "./lib/journals-tool.js"
+    },
+    "./open-items-tool": {
+      "types": "./lib/types/open-items-tool.d.ts",
+      "default": "./lib/open-items-tool.js"
+    },
+    "./open-item-analysis-tool": {
+      "types": "./lib/types/open-item-analysis-tool.d.ts",
+      "default": "./lib/open-item-analysis-tool.js"
+    },
+    "./balances-tool": {
+      "types": "./lib/types/balances-tool.d.ts",
+      "default": "./lib/balances-tool.js"
+    },
+    "./vouchers-tool": {
+      "types": "./lib/types/vouchers-tool.d.ts",
+      "default": "./lib/vouchers-tool.js"
+    },
     "./types": {
       "types": "./lib/types/types.d.ts",
       "default": "./lib/types/types.js"
@@ -58,6 +114,20 @@
     "lib/invariant.js",
     "lib/context.js",
     "lib/files-tool.js",
+    "lib/vouchers-tool.js",
+    "lib/balances-tool.js",
+    "lib/journals-tool.js",
+    "lib/open-items-tool.js",
+    "lib/open-item-analysis-tool.js",
+    "lib/references-tool.js",
+    "lib/voucher-preparation-tool.js",
+    "lib/voucher-deletion-tool.js",
+    "lib/journal-deletion-tool.js",
+    "lib/open-item-deletion-tool.js",
+    "lib/open-item-write-off-tool.js",
+    "lib/journal-preparation-tool.js",
+    "lib/open-item-preparation-tool.js",
+    "lib/master-data-preparation-tool.js",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts",
     "lib/typert.host.js",
@@ -68,6 +138,8 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/schemastery": "workspace:^",
+    "ali-oss": "^6.23.0",
+    "write-excel-file": "4.1.1",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
@@ -76,6 +148,7 @@
     "@deepseek-ai/dsh-agent-presets": "workspace:^",
     "@deepseek-ai/dsh-atomic-write": "workspace:^",
     "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^",
     "@deepseek-ai/dsh-home-paths": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
@@ -83,6 +156,7 @@
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
+    "@deepseek-ai/dsh-user-approval": "workspace:^",
     "@deepseek-ai/dsh-workspace": "workspace:^"
   },
   "devDependencies": {
@@ -91,6 +165,7 @@
     "@deepseek-ai/dsh-agent-presets": "workspace:^",
     "@deepseek-ai/dsh-atomic-write": "workspace:^",
     "@deepseek-ai/dsh-brand": "workspace:^",
+    "@deepseek-ai/dsh-credentials": "workspace:^",
     "@deepseek-ai/dsh-home-paths": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
@@ -98,6 +173,9 @@
     "@deepseek-ai/dsh-system-prompt": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
-    "@deepseek-ai/dsh-workspace": "workspace:^"
+    "@deepseek-ai/dsh-user-approval": "workspace:^",
+    "@deepseek-ai/dsh-workspace": "workspace:^",
+    "@types/ali-oss": "^6.23.3",
+    "read-excel-file": "9.3.10"
   }
 }

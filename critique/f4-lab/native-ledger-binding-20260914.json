@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-09-14T05:56:30.350Z",
+  "origin": "https://cwpc.yiqiyun.com",
+  "ledgerId": "35616",
+  "businessWrites": 0,
+  "defaultLedger": {
+    "method": "POST",
+    "path": "/setOfBooks/getDefaultSetOfBooksId.rjson",
+    "request": {},
+    "response": {
+      "apiName": "",
+      "data": {
+        "setOfBooksId": 35616,
+        "stockRelationStatus": 0
+      },
+      "message": "操作成功",
+      "result": 100
+    }
+  },
+  "ledgerList": {
+    "method": "POST",
+    "path": "/setOfBooks/getSetOfBooksSimpleList.rjson",
+    "request": {},
+    "response": {
+      "apiName": "",
+      "data": [
+        {
+          "id": 35616,
+          "reportTemplate": 1,
+          "sobName": "施的演示账套",
+          "sobTemplate": 2
+        }
+      ],
+      "message": "操作成功",
+      "result": 100
+    }
+  },
+  "cashRequest": {
+    "method": "POST",
+    "path": "/reportforms/get/cash/list.rjson",
+    "accountId": "35616",
+    "body": {
+      "endDate": "2022-01",
+      "startDate": "2022-01",
+      "gatherType": 0
+    },
+    "authenticationValueCaptured": false
+  },
+  "finding": "Native cash query carries accountId in its HTTP headers, not its JSON body. Capture selected native query without copying web authentication into a separate transport.",
+  "limit": "One observed ledger and period; product interception and concurrency qualification remain incomplete."
+}

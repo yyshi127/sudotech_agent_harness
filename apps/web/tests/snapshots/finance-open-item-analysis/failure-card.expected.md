@@ -1,0 +1,6 @@
+- text: 失败
+- 'button "Tool call Error: 有成应收应付查询失败（network；阶段：应收应付请求）。本次未取得有效结果，不代表没有往来；不要通过文件搜索或索取密钥代替查询。" [expanded]':
+  - img
+  - text: "Tool call Error: 有成应收应付查询失败（network；阶段：应收应付请求）。本次未取得有效结果，不代表没有往来；不要通过文件搜索或索取密钥代替查询。"
+- text: "IN { \"direction\": \"receivable\", \"groupBy\": \"currency\", \"periodStart\": \"2026-09\", \"periodEnd\": \"2026-09\", \"baselineStart\": \"2026-08\", \"baselineEnd\": \"2026-08\" } OUT Error: 有成应收应付查询失败（network；阶段：应收应付请求）。本次未取得有效结果，不代表没有往来；不要通过文件搜索或索取密钥代替查询。"
+- button "Inspect"

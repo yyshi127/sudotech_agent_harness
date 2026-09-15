@@ -136,38 +136,36 @@ if (!Array.isArray(standardRows) || !Array.isArray(financeRows)) {
     || JSON.stringify(financeSkillRow?.config) !== JSON.stringify(expectedFinanceSkillConfig)) {
     errors.push('Finance模式 must add only its product-owned skill root to the Standard skill provider')
   }
-  const financeFileRows = financeCapabilities.filter(row => row?.id === 'finance-files')
-  if (financeFileRows.length !== 1
-    || financeFileRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-domain/files-tool') {
-    errors.push('Finance模式 must load exactly one Xiaojing Finance controlled-file consumer')
-  }
-  const financeEvidenceRows = financeCapabilities.filter(row => row?.id === 'finance-evidence')
-  if (financeEvidenceRows.length !== 1
-    || financeEvidenceRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-evidence/tool') {
-    errors.push('Finance模式 must load exactly one Xiaojing official-evidence consumer')
-  }
-  const financeCalculationRows = financeCapabilities.filter(row => row?.id === 'finance-calculations')
-  if (financeCalculationRows.length !== 1
-    || financeCalculationRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-calculations/tool') {
-    errors.push('Finance模式 must load exactly one Xiaojing deterministic-calculation consumer')
-  }
-  const financeDocumentRows = financeCapabilities.filter(row => row?.id === 'finance-documents')
-  if (financeDocumentRows.length !== 1
-    || financeDocumentRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-documents/tool') {
-    errors.push('Finance模式 must load exactly one Xiaojing document-normalization consumer')
+  const expectedFinanceConsumers = new Map([
+    ['finance-client-context', '@deepseek-ai/dsh-xiaojing-finance-domain/context'],
+    ['finance-files', '@deepseek-ai/dsh-xiaojing-finance-domain/files-tool'],
+    ['finance-vouchers', '@deepseek-ai/dsh-xiaojing-finance-domain/vouchers-tool'],
+    ['finance-references', '@deepseek-ai/dsh-xiaojing-finance-domain/references-tool'],
+    ['finance-voucher-preparation', '@deepseek-ai/dsh-xiaojing-finance-domain/voucher-preparation-tool'],
+    ['finance-voucher-deletion', '@deepseek-ai/dsh-xiaojing-finance-domain/voucher-deletion-tool'],
+    ['finance-journal-deletion', '@deepseek-ai/dsh-xiaojing-finance-domain/journal-deletion-tool'],
+    ['finance-open-item-deletion', '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-deletion-tool'],
+    ['finance-open-item-write-off', '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-write-off-tool'],
+    ['finance-journal-preparation', '@deepseek-ai/dsh-xiaojing-finance-domain/journal-preparation-tool'],
+    ['finance-open-item-preparation', '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-preparation-tool'],
+    ['finance-master-data-preparation', '@deepseek-ai/dsh-xiaojing-finance-domain/master-data-preparation-tool'],
+    ['finance-calculations', '@deepseek-ai/dsh-xiaojing-finance-calculations/tool'],
+    ['finance-evidence', '@deepseek-ai/dsh-xiaojing-finance-evidence/tool'],
+    ['finance-documents', '@deepseek-ai/dsh-xiaojing-finance-documents/tool'],
+    ['finance-balances', '@deepseek-ai/dsh-xiaojing-finance-domain/balances-tool'],
+    ['finance-journals', '@deepseek-ai/dsh-xiaojing-finance-domain/journals-tool'],
+    ['finance-open-items', '@deepseek-ai/dsh-xiaojing-finance-domain/open-items-tool'],
+    ['finance-open-item-analysis', '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-analysis-tool'],
+  ])
+  for (const [id, name] of expectedFinanceConsumers) {
+    const rows = financeCapabilities.filter(row => row?.id === id)
+    if (rows.length !== 1 || rows[0]?.name !== name) {
+      errors.push(`Finance模式 must load exactly one ${id} consumer from ${name}`)
+    }
   }
   const normalizedFinanceCapabilities = financeCapabilities.map(row => (
     row?.id === 'skill-filesystem' ? standardSkillRow : row
-  )).filter(row => row?.id !== 'finance-client-context'
-    && row?.id !== 'finance-files'
-    && row?.id !== 'finance-calculations'
-    && row?.id !== 'finance-evidence'
-    && row?.id !== 'finance-documents')
-  const financeClientContextRows = financeCapabilities.filter(row => row?.id === 'finance-client-context')
-  if (financeClientContextRows.length !== 1
-    || financeClientContextRows[0]?.name !== '@deepseek-ai/dsh-xiaojing-finance-domain/context') {
-    errors.push('Finance模式 must load exactly one Xiaojing Finance client-context consumer')
-  }
+  )).filter(row => !expectedFinanceConsumers.has(row?.id))
   if (JSON.stringify(normalizedFinanceCapabilities) !== JSON.stringify(standardCapabilities)) {
     errors.push('Finance模式 capabilities drifted from Standard mode outside its product skill root')
   }

@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-09-10T02:54:20.934Z",
+  "sessionId": "7e3dc680-9154-4211-97cf-2081e8a6d15e",
+  "calls": [
+    "finance_references"
+  ],
+  "matchedRow": {
+    "id": "1097",
+    "code": "1097",
+    "name": "F3主应用一级测试",
+    "status": "enabled",
+    "parentCode": "",
+    "subjectType": "流动资产",
+    "hasChildren": false,
+    "directionRaw": "0",
+    "auxiliaryCodes": [],
+    "currencyCodes": []
+  },
+  "answer": "已按账套「施的演示账套」科目资料查询（精确名称匹配，本次返回 1 行）：\n\n- **层级**：一级科目，不在任何科目下面（返回的 `parentCode` 为空），且**无下级科目**（hasChildren=false）。\n- **科目编码**：1097；名称：F3主应用一级测试。\n- **科目类型**：流动资产（返回的 subjectType 原值）。\n- **余额方向**：借方（directionRaw=0，接口定义为 0借1贷）。\n- **目前能否使用**：状态为 enabled（启用）。\n\n待核验：本次查询未提供总数或翻页游标，完整性未验证，因此不能据此断言整个科目表里没有其他同名或相关科目；“流动资产”这一类型是否与本账套同总分类科目通用的类型名称一致，也尚未核对。\n\n本次仅为只读查询，未新增或修改任何科目、辅助项目、凭证或日记账，也未处理报销。",
+  "businessWrites": 0,
+  "verified": true
+}

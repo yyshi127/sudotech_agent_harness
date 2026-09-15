@@ -1,0 +1,4 @@
+- text: 等待审批
+- group "审批详情": "删除指定日记账，本地准备记录 {{uuid}}，确认版本 2；仅移除此流水并影响账户记录余额，不联动删除凭证或往来，不执行实际收付款，不提供自动撤销。回查仅覆盖原账户和月份。 {\"accountId\":\"35616\",\"accountName\":\"流水删除演示账套\",\"cashAccountId\":\"174622\",\"row\":{\"summary\":\"删除专用测试\",\"accountCode\":\"\",\"accountName\":\"库存现金\",\"currencyCode\":\"RMB\",\"baseCurrencyCode\":\"RMB\",\"income\":\"0.01\",\"expense\":null,\"balance\":\"0.01\",\"baseIncome\":\"0.01\",\"baseExpense\":null,\"baseBalance\":\"0.01\",\"categoryName\":\"收-其他收入\",\"keeperName\":\"测试\",\"id\":\"125\",\"date\":\"2022-01-01\"},\"fingerprint\":\"054079af12d3c568ebd6c2649d59d4cb3426d9523edf8d0bf2802d1eb62ebcbb\",\"reviewStatus\":0,\"channel\":\"ADD\",\"attachmentCount\":0,\"blockers\":[]}"
+- button "拒绝"
+- button "允许一次"

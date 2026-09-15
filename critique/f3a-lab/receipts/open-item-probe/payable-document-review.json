@@ -1,0 +1,29 @@
+{
+  "scope": "Independent CF21 public payable creation qualification in authorized ledger35616",
+  "script": "../../qualify-payable.mjs",
+  "businessResult": "explicit-rejection",
+  "requestEvidence": "payable-document-attempt-1/intent.json",
+  "responseEvidence": "payable-document-attempt-1/response.json",
+  "readbackEvidence": "payable-document-attempt-1/readback-1788966743812.json",
+  "response": {"httpStatus": 200, "result": 201, "message": "未指定往来单位"},
+  "request": {"direction": true, "accountId": 174624, "auxiliaryItemNames": "F3主应用供应商测试", "date": "2022-01-09", "money": 0.05, "abstractStr": "小兢F3A-35616-20260909-AP-PROBE-01"},
+  "references": {"supplierCategoryCode": "02", "supplierCode": "F3A04", "supplierId": "191573", "subjectCode": "2202", "expenseCategoryId": "578260", "expenseCategoryName": "其他支出", "ui": "payable-ui-evidence-20260909.json"},
+  "preservation": {"vouchers": 41, "voucherIdsAndFullRowsUnchanged": true, "receivables": 1, "payables": 0, "existingReceivableUnchanged": true, "createdBusinessRecords": 0},
+  "documentResearch": {
+    "checkedOn": "2026-09-09",
+    "publicMenu": "https://yiqbopenapi.superboss.cc/share/menu?id=awXPk8nW",
+    "currentWrite": {"id": "B2llxm2D", "modified": "2025-04-22 14:08:58", "field": "auxiliaryItemNames", "type": "string", "description": "辅助项目名称"},
+    "discardedLead": {"id": "BXgRxZ8G", "modified": "2022-01-19 15:45:28", "path": "/reimburse/journal/queryListPage.rjson", "field": "auxiliaryItemNames", "description": "辅助项目ids", "reason": "Different module and response field; cannot establish input encoding for the financial writer."},
+    "adjacentFinancialWrite": {"id": "xXaZ4Yzo", "path": "/finance/cashjournal/add.rjson", "field": "auxiliaryItemIds", "description": "辅助项目ids", "limitation": "Different operation; does not establish the open-item name conversion rule."}
+  },
+  "execution": {"syntaxCheck": "node --check critique/f3a-lab/qualify-payable.mjs passed", "defaultRun": "First authentication connection timed out with zero business sends; identical read-only command passed under narrow host escalation.", "write": "Exactly one --send invocation; persistent intent and dispatch before request. Never rerun --send, even though the response rejected."},
+  "limitation": "This closes an independent payable-branch test gap. It does not fix either writer, prove a vendor defect, qualify product creation, or reduce the F3A scope.",
+  "checks": {
+    "receiptConsistency": "Passed: documented request subset, explicit201 response, identical before/after pages, voucher IDs and full row hash.",
+    "namedTranslationPair": "Passed for youcheng-finance-development-status.md",
+    "diffCheck": "git diff --check passed",
+    "lint": "pnpm run lint passed, including Host build; process-only dependency verification warning mode preserved installed dependencies.",
+    "docSync": {"passed": 20, "failed": 8, "seconds": 89.72, "failures": ["doc graphs", "cordis catalog", "translation pairing", "markdown wrap", "client catalog", "export jsdoc", "config catalog", "package README model experience"]}
+  },
+  "f3aComplete": false
+}

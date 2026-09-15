@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-10T13:51:13.696Z",
+  "accountId": "35616",
+  "accountName": "施的演示账套",
+  "marker": "F3B-35616-ATTACHMENT-DELETE-20260910-01",
+  "authority": "Standing developer authority for positively identified synthetic fixtures in35616",
+  "preparedId": "298146f9-0f71-4d21-841b-9bdeeafaab02",
+  "voucherId": "244306",
+  "input": { "date": "2022-01-01", "amount": "0.01", "debit": "1001", "credit": "100201", "attachmentCount": 1 },
+  "creation": { "state": "accepted", "dispatches": 1, "vendorCopyMatched": true },
+  "deletion": { "state": "accepted", "dispatches": 1, "independentCompleteAbsencePasses": 2 },
+  "preservation": { "existingVoucherProjections": 41, "voucher244058AttachmentListUnchanged": true },
+  "filesImmediatelyAfterDeletion": {
+    "originalOss": { "status": 200, "bytes": 104, "sha256Matched": true },
+    "vendorCopy": { "status": 200, "bytes": 104, "sha256Matched": true }
+  },
+  "sourceRetained": true,
+  "humanUiClick": false,
+  "productBehaviorChanged": false,
+  "backendRestarted": false,
+  "commands": [
+    "node --check critique/f3b-lab/voucher-attachment-deletion.mjs",
+    "node --import tsx/esm critique/f3b-lab/voucher-attachment-deletion.mjs --create",
+    "node --import tsx/esm critique/f3b-lab/voucher-attachment-deletion.mjs --delete"
+  ],
+  "limitations": [
+    "Adapter experiment, not real-model/main-app attachment-deletion acceptance.",
+    "File availability is observed immediately after deletion, not a permanent-retention or erasure guarantee.",
+    "Preservation compares voucher list projections and one pre-existing attachment list, not all unrelated record details.",
+    "Consumed creation/deletion intents must not be replayed; original source and private receipts remain in the lab."
+  ]
+}

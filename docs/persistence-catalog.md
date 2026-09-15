@@ -420,7 +420,7 @@ Source: [`packages/feedback/command-feedback/src/index.ts:62`](../packages/feedb
 'finance/client-bound': FinanceClientBinding
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:374`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:539`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financeconsultation-file-imported--log-only"></a>
 
@@ -434,7 +434,7 @@ Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:374`](../packag
 'finance/consultation-file-imported': FinanceConsultationFileImportedEvent
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:384`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:549`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financefile-archived--log-only"></a>
 
@@ -448,7 +448,7 @@ Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:384`](../packag
 'finance/file-archived': FinanceFileCommittedEvent
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:394`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:559`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financefile-imported--log-only"></a>
 
@@ -462,7 +462,7 @@ Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:394`](../packag
 'finance/file-imported': FinanceFileCommittedEvent
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:379`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:544`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 <a id="financefile-published--log-only"></a>
 
@@ -476,7 +476,7 @@ Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:379`](../packag
 'finance/file-published': FinanceFileCommittedEvent
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:389`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/types.ts:554`](../packages/xiaojing/xiaojing-finance-domain/src/types.ts)
 
 ### `goal/*`
 

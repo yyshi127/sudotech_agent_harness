@@ -1,0 +1,90 @@
+{
+  "checkedAt": "2026-09-15T01:29:33.398Z",
+  "accountId": "35616",
+  "accountName": "施的演示账套",
+  "marker": "CF12-MINIMAL-DELETE-20260915-01",
+  "createdVoucherId": "244499",
+  "creation": {
+    "preparedId": "c6542c07-aa63-4a86-9283-71b7f3484acc",
+    "outcome": {
+      "state": "accepted",
+      "voucherId": "244499"
+    },
+    "readback": {
+      "accounting": "matched",
+      "auxiliary": "matched",
+      "currency": "matched",
+      "originals": {
+        "association": "not-required",
+        "retention": "not-required",
+        "verifiedCount": 0,
+        "metadataWarning": false
+      },
+      "complete": true
+    }
+  },
+  "deletion": {
+    "id": "0e20d2ba-d543-4565-b555-759f80832dca",
+    "version": 1,
+    "payload": {
+      "accountName": "施的演示账套",
+      "cerInfoList": [
+        {
+          "cerId": "244499"
+        }
+      ]
+    },
+    "outcome": {
+      "state": "accepted"
+    }
+  },
+  "absence": {
+    "state": "absent",
+    "voucherCount": 41
+  },
+  "preservedBaseline": true,
+  "baselineVoucherCount": 41,
+  "finalVoucherCount": 41,
+  "calls": [
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/createCertificate.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/info.rjson",
+    "/finance/certificate/delCertificate.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson",
+    "/auth/getAccessToken.rjson",
+    "/finance/auxiliary/queryAccountList.rjson",
+    "/finance/certificate/list.rjson"
+  ],
+  "writes": {
+    "create": 1,
+    "delete": 1
+  },
+  "limitation": "One API-created synthetic voucher validates the minimal live deletion body. It is not a browser-manual-origin or packaged-main-application acceptance."
+}

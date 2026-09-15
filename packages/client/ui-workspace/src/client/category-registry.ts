@@ -25,6 +25,20 @@ export interface WorkspaceCategorySection {
   addLabel?: string
 }
 
+/** Supplemental status supplied by a product category for one workspace row. */
+export interface WorkspaceCategoryBadge {
+  /** Workspace receiving the supplemental label. */
+  workspaceId: WorkspaceId
+  /** Optional short text following the workspace title. */
+  text?: string
+  /** Product-neutral visual status. */
+  state: 'idle' | 'pending' | 'success' | 'error'
+  /** Accessible explanation and hover text; color alone is not the status. */
+  label: string
+  /** Accessible label for a link between title and badge text; pending disables it, success renders it horizontal and green. */
+  actionLabel?: string
+}
+
 /** Dynamic facts for one workspace category. */
 export interface WorkspaceCategoryState {
   /** Active-locale label shown beside the ordinary Workspace heading. */
@@ -37,6 +51,12 @@ export interface WorkspaceCategoryState {
   reservedWorkspaceIds?: readonly WorkspaceId[]
   /** Visible Workspaces that expose product-owned rename and remove actions. */
   manageableWorkspaceIds?: readonly WorkspaceId[]
+  /** Optional product-owned workspace-details action label. */
+  workspaceDetailsLabel?: string
+  /** Workspaces that expose the product-owned details action. */
+  workspaceDetailsWorkspaceIds?: readonly WorkspaceId[]
+  /** Optional product-owned status labels beside individual workspace titles. */
+  workspaceBadges?: readonly WorkspaceCategoryBadge[]
   /** Category workspaces that retain history but cannot create new sessions. */
   newSessionDisabledWorkspaceIds: readonly WorkspaceId[]
   /** Optional nested presentation sections; unlisted workspaces remain at the category root. */
@@ -59,6 +79,10 @@ export interface WorkspaceCategoryProvider {
   renameWorkspace?: (workspaceId: WorkspaceId, title: string) => Promise<void>
   /** Remove one product-owned Workspace from product lists without deleting its durable data. */
   removeWorkspace?: (workspaceId: WorkspaceId) => Promise<void>
+  /** Open product-owned details for one Workspace. */
+  openWorkspaceDetails?: (workspaceId: WorkspaceId) => void
+  /** Run the inline status action without activating the Workspace or opening a session. */
+  activateWorkspaceBadge?: (workspaceId: WorkspaceId) => Promise<void>
 }
 
 /** Workspace-category state consumed by the sidebar. */
@@ -163,6 +187,35 @@ export class WorkspaceCategoryRegistry {
       throw new Error(`workspace category does not support removing workspaces: ${categoryId}`)
     }
     await provider.removeWorkspace(workspaceId)
+  }
+
+  /**
+   * Open product-owned details for one Workspace.
+   * @param categoryId - Owning category identity.
+   * @param workspaceId - Workspace selected in the category.
+   */
+  openWorkspaceDetails(categoryId: string, workspaceId: WorkspaceId): void {
+    const provider = this.providers.get(categoryId)?.provider
+    if (provider === undefined) throw new Error(`unknown workspace category: ${categoryId}`)
+    if (provider.openWorkspaceDetails === undefined) {
+      throw new Error(`workspace category does not support workspace details: ${categoryId}`)
+    }
+    provider.openWorkspaceDetails(workspaceId)
+  }
+
+  /**
+   * Run the product-owned inline status action for one Workspace.
+   * @param categoryId - Owning category identity.
+   * @param workspaceId - Workspace receiving the action.
+   * @returns Once the provider has updated its status.
+   */
+  async activateWorkspaceBadge(categoryId: string, workspaceId: WorkspaceId): Promise<void> {
+    const provider = this.providers.get(categoryId)?.provider
+    if (provider === undefined) throw new Error(`unknown workspace category: ${categoryId}`)
+    if (provider.activateWorkspaceBadge === undefined) {
+      throw new Error(`workspace category does not support status actions: ${categoryId}`)
+    }
+    await provider.activateWorkspaceBadge(workspaceId)
   }
 
   /**

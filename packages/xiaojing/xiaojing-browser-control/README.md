@@ -68,6 +68,8 @@ The schema remains stable for the plugin lifetime. Page observations appear afte
 
 ## Known Limitations and Deferred Work
 
+- Finance reports are not a browser-control capability. D01–D06 require supported supplier APIs; the rejected browser route is recorded in the [browser-report decision](../../../.agents/notes/rejected/feature/2026-09-14-native-finance-reports.md).
+
 - Microsoft Edge must be installed and allowed by device policy; the application does not bundle a browser runtime.
 - Personal Edge takeover requires one manual unpacked-extension installation and pairing. Silent installation on an unmanaged Windows device is not supported.
 - Closed Shadow DOM, canvas-only pages, CAPTCHAs, UKey and certificate prompts, secure browser surfaces, and operating-system dialogs require user handling.

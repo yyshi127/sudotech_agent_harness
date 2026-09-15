@@ -1,0 +1,35 @@
+{
+  "ledger": { "id": "35616", "name": "施的演示账套" },
+  "sessionId": "1179e6d5-f5c6-474a-865e-392bd83355bf",
+  "journalId": "141110",
+  "marker": "F3B-35616-HOST-DELETE-JOURNAL-20260910-01",
+  "preparationId": "b5aef04f-a4ea-495a-bc4f-ea36d34df04c",
+  "version": 1,
+  "source": "Real model in built Finance main application3092 with live vendor API",
+  "authority": "Standing user authorization for identified synthetic fixtures in test ledger35616",
+  "creation": { "requests": 1, "outcome": "accepted", "amount": "0.01", "cashAccountId": "174622", "content": "matched", "associations": "mismatch", "reservedPredecessor": "141109", "observedPredecessor": 0, "complete": false },
+  "deletion": {
+    "outcome": "accepted", "acceptedToolCalls": 1, "confirmations": 2,
+    "exactTargetAndVersion": true, "humanUiClick": false,
+    "firstLocalAttempt": "Lab expected object arguments instead of logged JSON string. Stopped at generic confirmation before approval/dispatch; record stayed prepared and tool reported not executed. Separate preserved attempt2 completed confirmation. No uncertain vendor request retried."
+  },
+  "independentReadback": {
+    "cashAccount": "174622", "month": "2022-01", "cashTarget": "not-observed",
+    "cashSurvivingContent": "matched", "cashBalances": "matched", "allJournalSurvivingContent": "matched",
+    "allAccountBalances": "unavailable", "receivablesPreserved": true, "payablesPreserved": true,
+    "preservedVoucherCount": 41, "voucherProjectionEquality": true
+  },
+  "modelRecovery": "Two malformed finance_journals argument calls rejected locally; model corrected its call and prepared the exact target without shell or file search",
+  "crossSessionRecovery": {
+    "sessionId": "a3efa1a8-16ab-45b6-862e-771df6aafc80",
+    "phase": "accepted", "target": "not-observed", "content": "matched", "balances": "matched",
+    "scope": "selected-month", "writeToolCalls": 0,
+    "evidence": "Private recovery-audit.json plus logged real-model finance_prepare_journal_deletion inspect call",
+    "launcher": "Start queued successfully before Windows Node process.exit teardown assertion. Did not requeue; subsequent read-only audit passed with natural process return."
+  },
+  "runtime": "Built development backend restarted with original runtime data; installed desktop untouched",
+  "privateEvidence": "test-tools/f3b-35616/journal-delete-host/main-app",
+  "recovery": "Deleted synthetic record not automatically restored; original creation, approvals and before/after inventories retained",
+  "remaining": ["Duplicate generic/detailed confirmation UX", "Broader source/link-state acceptance", "Creation predecessor semantics"],
+  "f3bComplete": false
+}

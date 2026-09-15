@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-10",
+  "scope": "F3B resumed: AR/AP durable deletion records and read-only product preview/recovery; internal full-settlement transport",
+  "implementation": {
+    "tool": "finance_prepare_open_item_deletion",
+    "actions": ["prepare", "revise", "inspect"],
+    "destructiveOpenItemToolRegistered": false,
+    "deleteExecution": "unavailable until linked effects are qualified",
+    "records": "Exact versions, owner/ledger/record claims, original scope, uncertain outcomes retained across reload",
+    "writeOffTransport": "/finance/cashier/account/management/writeOff.rjson",
+    "writeOffResponse": "receiptId, not journalId; accepted is not independent verification",
+    "writeOffToolRegistered": false
+  },
+  "checks": [
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-deletion.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-deletion-tool.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off-submission.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off.spec.ts", "exitCode": 0, "passed": 392, "files": 6, "durationMs": 11900 },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=refresh pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-open-item-deletion.e2e.ts", "exitCode": 0, "passed": 1, "scenarios": ["receivable", "payable"] },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=replay pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-open-item-deletion.e2e.ts", "exitCode": 0, "passed": 1, "durationMs": 5940 },
+    { "command": "pnpm exec tsc -b packages/xiaojing/xiaojing-finance-domain/tsconfig.json", "exitCode": 0 },
+    { "command": "pnpm run lint", "exitCode": 1, "note": "Host build passed; initial new-test lint defects subsequently fixed" },
+    { "command": "pnpm run lint:contracts-ready", "exitCode": 0 },
+    { "command": "pnpm run verify-translation-pairing (five named pairs)", "exitCode": 0 },
+    { "command": "git diff --check", "exitCode": 0 }
+  ],
+  "docSync": { "state": "completed", "exitCode": 1, "passed": 26, "failed": 2, "durationMs": 72520, "previousRun": { "passed": 24, "failed": 4 }, "ownedCatalogsRegeneratedAndPassed": true, "existingReplicaFailures": ["missing Chinese pair", "hard-wrapped paragraphs"] },
+  "testDevelopmentFailures": ["Host fixture used Boolean rather than numeric read direction and omitted required row fields; corrected fixture, not validators", "Browser assertion expected expanded tool title in collapsed message; test now opens actual detail", "Initial snapshot directory absent; created dedicated directory", "Transient Windows pairing write failure; same scoped retry passed"],
+  "businessWrites": 0,
+  "consumedApprovalsReplayed": false,
+  "restarted3092": false,
+  "f3bComplete": false,
+  "next": ["Full-settlement durable records and exact-version Host confirmation", "Raw state, period, currency and linked-effect qualification", "Operation-level recovery without substituting receiptId for journalId", "Assembled and separately authorized live acceptance", "Journal201 diagnosis without replaying consumed141107 intent"]
+}

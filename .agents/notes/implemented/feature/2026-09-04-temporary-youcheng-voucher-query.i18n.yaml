@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-04-temporary-youcheng-voucher-query.md
+2026-09-04-temporary-youcheng-voucher-query.md: 81a56c3b3bd58b46cc74f397a6b89d2d4fb7c22b
+2026-09-04-temporary-youcheng-voucher-query.zh.md: c7e5bf783fc692ec031df1538b5350ba7d39a186

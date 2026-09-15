@@ -38,6 +38,48 @@
 - id: finance-files
   name: '@deepseek-ai/dsh-xiaojing-finance-domain/files-tool'
 
+- id: finance-vouchers
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/vouchers-tool'
+  config:
+    pageSize: 20
+
+- id: finance-references
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/references-tool'
+
+- id: finance-voucher-preparation
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/voucher-preparation-tool'
+  config:
+    maxEntries: 100
+    maxBytes: 131072
+
+- id: finance-voucher-deletion
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/voucher-deletion-tool'
+  config:
+    maxEntries: 100
+    maxBytes: 131072
+    maxPages: 10
+
+- id: finance-journal-deletion
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/journal-deletion-tool'
+- id: finance-open-item-deletion
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-deletion-tool'
+- id: finance-open-item-write-off
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-write-off-tool'
+- id: finance-journal-preparation
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/journal-preparation-tool'
+  config:
+    maxBytes: 131072
+
+- id: finance-open-item-preparation
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-preparation-tool'
+  config:
+    maxBytes: 131072
+
+- id: finance-master-data-preparation
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/master-data-preparation-tool'
+  config:
+    maxBytes: 131072
+
 - id: finance-calculations
   name: '@deepseek-ai/dsh-xiaojing-finance-calculations/tool'
 
@@ -253,6 +295,18 @@
         maxRounds: 64
 
 # ── remaining model-facing rows ─────────────────────────────────────────────
+
+- id: finance-balances
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/balances-tool'
+
+- id: finance-journals
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/journals-tool'
+
+- id: finance-open-items
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/open-items-tool'
+
+- id: finance-open-item-analysis
+  name: '@deepseek-ai/dsh-xiaojing-finance-domain/open-item-analysis-tool'
 
 - id: tool-ask-user
   name: '@deepseek-ai/dsh-tool-ask-user'

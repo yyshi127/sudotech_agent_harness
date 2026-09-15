@@ -11,15 +11,19 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import { AttachmentStorageSection, type AttachmentStorageSectionInjected } from './AttachmentStorageSection.tsx'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { FinanceClientsController } from './controller.ts'
 import {
   FinanceClientCreateOverlay,
   type FinanceClientCreateOverlayInjected,
 } from './FinanceClientCreateOverlay.tsx'
-import { FinanceClientsSection, type EditorState, type FinanceClientsSectionInjected } from './FinanceClientsSection.tsx'
+import { FinanceClientDetailsOverlay, type FinanceClientDetailsOverlayInjected } from './FinanceClientDetailsOverlay.tsx'
 import { FinanceContextLabel } from './FinanceContextLabel.tsx'
 import { FinanceHeroContext, type FinanceHeroContextInjected } from './FinanceHeroContext.tsx'
+import { PublishedFile } from './PublishedFile.tsx'
+import { publishedFileDefinition } from './published-file.ts'
 import type {
   FinanceSessionContextView,
   FinanceWorkspaceEntry,
@@ -57,7 +61,7 @@ export async function apply(ctx: ClientContext): Promise<void> {
   ctx.inject(
     [
       'slots', 'remote.financeClients', 'locale', 'sessions', 'conversation',
-      'connection', 'workspaces', 'workspaceCategories',
+      'connection', 'workspaces', 'workspaceCategories', 'conversationEvents',
     ],
     registerFinanceClientSurfaces,
   )
@@ -68,7 +72,28 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
 
   const controller = new FinanceClientsController(ctx.remote.financeClients)
   const connection = ctx.get('connection') as ConnectionHandle
+  ctx.conversationEvents.register(publishedFileDefinition)
+  ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
+    name: 'conversation.chat.node', key: 'finance-published-file', locale: NS,
+    inject: () => ({ canOpen: connection.isLoopback }),
+  }, PublishedFile))
   const t = ctx.locale.bind(NS)
+  const unwrap = async <T>(pending: Promise<RemoteResult<T>>): Promise<T> => {
+    const result = await pending
+    if (!result.ok) throw new Error(result.error.message)
+    return result.value
+  }
+  if (connection.isLoopback) {
+    const attachmentActions: AttachmentStorageSectionInjected = {
+      load: () => unwrap(ctx.remote.financeClients.readAttachmentStorage()),
+      save: request => unwrap(ctx.remote.financeClients.saveAttachmentStorage(request)),
+      test: revision => unwrap(ctx.remote.financeClients.testAttachmentStorage(revision)),
+    }
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section', id: 'attachment-storage', order: 26, locale: NS,
+      label: () => t('storageTitle'), inject: () => attachmentActions,
+    }, AttachmentStorageSection))
+  }
   const loadClients = (): Promise<void> => controller.load()
   const read = controller.read.bind(controller)
   const sessionContext = controller.sessionContext.bind(controller)
@@ -152,6 +177,29 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
         workspaceIds: listedEntries.map(entry => entry.workspaceId),
         reservedWorkspaceIds: entries.map(entry => entry.workspaceId),
         manageableWorkspaceIds: listedEntries.map(entry => entry.workspaceId),
+        workspaceDetailsLabel: t('workspaceDetails'),
+        workspaceDetailsWorkspaceIds: workspaces?.clients.map(entry => entry.workspaceId) ?? [],
+        workspaceBadges: (workspaces?.clients ?? []).flatMap((entry) => {
+          const status = entry.connection
+          if (status === undefined) return []
+          const label = status.failure === undefined
+            ? t(status.state === 'connected' ? 'connectionConnected'
+              : status.state === 'checking' ? 'connectionChecking'
+                : status.state === 'failed' ? 'connectionFailed' : 'connectionUnverified')
+            : t(`connection.${status.failure}`)
+          return [{
+            workspaceId: entry.workspaceId,
+            ...(!connection.isLoopback || !entry.startable ? {} : {
+              actionLabel: `${t(status.state === 'checking' ? 'connectionChecking'
+                : status.state === 'connected' ? 'connectionReconnect' : 'connectionConnect')} · ${entry.title} · ID ${status.accountId}`,
+            }),
+            ...(status.accountName === undefined ? {} : { text: status.accountName }),
+            state: status.state === 'connected' ? 'success' as const
+              : status.state === 'checking' ? 'pending' as const
+                : status.state === 'failed' ? 'error' as const : 'idle' as const,
+            label: `${label} · ID ${status.accountId}${status.checkedAt === undefined ? '' : ` · ${new Date(status.checkedAt).toLocaleString()}`}`,
+          }]
+        }),
         newSessionDisabledWorkspaceIds: listedEntries.filter(entry => !entry.startable)
           .map(entry => entry.workspaceId),
         sections: [
@@ -215,6 +263,16 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     },
     renameWorkspace: async (workspaceId, title) => {
       await controller.renameWorkspace(workspaceId, title)
+    },
+    openWorkspaceDetails: (workspaceId) => {
+      const entry = controller.store.getSnapshot().workspaces?.clients.find(item => item.workspaceId === workspaceId)
+      if (entry !== undefined) controller.openClientEditor(entry.clientId)
+    },
+    activateWorkspaceBadge: async (workspaceId) => {
+      const entry = controller.store.getSnapshot().workspaces?.clients.find(item => item.workspaceId === workspaceId)
+      if (connection.isLoopback && entry?.startable && entry.connection !== undefined) {
+        await controller.checkConnection(entry.clientId)
+      }
     },
     removeWorkspace: async (workspaceId) => {
       const currentSessionId = ctx.sessions.list.getSnapshot().current
@@ -310,22 +368,6 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     }
   }, 'ui-xiaojing-finance-clients: preset-workspace routing')
 
-  const sectionInjected = (): FinanceClientsSectionInjected => ({
-    hooks: { financeClients: controller.store },
-    load: loadClients,
-    read,
-    update: async (editor: EditorState) => {
-      await controller.update({
-        clientId: editor.clientId,
-        expectedRevision: editor.expectedRevision,
-        client: editor.draft,
-      })
-    },
-    archive: async (clientId, expectedRevision) => {
-      await controller.archive({ clientId, expectedRevision })
-    },
-  })
-
   const heroInjected = (): FinanceHeroContextInjected => ({
     hooks: { financeClients: controller.store },
     loadClients,
@@ -341,14 +383,25 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     cancel: controller.cancelClientWorkspaceCreation.bind(controller),
   })
 
-  ctx.slots.inject('settings.section', () => ctx.slots.register({
-    name: 'settings.section',
-    id: 'finance-clients',
-    order: 22,
-    label: () => t('nav'),
-    locale: NS,
-    inject: sectionInjected,
-  }, FinanceClientsSection))
+  const detailsInjected = (): FinanceClientDetailsOverlayInjected => ({
+    hooks: { financeClients: controller.store },
+    read,
+    listYouchengAccounts: controller.listYouchengAccounts.bind(controller),
+    update: async (editor) => {
+      const appSecret = editor.youchengAppSecret.trim()
+      await controller.update({
+        clientId: editor.clientId,
+        expectedRevision: editor.expectedRevision,
+        client: editor.draft,
+        ...appSecret === '' ? {} : { credentialInput: { youchengAppSecret: appSecret } },
+      })
+    },
+    close: () => { controller.closeClientEditor() },
+  })
+
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'finance-client-details', order: 19, locale: NS, inject: detailsInjected,
+  }, FinanceClientDetailsOverlay))
 
   ctx.slots.inject('conversation.hero.context', () => ctx.slots.register({
     name: 'conversation.hero.context',

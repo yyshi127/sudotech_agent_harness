@@ -1,0 +1,6 @@
+- text: 失败
+- 'button "Tool call Error: 余额分析须指定单个 subjectLevel，不与期间范围或层级范围混用。" [expanded]':
+  - img
+  - text: "Tool call Error: 余额分析须指定单个 subjectLevel，不与期间范围或层级范围混用。"
+- text: "IN { \"month\": \"2026-09\", \"analyze\": true, \"compareMonth\": \"2026-08\", \"monthEnd\": \"2026-10\", \"subjectLevel\": 1, \"exportExcel\": true } OUT Error: 余额分析须指定单个 subjectLevel，不与期间范围或层级范围混用。"
+- button "Inspect"

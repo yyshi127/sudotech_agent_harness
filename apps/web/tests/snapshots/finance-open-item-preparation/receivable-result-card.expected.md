@@ -1,0 +1,5 @@
+- button "Tool call finance_create_open_item · {{uuid}}" [expanded]:
+  - img
+  - text: Tool call finance_create_open_item · {{uuid}}
+- text: "IN { \"id\": \"{{uuid}}\", \"version\": 2 } OUT {\"id\":\"{{uuid}}\",\"version\":2,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\",\"openItemId\":\"72595\"},\"readback\":{\"content\":\"matched\",\"associations\":\"matched\",\"balance\":\"matched\",\"complete\":true},\"complete\":true,\"notice\":\"往来发送结果已保存，不会自动重发。complete仅表示本记录技术核验，不表示实际收付款或核销。结果未知或回查未完成时查看原记录，不另建同内容重试。\"}"
+- button "Inspect"

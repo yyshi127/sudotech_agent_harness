@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-09-14T15:15:12+08:00",
+  "source": "Read-only DOM inspection of the existing user Chrome tab 988955508 via Codex browser client",
+  "origin": "https://cwpc.yiqiyun.com",
+  "displayedLedger": "施的演示账套",
+  "businessWrites": 0,
+  "menus": {
+    "D01": { "group": "账簿", "name": "总账", "container": ".general-ledger" },
+    "D02": { "group": "账簿", "name": "明细账", "container": ".subsidiary-ledger" },
+    "D03": { "group": "账簿", "name": "辅助核算明细账", "container": ".auxiliary-detail-ledger" },
+    "D04": { "group": "报表", "name": "资产负债表", "container": ".balance-sheet" },
+    "D05": { "group": "报表", "name": "利润表", "container": ".profit-statement" },
+    "D06": { "group": "报表", "name": "现金流量表", "container": ".cach-flow" }
+  },
+  "finalContainerObservation": "Each of the six containers exists once; only balance-sheet is visible. Other open report views are retained hidden.",
+  "periodControls": {
+    "D01": "Two visible ant-select controls, both showing 2022年第01期; separate page-size and ledger selects also exist.",
+    "D04": "Single visible ant-select period control. Dropdown uses virtual-list options titled YYYY年第MM期. Dynamic rc_select IDs are not stable selectors.",
+    "D05": "periodInnerSelect shows 2022年第01期 ~ 2022年第01期. Opening reveals periodInnerSelect-drop with two nested initially blank ant-select controls. Separate column mode shows 本月数、本年累计数.",
+    "D06": "periodInnerSelect shows 2022年第01期 ~ 2022年第01期. Opening independently confirms periodInnerSelect-drop with two initially blank nested ant-select controls and no confirmation button."
+  },
+  "limits": [
+    "The range selector was exercised with the original 2022-01..2022-01 values; no accounting periods or business data were changed.",
+    "Native fixed navigation implementation is tested on isolated synthetic pages, not through an installed paired Xiaojing extension.",
+    "Visible menu, ledger name and period text do not replace actual request accountId, scope and response qualification."
+  ],
+  "cashRangeSelection": {
+    "followupControlAttributes": "The D06 outer range renders its selected range in ant-select-selection-placeholder text, not a selection-item title. ArrowDown on the focused outer combobox opens the nested range. The product inspector supports these observed attributes.",
+    "keyboard": "End did not move the active option. ArrowUp from the first option (2025年第10期) wrapped to the last (2022年第01期); active option was independently read before Enter.",
+    "startOnly": "Selecting start 2022-01 leaves end blank in the nested control and sends no cash-report query.",
+    "completed": "Selecting end 2022-01 closes the range dropdown and sends the query. A subsequent fixed Refresh sends the same fields.",
+    "requests": ["19168.1039", "19168.1040"],
+    "accountIdHeader": "35616",
+    "path": "/reportforms/get/cash/list.rjson",
+    "query": { "startDate": "2022-01", "endDate": "2022-01", "gatherType": 0, "auxiliaryItemIds": [], "isAll": false, "columnType": 1 },
+    "qualification": "Explicit expanded scope is distinct from the earlier gatherType-only initial scope; no missing-field defaults or equivalence assertion added.",
+    "networkCaptureClosed": true
+  }
+}

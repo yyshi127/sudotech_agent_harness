@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-10T14:54:04.501Z",
+  "ledgerId": "35616",
+  "reads": 12,
+  "businessWrites": 0,
+  "periodStatus": "unverified",
+  "currencyDerivation": "Current enabled base-only leaf subject, not numeric currency ID decoding",
+  "observations": [
+    {
+      "direction": "receivable",
+      "openItemId": "72602",
+      "businessAccountId": "174626",
+      "amount": "0.19",
+      "cashAccountId": "174622",
+      "cashCurrencyId": "120455",
+      "subjectCode": "1001",
+      "subjectCurrencyCodes": [],
+      "currencyCode": "RMB"
+    },
+    {
+      "direction": "payable",
+      "openItemId": "72603",
+      "businessAccountId": "174624",
+      "amount": "0.23",
+      "cashAccountId": "174622",
+      "cashCurrencyId": "120455",
+      "subjectCode": "1001",
+      "subjectCurrencyCodes": [],
+      "currencyCode": "RMB"
+    }
+  ]
+}

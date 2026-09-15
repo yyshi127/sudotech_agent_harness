@@ -1,0 +1,29 @@
+{
+  "ledger": { "id": "35616", "name": "施的演示账套" },
+  "journalId": "141107",
+  "request": { "method": "POST", "path": "/finance/cashjournal/delete.rjson", "body": { "id": 141107, "accountName": "施的演示账套" } },
+  "observedAt": "2026-09-10T13:23:52.068Z",
+  "response": { "httpStatus": 200, "result": 100, "responseBytes": 63 },
+  "writeRequests": 1,
+  "outcome": "accepted",
+  "initialLaunch": "Exited before reservation; attempt directory absent. Subsequent read-only preview passed before execution resumed. No uncertain write was retried.",
+  "readback": {
+    "target": "not-observed",
+    "cashSurvivingContent": "matched",
+    "cashBalances": "matched",
+    "journalSurvivingContent": "matched",
+    "allAccountBalances": "unavailable",
+    "receivablesPreserved": true,
+    "payablesPreserved": true,
+    "vouchersPreserved": true,
+    "scope": "January 2022 journal and open-item inventories; complete unfiltered 41-voucher projection, not full-ledger detail equality"
+  },
+  "privateAttempt": "test-tools/f3b-35616/journal-delete/execution-account-name-03",
+  "recovery": "No automatic undo or restoration performed; saved creation and before/after evidence retained",
+  "qualification": "accountName in the JSON request body resolves the observed missing-ledger-name rejection for this dedicated fixture",
+  "productFix": "Journal sender derives accountName from the approved inventory revalidated against current unique ledger identity",
+  "tests": { "lab": 35, "regressionFailuresBeforeFix": 5, "focusedAfterFix": 239 },
+  "standingTestAuthority": "User explicitly directs autonomous development tests on configured test ledger35616 without per-call approvals. Limit writes and cleanup to positively identified synthetic fixtures; preserve unrelated data and unknown intents. Product exact-version confirmation remains mandatory.",
+  "mainAppAcceptance": "pending",
+  "f3bComplete": false
+}

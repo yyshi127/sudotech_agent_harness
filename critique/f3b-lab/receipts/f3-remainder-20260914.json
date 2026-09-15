@@ -1,0 +1,162 @@
+{
+  "date": "2026-09-14",
+  "ledger": {
+    "id": "35616",
+    "name": "施的演示账套"
+  },
+  "scope": "F3 remainder implementation and bounded acceptance; not unrestricted F3 completion",
+  "implemented": [
+    {
+      "capability": "CF08 explicit subject accounting",
+      "behavior": "Resolve explicitly requested auxiliary categories and observed currencies from current same-ledger references; preserve exact selection through confirmation and one send; match returned auxiliary IDs/codes/names and currency codes/names.",
+      "unsupported": [
+        "new currency registration",
+        "quantity accounting",
+        "promoting a historical leaf",
+        "assuming auxiliary item enable-state",
+        "unverified currency combinations"
+      ],
+      "mainApplication": [
+        {
+          "code": "100292",
+          "auxiliaryCategoryCodes": [
+            "01"
+          ],
+          "currencyCodes": [],
+          "sessionId": "ddee9b8e-036f-4497-93d4-280ed9e66f43",
+          "operationId": "79b36198-e000-44b9-a49f-65ce20d6878b",
+          "audit": "critique/f3a-lab/receipts/master-data-live-host/subject-auxiliary-20260914/audit.json",
+          "sha256": "2132ab1997b06ae77441378c9a9d2324b4dbb7ba526dd6b15305e8e1cc5ea89d"
+        },
+        {
+          "code": "100291",
+          "auxiliaryCategoryCodes": [],
+          "currencyCodes": [
+            "USD"
+          ],
+          "sessionId": "ca41e8ed-715a-4a45-ab59-9477570765d8",
+          "operationId": "df04987a-612f-4097-9ff8-196f86c22ec2",
+          "audit": "critique/f3a-lab/receipts/master-data-live-host/subject-currency-20260914/audit.json",
+          "sha256": "f1c01f73c71874c3ee1f08b28fde9a95ca136d725c78cc24fee554411c7f0f85"
+        }
+      ],
+      "acceptance": {
+        "realModel": true,
+        "shippingHost": true,
+        "mandatoryApprovalChannel": true,
+        "humanUiClick": false,
+        "oneWritePerSubject": true,
+        "content": "matched",
+        "configuration": "matched",
+        "preservedVouchers": 41,
+        "originalReferenceRowsPreserved": true
+      },
+      "adapterEvidence": {
+        "directory": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3-remainder/subject-options-20260914",
+        "subjects": [
+          "100294",
+          "100293"
+        ],
+        "hashes": {
+          "auxiliary-readback.json": "980711402a01305aecbfdca89e19630da36c2bead3bcbb40d3336780b90f4dc7",
+          "currency-readback.json": "6dc2aab05e818efcab1c8d33f764e500539c0f07896d0706847ae0410d502cf4"
+        }
+      }
+    },
+    {
+      "capability": "CF14 journal laboratory predecessor selection",
+      "receipt": "critique/f3b-lab/receipts/f3-journal-predecessor-resolution-20260914.json",
+      "resolution": "Old standalone fixture selected a predecessor across dates. Same-date WRITE_OFF/ADD pass; cross-date control reproduces vendor preId0. Product comparisons remain strict; historical incomplete results are not rewritten."
+    },
+    {
+      "capability": "CF24/CF25 preflight diagnostics",
+      "resolution": "Optional bounded preflightStage is durably retained for not-sent outcomes. Old records without stages remain valid. Assembled tests prove both directions send no write and refuse repeats after injected source-read failure.",
+      "historicalCause": "Old operation918b3fb3-8fe4-4600-8097-01f11b35fd5c cannot be retrospectively diagnosed from its stage-free record; no retry."
+    }
+  ],
+  "inheritedAcceptance": {
+    "receipt": "critique/f3b-lab/receipts/f3b-main-app-acceptance-20260914.json",
+    "capabilities": [
+      "CF12",
+      "CF15",
+      "CF22",
+      "CF23",
+      "CF24",
+      "CF25"
+    ],
+    "count": "6 bounded paths, not six new acceptances in this increment"
+  },
+  "remaining": [
+    {
+      "item": "Manual/external voucher provenance",
+      "state": "unresolved",
+      "evidence": "critique/f3b-lab/receipts/voucher-context-1789357738220.json",
+      "finding": "Fresh public list/details and existing Chrome manual detail omit original appId/flowId. No arbitrary identifiers or external voucher deletion attempted."
+    },
+    {
+      "item": "First AR/AP business-account discovery",
+      "state": "user-deferred",
+      "finding": "No verified complete public account list; do not repeat rejected private endpoint guesses."
+    },
+    {
+      "item": "Auxiliary item enable-state",
+      "state": "user-deferred",
+      "finding": "Public query lacks state; no mutation used to discover it."
+    },
+    {
+      "item": "Unsafe linked/audited/settled deletion, unknown period state and vendor concurrency",
+      "state": "explicit-limits",
+      "finding": "Known unsupported states block; no automatic linked deletion, fictitious period verification or remote lock."
+    },
+    {
+      "item": "Partial/foreign-currency write-off",
+      "state": "unsupported",
+      "finding": "Current qualified write-off is full settlement in base currency, not an actual bank payment."
+    }
+  ],
+  "verification": {
+    "masterDataTests": 154,
+    "writeOffTests": 157,
+    "financeHostTests": 137,
+    "webFiles": [
+      "apps/web/tests/finance-master-data-preparation.e2e.ts",
+      "apps/web/tests/finance-open-item-write-off.e2e.ts"
+    ],
+    "web": "Both refreshed and independently replayed; mock vendor in real assembled application, not live writes.",
+    "build": "pnpm.cmd run build:xiaojing passed",
+    "lint": "Focused repository Oxlint passed",
+    "wholeRepositoryDocSync": {
+      "passed": 23,
+      "failed": 5,
+      "failures": [
+        "Cordis API catalog stale",
+        "API replica missing translation/config catalog stale pairing",
+        "API replica markdown wrapping",
+        "generated source declarations export JSDoc",
+        "duplicate generated persistence event declarations"
+      ]
+    }
+  },
+  "newExternalData": {
+    "subjects": [
+      "100294",
+      "100293",
+      "100292",
+      "100291"
+    ],
+    "journals": [
+      "141170",
+      "141171",
+      "141172"
+    ],
+    "retained": true,
+    "actualPayments": false,
+    "deletions": false,
+    "oldIntentReplays": 0
+  },
+  "git": {
+    "branch": "codex/finance-f1-2",
+    "commitOrPush": false
+  },
+  "runtime": "Rebuilt3092 left available; no intentional model/background test loop."
+}

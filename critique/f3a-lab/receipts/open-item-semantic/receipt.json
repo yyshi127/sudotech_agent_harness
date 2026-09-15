@@ -1,0 +1,131 @@
+{
+  "checkedAt": "2026-09-10T04:17:01.254Z",
+  "sessionId": "10624a34-0af4-4f55-aefb-1fb61ec3e558",
+  "running": false,
+  "calls": [
+    "finance_open_item_accounts",
+    "finance_open_item_accounts",
+    "finance_references",
+    "finance_references",
+    "finance_references",
+    "finance_references",
+    "finance_prepare_open_item",
+    "finance_prepare_open_item"
+  ],
+  "previews": [
+    {
+      "id": "14fd10ab-4d44-4d22-b76d-ac4f9d1fc5cb",
+      "version": 1,
+      "phase": "prepared",
+      "account": {
+        "id": "35616",
+        "name": "施的演示账套"
+      },
+      "input": {
+        "direction": "receivable",
+        "accountId": "174626",
+        "categoryId": "578250",
+        "auxiliaryCategoryCode": "01",
+        "auxiliaryItemId": "191501",
+        "date": "2022-01-09",
+        "amount": "0.13",
+        "summary": "F3语义应收勿创建",
+        "keeperName": "施",
+        "accountReferenceQuery": {
+          "direction": "receivable",
+          "periodStart": "2022-01",
+          "periodEnd": "2022-01",
+          "page": 1,
+          "pageSize": 100
+        }
+      },
+      "references": {
+        "ledgerId": "35616",
+        "ledgerName": "施的演示账套",
+        "accountId": "174626",
+        "accountName": "应收账款",
+        "currencyCode": "RMB",
+        "categoryId": "578250",
+        "categoryName": "其他收入",
+        "counterparty": {
+          "categoryId": "473814",
+          "categoryCode": "01",
+          "categoryName": "客户",
+          "itemId": "191501",
+          "itemCode": "03",
+          "itemName": "淘云科技",
+          "itemStatus": "unknown",
+          "wireName": "客户:淘云科技"
+        }
+      },
+      "accountObservation": {
+        "sourceRecordId": "72595",
+        "id": "174626",
+        "name": "应收账款",
+        "status": "enabled",
+        "foreignCurrency": false,
+        "currencyCode": "RMB",
+        "baseCurrencyCode": "RMB"
+      },
+      "notice": "仅本地往来预览，未创建、收付款或核销。账户属性来自所示期间及页码的已有往来记录，不是完整账户目录；未返回账户不代表不存在。当前仅核验本位币账户，不猜测外币或汇率。创建前须确认准确版本并重新核实来源与资料；可用日期由有成提交校验。"
+    },
+    {
+      "id": "e1c75ee2-d824-44fc-a456-0b38d1db2889",
+      "version": 1,
+      "phase": "prepared",
+      "account": {
+        "id": "35616",
+        "name": "施的演示账套"
+      },
+      "input": {
+        "direction": "payable",
+        "accountId": "174624",
+        "categoryId": "578260",
+        "auxiliaryCategoryCode": "02",
+        "auxiliaryItemId": "191573",
+        "date": "2022-01-09",
+        "amount": "0.17",
+        "summary": "F3语义应付勿创建",
+        "keeperName": "施",
+        "accountReferenceQuery": {
+          "direction": "payable",
+          "periodStart": "2022-01",
+          "periodEnd": "2022-01",
+          "page": 1,
+          "pageSize": 100
+        }
+      },
+      "references": {
+        "ledgerId": "35616",
+        "ledgerName": "施的演示账套",
+        "accountId": "174624",
+        "accountName": "应付账款",
+        "currencyCode": "RMB",
+        "categoryId": "578260",
+        "categoryName": "其他支出",
+        "counterparty": {
+          "categoryId": "473815",
+          "categoryCode": "02",
+          "categoryName": "供应商",
+          "itemId": "191573",
+          "itemCode": "F3A04",
+          "itemName": "F3主应用供应商测试",
+          "itemStatus": "unknown",
+          "wireName": "供应商:F3主应用供应商测试"
+        }
+      },
+      "accountObservation": {
+        "sourceRecordId": "72596",
+        "id": "174624",
+        "name": "应付账款",
+        "status": "enabled",
+        "foreignCurrency": false,
+        "currencyCode": "RMB",
+        "baseCurrencyCode": "RMB"
+      },
+      "notice": "仅本地往来预览，未创建、收付款或核销。账户属性来自所示期间及页码的已有往来记录，不是完整账户目录；未返回账户不代表不存在。当前仅核验本位币账户，不猜测外币或汇率。创建前须确认准确版本并重新核实来源与资料；可用日期由有成提交校验。"
+    }
+  ],
+  "unexpectedCalls": [],
+  "businessWritesAuthorized": false
+}

@@ -1,0 +1,6 @@
+- text: 失败
+- 'button "Tool call Error: 有成科目余额表查询失败（network；阶段：余额表请求）。本次未取得有效结果，不代表没有余额；不要通过文件搜索或索取密钥代替查询。" [expanded]':
+  - img
+  - text: "Tool call Error: 有成科目余额表查询失败（network；阶段：余额表请求）。本次未取得有效结果，不代表没有余额；不要通过文件搜索或索取密钥代替查询。"
+- text: "IN { \"month\": \"2026-09\" } OUT Error: 有成科目余额表查询失败（network；阶段：余额表请求）。本次未取得有效结果，不代表没有余额；不要通过文件搜索或索取密钥代替查询。"
+- button "Inspect"

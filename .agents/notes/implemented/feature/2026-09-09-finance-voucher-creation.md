@@ -1,0 +1,41 @@
+# Agent Note: Finance voucher preparation and confirmed creation
+
+Status: implemented
+
+English | [中文](2026-09-09-finance-voucher-creation.zh.md)
+
+## Problem
+
+F1 reads do not provide durable preparation, exact-version consent, write recovery or original-attachment verification. Reimbursement consent does not authorize financial vouchers.
+
+## Decision
+
+The Finance Host owns prepared versions and pre-send records scoped to session, client and saved configuration. The model proposes values; authoritative references and mandatory approval precede creation. The input validator rejects malformed dates/amounts, duplicate auxiliary categories and unbalanced bigint cent totals. References require exact codes, unique enabled leaf subjects and explicit auxiliary/currency configuration; unknown auxiliary status remains unknown. Foreign amounts multiplied by user-confirmed rates must match each base amount after decimal half-up rounding to cents. Writable periods, appropriate rate selection and invoice authenticity are not established by these checks.
+
+The per-owner record store uses schema-versioned UUID files, atomic writes and per-record locks. Revision requires a prepared record and matching content/configuration versions. Approval occurs outside the lock; reservation rechecks the version, saves the complete payload, account, appId/flowId and outcome-unknown, and reserves capacity for the largest accepted ID before sending. Reload reconstructs and validates the payload. Records cannot be reserved again after any submission outcome. Stable flowId is the local UUID; deployment configuration owns appId.
+
+Finance-only preparation and creation tools separate local proposals from writes. Creation accepts only ID/version, presents the complete preview for mandatory one-time approval, revalidates references/content/configuration, then reserves and sends through the ordinary endpoint. The sender checks configuration again after authentication. It never uses read retry for creation, populates audit fields or silently loses decimal precision. Documented2xx parameter failures are rejected; a returned numeric-string ID is accepted, not verified completion. Ambiguous, oversized, HTTP-failed or lost responses remain unknown. Post-send outcomes persist before readback or cancellation checks; failure to query an accepted ID does not erase it or permit resending.
+
+Original uploads use the financial confirmation and its storage target, not reimbursement consent. Imported-file ownership, canonical directory, bounded bytes, size/hash and PDF/PNG/JPEG headers are checked; aliases cannot select the same file twice. Each upload receipt is persisted privately before creation; all selected files must match saved URLs. Storage-revision changes, missing receipts and expired links prevent dispatch. Failed or cancelled uploads can leave objects in OSS; there is no automatic cleanup or silent omission. Revisions preserve earlier upload receipts, while submission includes only currently selected originals. Model output exposes safe receipts and explicit unverified association, never signed URLs. Existing reimbursement uploads retain their separate consent rules.
+
+Basic readback compares account, ID, number, date/period, maker, statuses and the complete entry multiset. Auxiliary verification associates codes with their accounting entries, preserving duplicate entries and leading zeros. Live reference comparisons show the vendor detail's Id-suffixed auxiliary fields contain category/item codes, not reference-row IDs. Missing arrays remain unavailable. Currency verification associates direct entry currencyCode, originalCurrencyAmount and exchangeRate with accounting and auxiliary values, preserving duplicates; foreignCurrencySimpleList is not the source. Foreign-currency creation requires supported subjects and validated conversion; writable periods remain independently unverified and disclosed as subject to vendor write validation. complete=true requires this voucher's accounting, auxiliary data, currency values and every selected original to match, with original retention verified after source expiry. It does not establish invoice authenticity, accounting judgment, approval/posting or full F2 acceptance.
+
+The existing finance-voucher-draft skill distinguishes advice, local preparation and requested creation. It routes exact prepared versions through mandatory approval, preserves user-confirmed foreign-currency information and checks decimal conversion, and uses inspection rather than resubmission for accepted or unknown operations. The assembled application snapshot includes the actual skill text supplied to the model; simulated model responses do not qualify live semantic reliability.
+
+Original readback verifies copies from deployment-allowlisted HTTPS hosts with no redirects or source-object reuse. Aggregate bytes and the whole download deadline are bounded; byte-size/SHA256 multisets establish association, not vendor filenames/sizes. Retention remains pending until verification begins after source-link expiry. Unavailable and mismatched copies remain distinct; only fixed statuses/warnings reach the model. Real synthetic fixtures qualify base-currency and foreign-currency creation, auxiliary entries, copied PDF/PNG bytes and retention after source expiry; this does not qualify every ledger or file type.
+
+## Alternatives considered
+
+**Reuse reimbursement orchestration:** its authorization and template semantics are inappropriate; share original-byte checks, storage and approval primitives only.
+
+**Submit model JSON directly:** balanced amounts cannot prove authoritative references, exact consent or recoverability after response loss.
+
+**Retry unknown creation:** neither partial reads nor supplier deduplication guidance proves absence; preserve the original record and reconcile without another creation endpoint.
+
+## Verification
+
+Focused tests cover input/references, concurrent and stale reservations, receipt matching, storage changes, sender outcomes and bounded copy verification. Real-composition snapshots cover previews, actual Reject/Allow once button clicks, revision during approval, response loss, duplicate prevention, failed readback, original copying and partial-upload failure; Standard excludes both tools. Cancellation at response receipt preserves the accepted ID, permits read-only recovery and blocks another submission. These use simulated vendor responses. Independent live tests qualify base/foreign-currency creation, copied-original retention and fresh-Host recovery with duplicate prevention. The configured real model reads a synthetic PDF, resolves its business facts against actual subjects and retains its hash in a local preview; separate conversational revision and mandatory rejection checks do not write financial data. The development-status document owns the F2 technical acceptance evidence and its distinction from F4 release acceptance.
+
+## Consequences
+
+The two creation documents disagree on required fields and attachments; qualification uses the ordinary endpoint only. Supplier appId/flowId guidance does not establish cross-device duplicate prevention; unknown results require reconciliation without resending. Period qualification is limited to the tested ledger and period; other periods remain subject to vendor validation. A live copied attachment has incorrect filename/size metadata despite correct bytes; do not echo signature-bearing filenames or use declared size as successful-copy evidence. Technical verification does not approve the accounting treatment or replace user release acceptance.

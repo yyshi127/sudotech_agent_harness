@@ -2516,6 +2516,54 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Current catalog revision and rows.',
       },
       {
+        signature: '@Remote(\'readAttachmentStorage\') readAttachmentStorage(): Promise<AttachmentStorageView>',
+        description: 'Read computer-wide attachment settings.',
+        parameters: [],
+        returns: 'Configuration without AccessKey values.',
+      },
+      {
+        signature: '@Remote(\'readReimbursementConnection\') async readReimbursementConnection(clientId: FinanceClientId): Promise<ReimbursementConnectionView>',
+        description: 'Read the independently saved reimbursement connection.',
+        parameters: [{ name: 'clientId', description: 'Selected account-book.' }],
+        returns: 'Non-secret reimbursement settings.',
+      },
+      {
+        signature: '@Remote(\'saveReimbursementConnection\') async saveReimbursementConnection(request: SaveReimbursementConnectionRequest): Promise<ReimbursementConnectionView>',
+        description: 'Replace reimbursement credentials without changing Finance authorization.',
+        parameters: [{ name: 'request', description: 'Revision-checked reimbursement credentials.' }],
+        returns: 'Saved non-secret settings.',
+      },
+      {
+        signature: '@Remote(\'testReimbursementConnection\') async testReimbursementConnection(clientId: FinanceClientId): Promise<string>',
+        description: 'Verify reimbursement authorization through a read-only department query.',
+        parameters: [{ name: 'clientId', description: 'Account-book whose saved credential is tested.' }],
+        returns: 'Read-only authorization outcome.',
+      },
+      {
+        signature: 'async reimbursement(agent: Agent, input: unknown, signal: AbortSignal): Promise<object>',
+        description: 'Discover reimbursement fields or save an explicitly confirmed, invoice-backed draft.',
+        parameters: [{ name: 'agent', description: 'Bound Finance session; callers cannot override account-book identity.' }, { name: 'input', description: 'Untrusted tool JSON, parsed before authentication.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Credential-free metadata or a durable draft receipt; incomplete writes remain explicit.',
+      },
+      {
+        signature: '@Remote(\'saveAttachmentStorage\') saveAttachmentStorage(request: SaveAttachmentStorageRequest): Promise<AttachmentStorageView>',
+        description: 'Replace computer-wide attachment configuration.',
+        parameters: [{ name: 'request', description: 'Revision-checked settings with optional new key pair.' }],
+        returns: 'Sanitized saved settings.',
+      },
+      {
+        signature: '@Remote(\'testAttachmentStorage\') async testAttachmentStorage(revision: number): Promise<AttachmentStorageTestResult>',
+        description: 'Test a synthetic object without uploading customer documents.',
+        parameters: [{ name: 'revision', description: 'Saved configuration selected for testing.' }],
+        returns: 'Real upload, download, and cleanup outcomes.',
+      },
+      {
+        signature: 'async uploadFinanceAttachment(agent: Agent, sourcePath: string, signal: AbortSignal): Promise<FinanceAttachmentUpload>',
+        description: 'Upload one unchanged original invoice imported into the calling account-book session.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent whose workspace and import log authorize the file.' }, { name: 'sourcePath', description: 'Exact imported path or an unambiguous imported filename.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Host-only receipt; consumers must omit downloadUrl from model-visible output.',
+      },
+      {
         signature: '@Remote(\'workspaces\') async workspaces(): Promise<FinanceWorkspaceListView>',
         description: 'List standard and customer Workspaces owned by Finance.',
         parameters: [],
@@ -2546,10 +2594,220 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Restored client Workspace, or null when the directory is not an existing client.',
       },
       {
-        signature: '@Remote(\'read\') read(clientId: FinanceClientId): Promise<FinanceClientReadView>',
+        signature: '@Remote(\'read\') async read(clientId: FinanceClientId): Promise<FinanceClientReadView>',
         description: 'Read full local client detail.',
         parameters: [{ name: 'clientId', description: 'Client identity.' }],
         returns: 'Full loopback-only record.',
+      },
+      {
+        signature: '@Remote(\'listYouchengAccounts\') async listYouchengAccounts(request: ListFinanceYouchengAccountsRequest): Promise<FinanceYouchengAccountsResult>',
+        description: 'Read available ledgers using unsaved credentials without changing the customer, secret, or badge.',
+        parameters: [{ name: 'request', description: 'Editor revision, application identity, and optional write-only replacement secret.' }],
+        returns: 'Ledger choices or a safe connection failure; rejects stale revisions and archived clients.',
+      },
+      {
+        signature: '@Remote(\'checkConnection\') async checkConnection(clientId: FinanceClientId): Promise<FinanceConnectionStatus>',
+        description: 'Verify the saved Youcheng credentials and exact ledger without any accounting mutation.',
+        parameters: [{ name: 'clientId', description: 'Local customer owning the saved connection.' }],
+        returns: 'Sanitized current check; a concurrent edit invalidates the old result.',
+      },
+      {
+        signature: 'async queryVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<VoucherPage>',
+        description: 'Query vouchers using the owning Finance session\'s saved ledger and Host credential.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent; consultation and other workspaces are rejected.' }, { name: 'query', description: 'Month and page, with no customer, ledger, URL, or credential overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'One bounded read-only page; concurrent record edits discard its result.',
+      },
+      {
+        signature: 'async queryVoucherDetail(agent: Agent, voucherId: string, signal: AbortSignal): Promise<VoucherDetail>',
+        description: 'Read a specified voucher using the bound session\'s saved connection.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance agent in its own workspace.' }, { name: 'voucherId', description: 'ID from the list or user, not a voucher display number.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Verified detail; changed configuration or credentials discard the result.',
+      },
+      {
+        signature: 'async queryBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<BalanceResult>',
+        description: 'Query balances using only the bound Finance session\'s saved connection.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance agent in its own workspace.' }, { name: 'query', description: 'Inclusive accounting periods without ledger overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded report; changed configuration or credentials discard the result.',
+      },
+      {
+        signature: 'async analyzeBalances(agent: Agent, query: BalanceAnalysisQuery, signal: AbortSignal): Promise<BalanceAnalysisResult>',
+        description: 'Compare explicit single-level base-currency balances under one saved-client revision.',
+        parameters: [{ name: 'agent', description: 'Bound Finance session.' }, { name: 'query', description: 'Months and one subject level.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Exact differences with original rows and unverified coverage retained.',
+      },
+      {
+        signature: 'async exportBalanceAnalysis(agent: Agent, query: BalanceAnalysisQuery, signal: AbortSignal): Promise<{ report: BalanceAnalysisResult file: FinanceManagedFile }>',
+        description: 'Publish a freshly read balance analysis with source rows and exact-text amounts.',
+        parameters: [{ name: 'agent', description: 'Bound Finance session.' }, { name: 'query', description: 'Months and one subject level, not caller-authored rows.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'The analyzed report and committed local workbook.',
+      },
+      {
+        signature: 'async queryJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<JournalResult>',
+        description: 'Query journals using the session-bound client\'s saved connection.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Single-month date range, page and optional cash-account selection.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded read; concurrent client or credential changes discard the result.',
+      },
+      {
+        signature: 'async analyzeJournals(agent: Agent, query: JournalAnalysisQuery, signal: AbortSignal): Promise<JournalAnalysisResult>',
+        description: 'Reconcile one cash account\'s journals and compare same-currency periods.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Explicit account and date ranges without connection overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Reconciled totals; concurrent client or credential changes discard the entire report.',
+      },
+      {
+        signature: 'async exportJournalAnalysis(agent: Agent, query: JournalAnalysisQuery, signal: AbortSignal): Promise<{ report: JournalAnalysisResult file: FinanceManagedFile }>',
+        description: 'Query and publish a reconciled journal comparison with exact source rows.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Account and date ranges, not a previous-result snapshot.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication starts.' }],
+        returns: 'Exact report and committed local workbook; no publication follows failed reconciliation.',
+      },
+      {
+        signature: 'async queryOpenItems(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<OpenItemResult>',
+        description: 'Query receivables or payables using the session-bound saved connection.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Direction, accounting periods and page without connection overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded page; changed client configuration or credentials discard the result.',
+      },
+      {
+        signature: 'async analyzeOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<OpenItemAnalysisResult>',
+        description: 'Aggregate or compare complete vendor-count-reconciled open-item pages.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Direction, periods and grouping; no model-supplied records.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Exact same-currency groups; concurrent configuration changes discard the entire report.',
+      },
+      {
+        signature: 'async exportOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<{ report: OpenItemAnalysisResult file: FinanceManagedFile }>',
+        description: 'Query and publish a local XLSX of this invocation\'s open-item analysis.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Query criteria, not a previous-result snapshot or caller-authored rows.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication begins.' }],
+        returns: 'Published file and the exact report serialized; publication commits preserve the work copy.',
+      },
+      {
+        signature: 'async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<{ report: VoucherPage file: FinanceManagedFile }>',
+        description: 'Query and publish one explicitly bounded voucher page without ledger-wide completeness claims.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Page and filters, not caller-authored accounting data.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication starts.' }],
+        returns: 'Exact queried page and committed local file; the work copy is preserved.',
+      },
+      {
+        signature: 'async exportBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<{ report: BalanceResult file: FinanceManagedFile }>',
+        description: 'Query and publish balance source columns with their unverified coverage notice intact.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Inclusive accounting periods.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication starts.' }],
+        returns: 'Exact queried report and committed local workbook; no inferred totals or currency.',
+      },
+      {
+        signature: 'async exportJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<{ report: JournalResult file: FinanceManagedFile }>',
+        description: 'Query and publish one journal page, retaining its missing completeness evidence.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Dates, account selector and bounded page.' }, { name: 'signal', description: 'Cancellation checked before writing and publication.' }],
+        returns: 'Exact source report and committed workbook, with summaries separated.',
+      },
+      {
+        signature: 'async exportOpenItemPage(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<{ report: OpenItemResult file: FinanceManagedFile }>',
+        description: 'Query and publish one raw receivable/payable page without additional aggregation.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Direction, periods and bounded page.' }, { name: 'signal', description: 'Cancellation checked before writing and publication.' }],
+        returns: 'Exact source report and committed workbook; settlement is not a bank payment claim.',
+      },
+      {
+        signature: 'async prepareMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Prepare/revise local subject or auxiliary values, or inspect the original submission without sending.',
+        parameters: [{ name: 'agent', description: 'Owning client-bound Finance session.' }, { name: 'input', description: 'Explicit proposal or original local ID/version.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'maxBytes', description: 'Complete preview and durable record limit.' }],
+        returns: 'Exact preview or persisted outcome with an independent content comparison.',
+      },
+      {
+        signature: 'async createMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Confirm and reserve an exact subject/auxiliary proposal before one public API write.',
+        parameters: [{ name: 'agent', description: 'Owning Finance agent for mandatory approval.' }, { name: 'input', description: 'Existing preparation ID and exact version only.' }, { name: 'signal', description: 'Caller cancellation; no cancellation after dispatch grants retry authority.' }, { name: 'maxBytes', description: 'Complete preview, persistent record and response limit.' }],
+        returns: 'Durable transport result followed by a separate, possibly unavailable readback.',
+      },
+      {
+        signature: 'async queryObservedOpenItemAccounts(agent: Agent, input: unknown, signal: AbortSignal): Promise<OpenItemAccountReferences>',
+        description: 'Read account observations on one explicit existing-open-item page, not a complete account directory.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance session in its own workspace.' }, { name: 'input', description: 'Direction, period range and page selected for this read.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Returned account identities, attributes and source coverage; missing accounts remain unresolved.',
+      },
+      {
+        signature: 'async prepareOpenItem(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Prepare/revise a local open item or inspect its original durable submission without resending.',
+        parameters: [{ name: 'agent', description: 'Owning client-bound Finance session.' }, { name: 'input', description: 'Complete sourced proposal or original local operation ID.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'maxBytes', description: 'Complete local record and result limit.' }],
+        returns: 'Local preview or durable outcome and independent readback; neither proves receipt or payment.',
+      },
+      {
+        signature: 'async createOpenItem(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Confirm one exact open-item version, reserve durably, send once and independently compare its returned ID.',
+        parameters: [{ name: 'agent', description: 'Owning Finance session and mandatory-approval context.' }, { name: 'input', description: 'Persisted local ID and version only.' }, { name: 'signal', description: 'Cancellation; received transport outcomes remain durable after cancellation.' }, { name: 'maxBytes', description: 'Complete record, request and result cap.' }],
+        returns: 'Durable outcome plus content/association/balance checks, not settlement or payment execution.',
+      },
+      {
+        signature: 'async prepareJournal(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Prepare or revise a local journal, or inspect the original accepted/unknown submission without resending.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance session in its own workspace.' }, { name: 'input', description: 'Preparation command or original local operation ID.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'maxBytes', description: 'Deployment record/result byte cap.' }],
+        returns: 'Exact local preview or durable transport state with independent readback.',
+      },
+      {
+        signature: 'async createJournal(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Confirm an exact journal version, durably reserve it, send once and inspect the original result.',
+        parameters: [{ name: 'agent', description: 'Owning Finance agent, supplying mandatory approval context.' }, { name: 'input', description: 'Existing local ID and version only.' }, { name: 'signal', description: 'Caller cancellation; a received ID persists even if cancellation follows dispatch.' }, { name: 'maxBytes', description: 'Deployment record/request/result byte limit.' }],
+        returns: 'Sanitized durable transport and readback states, never a retry instruction.',
+      },
+      {
+        signature: 'async prepareVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number }): Promise<object>',
+        description: 'Prepare/revise an unsent voucher, or inspect its durable submission record in the owning Finance session.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent; identity and credentials cannot be supplied in the request.' }, { name: 'input', description: 'Preparation-only command, including proposed entries or a prior local ID/version.' }, { name: 'signal', description: 'Cancellation before publication.' }, { name: 'limits', description: 'Deployment-controlled maximum entries and complete input/result size.' }],
+        returns: 'Local preview or submission observation with pending checks; accepted IDs receive read-only basic accounting comparison, never resubmission.',
+      },
+      {
+        signature: 'async createVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number }): Promise<object>',
+        description: 'Confirm and send an exact saved version once; acceptance remains distinct from verified completion.',
+        parameters: [{ name: 'agent', description: 'Owning Finance session; supplies the account and mandatory approval context.' }, { name: 'input', description: 'Local proposal ID and version only, with no destination or approval overrides.' }, { name: 'signal', description: 'Cancellation; observations after dispatch are persisted even when cancelled.' }, { name: 'limits', description: 'Maximum entries and complete record/response bytes.' }],
+        returns: 'Durable transport outcome and optional basic readback, never an automatic resend.',
+      },
+      {
+        signature: 'async prepareVoucherDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number; maxPages: number }): Promise<object>',
+        description: 'Prepare or inspect a deletion using a fresh voucher detail within the currently bound client.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance session owning the request.' }, { name: 'input', description: 'Preparation/revision references or an existing deletion record ID; no credentials or consent overrides.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'limits', description: 'Complete record/input limits and maximum pages per absence-verification pass.' }],
+        returns: 'Saved exact preview or read-only recovery result; never sends a deletion.',
+      },
+      {
+        signature: 'async deleteVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number; maxPages: number }): Promise<object>',
+        description: 'Force confirmation of an exact deletion version and persist the shared target claim before dispatch.',
+        parameters: [{ name: 'agent', description: 'Initiating client-bound session.' }, { name: 'input', description: 'Local deletion ID and version only.' }, { name: 'signal', description: 'Caller cancellation; transport observations remain durable after dispatch.' }, { name: 'limits', description: 'Full record/result bounds and maximum pages per readback pass.' }],
+        returns: 'Transport observation and independent readback; never automatically resends an uncertain operation.',
+      },
+      {
+        signature: 'async prepareJournalDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Prepare or recover one journal deletion within an explicit cash account and month.',
+        parameters: [{ name: 'agent', description: 'Session bound to the current Finance client.' }, { name: 'input', description: 'Exact target/month/account for preparation or a local operation ID for read-only recovery.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'limits', description: 'Complete record/output and independent inventory bounds.' }],
+        returns: 'Versioned target preview or scoped readback; never sends a business write or claims global absence.',
+      },
+      {
+        signature: 'async deleteJournal(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Enforce exact journal/version approval and reserve a shared target before a single dispatch.',
+        parameters: [{ name: 'agent', description: 'Initiating bound Finance session.' }, { name: 'input', description: 'Local prepared operation ID and exact version, without consent or destination overrides.' }, { name: 'signal', description: 'Caller cancellation; a received transport outcome remains durable.' }, { name: 'limits', description: 'Record, result and two-pass inventory bounds.' }],
+        returns: 'Persisted transport outcome and separate scoped target/content/balance observations, never an automatic retry.',
+      },
+      {
+        signature: 'async prepareOpenItemDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Prepare or inspect AR/AP deletion evidence without exposing the internal sender.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to its current client and workspace.' }, { name: 'input', description: 'Exact target/direction/periods, or an owned local operation ID for recovery.' }, { name: 'signal', description: 'Caller cancellation, combined with Host disposal.' }, { name: 'limits', description: 'Complete persisted/output byte cap and counted inventory bounds.' }],
+        returns: 'Versioned restrictions and scoped observations; known blockers prevent execution and unknown effects require explicit confirmation.',
+      },
+      {
+        signature: 'async prepareOpenItemWriteOff(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxRows: number }): Promise<object>',
+        description: 'Prepare full-settlement evidence or inspect an original operation without granting write authority.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to its own client workspace.' }, { name: 'input', description: 'Complete local intent for preparation/revision, or saved local ID for inspection.' }, { name: 'signal', description: 'Caller cancellation combined with Host disposal.' }, { name: 'limits', description: 'Complete record/output cap and source/reference row bounds.' }],
+        returns: 'Original preview and transport state, with independent balance and receipt-linked journal observations; no execution.',
+      },
+      {
+        signature: 'async deleteOpenItem(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Confirm and reserve an exact receivable/payable deletion before one business request.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to the owning saved client and workspace.' }, { name: 'input', description: 'Prepared local ID and exact version, without consent or target overrides.' }, { name: 'signal', description: 'Caller cancellation combined with Host disposal.' }, { name: 'limits', description: 'Complete record/result and counted two-pass inventory bounds.' }],
+        returns: 'Durable transport outcome and separate scoped recovery; unknown results are never retried.',
+      },
+      {
+        signature: 'async writeOffOpenItem(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxRows: number }): Promise<object>',
+        description: 'Confirm and reserve an exact full-settlement version before one business request.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to the owning saved client and workspace.' }, { name: 'input', description: 'Prepared local ID and exact version, without consent or account overrides.' }, { name: 'signal', description: 'Caller cancellation combined with Host disposal.' }, { name: 'limits', description: 'Complete record/output and reference row bounds.' }],
+        returns: 'Durable transport outcome and independent recovery; unavailable period status is disclosed, not certified.',
+      },
+      {
+        signature: 'async queryReferences(agent: Agent, query: ReferenceQuery, signal: AbortSignal): Promise<ReferenceResult>',
+        description: 'Query reference data using only the owning session\'s current saved ledger.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance agent in its own workspace.' }, { name: 'query', description: 'Reference kind and exact filters, without connection overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded reference rows; stale configuration or credentials discard the result.',
       },
       {
         signature: '@Remote(\'create\') async create(request: CreateFinanceClientRequest): Promise<FinanceClientMutationResult>',
@@ -3295,6 +3553,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'AttachmentStorageConfig',
+    declaration: 'export interface AttachmentStorageConfig {\n    bucket: string;\n    region: string;\n    endpoint: string;\n    prefix: string;\n}',
+  },
+  {
+    name: 'AttachmentStorageTestResult',
+    declaration: 'export interface AttachmentStorageTestResult {\n    revision: number;\n    uploaded: boolean;\n    downloaded: boolean;\n    deleted: boolean;\n    message: string;\n}',
+  },
+  {
+    name: 'AttachmentStorageView',
+    declaration: 'export interface AttachmentStorageView {\n    revision: number;\n    config: AttachmentStorageConfig;\n    configured: boolean;\n    writable: boolean;\n}',
+  },
+  {
     name: 'AuthorizationEntry',
     declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
   },
@@ -3345,6 +3615,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'BackendRegistry',
     declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
+  },
+  {
+    name: 'BalanceAnalysisQuery',
+    declaration: 'export type BalanceAnalysisQuery = z.infer<typeof balanceAnalysisSchema>;',
+  },
+  {
+    name: 'BalanceAnalysisResult',
+    declaration: 'export interface BalanceAnalysisResult {\n    accountId: string;\n    accountName: string;\n    selection: BalanceAnalysisQuery;\n    currencyBasis: \'ledger-base\';\n    coverage: \'unverified\';\n    current: BalanceResult;\n    baseline?: BalanceResult;\n    returnedRowSums: {\n        current: Amounts;\n        baseline?: Amounts;\n    };\n    reconciliation: {\n        current: Reconciliation;\n        baseline?: Reconciliation;\n    };\n    reconciliationCounts: {\n        current: ReconciliationCounts;\n        baseline?: ReconciliationCounts;\n    };\n    reconciliationNotice: string;\n    differences?: {\n        subjectInfoId: number;\n        subjectCode: string;\n        subjectName: string;\n        presence: \'both\' | \'current-only\' | \'baseline-only\';\n        amounts: Amounts;\n    }[];\n    notice: string;\n}',
+  },
+  {
+    name: 'BalanceQuery',
+    declaration: 'export type BalanceQuery = z.infer<typeof balanceQuerySchema>;',
+  },
+  {
+    name: 'BalanceQueryReconciliation',
+    declaration: 'export interface BalanceQueryReconciliation {\n    verificationOwner: \'xiaojing\';\n    columns: Reconciliation;\n    counts: ReconciliationCounts;\n    notice: string;\n}',
+  },
+  {
+    name: 'BalanceResult',
+    declaration: 'export interface BalanceResult {\n    accountId: string;\n    accountName: string;\n    month: string;\n    monthEnd: string;\n    subjectLevel?: number;\n    subjectLevelEnd?: number;\n    rows: BalanceRow[];\n    summaries: BalanceRow[];\n    coverage: \'unverified\';\n    reconciliation?: BalanceQueryReconciliation;\n    notice: string;\n}',
+  },
+  {
+    name: 'BalanceRow',
+    declaration: 'export type BalanceRow = z.infer<typeof rowSchema>;',
   },
   {
     name: 'BashEnvContributor',
@@ -3648,7 +3942,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CreateFinanceClientRequest',
-    declaration: 'export interface CreateFinanceClientRequest {\n    expectedRevision: number;\n    client: FinanceClientDraft;\n    workspacePath: string;\n}',
+    declaration: 'export interface CreateFinanceClientRequest {\n    expectedRevision: number;\n    client: FinanceClientDraft;\n    workspacePath: string;\n    credentialInput?: FinanceClientCredentialInput;\n}',
   },
   {
     name: 'CreateGoalRequest',
@@ -3835,6 +4129,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type FinanceAccountingStandard = \'enterprise\' | \'small-enterprise\' | \'government\' | \'nonprofit\' | \'other\';',
   },
   {
+    name: 'FinanceAttachmentUpload',
+    declaration: 'export interface FinanceAttachmentUpload {\n    name: string;\n    objectKey: string;\n    size: number;\n    expiresAt: number;\n    downloadUrl: string;\n}',
+  },
+  {
     name: 'FinanceCalculationKind',
     declaration: 'export type FinanceCalculationKind = \'vat\' | \'vat-surcharges\' | \'enterprise-income-tax\' | \'salary-iit\';',
   },
@@ -3867,8 +4165,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface FinanceClientBinding {\n    schemaVersion: 1;\n    clientVersion: number;\n    client: FinanceClientSnapshot;\n    workspacePath: string;\n}',
   },
   {
+    name: 'FinanceClientCredentialInput',
+    declaration: 'export interface FinanceClientCredentialInput {\n    youchengAppSecret?: string;\n}',
+  },
+  {
+    name: 'FinanceClientCredentialStatus',
+    declaration: 'export interface FinanceClientCredentialStatus {\n    youchengAppSecretConfigured: boolean;\n    youchengAppSecretWritable: boolean;\n}',
+  },
+  {
     name: 'FinanceClientDraft',
-    declaration: 'export interface FinanceClientDraft {\n    legalName: string;\n    shortName?: string;\n    unifiedSocialCreditCode?: string;\n    taxpayerType: FinanceTaxpayerType;\n    registeredRegion: string;\n    accountingStandard: FinanceAccountingStandard;\n    industry?: string;\n    financePolicyNotes?: string;\n    chartMappings: FinanceChartMapping[];\n    externalSystemRefs: FinanceExternalSystemRef[];\n}',
+    declaration: 'export interface FinanceClientDraft {\n    legalName: string;\n    shortName?: string;\n    unifiedSocialCreditCode?: string;\n    taxpayerType: FinanceTaxpayerType;\n    registeredRegion: string;\n    accountingStandard: FinanceAccountingStandard;\n    industry?: string;\n    financePolicyNotes?: string;\n    financeSystem?: FinanceSystemConfig;\n    chartMappings: FinanceChartMapping[];\n    externalSystemRefs: FinanceExternalSystemRef[];\n}',
   },
   {
     name: 'FinanceClientId',
@@ -3884,7 +4190,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'FinanceClientReadView',
-    declaration: 'export interface FinanceClientReadView {\n    revision: number;\n    client: FinanceClientRecord;\n}',
+    declaration: 'export interface FinanceClientReadView {\n    revision: number;\n    client: FinanceClientRecord;\n    credentialStatus: FinanceClientCredentialStatus;\n    youchengApiUrls: FinanceYouchengApiUrls;\n}',
   },
   {
     name: 'FinanceClientRecord',
@@ -3892,7 +4198,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'FinanceClientSnapshot',
-    declaration: 'export type FinanceClientSnapshot = Readonly<FinanceClientDraft & {\n    id: FinanceClientId;\n}>;',
+    declaration: 'export type FinanceClientSnapshot = Readonly<Omit<FinanceClientDraft, \'financeSystem\'> & {\n    id: FinanceClientId;\n}>;',
   },
   {
     name: 'FinanceClientSummary',
@@ -3904,7 +4210,15 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'FinanceClientWorkspaceEntry',
-    declaration: 'export type FinanceClientWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'client\';\n    clientId: FinanceClientId;\n};',
+    declaration: 'export type FinanceClientWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'client\';\n    clientId: FinanceClientId;\n    connection?: FinanceConnectionStatus;\n};',
+  },
+  {
+    name: 'FinanceConnectionFailure',
+    declaration: 'export type FinanceConnectionFailure = \'credentials-missing\' | \'authentication\' | \'ip-not-allowed\' | \'account-query\' | \'account-unavailable\' | \'network\' | \'timeout\' | \'access-denied\' | \'invalid-response\';',
+  },
+  {
+    name: 'FinanceConnectionStatus',
+    declaration: 'export interface FinanceConnectionStatus {\n    state: \'unverified\' | \'checking\' | \'connected\' | \'failed\';\n    accountId: string;\n    accountName?: string;\n    checkedAt?: number;\n    failure?: FinanceConnectionFailure;\n}',
   },
   {
     name: 'FinanceConsultationFile',
@@ -3913,6 +4227,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'FinanceConsultationWorkspaceEntry',
     declaration: 'export type FinanceConsultationWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'consultation\';\n};',
+  },
+  {
+    name: 'FinanceDeferredSystemConfig',
+    declaration: 'export interface FinanceDeferredSystemConfig {\n    system: Exclude<FinanceSystemKind, \'youcheng\'>;\n}',
   },
   {
     name: 'FinanceDocumentKind',
@@ -4023,6 +4341,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type FinanceStandardWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'standard\';\n};',
   },
   {
+    name: 'FinanceSystemConfig',
+    declaration: 'export type FinanceSystemConfig = FinanceYouchengSystemConfig | FinanceDeferredSystemConfig;',
+  },
+  {
+    name: 'FinanceSystemKind',
+    declaration: 'export type FinanceSystemKind = \'youcheng\' | \'sdoo\' | \'yonyou\' | \'kingdee\';',
+  },
+  {
     name: 'FinanceTaxpayerType',
     declaration: 'export type FinanceTaxpayerType = \'general-vat\' | \'small-scale-vat\' | \'other\';',
   },
@@ -4037,6 +4363,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'FinanceWorkspaceListView',
     declaration: 'export interface FinanceWorkspaceListView {\n    standard: FinanceStandardWorkspaceEntry;\n    consultations: FinanceConsultationWorkspaceEntry[];\n    clients: FinanceClientWorkspaceEntry[];\n    listedWorkspaceIds: FinanceWorkspaceId[];\n}',
+  },
+  {
+    name: 'FinanceYouchengAccount',
+    declaration: 'export interface FinanceYouchengAccount {\n    id: string;\n    name: string;\n}',
+  },
+  {
+    name: 'FinanceYouchengAccountsResult',
+    declaration: 'export type FinanceYouchengAccountsResult = {\n    state: \'ready\';\n    accounts: FinanceYouchengAccount[];\n} | {\n    state: \'failed\';\n    failure: FinanceConnectionFailure;\n};',
+  },
+  {
+    name: 'FinanceYouchengApiUrls',
+    declaration: 'export type FinanceYouchengApiUrls = Record<FinanceYouchengEnvironment, string>;',
+  },
+  {
+    name: 'FinanceYouchengEnvironment',
+    declaration: 'export type FinanceYouchengEnvironment = \'test\' | \'production\';',
+  },
+  {
+    name: 'FinanceYouchengSystemConfig',
+    declaration: 'export interface FinanceYouchengSystemConfig {\n    system: \'youcheng\';\n    environment: FinanceYouchengEnvironment;\n    appKey: string;\n    accountCode: string;\n}',
   },
   {
     name: 'FinishReason',
@@ -4251,6 +4597,42 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type JobStatus = \'running\' | \'stopping\' | \'completed\' | \'killed\' | \'failed\';',
   },
   {
+    name: 'JournalAggregate',
+    declaration: 'export interface JournalAggregate {\n    month: string;\n    dateStart: string;\n    dateEnd: string;\n    pagesRead: number;\n    rows: JournalRow[];\n    currencyCode: string | null;\n    income: string;\n    expense: string;\n    incomeMissingValueCount: number;\n    expenseMissingValueCount: number;\n}',
+  },
+  {
+    name: 'JournalAnalysisQuery',
+    declaration: 'export type JournalAnalysisQuery = z.infer<typeof journalAnalysisSchema>;',
+  },
+  {
+    name: 'JournalAnalysisResult',
+    declaration: 'export interface JournalAnalysisResult {\n    accountId: string;\n    accountName: string;\n    selection: JournalAnalysisQuery;\n    current: JournalAggregate;\n    baseline?: JournalAggregate;\n    differences?: {\n        currencyCode: string | null;\n        income: string;\n        expense: string;\n    };\n    verificationOwner: \'xiaojing\';\n    coverage: \'empty-page-and-totals-reconciled\';\n    notice: string;\n}',
+  },
+  {
+    name: 'JournalEntryId',
+    declaration: 'export type JournalEntryId = Branded<\'FinanceJournalEntryId\'>;',
+  },
+  {
+    name: 'JournalQuery',
+    declaration: 'export type JournalQuery = z.infer<typeof journalQuerySchema>;',
+  },
+  {
+    name: 'JournalResult',
+    declaration: 'export interface JournalResult {\n    accountId: string;\n    accountName: string;\n    selection: JournalSelection;\n    rows: JournalRow[];\n    summaries: JournalSummary[];\n    coverage: \'unverified\';\n    notice: string;\n}',
+  },
+  {
+    name: 'JournalRow',
+    declaration: 'export interface JournalRow {\n    id: JournalEntryId;\n    date: string;\n    summary: string;\n    accountCode: string;\n    accountName: string;\n    currencyCode: string;\n    baseCurrencyCode: string;\n    income: string | null;\n    expense: string | null;\n    balance: string | null;\n    baseIncome: string | null;\n    baseExpense: string | null;\n    baseBalance: string | null;\n    categoryName: string;\n    keeperName: string;\n}',
+  },
+  {
+    name: 'JournalSelection',
+    declaration: 'export type JournalSelection = JournalQuery & {\n    dateStart: string;\n    dateEnd: string;\n};',
+  },
+  {
+    name: 'JournalSummary',
+    declaration: 'export type JournalSummary = Omit<JournalRow, \'id\' | \'date\'> & {\n    kind: \'opening\' | \'total\';\n};',
+  },
+  {
     name: 'JsonSchemaNode',
     declaration: 'export interface JsonSchemaNode {\n    type?: JsonSchemaType;\n    oneOf?: JsonSchemaNode[];\n    properties?: Record<string, JsonSchemaNode>;\n    required?: string[];\n    additionalProperties?: boolean;\n    items?: JsonSchemaNode;\n    enum?: JsonSchemaScalar[];\n    const?: JsonSchemaScalar;\n    description?: string;\n    title?: string;\n    default?: JsonValue;\n    examples?: JsonValue;\n}',
   },
@@ -4285,6 +4667,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'KvUnitDescriptor',
     declaration: 'export interface KvUnitDescriptor {\n    readonly name: string;\n    readonly version: number;\n    readonly tables: readonly string[];\n    readonly hasGlobal: boolean;\n}',
+  },
+  {
+    name: 'ListFinanceYouchengAccountsRequest',
+    declaration: 'export interface ListFinanceYouchengAccountsRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    environment: FinanceYouchengEnvironment;\n    appKey: string;\n    youchengAppSecret?: string;\n}',
   },
   {
     name: 'LlmAdapter',
@@ -4499,6 +4885,58 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}',
   },
   {
+    name: 'OpenItemAccountObservation',
+    declaration: 'export interface OpenItemAccountObservation {\n    sourceRecordId: OpenItemId;\n    id: Branded<\'FinanceReferenceId\'> | null;\n    name: string;\n    status: \'enabled\' | \'disabled\' | \'unknown\';\n    foreignCurrency: boolean | null;\n    currencyCode: string;\n    baseCurrencyCode: string;\n}',
+  },
+  {
+    name: 'OpenItemAccountReferences',
+    declaration: 'export interface OpenItemAccountReferences {\n    ledgerId: string;\n    ledgerName: string;\n    query: OpenItemQuery;\n    source: \'existing-open-item-page\';\n    coverage: \'returned-page-only\';\n    observations: OpenItemAccountObservation[];\n}',
+  },
+  {
+    name: 'OpenItemAggregate',
+    declaration: 'export interface OpenItemAggregate {\n    periodStart: string;\n    periodEnd: string;\n    recordCount: number;\n    pagesRead: number;\n    groups: OpenItemGroup[];\n}',
+  },
+  {
+    name: 'OpenItemAmounts',
+    declaration: 'export interface OpenItemAmounts {\n    amount: string | null;\n    balance: string | null;\n    baseAmount: string | null;\n    baseBalance: string | null;\n    settledAmount: string | null;\n    badDebtAmount: string | null;\n    offsetAmount: string | null;\n    returnAmount: string | null;\n}',
+  },
+  {
+    name: 'OpenItemAnalysisQuery',
+    declaration: 'export type OpenItemAnalysisQuery = z.infer<typeof openItemAnalysisSchema>;',
+  },
+  {
+    name: 'OpenItemAnalysisResult',
+    declaration: 'export interface OpenItemAnalysisResult {\n    accountId: string;\n    accountName: string;\n    selection: OpenItemAnalysisQuery;\n    current: OpenItemAggregate;\n    baseline?: OpenItemAggregate;\n    differences?: OpenItemDifference[];\n    coverage: \'vendor-count-reconciled\';\n    notice: string;\n}',
+  },
+  {
+    name: 'OpenItemDifference',
+    declaration: 'export interface OpenItemDifference {\n    currencyCode: string;\n    dimensionId: string;\n    amount: string;\n    balance: string;\n}',
+  },
+  {
+    name: 'OpenItemGroup',
+    declaration: 'export interface OpenItemGroup {\n    currencyCode: string;\n    dimensionId: string;\n    dimensionName: string;\n    recordIds: OpenItemId[];\n    amount: string;\n    balance: string;\n}',
+  },
+  {
+    name: 'OpenItemId',
+    declaration: 'export type OpenItemId = Branded<\'FinanceOpenItemId\'>;',
+  },
+  {
+    name: 'OpenItemQuery',
+    declaration: 'export type OpenItemQuery = z.infer<typeof openItemQuerySchema>;',
+  },
+  {
+    name: 'OpenItemResult',
+    declaration: 'export interface OpenItemResult {\n    accountId: string;\n    accountName: string;\n    selection: OpenItemQuery;\n    totalCount: number;\n    rows: OpenItemRow[];\n    summaries: OpenItemSummary[];\n    coverage: \'unverified\';\n    notice: string;\n}',
+  },
+  {
+    name: 'OpenItemRow',
+    declaration: 'export interface OpenItemRow extends OpenItemAmounts {\n    id: OpenItemId;\n    date: string;\n    summary: string;\n    subjectCode: string;\n    subjectName: string;\n    auxiliaryItemIds: string;\n    auxiliaryItemName: string;\n    currencyCode: string;\n    baseCurrencyCode: string;\n    initialBalance: boolean | null;\n    finished: boolean | null;\n    categoryName: string;\n    remark: string;\n}',
+  },
+  {
+    name: 'OpenItemSummary',
+    declaration: 'export interface OpenItemSummary extends OpenItemAmounts {\n    kind: \'total\' | \'previous-page\';\n    currencyCode: string;\n    baseCurrencyCode: string;\n}',
+  },
+  {
     name: 'PermissionSelect',
     declaration: 'export interface PermissionSelect {\n    options: PresetOption[];\n    currentValue: string;\n}',
   },
@@ -4613,6 +5051,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RedactedSecret',
     declaration: 'export interface RedactedSecret {\n    path: string[];\n    set: boolean;\n}',
+  },
+  {
+    name: 'ReferenceQuery',
+    declaration: 'export type ReferenceQuery = z.infer<typeof referenceQuerySchema>;',
+  },
+  {
+    name: 'ReferenceResult',
+    declaration: 'export interface ReferenceResult {\n    accountId: string;\n    accountName: string;\n    kind: ReferenceQuery[\'kind\'];\n    categoryCode?: string;\n    requestedLimit: number;\n    returnedCount: number;\n    coverage: \'unverified\';\n    selection: \'not-requested\' | \'unique-returned\' | \'ambiguous\' | \'not-found-in-returned\';\n    rows: ReferenceRow[];\n    notice: string;\n}',
+  },
+  {
+    name: 'ReferenceRow',
+    declaration: 'export interface ReferenceRow {\n    id: Branded<\'FinanceReferenceId\'>;\n    code: string;\n    name: string;\n    status: \'enabled\' | \'disabled\' | \'unknown\';\n    parentCode?: string;\n    subjectType?: string;\n    hasChildren?: boolean;\n    directionRaw?: string;\n    auxiliaryCodes?: string[];\n    currencyCodes?: string[];\n    currencyId?: string;\n    subjectCode?: string;\n    cashierSubjectCode?: string;\n    accountType?: number;\n}',
+  },
+  {
+    name: 'ReimbursementConnectionView',
+    declaration: 'export interface ReimbursementConnectionView {\n    revision: number;\n    apiUrl: string;\n    appKey: string;\n    configured: boolean;\n    writable: boolean;\n}',
   },
   {
     name: 'RemoveFinanceWorkspaceRequest',
@@ -4731,8 +5185,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SandboxPolicyRequest {\n    session?: Session;\n    mode?: SandboxMode;\n}',
   },
   {
+    name: 'SaveAttachmentStorageRequest',
+    declaration: 'export interface SaveAttachmentStorageRequest {\n    expectedRevision: number;\n    config: AttachmentStorageConfig;\n    accessKeyId?: string;\n    accessKeySecret?: string;\n}',
+  },
+  {
     name: 'SaveImageAttachment',
     declaration: 'export interface SaveImageAttachment {\n    data: Uint8Array;\n    mediaType: ImageMediaType;\n    name?: string;\n}',
+  },
+  {
+    name: 'SaveReimbursementConnectionRequest',
+    declaration: 'export interface SaveReimbursementConnectionRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    apiUrl: string;\n    appKey: string;\n    appSecret?: string;\n}',
   },
   {
     name: 'SaveTextSpill',
@@ -5644,7 +6106,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'UpdateFinanceClientRequest',
-    declaration: 'export interface UpdateFinanceClientRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    client: FinanceClientDraft;\n}',
+    declaration: 'export interface UpdateFinanceClientRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    client: FinanceClientDraft;\n    credentialInput?: FinanceClientCredentialInput;\n}',
   },
   {
     name: 'UpdateTeamTaskRequest',
@@ -5665,6 +6127,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'UserQuestionProvider',
     declaration: 'export interface UserQuestionProvider {\n    ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>;\n}',
+  },
+  {
+    name: 'VoucherDetail',
+    declaration: 'export interface VoucherDetail {\n    accountId: string;\n    accountName: string;\n    voucherId: string;\n    date: string;\n    number: string;\n    period: string;\n    audited: boolean;\n    settled: boolean;\n    documentMaker: string;\n    rows: VoucherRow[];\n    notice: string;\n}',
+  },
+  {
+    name: 'VoucherPage',
+    declaration: 'export interface VoucherPage {\n    accountId: string;\n    accountName: string;\n    month: string;\n    monthEnd?: string;\n    summary?: string;\n    page: number;\n    pageSize: number;\n    total: number;\n    hasMore: boolean;\n    voucherCount: number;\n    notice: string;\n    rows: VoucherRow[];\n}',
+  },
+  {
+    name: 'VoucherQuery',
+    declaration: 'export interface VoucherQuery {\n    month?: string;\n    monthEnd?: string;\n    summary?: string;\n    page: number;\n    pageSize: number;\n}',
+  },
+  {
+    name: 'VoucherRow',
+    declaration: 'export interface VoucherRow {\n    voucherId: string;\n    date: string;\n    number: string;\n    summary: string;\n    subjectCode: string;\n    subjectName: string;\n    debit: string;\n    credit: string;\n}',
   },
   {
     name: 'WebBootEntry',

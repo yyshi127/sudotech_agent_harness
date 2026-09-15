@@ -1,0 +1,4 @@
+- text: 等待审批
+- group "审批详情": "新增有成财务基础资料，请确认以下准确版本。不会修改已有资料或历史凭证。 { \"id\": \"{{uuid}}\", \"version\": 2, \"phase\": \"prepared\", \"account\": { \"id\": \"35616\", \"name\": \"基础资料演示账套\" }, \"proposal\": { \"kind\": \"auxiliary-item\", \"input\": { \"categoryCode\": \"02\", \"itemCode\": \"F3A02\", \"itemName\": \"修改后测试供应商\", \"documentMaker\": \"施\", \"status\": \"enabled\" } }, \"references\": { \"kind\": \"auxiliary-item\", \"accountId\": \"35616\", \"accountName\": \"基础资料演示账套\", \"categoryId\": \"473815\", \"categoryCode\": \"02\", \"categoryName\": \"供应商\" }, \"notice\": \"本地预览，未创建有成资料。创建前必须确认准确版本；不修改已有资料或历史凭证。重复检查仅限接口返回范围。科目支持一级科目或普通已有分支的下级，可明确选择已核实的辅助类别和币种，不提升已有末级、不注册币种或设置汇率；币种来源限当前科目中已出现的配置。辅助项目的启用状态接口不返回，不能仅凭名称匹配宣称全部核验。\" }"
+- button "拒绝"
+- button "允许一次"

@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-15T11:33:53.0565262+08:00",
+  "sourceRevision": "4a0fa71329ee40646477adb9f13befb17d1502ee",
+  "worktree": "dirty-user-worktree-preserved",
+  "scope": {
+    "included": "F1-F3 approved non-report Youcheng Finance capabilities and F4 combined delivery checks",
+    "deferredUnavailable": [
+      "D01 general ledger",
+      "D02 detail ledger",
+      "D03 auxiliary ledger",
+      "D04 balance sheet",
+      "D05 income statement",
+      "D06 cash-flow statement"
+    ],
+    "deferReason": "The supplier public Finance catalog provides no AppKey server APIs for these six native reports.",
+    "forbiddenSubstitutes": [
+      "Chrome or extension control",
+      "phone-number SSO",
+      "locally reconstructed statements presented as native reports"
+    ]
+  },
+  "regression": {
+    "assembledWeb": {
+      "files": 15,
+      "tests": 46,
+      "result": "passed",
+      "excluded": [
+        "finance-reimbursement.e2e.ts",
+        "finance-native-reports.e2e.ts"
+      ]
+    },
+    "durableRecordsAndStores": {
+      "files": 10,
+      "tests": 221,
+      "result": "passed"
+    },
+    "financeHost": {
+      "tests": 137,
+      "result": "passed"
+    },
+    "fullXiaojingBuild": "passed",
+    "appsWebTypeScript": "passed",
+    "productIsolation": "passed after registering every Finance-only consumer by exact Cordis row id and package export",
+    "agentNoteFormat": {
+      "notes": 647,
+      "result": "passed"
+    },
+    "repositoryLint": "passed after the rejected native-report prototype was removed from product sources",
+    "documentationGate": {
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 103.66
+    },
+    "rejectedReportPrototype": {
+      "sourceFilesMovedOutsideRepository": 39,
+      "staleBuildFilesMovedOutsideRepository": 29,
+      "deletedFiles": 0,
+      "financeBuildManifestSha256": "2B5C65F33DA6C9AFE4CBE08954B17F4AE9DEBE3049C300D1E5866FB35620DEC9",
+      "supersededInstallerPreservedOutsideRepository": true
+    },
+    "namedTranslationPairs": {
+      "pairs": 7,
+      "result": "passed"
+    }
+  },
+  "desktop": {
+    "identity": "passed",
+    "freshInstallCancellationHelper": "passed",
+    "upgradeShutdownHelper": "passed",
+    "userDataCompatibility019To023": "passed",
+    "packagedElectronImportsAndHostBoot": "passed",
+    "currentInstaller": {
+      "path": "apps/desktop/dist/installer-f4-20260915-final/小兢会计-您的AI办公搭子-0.2.3-安装程序.exe",
+      "bytes": 200443431,
+      "sha256": "CAF15B0A9979FDD717BD768F5EDC617E93D4415BDAF7DB1E72F2832A5658E95F",
+      "nativeReportFileCount": 0,
+      "asarNativeReportEntryCount": 0,
+      "installationEvidence": "critique/f4-lab/final-installer-installation-20260915.json"
+    },
+    "currentBlockmap": {
+      "path": "apps/desktop/dist/installer-f4-20260915-final/小兢会计-您的AI办公搭子-0.2.3-安装程序.exe.blockmap",
+      "bytes": 208200,
+      "sha256": "E0302E29CDE41B297AB4D6086A524995BA7EF5FF3A600815907449D00D3CB309"
+    },
+    "preservedLegacyInstaller": {
+      "path": "apps/desktop/dist/installer/小兢会计-您的AI办公搭子-0.2.3-安装程序.exe",
+      "bytes": 196897504,
+      "sha256": "F9B3F74669DD53EDD068FAD71B2746FB9DE8D50DE2BE0E705CD607486BD95E51"
+    },
+    "realFreshInstall": {
+      "installerExitCode": 0,
+      "installedFileMatches": [
+        "小兢会计.exe",
+        "resources/app.asar",
+        "resources/runtime/node.exe",
+        "resources/xiaojing-edge-extension/manifest.json"
+      ],
+      "uninstallerExitCode": 0,
+      "registryRemoved": true,
+      "installDirectoryRemoved": true,
+      "settingsHashUnchanged": true,
+      "credentialsHashUnchanged": true,
+      "developmentProcessesBeforeAndAfter": 4,
+      "nativeReportFileCount": 0
+    },
+    "sameVersionReplacement": {
+      "legacyInstallExitCode": 0,
+      "legacyInstalledAsarCaptured": true,
+      "currentAsarDifferedFromLegacy": true,
+      "legacyInstalledAsarSha256": "813EFC427C5665668AE94C9072C57D703B68D6A96EB913359B1FBB9ACA108DB3",
+      "currentReplacementExitCode": 0,
+      "currentInstalledAsarMatched": true,
+      "nativeReportFileCount": 0,
+      "settingsHashUnchanged": true,
+      "credentialsHashUnchanged": true,
+      "finalUninstallerExitCode": 0,
+      "registryRemoved": true,
+      "installDirectoryRemoved": true,
+      "qualification": "same-version replacement only; not a formal cross-version upgrade"
+    }
+  },
+  "safety": {
+    "youchengBusinessWrites": 0,
+    "browserUsed": false,
+    "phoneNumberUsed": false,
+    "credentialContentsRead": false,
+    "existingDevelopmentRuntimeStopped": false,
+    "oldInstallerOverwritten": false
+  },
+  "remaining": [
+    "Obtain explicit user acceptance for the revised F4 non-report scope.",
+    "Increment the desktop version and repeat a real cross-version upgrade before distributing a release.",
+    "Keep F3 issues 001 and 002 deferred; issue 004 browser-manual-origin remains an unsampled variant."
+  ]
+}

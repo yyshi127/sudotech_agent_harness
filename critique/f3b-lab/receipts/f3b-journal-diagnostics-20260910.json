@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-10",
+  "scope": "Independent journal experiment rejection diagnostics, not product behavior or another approved write",
+  "changes": [
+    "Preserve HTTP status, numeric result and rejection string message in private response-diagnostic.json",
+    "Use the existing experiment response-byte limit; omit headers and arbitrary response data",
+    "Suppress known credentials in plain, URI-encoded and Base64 forms; not a universal secret detector",
+    "Return original response bytes and status to the product classifier; persistence failure retains uncertainty",
+    "Do not clear, overwrite or replay existing intents"
+  ],
+  "verification": {
+    "offlineCommand": "node --import tsx/esm --test critique/f3b-lab/delete-journal-experiment.test.mjs critique/f3b-lab/open-item-maintenance-experiment.test.mjs",
+    "offlineTests": 43,
+    "offlinePassed": 43,
+    "offlineDurationMs": 319.4721,
+    "hostBuildAndLint": "pnpm run lint: exit 0",
+    "docSync": "26 passed, 2 failed in 69.48s; existing youcheng-openapi-replica.md missing bilingual pair and hard-wrapped paragraphs",
+    "diffCheck": "git diff --check: exit 0",
+    "productSnapshot": "Not run: this increment changes standalone lab scripts only, with no model/tool/UI behavior change"
+  },
+  "readOnlyCommand": "node --import tsx/esm critique/f3b-lab/delete-journal-experiment.mjs",
+  "readOnlyResult": {
+    "mode": "read-only-recovery",
+    "target": "present",
+    "journalId": "141107",
+    "vouchersPreserved": true,
+    "receivablesPreservedAgainstOriginalPreMaintenanceIntent": false,
+    "payablesPreservedAgainstOriginalPreMaintenanceIntent": false,
+    "interpretation": "The original baseline predates separately approved AR/AP maintenance. False is not asserted as new damage or successful preservation."
+  },
+  "businessWrites": 0,
+  "restarted3092": false,
+  "oldRejectionCause": "unknown; original vendor message not retained",
+  "oldIntentsConsumed": true,
+  "newDeleteAuthorization": false,
+  "f3bComplete": false
+}

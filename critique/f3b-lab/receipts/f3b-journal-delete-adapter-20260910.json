@@ -1,0 +1,26 @@
+{
+  "scope": "F3.7 internal journal inspection, scoped balance comparison and single-send transport; not product or full F3B acceptance",
+  "date": "2026-09-10",
+  "accountId": "35616",
+  "businessWrites": 0,
+  "runningApplicationRestarted": false,
+  "liveReadOnlyReceipt": "journal-context-1789023926501.json",
+  "tests": [
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/journals.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/journal-readback.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/youcheng.spec.ts", "passed": 134, "failed": 0, "durationMs": 1050 },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=replay pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-journals.e2e.ts -t 'report|failure'", "passed": 2, "skipped": 7, "failed": 0, "durationMs": 13060, "scope": "Existing query UI regression only, not deletion UI" },
+    { "command": "pnpm run lint", "exitCode": 0, "includes": ["Host TypeScript build", "host tsdown", "full lint:contracts-ready"] },
+    { "command": "pnpm run doc-sync", "passed": 26, "failed": 2, "durationMs": 126670, "failures": ["Existing youcheng-openapi-replica.md missing counterpart", "Existing replica hard-wrapped prose"] }
+  ],
+  "resolvedFailures": [
+    "The unknown-currency test incorrectly expected surviving content mismatch. Surviving content remains matched while balance verification remains unavailable; the test now asserts these separate outcomes.",
+    "Explicit optional query fields and non-null assertion lint findings were corrected.",
+    "The first old UI replay omitted DSH_CLIENT_BUILD_PROFILE=xiaojing and did not mount Finance; rerunning the unchanged test with the required profile passes."
+  ],
+  "remaining": [
+    "Host exact-version mandatory confirmation and durable cross-session send records",
+    "Model tools, natural-language target selection and assembled deletion snapshots",
+    "Approved dedicated journal live deletion, surviving data and balance validation",
+    "Scope-safe handling when monthly absence cannot establish global absence",
+    "Remaining voucher acceptance gaps and four later F3B actions"
+  ]
+}

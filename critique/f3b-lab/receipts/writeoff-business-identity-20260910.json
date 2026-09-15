@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-09-10T14:16:13.420Z",
+  "reads": 6,
+  "businessWrites": 0,
+  "ledgerId": "35616",
+  "observations": [
+    {
+      "direction": "receivable",
+      "openItemId": "72602",
+      "businessAccountId": "174626",
+      "balance": "0.19"
+    },
+    {
+      "direction": "payable",
+      "openItemId": "72603",
+      "businessAccountId": "174624",
+      "balance": "0.23"
+    }
+  ]
+}

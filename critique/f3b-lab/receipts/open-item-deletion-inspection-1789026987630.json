@@ -1,0 +1,517 @@
+{
+  "checkedAt": "2026-09-10T07:56:27.630Z",
+  "businessWrites": 0,
+  "scope": "production-service test ledger 35616; original January 2022 direction only",
+  "calls": [
+    {
+      "path": "/auth/getAccessToken.rjson"
+    },
+    {
+      "path": "/finance/auxiliary/queryAccountList.rjson"
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 1
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 2
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 3
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 1
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 2
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 3
+    },
+    {
+      "path": "/auth/getAccessToken.rjson"
+    },
+    {
+      "path": "/finance/auxiliary/queryAccountList.rjson"
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 1,
+      "page": 1
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 1,
+      "page": 2
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 1,
+      "page": 1
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 1,
+      "page": 2
+    }
+  ],
+  "observed": [
+    {
+      "direction": 0,
+      "id": "72602",
+      "fields": [
+        "abstractStr",
+        "accountStatus",
+        "accountWb",
+        "attach",
+        "attachList",
+        "auxiliaryItemIds",
+        "auxiliaryItemName",
+        "badMoney",
+        "balance",
+        "baseCurrencyCode",
+        "categoryId",
+        "categoryName",
+        "certificateWordAndCode",
+        "corpId",
+        "currencyCode",
+        "date",
+        "hedgeMoney",
+        "id",
+        "initialBalance",
+        "isFinish",
+        "keeperId",
+        "keeperName",
+        "money",
+        "orderCode",
+        "preId",
+        "remark",
+        "returnMoney",
+        "setOfBooksId",
+        "subjectCode",
+        "subjectId",
+        "subjectName",
+        "thisMoney"
+      ],
+      "state": {
+        "accountStatus": 0,
+        "badMoney": 0,
+        "balance": 0.19,
+        "certificateWordAndCode": "",
+        "hedgeMoney": 0,
+        "initialBalance": false,
+        "isFinish": false,
+        "money": 0.19,
+        "orderCode": "",
+        "preId": 0,
+        "returnMoney": 0,
+        "thisMoney": 0
+      },
+      "attachmentCount": 0,
+      "attachType": "string"
+    },
+    {
+      "direction": 0,
+      "id": "72602",
+      "fields": [
+        "abstractStr",
+        "accountStatus",
+        "accountWb",
+        "attach",
+        "attachList",
+        "auxiliaryItemIds",
+        "auxiliaryItemName",
+        "badMoney",
+        "balance",
+        "baseCurrencyCode",
+        "categoryId",
+        "categoryName",
+        "certificateWordAndCode",
+        "corpId",
+        "currencyCode",
+        "date",
+        "hedgeMoney",
+        "id",
+        "initialBalance",
+        "isFinish",
+        "keeperId",
+        "keeperName",
+        "money",
+        "orderCode",
+        "preId",
+        "remark",
+        "returnMoney",
+        "setOfBooksId",
+        "subjectCode",
+        "subjectId",
+        "subjectName",
+        "thisMoney"
+      ],
+      "state": {
+        "accountStatus": 0,
+        "badMoney": 0,
+        "balance": 0.19,
+        "certificateWordAndCode": "",
+        "hedgeMoney": 0,
+        "initialBalance": false,
+        "isFinish": false,
+        "money": 0.19,
+        "orderCode": "",
+        "preId": 0,
+        "returnMoney": 0,
+        "thisMoney": 0
+      },
+      "attachmentCount": 0,
+      "attachType": "string"
+    },
+    {
+      "direction": 1,
+      "id": "72603",
+      "fields": [
+        "abstractStr",
+        "accountStatus",
+        "accountWb",
+        "attach",
+        "attachList",
+        "auxiliaryItemIds",
+        "auxiliaryItemName",
+        "badMoney",
+        "balance",
+        "baseCurrencyCode",
+        "categoryId",
+        "categoryName",
+        "certificateWordAndCode",
+        "corpId",
+        "currencyCode",
+        "date",
+        "hedgeMoney",
+        "id",
+        "initialBalance",
+        "isFinish",
+        "keeperId",
+        "keeperName",
+        "money",
+        "orderCode",
+        "preId",
+        "remark",
+        "returnMoney",
+        "setOfBooksId",
+        "subjectCode",
+        "subjectId",
+        "subjectName",
+        "thisMoney"
+      ],
+      "state": {
+        "accountStatus": 0,
+        "badMoney": 0,
+        "balance": 0.23,
+        "certificateWordAndCode": "",
+        "hedgeMoney": 0,
+        "initialBalance": false,
+        "isFinish": false,
+        "money": 0.23,
+        "orderCode": "",
+        "preId": 0,
+        "returnMoney": 0,
+        "thisMoney": 0
+      },
+      "attachmentCount": 0,
+      "attachType": "string"
+    },
+    {
+      "direction": 1,
+      "id": "72603",
+      "fields": [
+        "abstractStr",
+        "accountStatus",
+        "accountWb",
+        "attach",
+        "attachList",
+        "auxiliaryItemIds",
+        "auxiliaryItemName",
+        "badMoney",
+        "balance",
+        "baseCurrencyCode",
+        "categoryId",
+        "categoryName",
+        "certificateWordAndCode",
+        "corpId",
+        "currencyCode",
+        "date",
+        "hedgeMoney",
+        "id",
+        "initialBalance",
+        "isFinish",
+        "keeperId",
+        "keeperName",
+        "money",
+        "orderCode",
+        "preId",
+        "remark",
+        "returnMoney",
+        "setOfBooksId",
+        "subjectCode",
+        "subjectId",
+        "subjectName",
+        "thisMoney"
+      ],
+      "state": {
+        "accountStatus": 0,
+        "badMoney": 0,
+        "balance": 0.23,
+        "certificateWordAndCode": "",
+        "hedgeMoney": 0,
+        "initialBalance": false,
+        "isFinish": false,
+        "money": 0.23,
+        "orderCode": "",
+        "preId": 0,
+        "returnMoney": 0,
+        "thisMoney": 0
+      },
+      "attachmentCount": 0,
+      "attachType": "string"
+    }
+  ],
+  "results": [
+    {
+      "direction": "receivable",
+      "inventory": {
+        "accountId": "35616",
+        "accountName": "施的演示账套",
+        "selection": {
+          "direction": "receivable",
+          "periodStart": "2022-01",
+          "periodEnd": "2022-01"
+        },
+        "totalCount": 3,
+        "rows": [
+          {
+            "amount": "0.03",
+            "balance": "0.03",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72595",
+            "date": "2022-01-01",
+            "summary": "小兢F3A-35616-20260910-AR-QUALIFIED-NAME-01",
+            "subjectCode": "",
+            "subjectName": "应收账款",
+            "auxiliaryItemIds": "191501",
+            "auxiliaryItemName": "淘云科技",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "收-其他收入",
+            "remark": ""
+          },
+          {
+            "amount": "0.04",
+            "balance": "0.04",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72593",
+            "date": "2022-01-09",
+            "summary": "小兢F3A-35616-UI对照-20260909-01",
+            "subjectCode": "",
+            "subjectName": "应收账款",
+            "auxiliaryItemIds": "191501",
+            "auxiliaryItemName": "淘云科技",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "",
+            "remark": ""
+          },
+          {
+            "amount": "0.19",
+            "balance": "0.19",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72602",
+            "date": "2022-01-09",
+            "summary": "F3A主应用应收20260910",
+            "subjectCode": "",
+            "subjectName": "应收账款",
+            "auxiliaryItemIds": "191501",
+            "auxiliaryItemName": "淘云科技",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "收-其他收入",
+            "remark": ""
+          }
+        ],
+        "fingerprints": {
+          "72593": "57f5eab4d1a20e6616c4aac9e6a57865f558d417b98ac48a4ab5f1017ee44293",
+          "72595": "5ed11043745b8178fd54ce9eff06646e2c1ee459e4baab780508d20e8b597aaa",
+          "72602": "075b5cfe1befb70b8d5d15d59dcaad3a015c8404b7c5b3dd842e8a298732beef"
+        },
+        "target": {
+          "accountId": "35616",
+          "accountName": "施的演示账套",
+          "direction": "receivable",
+          "businessAccountId": "174626",
+          "row": {
+            "amount": "0.19",
+            "balance": "0.19",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72602",
+            "date": "2022-01-09",
+            "summary": "F3A主应用应收20260910",
+            "subjectCode": "",
+            "subjectName": "应收账款",
+            "auxiliaryItemIds": "191501",
+            "auxiliaryItemName": "淘云科技",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "收-其他收入",
+            "remark": ""
+          },
+          "fingerprint": "075b5cfe1befb70b8d5d15d59dcaad3a015c8404b7c5b3dd842e8a298732beef",
+          "attachmentCount": 0,
+          "blockers": [],
+          "unverified": [
+            "查询方向由原请求限定；列表未独立提供方向字段。",
+            "审核、来源及完整关联删除影响仍需独立核实；本检查不授权删除。"
+          ]
+        },
+        "scope": "selected-direction-periods"
+      }
+    },
+    {
+      "direction": "payable",
+      "inventory": {
+        "accountId": "35616",
+        "accountName": "施的演示账套",
+        "selection": {
+          "direction": "payable",
+          "periodStart": "2022-01",
+          "periodEnd": "2022-01"
+        },
+        "totalCount": 2,
+        "rows": [
+          {
+            "amount": "0.05",
+            "balance": "0.05",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72596",
+            "date": "2022-01-09",
+            "summary": "小兢F3A-35616-20260910-AP-QUALIFIED-NAME-01",
+            "subjectCode": "",
+            "subjectName": "应付账款",
+            "auxiliaryItemIds": "191573",
+            "auxiliaryItemName": "F3主应用供应商测试",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "支-其他支出",
+            "remark": ""
+          },
+          {
+            "amount": "0.23",
+            "balance": "0.23",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72603",
+            "date": "2022-01-09",
+            "summary": "F3A主应用应付20260910",
+            "subjectCode": "",
+            "subjectName": "应付账款",
+            "auxiliaryItemIds": "191573",
+            "auxiliaryItemName": "F3主应用供应商测试",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "支-其他支出",
+            "remark": ""
+          }
+        ],
+        "fingerprints": {
+          "72596": "fa46a3df62bc11dc803a9f5da7bb20a82308b67dd8e4629e62f042ab9c02912d",
+          "72603": "99d54a373f0e9a9e4d9f226b1d23cf6a691de63afdab775fd1d6813c45c865f9"
+        },
+        "target": {
+          "accountId": "35616",
+          "accountName": "施的演示账套",
+          "direction": "payable",
+          "businessAccountId": "174624",
+          "row": {
+            "amount": "0.23",
+            "balance": "0.23",
+            "baseAmount": null,
+            "baseBalance": null,
+            "settledAmount": "0.00",
+            "badDebtAmount": "0.00",
+            "offsetAmount": "0.00",
+            "returnAmount": "0.00",
+            "id": "72603",
+            "date": "2022-01-09",
+            "summary": "F3A主应用应付20260910",
+            "subjectCode": "",
+            "subjectName": "应付账款",
+            "auxiliaryItemIds": "191573",
+            "auxiliaryItemName": "F3主应用供应商测试",
+            "currencyCode": "RMB",
+            "baseCurrencyCode": "RMB",
+            "initialBalance": false,
+            "finished": false,
+            "categoryName": "支-其他支出",
+            "remark": ""
+          },
+          "fingerprint": "99d54a373f0e9a9e4d9f226b1d23cf6a691de63afdab775fd1d6813c45c865f9",
+          "attachmentCount": 0,
+          "blockers": [],
+          "unverified": [
+            "查询方向由原请求限定；列表未独立提供方向字段。",
+            "审核、来源及完整关联删除影响仍需独立核实；本检查不授权删除。"
+          ]
+        },
+        "scope": "selected-direction-periods"
+      }
+    }
+  ]
+}

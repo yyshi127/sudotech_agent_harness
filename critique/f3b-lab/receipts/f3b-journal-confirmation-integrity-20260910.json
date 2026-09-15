@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-10",
+  "scope": "Journal deletion approval evidence and sender configuration integrity",
+  "changes": [
+    "Compare the full persisted preview after mandatory approval, even when its version was not changed",
+    "Reject callback mutation before selecting the target lock",
+    "Capture original sender configuration and inventory before authentication and reject caller changes before dispatch",
+    "Retain both existing mandatory confirmation layers; no tool-name exemption"
+  ],
+  "verification": {
+    "reproduction": "Before the fix:5 failed,102 passed; four caller-mutation writes and one unversioned record reservation reproduced",
+    "focusedCommand": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts",
+    "focusedTests": 239,
+    "focusedPassed": 239,
+    "focusedDurationMs": 9290,
+    "buildAndLint": "pnpm run lint:exit0; final finance-package tsc:exit0",
+    "webCommand": "pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-journal-deletion.e2e.ts",
+    "webRefresh": "1 passed;3 scenarios;8.41s",
+    "webReplay": "1 passed;3 scenarios;8.34s",
+    "webWorldAssertion": "Modifying valid saved evidence while the detailed approval dialog is open causes a logged refusal,zero write requests and a prepared record after clicking Allow once",
+    "initialWebCorrection": "The new test incorrectly expected target present on inspect of an unsent prepared record; its actual contract returns not-checked. Assert prepared/not-checked while retaining zero-write and logged-refusal checks.",
+    "docSync": "26 passed,2 existing youcheng-openapi-replica.md pairing/wrap failures,71.72s",
+    "diffCheck": "exit0"
+  },
+  "businessWrites": 0,
+  "restarted3092": false,
+  "browser": "Test-owned Chromium only; not the user's Chrome",
+  "liveAcceptance": false,
+  "duplicateConfirmationResolved": false,
+  "nextInspection": "VoucherDeletionRecords.reserve still compares version/config only after authorize, and sendReservedVoucherDeletion uses caller configuration after beforeSend. Reproduce and address the corresponding voucher confirmation-integrity cases next; no voucher fix is claimed by this journal increment.",
+  "f3bComplete": false
+}

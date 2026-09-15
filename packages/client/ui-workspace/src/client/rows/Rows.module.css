@@ -94,6 +94,29 @@
 }
 
 /* Compact one-line Workspace row after removing the session-count subtitle. */
+.workspaceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-left: 3px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.badgeText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unverifiedDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary);
+}
+
 .projectRow {
   height: 34px;
   align-items: center;
@@ -167,8 +190,29 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 2px;
+}
+
+.workspaceBadge > :last-child { flex: none; }
+
+.badgeAction {
+  flex: none;
+  margin-left: 4px;
+}
+
+.badgeAction:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.iconButton.badgeActionSuccess,
+.iconButton.badgeActionSuccess:hover {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.badgeActionSuccess > svg {
+  transform: rotate(45deg);
 }
 
 .title {

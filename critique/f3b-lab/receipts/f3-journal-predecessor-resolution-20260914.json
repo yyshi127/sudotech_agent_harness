@@ -1,0 +1,17 @@
+{
+  "checkedDate": "2026-09-14",
+  "ledgerId": "35616",
+  "businessWrites": 3,
+  "amountPerJournal": "0.01",
+  "cashAccountId": "174622",
+  "authority": "Standing user authority for minimal labeled development fixtures; no actual bank receipt and no deletion.",
+  "cause": "Old standalone fixture selected the last row of a whole-month inventory (141109 dated2022-01-09) as predecessor for a2022-01-01 journal. The product already selects from the exact same-date query. Same-date predecessors from both WRITE_OFF and ADD preserve preId; the cross-date control reproduces preId=0.",
+  "fix": "create-delete-journal-fixture.mjs filters the monthly inventory to input.date before selecting the last row. Product preId comparison remains unchanged. Finance Host regression asserts dateStart and dateEnd equal the proposal date.",
+  "evidenceRoot": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3-remainder/journal-predecessor-20260914",
+  "experiments": [
+    { "journalId": "141170", "date": "2022-01-10", "submittedPreId": "141169", "observedPreId": 141169, "content": "matched", "associations": "matched", "complete": true, "file": "after-write-off-readback.json", "sha256": "dafcbefffda30ee071a16fa2d854c6148d195d9d5950ca5b9978299c97c0be70" },
+    { "journalId": "141171", "date": "2022-01-10", "submittedPreId": "141170", "observedPreId": 141170, "content": "matched", "associations": "matched", "complete": true, "file": "after-add-readback.json", "sha256": "1f6d5b943f897bf7189e45e54bdb3eb1d3dbf75900f67fd61b2acf69832c731c" },
+    { "journalId": "141172", "date": "2022-01-01", "submittedPreId": "141171", "observedPreId": 0, "content": "matched", "associations": "mismatch", "complete": false, "file": "cross-date-readback.json", "sha256": "ed230879a1917d59b1d2f668695947e87b4e100e5c883440b8745e03b89ea7ac" }
+  ],
+  "limits": "These fixtures remain in the test ledger and their consumed intents must not be replayed. This resolves the specific cross-date laboratory defect, not every possible predecessor ordering case. Historical141110 receipt remains unchanged and does not become complete."
+}

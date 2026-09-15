@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-09-14T04:35:25.715Z",
+  "sessionId": "0235e717-f8a6-442c-b97d-e4b46a9608c1",
+  "readOnly": true,
+  "calls": [
+    {
+      "turn": 1,
+      "step": 1,
+      "callId": "call_00_ET_WKuDcdSxRNRSnKDjCmTY0899",
+      "name": "finance_prepare_open_item_deletion",
+      "arguments": "{\"action\": \"inspect\", \"id\": \"a69c2ca1-de6e-4f1c-b9af-ab45271e5451\"}",
+      "args": {
+        "action": "inspect",
+        "id": "a69c2ca1-de6e-4f1c-b9af-ab45271e5451"
+      }
+    },
+    {
+      "turn": 1,
+      "step": 1,
+      "callId": "call_01_ET_kfPl0DDyd0HEiJq5ShQh1900",
+      "name": "finance_prepare_open_item_deletion",
+      "arguments": "{\"action\": \"inspect\", \"id\": \"0ac53fb3-d1f7-4371-9503-991935e7517b\"}",
+      "args": {
+        "action": "inspect",
+        "id": "0ac53fb3-d1f7-4371-9503-991935e7517b"
+      }
+    }
+  ],
+  "results": [
+    {
+      "isError": false,
+      "text": "{\"id\":\"a69c2ca1-de6e-4f1c-b9af-ab45271e5451\",\"version\":1,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\"},\"preview\":{\"accountId\":\"35616\",\"accountName\":\"施的演示账套\",\"direction\":\"receivable\",\"businessAccountId\":\"174626\",\"row\":{\"amount\":\"0.01\",\"balance\":\"0.01\",\"baseAmount\":null,\"baseBalance\":null,\"settledAmount\":\"0.00\",\"badDebtAmount\":\"0.00\",\"offsetAmount\":\"0.00\",\"returnAmount\":\"0.00\",\"id\":\"72617\",\"date\":\"2022-01-09\",\"summary\":\"F3B-f3b-20260914T015413Z-f259b3e3-CF22\",\"subjectCode\":\"\",\"subjectName\":\"应收账款\",\"auxiliaryItemIds\":\"191501\",\"auxiliaryItemName\":\"淘云科技\",\"currencyCode\":\"RMB\",\"baseCurrencyCode\":\"RMB\",\"initialBalance\":false,\"finished\":false,\"categoryName\":\"收-其他收入\",\"remark\":\"\"},\"fingerprint\":\"08379b41fe12f3e07d90ee26f03b704c873a9c1510a2d1da3f8348be00dfe648\",\"attachmentCount\":0,\"blockers\":[],\"unverified\":[\"查询方向由原请求限定；列表未独立提供方向字段。\",\"审核状态和记录来源字段未提供，不能据此认定无审批或外部来源限制。\",\"有成网页提示删除可能连带删除对冲、核销或收入记录；公开接口的完整关联影响未核实，本检查不能排除该影响。\",\"其他核销金额未提供，不按零处理。\"]},\"selection\":{\"direction\":\"receivable\",\"periodStart\":\"2022-01\",\"periodEnd\":\"2022-01\"},\"readback\":{\"target\":\"not-observed\",\"scope\":\"selected-direction-periods\",\"content\":\"matched\",\"remainingBalances\":\"matched\",\"balances\":{\"original\":{\"state\":\"matched\",\"remaining\":\"matched\",\"changes\":[{\"currencyCode\":\"RMB\",\"before\":\"0.27\",\"after\":\"0.26\",\"removed\":\"0.01\",\"expectedAfter\":\"0.26\",\"state\":\"matched\",\"basis\":\"reported\"}]},\"base\":{\"state\":\"matched\",\"remaining\":\"matched\",\"changes\":[{\"currencyCode\":\"RMB\",\"before\":\"0.27\",\"after\":\"0.26\",\"removed\":\"0.01\",\"expectedAfter\":\"0.26\",\"state\":\"matched\",\"basis\":\"same-currency\"}]}}},\"execution\":{\"state\":\"not-requested\"},\"notice\":\"只读检查原记录，不发送或重发。preview 是已保存的原版本；not-observed 仅限原方向和期间，不证明全账套删除。balances分别核验原币和本位币的保留记录及分币种合计差额；basis=same-currency表示币种明确相同时依据原币余额计算，不是接口返回了本位币余额。查询失败不表示不存在，缺失值不补零。\"}"
+    },
+    {
+      "isError": false,
+      "text": "{\"id\":\"0ac53fb3-d1f7-4371-9503-991935e7517b\",\"version\":1,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\"},\"preview\":{\"accountId\":\"35616\",\"accountName\":\"施的演示账套\",\"direction\":\"payable\",\"businessAccountId\":\"174624\",\"row\":{\"amount\":\"0.01\",\"balance\":\"0.01\",\"baseAmount\":null,\"baseBalance\":null,\"settledAmount\":\"0.00\",\"badDebtAmount\":\"0.00\",\"offsetAmount\":\"0.00\",\"returnAmount\":\"0.00\",\"id\":\"72618\",\"date\":\"2022-01-09\",\"summary\":\"F3B-f3b-20260914T015413Z-f259b3e3-CF23\",\"subjectCode\":\"\",\"subjectName\":\"应付账款\",\"auxiliaryItemIds\":\"191573\",\"auxiliaryItemName\":\"F3主应用供应商测试\",\"currencyCode\":\"RMB\",\"baseCurrencyCode\":\"RMB\",\"initialBalance\":false,\"finished\":false,\"categoryName\":\"支-其他支出\",\"remark\":\"\"},\"fingerprint\":\"bff5fd20c938405112d2363478d32eb75d811e8f0ff598e7c7b7927970d9dcd5\",\"attachmentCount\":0,\"blockers\":[],\"unverified\":[\"查询方向由原请求限定；列表未独立提供方向字段。\",\"审核状态和记录来源字段未提供，不能据此认定无审批或外部来源限制。\",\"有成网页提示删除可能连带删除对冲、核销或收入记录；公开接口的完整关联影响未核实，本检查不能排除该影响。\",\"其他核销金额未提供，不按零处理。\"]},\"selection\":{\"direction\":\"payable\",\"periodStart\":\"2022-01\",\"periodEnd\":\"2022-01\"},\"readback\":{\"target\":\"not-observed\",\"content\":\"mismatch\",\"remainingBalances\":\"unavailable\",\"scope\":\"selected-direction-periods\"},\"execution\":{\"state\":\"not-requested\"},\"notice\":\"只读检查原记录，不发送或重发。preview 是已保存的原版本；not-observed 仅限原方向和期间，不证明全账套删除。balances分别核验原币和本位币的保留记录及分币种合计差额；basis=same-currency表示币种明确相同时依据原币余额计算，不是接口返回了本位币余额。查询失败不表示不存在，缺失值不补零。\"}"
+    }
+  ],
+  "evidence": "Current main-application readbacks; later legitimate changes are not rewritten into historical acceptance."
+}

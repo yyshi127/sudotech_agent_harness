@@ -302,7 +302,7 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
     }
     const passed = !acceptance.capabilityParity.standardHasFinanceTools
       && JSON.stringify(acceptance.capabilityParity.financeOnlyTools) === JSON.stringify([
-        'finance_calculation', 'finance_document', 'finance_evidence', 'finance_files',
+        'finance_attachment_upload', 'finance_calculation', 'finance_document', 'finance_evidence', 'finance_files', 'finance_reimbursement', 'finance_vouchers',
       ])
       && acceptance.capabilityParity.financeOnlySkills.length === 6
       && Object.values(acceptance.clientIsolation).every(Boolean)

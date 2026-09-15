@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-10",
+  "scope": "Voucher deletion confirmation and sender request integrity",
+  "changes": [
+    "Compare the entire approved durable record before the target lock and again under the record lock",
+    "Capture configuration, payload and inspection before authentication; reject caller mutations before dispatch",
+    "Retain both existing mandatory confirmation layers"
+  ],
+  "verification": {
+    "reproduction": "7 failed,63 passed before the fix;70 passed after the fix",
+    "focusedCommand": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/voucher-deletion.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/voucher-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts",
+    "focusedTests": 201,
+    "focusedPassed": 201,
+    "focusedDurationMs": 9020,
+    "buildAndLint": "pnpm run lint:exit0 after correcting test argument indentation",
+    "webCommand": "pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-voucher-deletion.e2e.ts",
+    "webRefresh": "1 passed;3 scenarios;8.70s",
+    "webReplay": "1 passed;3 scenarios;8.73s",
+    "webWorldAssertion": "Changing saved appId without changing the version during detailed approval causes a logged refusal,zero requests and a prepared record",
+    "docSync": "26 passed,2 existing youcheng-openapi-replica.md pairing/wrap failures,72.24s",
+    "diffCheck": "exit0"
+  },
+  "businessWrites": 0,
+  "restarted3092": false,
+  "browser": "Test-owned Chromium only, not the user's Chrome",
+  "liveAcceptance": false,
+  "duplicateConfirmationResolved": false,
+  "f3bComplete": false
+}

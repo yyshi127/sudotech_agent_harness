@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-10",
+  "ledger": { "id": "35616", "name": "施的演示账套" },
+  "journalId": "141107",
+  "authorization": "User approved one new diagnostic deletion attempt on this exact 0.01 income fixture; consumed",
+  "privateAttempt": "test-tools/f3b-35616/journal-delete/execution-diagnostic-02",
+  "request": { "method": "POST", "path": "/finance/cashjournal/delete.rjson", "body": { "id": 141107 } },
+  "response": { "httpStatus": 200, "responseBytes": 51, "result": 201, "message": "帐套名称不能为空" },
+  "observedAt": "2026-09-10T12:27:27.517Z",
+  "writeRequests": 1,
+  "outcome": "rejected",
+  "readback": {
+    "target": "present",
+    "cashInventoryUnchanged": true,
+    "journalInventoryUnchanged": true,
+    "receivablesPreserved": true,
+    "payablesPreserved": true,
+    "vouchersPreserved": true,
+    "scope": "January 2022 cash/journal and open-item inventories, complete unfiltered 41-voucher projection; not full-ledger detail equivalence",
+    "additionalReadOnlyRecoveryWrites": 0
+  },
+  "publicDocument": {
+    "source": "https://yiqbopenapi.superboss.cc/doc/share/view?docId=V2JRL72y&shareConfigId=awXPk8nW",
+    "checkedAt": "2026-09-10T12:28:34.443Z",
+    "requestParams": [{ "name": "id", "type": "int64", "required": 1 }],
+    "globalParams": []
+  },
+  "conclusion": "Observed id-only request is rejected for missing ledger name. Exact field name and position are not established by the response or current public document.",
+  "nextHypothesis": {
+    "body": { "id": 141107, "accountName": "施的演示账套" },
+    "basis": "The qualified journal creation builder uses accountName; this is a candidate, not proof of the deletion contract",
+    "newExactTargetAuthorizationRequired": true,
+    "executed": false
+  },
+  "oldIntentAndOutcomePreserved": true,
+  "automaticRetry": false,
+  "offlineTests": { "passed": 34, "failed": 0, "durationMs": 302.1243 },
+  "productCodeChanged": false,
+  "productSnapshot": "Not applicable: standalone lab behavior only",
+  "restarted3092": false,
+  "f3bComplete": false
+}

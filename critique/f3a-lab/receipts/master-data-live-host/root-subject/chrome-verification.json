@@ -1,0 +1,27 @@
+{
+  "observedOn": "2026-09-10",
+  "source": "Read-only visible DOM after refreshing the existing Chrome subject-settings page",
+  "newBrowserOrTabOpened": false,
+  "vendorTabId": "988953672",
+  "vendorUrl": "https://cwpc.yiqiyun.com/#/",
+  "company": "瑞华云",
+  "ledgerName": "施的演示账套",
+  "visibleSubject": {
+    "code": "1097",
+    "name": "F3主应用一级测试",
+    "type": "流动资产",
+    "direction": "借",
+    "status": "启用"
+  },
+  "visibleAssetRowCount": 47,
+  "appTabId": "988953675",
+  "appUrl": "http://127.0.0.1:3092/",
+  "appSessionId": "d3de17a5-67ce-4090-9411-1fb322741702",
+  "appDisplaysAcceptedAndMatchedResult": true,
+  "humanUiApprovalClick": false,
+  "approvalMechanism": "One-use lab handler for the exact prepared record and version",
+  "limitations": [
+    "Visible subject rows do not independently prove hidden accounting settings.",
+    "The model-visible reference projection omits subjectType despite Host validation."
+  ]
+}

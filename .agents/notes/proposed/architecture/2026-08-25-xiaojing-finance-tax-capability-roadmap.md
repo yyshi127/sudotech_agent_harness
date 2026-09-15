@@ -16,7 +16,7 @@ Development must stay within DeepSeek Harness's Cordis plugin architecture. Fina
 
 ## Proposal
 
-Build Xiaojing as a cross-software, executable, and auditable professional finance and tax workbench in four product stages: the professional foundation; Youcheng and SDOO business-system loops; compliance review and risk discovery; and proactive finance management. Stage 2 completes Youcheng before SDOO. Professional compliance belongs to Stage 3 and must not be represented by unverified heuristics during connector development.
+Build Xiaojing as a cross-software, executable, and auditable professional finance and tax workbench in four product stages: professional foundations; Youcheng and SDOO business systems; compliance review; and proactive management. Within Youcheng, current scope is finance and full finance acceptance, without reimbursement or a dual-module isolation project. Reimbursement is deferred and needs a later explicit user request after finance acceptance; it is not a parallel or automatic next task. Professional compliance belongs to Stage 3 rather than unverified connector heuristics.
 
 Finance mode is a fifth system Agent preset and a strict capability superset of standard mode. It retains standard mode's files, shell, web, Skills, Plan, Goal, subagents, workflows, Weixin, browser, and computer control, then adds client context, official evidence, finance documents, explainable trial calculations, finance Skills, and connectors. It neither copies Agent Loop nor changes another preset's behavior.
 
@@ -85,7 +85,7 @@ These are target owners, not a requirement to create empty packages before a fir
 
 `FinanceWorkflowService` starts, resumes, cancels, and inspects versioned workflows. Each workflow carries client ID, business object, current step, required evidence, completed actions, pending approval, idempotency key, and connector revision. A model may select a workflow and provide business inputs but cannot skip required steps.
 
-`FinanceConnector` exposes typed business operations with `read`, `draft`, `validate`, and `commit` semantics. Every mutation accepts a client/company/ledger scope, expected object revision, idempotency key, and approval proof. A result includes pre-state, post-state, external object ID, audit reference, and explicit business outcome; transport success is not sufficient.
+`FinanceConnector` exposes typed reads, local preparation, and confirmed external actions scoped to client/company/ledger. Mutations carry task identity and confirmation evidence. Use external revision checks and idempotency only where the provider supports them; otherwise state limits and reconcile unknown outcomes. Results distinguish external IDs, verified states, partial success, and unverified evidence; transport success is insufficient.
 
 `FinanceAuditService` appends sanitized business events sufficient to reconstruct the client, evidence version, workflow version, user confirmation, and external object used. Credentials, full invoice images, and unnecessary personal data do not enter browser snapshots or ordinary logs.
 
@@ -130,37 +130,36 @@ Deliver a selectable finance preset that answers professional Chinese finance an
 - Calculation fixtures cover general and small-scale taxpayer contexts, period boundaries, missing inputs, and rounding; outputs reproduce without the model.
 - Brand, usage, upload, vision, Weixin, Edge, Windows control, Visualize, desktop companion, and user-data regressions pass.
 
-## Stage 2.1: Youcheng reimbursement closed loop
+<a id="stage-21-youcheng-reimbursement-closed-loop"></a>
+
+## Stage 2.1: Youcheng finance first, reimbursement deferred
 
 ### Goal
 
-Deliver a stable, resumable, and auditable Youcheng workflow that inspects reimbursement records, prepares finance-review decisions, obtains human confirmation, and commits an approved action exactly once without screenshots or coordinate clicks.
+The current plan covers finance only. Complete the user-confirmed finance scope and full F4 acceptance before reimbursement can even be considered. Reimbursement remains deferred until a later explicit request; retain existing examples without expansion. The [Youcheng plan](../../../../docs/integrations/youcheng-natural-language-development-plan.md) owns scope and acceptance, the [itemized execution plan](../../../../docs/integrations/youcheng-finance-execution-plan.md) owns feature IDs and Goals, and finance sections of the [implementation design](../../../../docs/integrations/youcheng-implementation-design.md) own recovery constraints.
 
 ### Technical route
 
-The first task is an API qualification spike against a dedicated Youcheng test tenant. The official product site links to OPENAPI documentation, so the connector prefers an authenticated official API when it exposes the required object and mutation. The spike records authentication, scopes, tenant isolation, sandbox availability, pagination, rate limits, idempotency, webhooks, error semantics, and licensing. Production does not use an undocumented endpoint.
+Qualify the complete finance scope, identifying duplicate reimbursement entries in the finance catalog rather than treating them as finance dependencies. Reuse infrastructure, not reimbursement business execution. No new reimbursement templates, invoices, connection decoupling, or folder tasks are developed in this phase.
 
-When an operation is unavailable through an approved API, a Youcheng-specific DOM adapter may use the existing Edge transport while owning its page recognition, semantic locators, state assertions, and version compatibility. Generic `browser_control` remains transport infrastructure, not the business process. Coordinates, screenshots, and Windows UIA are not accepted as the normal path.
-
-The first vertical slice is finance review because the initial user is a finance practitioner. It lists pending reimbursements, opens one record and its attachments, extracts review facts, presents a proposed approve/reject/request-more-information decision, asks for confirmation, commits once, and verifies the resulting state. Employee draft creation and submission is the second slice; payment and bank transfer remain excluded.
+Split finance Goals by business outcomes, including necessary APIs, tools, UI, and acceptance, not endpoint counts. Enforce client/ledger scope without building a bidirectional module-isolation system or invoking reimbursement business services. This remains a proposal, not implementation authorization.
 
 ### Workflow rules
 
-- Read and export operations require no approval.
-- Creating or editing an identified draft may proceed but cannot submit it.
-- Submit, approve, reject, and withdraw require one confirmation showing client, document, amount, action, and consequence.
-- Delete always requires a separate confirmation even under a never-approve session policy.
-- Each commit uses an idempotency key and reads the object after mutation. A timeout with unknown outcome stops for reconciliation instead of retrying blindly.
-- Workflow state stores the step and external revision so restart, Weixin recovery, or model retry cannot duplicate an action.
-- A page, API, or permission version mismatch disables mutation and returns a compatibility error; it never guesses a selector or field.
+- The backend validates finance client, ledger, identity, permission, and action; prompts alone cannot enforce protection.
+- Finance operates without reimbursement configuration, and existing reimbursement data is not finance task data.
+- Finance task discovery, source authorization, locks, duplicate checks, and recovery are client/ledger-scoped.
+- Verify parameters and side effects; query names are insufficient. Unknown writes reconcile before any safe retry.
+- Required deletion, write-off, or other high-risk finance actions need independent safety acceptance; do not silently remove them from the confirmed scope.
+- Preserve existing reimbursement records and examples without building new reimbursement capabilities.
 
 ### Stage 2.1 release criteria
 
-- API and DOM providers pass the same connector contract suite; missing operations fail explicitly.
-- A real test tenant completes 100 repeated reads and at least 30 end-to-end reviews with no duplicate action, wrong client, wrong record, or hidden fallback.
-- Tests cover expired login, permission denial, slow loading, redesign, stale revision, connection loss, restart, expired confirmation, and unknown commit outcome.
-- Stage 1 professional analysis feeds the review workflow while the workflow remains deterministic after final confirmation.
-- The product does not claim a Youcheng closed loop until the real-tenant acceptance record is approved.
+- F0 defines the complete finance acceptance checklist and user-approved exceptions; voucher examples alone cannot complete it.
+- F1–F3 deliver all required finance actions, with focused tests, real-composition snapshots, authorized external checks, and necessary model cases.
+- F4 checks full scope, client/ledger protection, cancellation, duplicates, partial success, restart, configuration changes, and unknown outcomes, without reimbursement or dual-module acceptance.
+- User-confirmed full finance acceptance is required; a generated report or passing subset is not sufficient.
+- Failure keeps work on finance. Passing does not automatically start reimbursement; that needs a later explicit request.
 
 ## Stage 2.2: SDOO and Odoo accounting integration
 
@@ -260,35 +259,25 @@ Scope: calculator versioning, rounding, missing-input diagnostics, output templa
 
 Scope: assembled snapshots, focused tests, user-data copy, Electron preview, and acceptance record. Do not package or announce Stage 1 with an unresolved release criterion.
 
-### F2Y-1 — Youcheng API qualification
+### F0 — Finance scope and acceptance checklist
 
-**Goal:** Determine with a dedicated Youcheng test tenant which official OPENAPI operations can support the reimbursement workflows, document authentication, scopes, licensing, idempotency, and error semantics, and produce a connector capability matrix with unsupported operations explicitly identified.
+Inventory finance APIs and business requirements, confirm required items and exceptions with the user, and exclude reimbursement dependencies. No business writes during qualification.
 
-Scope: read-only spike first, secret handling, and official documentation references. Do not use undocumented endpoints or production customer data. Complete when recorded tests support the matrix and select API, DOM, or unsupported for every required operation.
+### F1 — Independent finance connection and queries
 
-### F2Y-2 — Youcheng connector read model
+Implement finance identity, connection, references, lists/details, balances, and scope/completeness checks without reimbursement credentials, tools, or data.
 
-**Goal:** Implement a typed Youcheng connector that discovers the current tenant, lists and reads reimbursement objects and attachments, normalizes them into finance-domain records, and returns stable compatibility errors instead of exposing vendor API or DOM details.
+### F2 — Finance voucher operations
 
-Scope: API provider plus a Youcheng-specific DOM provider only where required, connector contract tests, pagination, login expiry, and version detection. Do not mutate Youcheng. Complete when both providers satisfy the read contract and repeated reads select the correct tenant and record.
+Implement finance-only preparation, validation, confirmation, durable execution, and readback. Reuse infrastructure techniques without invoking reimbursement business services.
 
-### F2Y-3 — Youcheng finance-review closed loop
+### F3 — Finance journals, balances, and maintenance
 
-**Goal:** Implement a resumable finance-review workflow that reads one pending reimbursement, gathers its evidence, prepares a review recommendation, obtains explicit user confirmation, approves, rejects, or requests information exactly once, and verifies the resulting Youcheng state.
+Complete the confirmed journal, account, receivable/payable, and maintenance scope. Independently validate dangerous actions rather than postponing required items to reimbursement.
 
-Scope: `finance-reimbursement` Skill, workflow state, approval summary, idempotency, post-read, and recovery. Exclude payment and deletion. Complete after repeated real-tenant acceptance meets the Stage 2.1 threshold.
+### F4 — Full finance acceptance
 
-### F2Y-4 — Youcheng reimbursement draft and submit
-
-**Goal:** Implement a second resumable workflow that creates or updates a reimbursement draft from user-provided materials, validates every required field, shows a complete submission preview, submits only after confirmation, and reconciles an unknown result without duplicate submission.
-
-Scope: draft mapping, attachments, policy validation, confirmation, and restart recovery. Do not auto-select missing business facts. Complete when partial drafts, validation rejection, timeout, and retry cases preserve one external document.
-
-### F2Y-5 — Youcheng release certification
-
-**Goal:** Certify the Youcheng connector and workflows as a production-supported closed loop by running contract, fault-injection, repeated real-tenant, and cross-feature regression suites, documenting the supported Youcheng version, and disabling mutation on compatibility mismatch.
-
-Scope: reliability evidence and release documentation. Do not reduce thresholds to pass a flaky provider.
+Verify every required finance function, client/ledger protection, recovery, upgrade preservation, and external outcomes. Obtain user acceptance; reimbursement remains deferred until separately requested.
 
 ### F2S-1 — SDOO Agent API contract
 
@@ -366,13 +355,15 @@ Each task runs focused checks before broader checks. User-visible behavior requi
 
 ## Alternatives considered
 
+**Combine finance/reimbursement or build a dual-module framework first.** Rejected because the current request covers finance only; extra module construction adds work without a current consumer. Deliver verifiable finance features with client/ledger protection; reimbursement and its architecture require a separate request.
+
 **Put every finance behavior in one system prompt.** Rejected because prompts cannot enforce client scope, deterministic calculation, approval, idempotency, durable progress, or connector compatibility and are difficult to test and remove.
 
 **Build a local full-text regulation library first.** Rejected at this stage because completeness, effective-date coverage, and commercial reuse rights are not established. Official retrieval with an auditable bounded cache is safer; a full corpus requires a separate source-rights project.
 
 **Use generic browser automation for every finance system.** Rejected because a generic page tool cannot promise stable domain objects, exactly-once mutation, or vendor-version compatibility. It remains transport for a vendor-specific adapter when an approved API is unavailable.
 
-**Require a Youcheng API before any integration.** Rejected because the public site exposes documentation while actual tenant capabilities are unknown, and a stable vendor-specific DOM adapter may cover missing operations. One connector contract accommodates both without coupling workflows.
+**Build API and DOM providers before delivery.** Rejected for the first Youcheng release because it doubles compatibility work before a necessary API gap is proven. Qualify official APIs, record unsupported actions, and evaluate a browser adapter only when necessary and authorized.
 
 **Expose generic Odoo ORM or RPC directly to the model.** Rejected because it grants excessive authority, couples Skills to Odoo internals, and weakens invariants, upgrade compatibility, and auditing. SDOO exposes versioned domain operations.
 

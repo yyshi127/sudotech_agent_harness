@@ -1,0 +1,82 @@
+{
+  "checkedAt": "2026-09-10T08:18:16.775Z",
+  "businessWrites": 0,
+  "ledgerId": "35616",
+  "scope": "Existing fixtures inspected only; hypothetical amount is not an approved write-off. Cash-account eligibility and journal side effects remain unqualified.",
+  "calls": [
+    {
+      "path": "/auth/getAccessToken.rjson"
+    },
+    {
+      "path": "/finance/auxiliary/queryAccountList.rjson"
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 1
+    },
+    {
+      "path": "/auth/getAccessToken.rjson"
+    },
+    {
+      "path": "/finance/auxiliary/queryAccountList.rjson"
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 0,
+      "page": 1
+    },
+    {
+      "path": "/auth/getAccessToken.rjson"
+    },
+    {
+      "path": "/finance/auxiliary/queryAccountList.rjson"
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 1,
+      "page": 1
+    },
+    {
+      "path": "/auth/getAccessToken.rjson"
+    },
+    {
+      "path": "/finance/auxiliary/queryAccountList.rjson"
+    },
+    {
+      "path": "/finance/cashjournal/getCashierList",
+      "direction": 1,
+      "page": 1
+    }
+  ],
+  "results": [
+    {
+      "direction": "receivable",
+      "id": "72602",
+      "proposedDate": "2022-01-09",
+      "selectedBalance": "0.19",
+      "currencyCode": "RMB",
+      "count": 3,
+      "observation": {
+        "content": "matched",
+        "settlement": "mismatch",
+        "operation": "unverified"
+      },
+      "businessRowsUnchanged": true
+    },
+    {
+      "direction": "payable",
+      "id": "72603",
+      "proposedDate": "2022-01-09",
+      "selectedBalance": "0.23",
+      "currencyCode": "RMB",
+      "count": 2,
+      "observation": {
+        "content": "matched",
+        "settlement": "mismatch",
+        "operation": "unverified"
+      },
+      "businessRowsUnchanged": true
+    }
+  ]
+}

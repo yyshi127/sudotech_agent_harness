@@ -1,0 +1,35 @@
+{
+  "scope": "F3.7 Host confirmation, durable journal claims, scoped recovery and registered model tools with keyless assembled UI snapshots; not live deletion or full business acceptance",
+  "date": "2026-09-10",
+  "runningApplicationRestarted": false,
+  "businessWrites": { "dedicatedFixtureCreations": 1, "journalDeletions": 0 },
+  "fixtureReceipt": "F3B-35616-DELETE-JOURNAL-20260910-01.json",
+  "fixture": { "accountId": "35616", "journalId": "141107", "amount": "0.01", "date": "2022-01-01", "preservedJournals": 3, "preservedVouchers": 41, "deletionApproval": "requested, not received" },
+  "tests": [
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/voucher-deletion-records.spec.ts", "passed": 41, "failed": 0, "durationMs": 862 },
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts -t 'journal deletion confirmation|voucher deletion confirmation'", "passed": 19, "skipped": 87, "failed": 0, "durationMs": 3670 },
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion.spec.ts", "passed": 102, "failed": 0, "durationMs": 1220 },
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts -t 'journal deletion confirmation|persisted|preserves the original inventory'", "passed": 26, "skipped": 108, "failed": 0, "durationMs": 3150, "scope": "After typed fixture correction; overlaps prior tests" },
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion-tool.spec.ts", "passed": 1, "failed": 0, "durationMs": 846 },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=refresh pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-journal-deletion.e2e.ts", "passed": 1, "failed": 0, "durationMs": 7740, "scenarios": ["accepted", "lost"] },
+    { "command": "DSH_CLIENT_BUILD_PROFILE=xiaojing DSH_SNAPSHOT=replay pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/finance-journal-deletion.e2e.ts", "passed": 1, "failed": 0, "durationMs": 8380, "scenarios": ["accepted", "lost"] },
+    { "command": "pnpm exec tsc -b tsconfig.host.json", "exitCode": 0 },
+    { "command": "pnpm run build:lib:host", "exitCode": 0 },
+    { "command": "pnpm run lint:contracts-ready", "exitCode": 0 },
+    { "command": "pnpm exec tsx scripts/run-oxlint.ts packages/xiaojing/xiaojing-finance-domain/src/journal-deletion-tool.ts packages/xiaojing/xiaojing-finance-domain/tests/journal-deletion-tool.spec.ts apps/web/tests/finance-journal-deletion.e2e.ts", "exitCode": 0 },
+    { "command": "pnpm run gen-cordis-catalog; gen-tool-catalog; gen-config-catalog; gen-persistence-catalog", "exitCode": 0 }
+  ],
+  "checksPending": [],
+  "documentationChecks": {
+    "docSync": { "passed": 26, "failed": 2, "durationMs": 79160, "failures": ["Translation pairing: imported API replica missing counterpart and generated config source line out of sync", "Imported API replica hard-wrapped prose"] },
+    "afterDocSync": ["Updated only the generated config counterpart's changed source line135 to137 and re-recorded; four changed pairs pass", "Full translation-pairing rerun fails only the existing imported API replica missing counterpart", "Config and tool freshness checks pass", "git diff --check passes"],
+    "remainingKnownFailures": ["Imported API replica missing bilingual counterpart", "Imported API replica hard-wrapped prose"]
+  },
+  "resolvedSetupFailures": [
+    "Direct eslint invocation failed because this repository uses scripts/run-oxlint.ts; no project configuration was changed.",
+    "The first full lint built Host successfully but rejected new arrow-parenthesis style and untyped JSON test mutations; these were corrected, focused tests and full configured lint passed.",
+    "The first assembled run preceded generation of the new tool artifact and failed at preset mount. The declared Host build completed and unchanged refresh/replay passed.",
+    "Intermediate doc-sync:25 passed,3 failed in106.93s; config catalog regenerated. The other two failures are the existing imported API replica pairing and hard-wrap defects."
+  ],
+  "remaining": ["Obtain exact approval before deleting journal141107", "Verify live independent balances and unrelated data after deletion", "Do not represent monthly absence as whole-ledger deletion", "Generic plus Host double confirmation remains an explicit UX gap", "Real-model natural-language acceptance and broader state/source qualification", "Remaining voucher acceptance gaps and later four F3B actions"]
+}

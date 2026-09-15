@@ -10,11 +10,12 @@ import clsx from 'clsx'
 import {
   HoverCard, IconArchiveOutline20, IconBranchOutline16, IconEditOutline16,
   IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16, IconPlusOutline16,
-  IconTrashOutline16, IconTriangleRightFill14, Menu, StateDot,
+  IconLinkOutline16, IconTrashOutline16, IconTriangleRightFill14, Menu, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-client-runtime/client'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
+import type { WorkspaceCategoryBadge } from '../category-registry.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import { relativeTime } from '../tree.ts'
 import css from './Rows.module.css'
@@ -109,12 +110,16 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home, t }: {
+export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBadgeAction, drag, home, t }: {
   group: GroupNode
   onToggle: () => void
   onCreate?: (() => void) | undefined
+  /** Optional supplemental status supplied by the workspace category owner. */
+  badge?: WorkspaceCategoryBadge | undefined
+  /** Run the badge action without expanding the row or creating a session. */
+  onBadgeAction?: (() => void) | undefined
   /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
-  actions?: { rename: () => void; delete: () => void; deleteLabel?: string } | undefined
+  actions?: { rename: () => void; delete: () => void; deleteLabel?: string; details?: () => void; detailsLabel?: string } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
   /** Host account home; POSIX home-rooted hover paths display as `~`. */
@@ -127,6 +132,7 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
   const active = group.expanded && group.containsCurrent
   const [menuOpen, setMenuOpen] = useState(false)
   const workspaceMenuItems = [
+    ...(actions?.details === undefined ? [] : [{ id: 'details', label: actions.detailsLabel ?? 'Details', icon: <IconEditOutline16 /> }]),
     { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
     {
       id: 'delete',
@@ -159,6 +165,24 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
       </span>
       <span className={css.projectText}>
         <span className={css.title}>{label}</span>
+        {badge?.actionLabel === undefined || onBadgeAction === undefined ? null : <button
+          type="button"
+          className={clsx(css.iconButton, css.badgeAction, badge.state === 'success' && css.badgeActionSuccess)}
+          aria-label={badge.actionLabel}
+          title={badge.actionLabel}
+          disabled={badge.state === 'pending'}
+          aria-busy={badge.state === 'pending'}
+          onClick={(e) => { e.stopPropagation(); onBadgeAction() }}
+        >
+          <IconLinkOutline16 />
+        </button>}
+        {badge === undefined ? null : <span className={css.workspaceBadge} role="status" aria-label={badge.label} title={badge.label}>
+          {badge.text === undefined ? null : <span className={css.badgeText}>
+            {badge.actionLabel === undefined || onBadgeAction === undefined ? ' - ' : ''}{badge.text}
+          </span>}
+          {badge.state === 'idle' ? <span className={css.unverifiedDot} aria-hidden="true" />
+            : <StateDot state={badge.state === 'success' ? 'done' : badge.state === 'pending' ? 'ongoing' : 'error'} />}
+        </span>}
       </span>
       <span className={css.rowActions}>
         {actions !== undefined && (
@@ -171,9 +195,9 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, drag, home,
               // Unknown ids leave before the dispatch: a future menu row must
               // not inherit the destructive branch as an else fallback.
               /* v8 ignore next -- workspaceMenuItems carries exactly these two rows today. */
-              if (id !== 'rename' && id !== 'delete') return
-              if (id === 'rename') actions.rename()
-              else actions.delete()
+              if (id === 'details' && actions.details !== undefined) actions.details()
+              else if (id === 'rename') actions.rename()
+              else if (id === 'delete') actions.delete()
             }}
             portal
             closeOnPointerLeave

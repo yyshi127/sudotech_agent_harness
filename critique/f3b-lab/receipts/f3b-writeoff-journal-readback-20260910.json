@@ -1,0 +1,34 @@
+{
+  "scope": "CF24/CF25 accepted receipt-linked journal readback; no new execution entry",
+  "liveCheckedAt": "2026-09-10T11:56:35.973Z",
+  "ledgerId": "35616",
+  "ledgerName": "施的演示账套",
+  "requests": 33,
+  "businessWrites": 0,
+  "restarted3092": false,
+  "links": [
+    { "direction": "receivable", "openItemId": "72606", "receiptId": "65833", "journalId": "141108", "amount": "0.02", "currencyCode": "RMB", "date": "2022-01-09", "content": "matched", "settlement": "matched", "productAdapterLink": "matched" },
+    { "direction": "payable", "openItemId": "72607", "receiptId": "65834", "journalId": "141109", "amount": "0.02", "currencyCode": "RMB", "date": "2022-01-09", "content": "matched", "settlement": "matched", "productAdapterLink": "matched" }
+  ],
+  "verification": {
+    "focusedFiles": 4,
+    "focusedTestsPassed": 253,
+    "focusedDurationSeconds": 9.34,
+    "journalTestsAfterLintCorrection": "29 passed,0.635s",
+    "webRefresh": "1 passed,4 scenarios,10.16s",
+    "webReplay": "1 passed,4 scenarios,8.30s",
+    "hostBuild": "tsc and tsdown completed",
+    "lint": "pnpm run lint:contracts-ready:exit0 after five initial style errors and one remaining line-wrap error; preceding host tsc/tsdown completed",
+    "docSync": "25 passed,3 failed,98.65s; generated catalog refreshed and independent freshness check passed for97 artifacts; two existing replica pairing/wrap failures remain",
+    "bilingualPairs": "4 named pairs consistent",
+    "initialFailure": "17 of29 new tests failed because normalized date bounds were incorrectly expected to be absent; fixed implementation and retained assertions"
+  },
+  "limits": [
+    "Two bounded complete monthly inventories are observations, not a vendor transaction lock or full-ledger coverage",
+    "Missing, duplicate, conflicting or changing evidence cannot verify operation attribution",
+    "Accepted receipt and original operation record remain unchanged; no resend",
+    "Live evidence reuses previously approved and consumed fixtures; no new approval or write",
+    "No bank movement is established; mandatory confirmation, raw state, period, currency and linkage eligibility remain before a product write-off executor"
+  ],
+  "f3bComplete": false
+}

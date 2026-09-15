@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-09-10T13:43:31.302Z",
+  "ledger": { "id": "35616", "name": "施的演示账套" },
+  "sessionId": "68f42f43-97cb-49fb-8662-ef88bc7f5889",
+  "marker": "F3B-35616-HOST-DELETE-VOUCHER-20260910-01",
+  "voucherId": "244305",
+  "creationId": "17bae118-f892-475d-a702-609e8d37441e",
+  "deletionId": "50293d58-f095-4f59-afe3-9a330f8b393c",
+  "version": 1,
+  "source": "Real model and built Finance main application on3092 using live vendor APIs",
+  "authority": "Standing user authorization for creation and maintenance of dedicated synthetic test records in35616",
+  "creation": {
+    "amount": "0.01", "date": "2022-01-01", "number": "记-40",
+    "debitSubject": "1001", "creditSubject": "100201", "attachmentCount": 0,
+    "acceptedToolCalls": 1, "mandatoryConfirmations": 1, "completeReadback": true
+  },
+  "deletion": {
+    "acceptedToolCalls": 1, "mandatoryConfirmations": 2, "originalCreationIdentityUsed": true,
+    "outcome": "accepted", "productReadback": "absent",
+    "independentCompletePasses": 2, "absentInBothPasses": true,
+    "preservedVoucherCount": 41, "survivingVoucherProjectionMatched": true,
+    "journalInventoryMatched": true, "receivableInventoryMatched": true, "payableInventoryMatched": true
+  },
+  "humanUiClick": false,
+  "privateEvidence": "test-tools/f3b-35616/voucher-delete-host",
+  "verificationScope": "Unfiltered all-period voucher list projections; journal and open-item inventories cover January2022 only. No claim of full unrelated voucher-detail equality.",
+  "recovery": "Original creation and deletion records plus pre/post inventories retained; no automatic restoration or resend",
+  "browser": "Agent-browser installed; existing Chrome has no reachable9222/9223 CDP endpoint. No new browser launched. Main-app verification uses real local RPC and approval channel, not a claimed visible Chrome click.",
+  "remaining": ["Other voucher provenance", "Attachment and linked-record effects", "Duplicate confirmation UX"],
+  "f3bComplete": false
+}

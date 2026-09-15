@@ -1,0 +1,15 @@
+[
+  [
+    {
+      "type": "tool-result",
+      "toolCallId": "voucher-query",
+      "content": [
+        {
+          "type": "text",
+          "text": "Error: 有成凭证查询失败（network；阶段：凭证列表请求）。本次未取得有效结果，不代表没有凭证；不能仅凭此错误判定是配置或有成服务故障。不要通过文件搜索或索取密钥代替查询。"
+        }
+      ],
+      "isError": true
+    }
+  ]
+]

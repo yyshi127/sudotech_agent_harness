@@ -157,20 +157,20 @@
 }
 
 .grid label,
-.external label {
+.systemGrid label {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .grid label > span,
-.external label > span {
+.systemGrid label > span {
   color: #536967;
   font-size: 13px;
   font-weight: 600;
 }
 
-.grid small {
+.editor small {
   color: #91a29f;
   font-weight: 400;
 }
@@ -214,31 +214,36 @@
   padding: 0 6px;
 }
 
-.mapping {
+.systemGrid {
   display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.credentialHint {
+  line-height: 18px;
+}
+
+.accountLookup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
-  grid-template-columns: 1fr 1fr 32px;
-  margin-bottom: 8px;
 }
 
-.mapping button {
-  background: #f7eded;
-  border: 0;
-  border-radius: 7px;
-  color: #b64848;
-  cursor: pointer;
+.accountLookup p {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
 }
 
-.external {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 70px repeat(3, minmax(0, 1fr));
-  margin-top: 10px;
-}
-
-.external strong {
-  align-self: end;
-  padding-bottom: 10px;
+.systemNotice {
+  background: #f7fbfa;
+  border-radius: 8px;
+  color: #708482;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 10px 12px;
 }
 
 .editorActions {
@@ -246,6 +251,83 @@
   gap: 10px;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+.policyNotes summary {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.policyNotes textarea {
+  margin-top: 8px;
+  resize: vertical;
+}
+
+.containedEditor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.containedEditor .fields {
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-padding-block: 16px;
+  padding: 16px 24px;
+}
+
+.containedEditor .fields:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
+.containedEditor fieldset {
+  flex: none;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+}
+
+.containedEditor .grid,
+.containedEditor .systemGrid {
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.containedEditor .wide { grid-column: 1 / -1; }
+
+.containedEditor .editorActions {
+  flex: none;
+  margin: 0;
+  padding: 12px 24px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+@media (max-width: 640px) {
+  .containedEditor .grid,
+  .containedEditor .systemGrid { grid-template-columns: 1fr; }
+
+  .containedEditor .fields,
+  .containedEditor .editorActions { padding-inline: 16px; }
 }
 
 .primary,
@@ -291,7 +373,7 @@
   }
 
   .grid,
-  .external {
+  .systemGrid {
     grid-template-columns: 1fr;
   }
 

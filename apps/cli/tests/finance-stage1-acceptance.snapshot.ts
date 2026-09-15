@@ -33,10 +33,13 @@ describe('Xiaojing Finance Stage 1 assembled acceptance', () => {
             "finance-voucher-draft",
           ],
           "financeOnlyTools": [
+            "finance_attachment_upload",
             "finance_calculation",
             "finance_document",
             "finance_evidence",
             "finance_files",
+            "finance_reimbursement",
+            "finance_vouchers",
           ],
           "standardHasFinanceTools": false,
         },

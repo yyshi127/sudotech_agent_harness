@@ -1,0 +1,27 @@
+{
+  "scope": "Product voucher-deletion attachment notice and keyless shipping-composition acceptance",
+  "notice": "本操作不清理原OSS文件；凭证删除不证明有成转存附件已清除，也不保证附件长期保留。",
+  "surfaces": ["inspection", "prepare/revise", "mandatory confirmation", "submission result", "read-only recovery"],
+  "regression": { "before": "one focused assertion failed", "after": "three files,201 tests passed,9.61s" },
+  "web": {
+    "refresh": "passed,12.88s",
+    "replay": "passed,11.79s",
+    "scenarios": ["accepted", "lost response", "changed confirmation", "attached"],
+    "attachedAssertions": ["exact version consent includes notice", "preview and results include notice", "source/vendor file hosts never requested", "private URLs not exposed", "duplicate send refused", "independent absence readback"]
+  },
+  "externalBusinessWrites": 0,
+  "checks": {
+    "hostTypecheckBuild": "passed through pnpm run lint",
+    "lint": "initial failure on one test max-len; fixed; pnpm run lint:contracts-ready exited0",
+    "docSync": "26 passed,2 existing OpenAPI-replica pairing/wrap failures,99.66s",
+    "diffCheck": "passed"
+  },
+  "deployment": {
+    "restartAttempt": "execution tool rejected command before execution by policy",
+    "listenerAfterRejection": 16224,
+    "backendRestarted": false,
+    "liveRecoveryScriptRun": false,
+    "liveRecoveryScript": "critique/f3b-lab/voucher-notice-live-recovery.mjs"
+  },
+  "limitations": ["Keyless vendor responses do not replace live main-app attachment acceptance.", "Notice changes do not qualify external voucher provenance or remaining F3B actions."]
+}

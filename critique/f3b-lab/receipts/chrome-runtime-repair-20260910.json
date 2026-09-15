@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-10",
+  "scope": "Restore missing packaged browser runtime for existing Chrome; no browser configuration changes or business writes",
+  "cause": "Installed Codex26.903.8094.0 requested browser26.903.61454/scripts/browser-service.mjs, while cache contained only older browser versions",
+  "source": "C:/Program Files/WindowsApps/OpenAI.Codex_26.903.8094.0_x64__2p2nqsd0c76g0/app/resources/plugins/openai-bundled/plugins/browser",
+  "restoredDirectory": "E:/CodexHome/plugins/cache/openai-bundled/browser/26.903.61454",
+  "packagedManifestVersion": "26.903.61454",
+  "sourceAndRestoredServiceSha256": "A84D7CDC6D9645497C8D2FA1F7833E035686FF579AE6A47AAE0B70BFAC6957DD",
+  "method": "Copy-Item failed with an encrypted-file copy error and left no files. Archived official source and extracted into the verified empty destination; retained older directories. Reset failed browser-control kernel and initialized through the documented Chrome runtime.",
+  "retainedArchive": "D:/Temp/Administrator/browser-26.903.61454-repair.zip",
+  "verification": {
+    "chromeSelector": "chrome",
+    "browserId": "2",
+    "browserType": "extension",
+    "existingUserTabsReturned": 4,
+    "youchengTabPresent": false,
+    "xiaojing3092TabPresent": false,
+    "claimedTabs": 0,
+    "newTabs": 0,
+    "browserProcessesLaunched": 0,
+    "businessWrites": 0
+  },
+  "limitations": ["Restored browser connection is not Finance acceptance", "No target page was opened or navigated because no matching user tab was returned", "3092 deployment/restart not performed"]
+}

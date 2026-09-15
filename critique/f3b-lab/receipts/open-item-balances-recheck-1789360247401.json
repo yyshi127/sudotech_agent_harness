@@ -1,0 +1,205 @@
+{
+  "checkedAt": "2026-09-14T04:30:47.401Z",
+  "businessWrites": 0,
+  "networkCalls": 0,
+  "evidence": "Current comparator over saved real-vendor before/two-after snapshots, not fresh deletions or current ledger totals.",
+  "sourceFilesUnchanged": true,
+  "cases": [
+    {
+      "key": "CF22",
+      "targetId": "72617",
+      "sources": [
+        {
+          "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T015413Z-f259b3e3/CF22/operation-baseline.json",
+          "sha256": "61f64f760c2bdd3f12724c3dac937e4cbe0cbd59d68fb641d9a13649b7194916"
+        },
+        {
+          "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T015413Z-f259b3e3/CF22/audit.json",
+          "sha256": "5763b99d6c6af52804024a50111a09a9766e7f313a813591102c234a891addde"
+        }
+      ],
+      "results": [
+        {
+          "pass": "first",
+          "result": {
+            "target": "not-observed",
+            "scope": "selected-direction-periods",
+            "content": "matched",
+            "remainingBalances": "matched",
+            "balances": {
+              "original": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.27",
+                    "after": "0.26",
+                    "removed": "0.01",
+                    "expectedAfter": "0.26",
+                    "state": "matched",
+                    "basis": "reported"
+                  }
+                ]
+              },
+              "base": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.27",
+                    "after": "0.26",
+                    "removed": "0.01",
+                    "expectedAfter": "0.26",
+                    "state": "matched",
+                    "basis": "same-currency"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "pass": "second",
+          "result": {
+            "target": "not-observed",
+            "scope": "selected-direction-periods",
+            "content": "matched",
+            "remainingBalances": "matched",
+            "balances": {
+              "original": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.27",
+                    "after": "0.26",
+                    "removed": "0.01",
+                    "expectedAfter": "0.26",
+                    "state": "matched",
+                    "basis": "reported"
+                  }
+                ]
+              },
+              "base": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.27",
+                    "after": "0.26",
+                    "removed": "0.01",
+                    "expectedAfter": "0.26",
+                    "state": "matched",
+                    "basis": "same-currency"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "key": "CF23",
+      "targetId": "72618",
+      "sources": [
+        {
+          "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T015413Z-f259b3e3/CF23/operation-baseline.json",
+          "sha256": "6e20d4e3d1504c25128d17ac0438b585f5213adcf55c270d9427c8d1c0696e38"
+        },
+        {
+          "path": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f3b-35616/runs/f3b-20260914T015413Z-f259b3e3/CF23/audit.json",
+          "sha256": "45a1b8535f997ace13be789c05cd38e89b8a9c41a3ec7c563291dfd0e9953063"
+        }
+      ],
+      "results": [
+        {
+          "pass": "first",
+          "result": {
+            "target": "not-observed",
+            "scope": "selected-direction-periods",
+            "content": "matched",
+            "remainingBalances": "matched",
+            "balances": {
+              "original": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.30",
+                    "after": "0.29",
+                    "removed": "0.01",
+                    "expectedAfter": "0.29",
+                    "state": "matched",
+                    "basis": "reported"
+                  }
+                ]
+              },
+              "base": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.30",
+                    "after": "0.29",
+                    "removed": "0.01",
+                    "expectedAfter": "0.29",
+                    "state": "matched",
+                    "basis": "same-currency"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "pass": "second",
+          "result": {
+            "target": "not-observed",
+            "scope": "selected-direction-periods",
+            "content": "matched",
+            "remainingBalances": "matched",
+            "balances": {
+              "original": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.30",
+                    "after": "0.29",
+                    "removed": "0.01",
+                    "expectedAfter": "0.29",
+                    "state": "matched",
+                    "basis": "reported"
+                  }
+                ]
+              },
+              "base": {
+                "state": "matched",
+                "remaining": "matched",
+                "changes": [
+                  {
+                    "currencyCode": "RMB",
+                    "before": "0.30",
+                    "after": "0.29",
+                    "removed": "0.01",
+                    "expectedAfter": "0.29",
+                    "state": "matched",
+                    "basis": "same-currency"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

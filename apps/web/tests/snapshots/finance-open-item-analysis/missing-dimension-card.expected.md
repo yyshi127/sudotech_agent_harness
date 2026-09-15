@@ -1,0 +1,6 @@
+- text: 失败
+- 'button "Tool call Error: 往来记录缺少所选维度的分组标识，不能按名称推断；可改为按币种汇总。" [expanded]':
+  - img
+  - text: "Tool call Error: 往来记录缺少所选维度的分组标识，不能按名称推断；可改为按币种汇总。"
+- text: "IN { \"direction\": \"receivable\", \"groupBy\": \"subject\", \"periodStart\": \"2026-09\", \"periodEnd\": \"2026-09\", \"baselineStart\": \"2026-08\", \"baselineEnd\": \"2026-08\", \"exportExcel\": true } OUT Error: 往来记录缺少所选维度的分组标识，不能按名称推断；可改为按币种汇总。"
+- button "Inspect"

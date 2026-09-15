@@ -12,17 +12,17 @@ Status: implemented
 
 ## 决策
 
-官方预设根目录继续保留上游四个系统预设。只有 profile 启动收到 `xiaojing` Client 构建 profile 时，产品自有 `apps/cli/config/xiaojing-agent-presets/` 根目录才增加第五个系统预设：稳定 id 为 `finance`，显示名称为 `Finance模式`，order 为 5。它的 `agent.cordis.yml` 与内置 `standard` 预设暴露相同的工具、计划、目标、subagents、工作流、压缩和 Shell 平台门控。`persona` 行不同，现有文件系统 skill 提供方还会增加 Finance 组装旁的产品自有 `skills/` 目录。
+官方预设根目录继续保留上游四个系统预设。只有 profile 启动收到 `xiaojing` Client 构建 profile 时，产品自有 `apps/cli/config/xiaojing-agent-presets/` 根目录才增加第五个系统预设：稳定 id 为 `finance`，显示名称为 `Finance模式`，order 为 5。它的 `agent.cordis.yml` 保留内置 `standard` 预设的工具、计划、目标、subagents、工作流、压缩和 Shell 平台门控，再通过准确清单增加客户上下文、受控文件、基础资料、余额、凭证、流水、往来、分析、带版本写入准备及维护操作等小兢财务消费者。`persona` 行不同，现有文件系统 skill 提供方还会增加 Finance 组装旁的产品自有 `skills/` 目录。
 
 Finance 人格会区分已确认事实、假设和待核验事项；拒绝编造法规、准则、引用、客户事实、计算结果和已完成的外部动作；在主体和期间信息可能改变答案时主动补齐；对现行中国财税规则优先使用官方来源；在适用性或法律效力无法确定时标记“待核验”。没有工具结果确认最终状态时，它不会声称申报、审批、记账、付款、报税或外部系统变更已经成功。
 
-`packages/client/xiaojing-product/product.json` 负责预设和 skill 清单以及 `financeExtension` 规则。规则预留 Finance Host／Client 包名前缀、Cordis 配置行前缀、`src/compat.ts` 和受保护的 `harness/finance` 持久化根目录；完整能力 seam 出现前，两份服务包清单保持为空。`scripts/verify-xiaojing-product-layer.mjs` 使用 Loader 的 `!!js` 值形式解析两份组装，要求人格以外的全部配置行保持一致，唯一例外是清单登记的 Finance skill 根目录。门禁还会固定产品清单、两个预设根目录、预设名称、小兢名单第五顺位、描述、具备核验规则的 Finance 人格、skill 源文件、未来包到配置行映射、兼容适配器、组装行和桌面数据保护。因此，标准模式能力发生变化时，必须在同一改动中同步 Finance，否则产品门禁会失败。
+`packages/client/xiaojing-product/product.json` 负责预设和 skill 清单以及 `financeExtension` 规则。规则登记 Finance Host／Client 包、Cordis 配置行、兼容适配器和受保护的 `harness/finance` 持久化根目录。`scripts/verify-xiaojing-product-layer.mjs` 使用 Loader 的 `!!js` 值形式解析两份组装，要求共享的人格以外配置行与标准模式同步，逐项核对每个 Finance 专属消费者的准确行 id 和包导出，并拒绝其它能力漂移。门禁还会固定产品清单、两个预设根目录、预设名称、小兢名单第五顺位、描述、具备核验规则的 Finance 人格、skill 源文件、包到配置行映射、组装行和桌面数据保护。因此，标准模式能力发生变化或出现未登记的 Finance 消费者时，产品门禁都会失败。
 
-通用 Agent 预设界面公开 `AgentPresetDisplayRegistry`，但不知道 Finance id 或文案。小兢产品 Client 通过该 registry 注册 Finance 本地化文本；即使用户自建行使用相同 id，也继续显示自己的文件元数据。已有安装继续使用已保存的默认模式，已有会话继续使用创建时记录的预设。Finance 会保护未来持久化根目录并提供纯指令的官方财税来源研究 skill，但不新增财务服务、持久化文件、客户上下文、连接器、计算器、法规语料或合规规则。
+通用 Agent 预设界面公开 `AgentPresetDisplayRegistry`，但不知道 Finance id 或文案。小兢产品 Client 通过该 registry 注册 Finance 本地化文本；即使用户自建行使用相同 id，也继续显示自己的文件元数据。已有安装继续使用已保存的默认模式，已有会话继续使用创建时记录的预设。Finance 在产品清单下拥有客户绑定、持久操作记录、文档／依据／计算服务和有成读写消费者；它不新增法规语料，也不绕过供应商权限、准确版本确认、单次发送保护和结果回查。
 
 ## 验证
 
-小兢 Web 真实组装测试会同时启动标准和 Finance agent，比较完整工具注册表、模型可见工具 schema 以及人格以外的全部提示词段落。测试逐字固定 Finance 人格，确认没有 Code Mode SDK 段落，证明标准模式看不到官方财税来源 skill，并通过 Finance 的真实模型工具加载该 skill。profile 测试要求官方根目录保持不变、小兢 profile 只增加产品根目录；产品门禁要求官方和产品名单以及登记的 skill 完全准确。Shell 平台测试纳入 Finance，registry 测试证明产品文案不能给用户预设改名，浏览器快照只在小兢构建 profile 中显示 `Finance模式`。
+小兢 Web 真实组装测试会通过真实应用同时启动标准和 Finance agent，核对共享基线、准确的 Finance 专属工具及模型可见 schema，并覆盖读取、准备、确认、发送、恢复和拒绝路径。测试固定 Finance 人格，确认没有 Code Mode SDK 段落，证明标准模式看不到 Finance skills，并通过 Finance 的真实模型工具加载这些 skills。profile 测试要求官方根目录保持不变、小兢 profile 只增加产品根目录；产品门禁要求官方和产品名单、登记的 skills、包及 Finance 消费者全部准确。Shell 平台测试纳入 Finance，registry 测试证明产品文案不能给用户预设改名，浏览器快照只在小兢构建 profile 中显示 `Finance模式`。
 
 ## 评估过的替代方案
 
@@ -33,6 +33,6 @@ Finance 人格会区分已确认事实、假设和待核验事项；拒绝编造
 
 ## 结果
 
-小兢用户可以选择 Finance模式，在保留标准模式全部工具的同时获得更严格的财税核验行为和中国财税官方来源研究，官方 Harness profile 保持不变。同时删除产品预设目录、产品显示注册、清单项、受保护路径项和聚焦检查即可完整移除该模式；没有运行时服务或用户数据迁移依赖它。
+小兢用户可以选择 Finance模式，在保留标准模式全部工具的同时获得产品自有的 Finance skills、客户绑定和明确登记的消费者，官方 Harness profile 保持不变。Finance 持久记录及客户配置属于产品数据，桌面升级必须保护。现在若要移除该模式，必须同时移除产品预设、显示注册、清单项、Finance 包、受保护数据约定和聚焦检查。
 
-该预设文件有意复制标准模式的可读组装，与现有内置预设约定一致。代价是标准模式变化时需要同步编辑一份文件，但产品门禁会让遗漏立即失败，阻止未经审查的能力漂移。未来财务功能必须进入更大财税路线图所定义的小兢专属 Cordis 服务、工具、Skills、Remotes 和设置栏目，不能继续堆积到该人格文件中。
+该预设文件有意复制标准模式的可读组装，与现有内置预设约定一致。代价是标准模式变化时需要同步编辑一份文件，但产品门禁会让遗漏立即失败，阻止未经审查的能力漂移。财务功能必须进入更大财税路线图所定义的小兢专属 Cordis 服务、工具、Skills、Remotes 和设置栏目，业务逻辑不能堆积到人格或预设文件中。

@@ -1,0 +1,5 @@
+- button "Tool call finance_open_item_analysis · receivable" [expanded]:
+  - img
+  - text: Tool call finance_open_item_analysis · receivable
+- text: "IN { \"direction\": \"receivable\", \"groupBy\": \"currency\", \"periodStart\": \"2026-09\", \"periodEnd\": \"2026-09\", \"baselineStart\": \"2026-08\", \"baselineEnd\": \"2026-08\" } OUT {\"accountId\":\"35601\",\"accountName\":\"应收应付测试账套\",\"selection\":{\"direction\":\"receivable\",\"groupBy\":\"currency\",\"current\":{\"periodStart\":\"2026-09\",\"periodEnd\":\"2026-09\"},\"baseline\":{\"periodStart\":\"2026-08\",\"periodEnd\":\"2026-08\"}},\"current\":{\"periodStart\":\"2026-09\",\"periodEnd\":\"2026-09\",\"recordCount\":0,\"pagesRead\":1,\"groups\":[]},\"baseline\":{\"periodStart\":\"2026-08\",\"periodEnd\":\"2026-08\",\"recordCount\":0,\"pagesRead\":1,\"groups\":[]},\"differences\":[],\"coverage\":\"vendor-count-reconciled\",\"notice\":\"小兢会计根据有成接口返回的业务行在本地计算分组与差额，不是有成接口直接返回的汇总报表。已逐页核对接口声明的记录数并排除重复 ID，只计业务行，不计汇总行。金额和余额按原币分组，差额为当前查询组减基准查询组；完整读取的某组缺席按零组总额参与比较。辅助项目按完整 ID 组合分组，不推断客户身份。余额为接口返回的往来余额，不是历史期末余额；两组期间比较不是正式财务报表或资金流分析。接口没有原子快照保证，同笔数据期间内变动可能无法识别。不执行写入或核销。\"}"
+- button "Inspect"

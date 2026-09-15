@@ -6,7 +6,7 @@ import type {} from '@deepseek-ai/dsh-attachment'
 import type { WebRoute, WebUpgradeRoute } from '@deepseek-ai/dsh-host-webserver'
 import { toFetchHandler } from '@deepseek-ai/dsh-host-apiproxy'
 import { API_PATH, HOST_EVENTS_PATH, MUX_EVENTS_PATH } from './api-path.ts'
-import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES } from './http-bridge.ts'
+import { bridge, DEFAULT_MAX_REQUEST_BODY_BYTES, type FetchHandler } from './http-bridge.ts'
 import { assertTrustedAuthority, isTrustedApiRequest } from './api-request-trust.ts'
 import { HostConnectionService } from './rpc-host.ts'
 import { rejectWebSocketUpgrade, WebSocketDownlinks } from './websocket-downlink.ts'
@@ -117,6 +117,14 @@ const PRIVILEGED_METHODS = new Set([
   'credentials.unset',
   'llm.discoverModels',
   'financeClients.read',
+  'financeClients.checkConnection',
+  'financeClients.listYouchengAccounts',
+  'financeClients.readAttachmentStorage',
+  'financeClients.saveAttachmentStorage',
+  'financeClients.testAttachmentStorage',
+  'financeClients.readReimbursementConnection',
+  'financeClients.saveReimbursementConnection',
+  'financeClients.testReimbursementConnection',
   'financeClients.create',
   'financeClients.update',
   'financeClients.archive',
@@ -141,17 +149,9 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
   for (const entry of trustedHosts) assertTrustedAuthority(entry)
   if (ctx.get('apiProxy') !== undefined) assertImageBodyCapacity(ctx, maxRequestBodyBytes)
   const connection = new HostConnectionService(ctx, trustedHosts)
-  const fetchHandler = connection.createSharedFetchHandler(API_PATH, {
+  const dispatch = connection.createSharedFetchHandler(API_PATH, {
     async fetch(request) {
       const pathname = new URL(request.url).pathname
-      const method = pathname.startsWith(`${API_PATH}/`)
-        ? pathname.slice(API_PATH.length + 1)
-        : undefined
-      if (method !== undefined
-        && PRIVILEGED_METHODS.has(method)
-        && !isTrustedApiRequest(request, [])) {
-        return new Response('forbidden', { status: 403 })
-      }
       if (request.method === 'GET' && (pathname === MUX_EVENTS_PATH || pathname === HOST_EVENTS_PATH)) {
         return new Response('upgrade required', {
           status: 426,
@@ -163,6 +163,19 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
       return toFetchHandler(apiProxy).fetch(request)
     },
   })
+  const fetchHandler: FetchHandler = {
+    async fetch(request) {
+      const pathname = new URL(request.url).pathname
+      const method = pathname.startsWith(`${API_PATH}/`)
+        ? pathname.slice(API_PATH.length + 1).replace('/', '.')
+        : undefined
+      // Protect both generated namespace/method calls and legacy dotted endpoints before dispatch.
+      if (method !== undefined && PRIVILEGED_METHODS.has(method) && !isTrustedApiRequest(request, [])) {
+        return new Response('forbidden', { status: 403 })
+      }
+      return dispatch.fetch(request)
+    },
+  }
   const route: WebRoute = {
     kind: 'prefix',
     path: API_PATH,

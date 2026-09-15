@@ -9,6 +9,9 @@ import type {
   FinanceClientListView,
   FinanceClientMutationResult,
   FinanceClientReadView,
+  FinanceConnectionStatus,
+  FinanceYouchengAccountsResult,
+  ListFinanceYouchengAccountsRequest,
   FinanceClientId,
   FinanceImportedFile,
   FinanceGeneralWorkspaceEntry,
@@ -37,6 +40,8 @@ export interface FinanceClientsRemote {
     request: RestoreFinanceClientWorkspaceRequest,
   ) => Promise<RemoteResult<FinanceWorkspaceEntry | null>>
   read: (clientId: FinanceClientId) => Promise<RemoteResult<FinanceClientReadView>>
+  checkConnection: (clientId: FinanceClientId) => Promise<RemoteResult<FinanceConnectionStatus>>
+  listYouchengAccounts: (request: ListFinanceYouchengAccountsRequest) => Promise<RemoteResult<FinanceYouchengAccountsResult>>
   create: (request: CreateFinanceClientRequest) => Promise<RemoteResult<FinanceClientMutationResult>>
   update: (request: UpdateFinanceClientRequest) => Promise<RemoteResult<FinanceClientMutationResult>>
   archive: (request: ArchiveFinanceClientRequest) => Promise<RemoteResult<FinanceClientMutationResult>>
@@ -56,6 +61,8 @@ export interface FinanceClientsView {
   error: string | null
   /** Selected directory awaiting customer details in the product-owned modal. */
   clientCreation: { workspacePath: string } | null
+  /** Customer currently opened from the workspace action menu. */
+  clientEditing?: FinanceClientId | null
   /** Monotonic signal requiring blank-session context to be re-read from Host. */
   contextEpoch: number
 }
@@ -69,15 +76,23 @@ function unwrap<T>(result: RemoteResult<T>): T {
   return result.value
 }
 
+/** A local check belongs to one saved record version and one Host connection lifetime. */
+interface ConnectionAttempt {
+  version: number | undefined
+  pending: boolean
+  status: FinanceConnectionStatus
+}
+
 /** Shared client-catalog controller with revision-safe writes. */
 export class FinanceClientsController {
   /** Catalog snapshot consumed by settings and the Finance hero selector. */
   readonly store: SnapshotStore<FinanceClientsView> = createSnapshotStore({
     status: 'idle', catalog: { revision: 0, clients: [] }, workspaces: null, error: null,
-    clientCreation: null, contextEpoch: 0,
+    clientCreation: null, clientEditing: null, contextEpoch: 0,
   })
 
   private generation = 0
+  private readonly connectionAttempts = new Map<FinanceClientId, ConnectionAttempt>()
   private clientCreationResolver: ((clientId: FinanceClientId | undefined) => void) | undefined
 
   /** @param remote - generated Finance Host Remote. */
@@ -86,6 +101,8 @@ export class FinanceClientsController {
   /** Refresh the catalog; the newest request wins. */
   async load(): Promise<void> {
     const generation = ++this.generation
+    const attemptsAtStart = new Map(this.connectionAttempts)
+    const pendingAtStart = new Set([...attemptsAtStart.values()].filter(attempt => attempt.pending))
     this.store.update((state) => { state.status = 'loading'; state.error = null })
     try {
       const [catalog, workspaces] = await Promise.all([
@@ -93,10 +110,22 @@ export class FinanceClientsController {
         this.remote.workspaces().then(result => unwrap(result)),
       ])
       if (generation !== this.generation) return
+      for (const [id, attempt] of this.connectionAttempts) {
+        if (catalog.clients.find(client => client.id === id)?.version !== attempt.version) {
+          this.connectionAttempts.delete(id)
+        }
+      }
+      const clients = workspaces.clients.map((entry) => {
+        const attempt = this.connectionAttempts.get(entry.clientId)
+        // A list sampled during a check must not restore its earlier idle/checking status.
+        return attempt !== undefined && (attempt.pending || pendingAtStart.has(attempt)
+          || attemptsAtStart.get(entry.clientId) !== attempt)
+          ? { ...entry, connection: attempt.status } : entry
+      })
       this.store.update((state) => {
         state.status = 'ready'
         state.catalog = catalog
-        state.workspaces = workspaces
+        state.workspaces = { ...workspaces, clients }
         state.error = null
       })
     } catch (error) {
@@ -115,6 +144,15 @@ export class FinanceClientsController {
   }
 
   /**
+   * Discover ledger choices without committing the editor or changing connection badges.
+   * @param request - Unsaved connection fields and the customer owning any stored secret.
+   * @returns Vendor ledger choices or a sanitized failure.
+   */
+  async listYouchengAccounts(request: ListFinanceYouchengAccountsRequest): Promise<FinanceYouchengAccountsResult> {
+    return unwrap(await this.remote.listYouchengAccounts(request))
+  }
+
+  /**
    * Create a record, then refresh the catalog.
    * @param request - Revision-guarded client fields.
    * @returns Created record and new catalog revision.
@@ -122,6 +160,7 @@ export class FinanceClientsController {
   async create(request: CreateFinanceClientRequest): Promise<FinanceClientMutationResult> {
     const result = unwrap(await this.remote.create(request))
     await this.load()
+    if (result.client.financeSystem?.system === 'youcheng') await this.checkConnection(result.client.id)
     return result
   }
 
@@ -180,6 +219,19 @@ export class FinanceClientsController {
   }
 
   /**
+   * Open a customer record from the Finance workspace menu.
+   * @param clientId - Customer selected in the workspace menu.
+   */
+  openClientEditor(clientId: FinanceClientId): void {
+    this.store.update((state) => { state.clientEditing = clientId })
+  }
+
+  /** Close the customer record editor. */
+  closeClientEditor(): void {
+    this.store.update((state) => { state.clientEditing = null })
+  }
+
+  /**
    * Resolve the active customer-creation flow after a successful save.
    * @param clientId - Newly created customer identity.
    */
@@ -200,7 +252,36 @@ export class FinanceClientsController {
   async update(request: UpdateFinanceClientRequest): Promise<FinanceClientMutationResult> {
     const result = unwrap(await this.remote.update(request))
     await this.load()
+    if (result.client.financeSystem?.system === 'youcheng') await this.checkConnection(result.client.id)
     return result
+  }
+
+  /**
+   * Verify saved settings once at a time per client; failures remain retryable status, not save errors.
+   * @param clientId - Customer owning the saved settings.
+   */
+  async checkConnection(clientId: FinanceClientId): Promise<void> {
+    if (this.connectionAttempts.get(clientId)?.pending) return
+    const entry = this.store.getSnapshot().workspaces?.clients.find(item => item.clientId === clientId)
+    const previous = entry?.connection
+    const attempt: ConnectionAttempt = {
+      version: this.store.getSnapshot().catalog.clients.find(client => client.id === clientId)?.version,
+      pending: true,
+      status: { accountId: previous?.accountId ?? '', state: 'checking' },
+    }
+    this.connectionAttempts.set(clientId, attempt)
+    const publish = (connection: FinanceConnectionStatus): void => {
+      if (this.connectionAttempts.get(clientId) !== attempt) return
+      attempt.status = connection
+      this.store.update((state) => {
+        const target = state.workspaces?.clients.find(item => item.clientId === clientId)
+        if (target !== undefined) target.connection = connection
+      })
+    }
+    publish(attempt.status)
+    try { publish(unwrap(await this.remote.checkConnection(clientId))) }
+    catch { publish({ accountId: previous?.accountId ?? '', state: 'failed', failure: 'network', checkedAt: Date.now() }) }
+    finally { attempt.pending = false }
   }
 
   /**
@@ -239,18 +320,29 @@ export class FinanceClientsController {
   }
 
   /**
-   * Stage a selection for one blank Finance session.
+   * Stage a selection for one blank Finance session and refresh displayed context after success.
    * @param sessionId - Session identity.
    * @param request - General or client selection.
    * @returns Browser-safe staged context.
    */
   async stage(sessionId: SessionId, request: StageFinanceClientRequest): Promise<FinanceSessionContextView> {
-    return unwrap(await this.remote.stage(sessionId, request))
+    const context = unwrap(await this.remote.stage(sessionId, request))
+    this.store.update((state) => { state.contextEpoch += 1 })
+    return context
   }
 
-  /** Invalidate Host-memory-only staged selections after the connection resets. */
+  /** Invalidate Host-memory staging, connection checks, and pending lists after a connection reset. */
   resetSessionContexts(): void {
-    this.store.update((state) => { state.contextEpoch += 1 })
+    this.generation += 1
+    this.connectionAttempts.clear()
+    this.store.update((state) => {
+      state.contextEpoch += 1
+      for (const entry of state.workspaces?.clients ?? []) {
+        if (entry.connection !== undefined) {
+          entry.connection = { accountId: entry.connection.accountId, state: 'unverified' }
+        }
+      }
+    })
   }
 
   private settleClientWorkspaceCreation(clientId: FinanceClientId | undefined): void {

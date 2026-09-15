@@ -12,7 +12,6 @@ import {
   type FinanceClientDraft,
   type FinanceClientListView,
   type FinanceClientMutationResult,
-  type FinanceClientReadView,
   type FinanceClientRecord,
   type FinanceClientSummary,
   type UpdateFinanceClientRequest,
@@ -24,6 +23,17 @@ const DIR_MODE = 0o700
 
 const optionalText = (max: number) => z.string().trim().min(1).max(max).optional()
 const externalId = optionalText(200)
+const financeSystemSchema = z.discriminatedUnion('system', [
+  z.object({
+    system: z.literal('youcheng'),
+    environment: z.enum(['test', 'production']),
+    appKey: z.string().trim().min(1).max(200),
+    accountCode: z.string().trim().min(1).max(200),
+  }).strict(),
+  z.object({ system: z.literal('sdoo') }).strict(),
+  z.object({ system: z.literal('yonyou') }).strict(),
+  z.object({ system: z.literal('kingdee') }).strict(),
+])
 
 const draftSchema = z.object({
   legalName: z.string().trim().min(1).max(200),
@@ -36,6 +46,7 @@ const draftSchema = z.object({
   accountingStandard: z.enum(['enterprise', 'small-enterprise', 'government', 'nonprofit', 'other']),
   industry: optionalText(100),
   financePolicyNotes: optionalText(10_000),
+  financeSystem: financeSystemSchema.optional(),
   chartMappings: z.array(z.object({
     localAccountCode: z.string().trim().min(1).max(100),
     externalAccountCode: z.string().trim().min(1).max(100),
@@ -69,6 +80,12 @@ interface FinanceClientDocument {
   revision: number
   clients: FinanceClientRecord[]
 }
+
+/** Roll back a side effect prepared under the client-catalog lock. */
+export type RollbackFinanceClientCommit = () => Promise<void>
+
+/** Prepare one external side effect immediately before a catalog commit. */
+export type PrepareFinanceClientCommit = () => Promise<RollbackFinanceClientCommit | undefined>
 
 async function readOptional(filename: string): Promise<string | undefined> {
   try {
@@ -195,7 +212,7 @@ export class FinanceClientStore {
    * @param clientId - Client identity.
    * @returns Current revision and detached record.
    */
-  async read(clientId: FinanceClientId): Promise<FinanceClientReadView> {
+  async read(clientId: FinanceClientId): Promise<{ revision: number; client: FinanceClientRecord }> {
     const document = await this.readDocument()
     const client = document.clients.find(candidate => candidate.id === clientId)
     if (client === undefined) throw new Error(`xiaojing-finance-domain: client ${clientId} was not found`)
@@ -206,11 +223,13 @@ export class FinanceClientStore {
    * Create one active client under catalog compare-and-swap.
    * @param request - Expected revision and fields.
    * @param clientId - Preallocated id used by the customer-workspace transaction.
+   * @param prepareCommit - Optional side effect prepared under the catalog lock and rolled back if the file write fails.
    * @returns New revision and record.
    */
   async create(
     request: CreateFinanceClientRequest,
     clientId: FinanceClientId = FinanceClientId(randomUUID()),
+    prepareCommit?: PrepareFinanceClientCommit,
   ): Promise<FinanceClientMutationResult> {
     return this.mutate(request.expectedRevision, (document) => {
       const draft = normalizeDraft(request.client)
@@ -226,15 +245,19 @@ export class FinanceClientStore {
         ...draft,
       }
       return { clients: [...document.clients, client], result: client }
-    })
+    }, prepareCommit)
   }
 
   /**
    * Replace editable fields on an active client.
    * @param request - Client, expected revision, and fields.
+   * @param prepareCommit - Optional side effect prepared under the catalog lock and rolled back if the file write fails.
    * @returns New revision and record.
    */
-  async update(request: UpdateFinanceClientRequest): Promise<FinanceClientMutationResult> {
+  async update(
+    request: UpdateFinanceClientRequest,
+    prepareCommit?: PrepareFinanceClientCommit,
+  ): Promise<FinanceClientMutationResult> {
     return this.mutate(request.expectedRevision, (document) => {
       const index = document.clients.findIndex(candidate => candidate.id === request.clientId)
       if (index === -1) throw new Error(`xiaojing-finance-domain: client ${request.clientId} was not found`)
@@ -254,7 +277,7 @@ export class FinanceClientStore {
       const clients = [...document.clients]
       clients[index] = client
       return { clients, result: client }
-    })
+    }, prepareCommit)
   }
 
   /**
@@ -289,6 +312,7 @@ export class FinanceClientStore {
   private async mutate(
     expectedRevision: number,
     change: (document: FinanceClientDocument) => { clients: FinanceClientRecord[]; result: FinanceClientRecord },
+    prepareCommit?: PrepareFinanceClientCommit,
   ): Promise<FinanceClientMutationResult> {
     return withFileLock(this.filePath, async () => {
       const current = await this.readDocument()
@@ -301,7 +325,21 @@ export class FinanceClientStore {
       }
       assertUniqueCreditCodes(next.clients, this.filePath)
       documentSchema.parse(next)
-      await writeFileAtomic(this.filePath, render(next), { mode: FILE_MODE, dirMode: DIR_MODE })
+      const rollback = await prepareCommit?.()
+      try {
+        await writeFileAtomic(this.filePath, render(next), { mode: FILE_MODE, dirMode: DIR_MODE })
+      } catch (error) {
+        if (rollback === undefined) throw error
+        try {
+          await rollback()
+        } catch (rollbackError) {
+          throw new AggregateError(
+            [error, rollbackError],
+            'Finance client catalog commit and credential rollback both failed',
+          )
+        }
+        throw error
+      }
       return { revision: next.revision, client: structuredClone(changed.result) }
     })
   }

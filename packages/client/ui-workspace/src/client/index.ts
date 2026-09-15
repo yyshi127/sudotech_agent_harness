@@ -120,6 +120,11 @@ export function apply(ctx: ClientContext): void {
       workspaceCategories.renameWorkspace(categoryId, workspaceId, title),
     removeWorkspaceFromCategory: (categoryId, workspaceId) =>
       workspaceCategories.removeWorkspace(categoryId, workspaceId),
+    openWorkspaceDetails: (categoryId, workspaceId) => {
+      workspaceCategories.openWorkspaceDetails(categoryId, workspaceId)
+    },
+    activateWorkspaceBadge: (categoryId, workspaceId) =>
+      workspaceCategories.activateWorkspaceBadge(categoryId, workspaceId),
     hooks: {
       directoryFlow: browserFlowSource,
       hostDescription,

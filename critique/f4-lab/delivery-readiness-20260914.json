@@ -1,0 +1,123 @@
+{
+  "date": "2026-09-14",
+  "finalDocumentation": {
+    "namedPairsPassed": 3,
+    "diffCheck": "passed",
+    "docSyncExitCode": 1,
+    "docSyncPassed": 26,
+    "docSyncFailed": 2,
+    "durationMs": 122950,
+    "failures": ["API replica missing bilingual counterpart", "API replica hard-wrapped prose"],
+    "log": "doc-sync-delivery-20260914.log"
+  },
+  "status": "in-progress",
+  "scope": "All six native ledgers/reports D01-D06 remain mandatory for this F4 delivery.",
+  "productBusinessBehaviorChanged": false,
+  "businessWrites": 0,
+  "reportExportJobsCreated": 1,
+  "checks": [
+    {
+      "command": "node apps/desktop/scripts/verify-installer-cancel-helper.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node apps/desktop/scripts/verify-installer-shutdown-helper.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "node apps/desktop/scripts/verify-desktop-identity.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "tsc --noEmit -p tsconfig.host.json",
+      "result": "passed"
+    },
+    {
+      "command": "vitest run packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts --reporter=dot",
+      "result": "passed",
+      "tests": 137,
+      "durationMs": 19700
+    },
+    {
+      "command": "pnpm run lint",
+      "result": "failed after successful Host build; generated scripts residue found"
+    },
+    {
+      "command": "pnpm run lint:contracts-ready",
+      "result": "passed after residue quarantined"
+    },
+    {
+      "command": "pnpm run verify-export-jsdoc",
+      "result": "passed after generated source residue quarantined"
+    },
+    {
+      "command": "pnpm run verify-persistence-catalog",
+      "result": "passed after generated source residue quarantined"
+    },
+    {
+      "command": "pnpm run gen-cordis-catalog",
+      "result": "97 artifacts computed; 3 written; 1 pair record refreshed"
+    },
+    {
+      "command": "pnpm run verify-cordis-catalog",
+      "result": "passed; 97 generated artifacts current"
+    },
+    {
+      "command": "pnpm run verify-translation-pairing docs/config-catalog.md docs/subsystems/extensions.md",
+      "result": "passed; two named pairs"
+    }
+  ],
+  "residue": {
+    "filesMoved": 308,
+    "filesDeleted": 0,
+    "trackedSourcesMoved": 0,
+    "quarantine": "E:/Projects/小兢会计0.2.3后续开发-运行数据/test-tools/f4/generated-residue-20260914",
+    "manifests": [
+      "generated-residue-plan-20260914.json",
+      "generated-script-residue-plan-20260914.json"
+    ],
+    "verification": "Untracked emitted files, original TypeScript exists, both maps identify that source, emitted sourceMappingURL matches; SHA256 checked before and after move.",
+    "recovery": "Original relative paths are retained under quarantine; restore only to absent destinations after hash verification. No files were deleted.",
+    "emitterRootCause": "Not established; quarantining residue is not proof the emitting command has been fixed."
+  },
+  "installer": {
+    "actualInstallTested": false,
+    "existingPackageDate": "2026-08-30",
+    "existingPackageCurrent": false,
+    "packagedFinanceSha256": "866ccd4a1b17e5b442a6409306eb91732975cba140ffab6579d5f2003b297a6a",
+    "currentBuiltFinanceSha256": "b947c3e7f9f85ec7800ab83547aa26b05a007e9312040f654a4011ee215bef9c",
+    "reason": "Old packaged Finance library lacks prepareOpenItemWriteOff; guard/identity checks do not prove current packaged installation or upgrade."
+  },
+  "reports": {
+    "catalog": "official-finance-catalog-20260914.json",
+    "balanceParameterProbe": "report-variants-receipt-20260914.json",
+    "nativeSourceEvidence": "native-report-sources-20260914.json",
+    "qualifiedAsDelivered": 0,
+    "browser": "Connected to existing Chrome through bundled Chrome extension runtime. Initial agent-browser CDP checks were insufficient to conclude Chrome unavailable.",
+    "sourceFinding": "All six native page queries returned nonempty data. Web session endpoints require separate product integration; not equivalent to AppKey public API support.",
+    "downloadObservation": {
+      "path": "C:/Users/Administrator/Downloads/现金流量表明细2022年01期.xls",
+      "bytes": 7168,
+      "hashVerified": true,
+      "sha256": "ae0079b0066f4c46892d8fcf028bde4141efb6e52af91b7c5a69399065a2aa94",
+      "header": "D0CF11E0A1B11AE1",
+      "contentVerified": false,
+      "reason": "Initial Get-FileHash failed due to sharing. A read-only FileStream with FileShare.ReadWrite read the 7168-byte OLE file and computed SHA256 without breaking locks or closing applications. Workbook cells have not been independently parsed."
+    }
+  },
+  "open": [
+    "Six native-report product integrations, scope/permission handling and complete acceptance",
+    "Current desktop packaged installation/upgrade qualification",
+    "Final doc-sync: API-replica translation-pairing and Markdown wrapping remain failing; 26 other gates pass",
+    "Explicit user acceptance"
+  ],
+  "runtime": {
+    "port": 3092,
+    "restarted": false,
+    "paidModelCalls": 0
+  },
+  "git": {
+    "commit": false,
+    "push": false
+  }
+}

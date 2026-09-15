@@ -1,0 +1,36 @@
+{
+  "scope": "Internal full-settlement durable records and sender/reload integration; no Host write-off tool",
+  "businessWrites": 0,
+  "restarted3092": false,
+  "replayedApproval": false,
+  "f3bComplete": false,
+  "implemented": [
+    "Strict original intent, source page and unfiltered cash-reference validation",
+    "Exact-version configuration and full-evidence comparison after authorization",
+    "Direction-independent ledger/open-item claim before dispatch",
+    "Claim-first atomic persistence; torn or corrupt evidence blocks resend",
+    "Receipt ID retained separately from journal linkage and settlement readback",
+    "Accepted or uncertain intents cannot be revised or resent after restart",
+    "Only explicit rejected/not-sent permits an independently confirmed new proposal",
+    "Complete byte limit includes maximum accepted receipt before target reservation"
+  ],
+  "checks": [
+    { "command": "pnpm exec vitest run packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off-records.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off-submission.spec.ts packages/xiaojing/xiaojing-finance-domain/tests/open-item-write-off.spec.ts", "exitCode": 0, "files": 3, "passed": 162, "durationMs": 1990 },
+    { "command": "pnpm exec tsc -b packages/xiaojing/xiaojing-finance-domain/tsconfig.json", "exitCode": 0 },
+    { "command": "pnpm run lint", "exitCode": 0, "note": "Host TypeScript/build and final lint passed after correcting test query argument count" },
+    { "command": "pnpm run verify-translation-pairing packages/xiaojing/xiaojing-finance-domain/README.md .agents/notes/proposed/feature/2026-09-10-finance-destructive-maintenance.md docs/integrations/youcheng-finance-development-status.md", "exitCode": 0, "pairs": 3 },
+    { "command": "pnpm run doc-sync", "exitCode": 1, "passed": 24, "failed": 4, "durationMs": 65670 },
+    { "command": "pnpm run doc-typecheck:contracts-ready", "exitCode": 0, "note": "Rerun of owned failed gate after corrected Host build;83 blocks compiled" },
+    { "command": "pnpm run verify-export-jsdoc", "exitCode": 0, "note": "Rerun after documenting five exported method summaries" },
+    { "command": "git diff --check", "exitCode": 0 }
+  ],
+  "correctedCheckFailures": ["Test queryOpenItems used five instead of six arguments", "Five new record methods lacked JSDoc description prose"],
+  "remainingCheckFailures": ["Existing docs/integrations/youcheng-openapi-replica.md missing bilingual pair", "Existing replica hard-wrapped prose"],
+  "limits": [
+    "Caller must still qualify raw state, period, currency mapping and related effects",
+    "Store claims do not serialize deletion operations or remote writers",
+    "Host mandatory confirmation, record integration and assembled snapshots remain incomplete",
+    "Matched balances do not identify the write-off operation or actual bank movement"
+  ],
+  "next": "Integrate Host write-off preparation and read-only recovery, then qualified mandatory confirmation and dispatch"
+}

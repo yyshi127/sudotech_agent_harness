@@ -1,0 +1,69 @@
+{
+  "checkedAt": "2026-09-10T08:06:35.821Z",
+  "businessWrites": 0,
+  "evidence": [
+    {
+      "url": "https://cwpc.yiqiyun.com/cwCashier.ac8da7.js",
+      "name": "cwCashier.ac8da7.js",
+      "sha256": "ff2f419ca6eeee17a76b1de5019395085d16a73fc5eaf0ceb2100854a9629a84",
+      "matchesPreviousCapture": true,
+      "fragments": [
+        {
+          "term": "该记录已关联的对冲、核销或收入记录将一并删除",
+          "offset": 405155,
+          "text": "tion(e){var t=n.state,r=t.dataList,a=t.count,o=r[e].id,l=r[e].certificateId,u=n;l?c.b.info(\"已生成凭证，请先删除凭证后再删除该记录\"):i.a.confirm({title:\"确认删除?\",content:\"该记录已关联的对冲、核销或收入记录将一并删除，删除后不可恢复，是否确认删除\",onOk:function(){var t=r.filter((function(t,n){return n!==e})),n=u.genNextDataList(t);o?m.cashierAccount.accountDelete({id:o}).then((function(e){u.setState({dataList:n,count:a-1}),c.b.success(\"删除成功\")})):u.setState({dataList:n})}})})),Mt(n,\"handleDetail\",(function(e){var t=n.state,r=t.direction,a=t.periodNumberSta"
+        },
+        {
+          "term": "accountDelete({id:o})",
+          "offset": 405298,
+          "text": "ntent:\"该记录已关联的对冲、核销或收入记录将一并删除，删除后不可恢复，是否确认删除\",onOk:function(){var t=r.filter((function(t,n){return n!==e})),n=u.genNextDataList(t);o?m.cashierAccount.accountDelete({id:o}).then((function(e){u.setState({dataList:n,count:a-1}),c.b.success(\"删除成功\")})):u.setState({dataList:n})}})})),Mt(n,\"handleDetail\",(function(e){var t=n.state,r=t.direction,a=t.periodNumberStart,o=t.periodNumberEnd;Object(Ot.c)(0==r?\"IncomeDetail\":\"payDetail\",{detailInfo:e,direction:r,periodNumberStart:a,periodNumberEnd:o,key:Date.n"
+        },
+        {
+          "term": "账户已禁用，不能再对记录进行操作",
+          "offset": 29127,
+          "text": "s.a.createElement(\"span\",{className:\"theme-color\",style:f?{cursor:\"pointer\"}:k({cursor:\"pointer\"},z),onClick:function(){e.accountStatus&&c.b.warning(\"账户已禁用，不能再对记录进行操作\"),f&&o(m,l,{tempCertificateId:y,isSave:b,abstractStr:h,date:g})}},\"删除\")):s.a.createElement(\"span\",{onClick:function(){e.accountStatus&&c.b.warning(\"账户已禁用，不能再对记录进行操作\"),f&&t(\"item\")(e)},className:\"theme-color\",style:f?{cursor:\"pointer\"}:k({cursor:\"pointer\"},z)},\"生成凭证\")}}function ie(e){var t=e.isAllowEdit,n=(e.handleSave,e.handleC"
+        },
+        {
+          "term": "otherMoneyObj",
+          "offset": 105810,
+          "text": "\"baseBalance\",currencyNumberKey:\"balance\",exchangeRateKey:\"exchangeRate\",currencyCodeKey:\"currencyCode\",baseCurrencyCodeKey:\"baseCurrencyCode\"},{key:\"otherMoneyObj\",baseNumberKey:\"baseOtherMoney\",currencyNumberKey:\"otherMoney\",exchangeRateKey:\"exchangeRate\",currencyCodeKey:\"currencyCode\",baseCurrencyCodeKey:\"baseCurrencyCode\"}],R=function(e){return Object(N.b)(e,D)},M=[\"收\",\"付\"],T=[\"坏账金额\",\"计为收入\"];function _(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:{},n=t.page,r=void "
+        },
+        {
+          "term": "isCashJournal=!0",
+          "offset": 136148,
+          "text": "at(\"YYYY-MM-DD\")});p.functionalCurrencyFlag&&!Object(b.b)(r)&&(delete y.baseMoney,delete y.exchangeRate),p.functionalCurrencyFlag||Object(b.b)(r)||(y.isCashJournal=!0),(\"edit\"===d?l.cashierAccount.updateWriteOff:l.cashierAccount.addWriteOff)(y).then((function(){a.b.success(\"操作成功！\"),c&&c(s.id,t.money),u(!1)}))}}})),jt(n,\"handleSearch\",(function(){n.handleQueryList()})),jt(n,\"handleFormCfg\",(function(e){var t=e.map((function(e){return wt({},e)})),r=n.state,a=r.upSelectRow,o=r.chargeOffInfo,i=n"
+        }
+      ]
+    },
+    {
+      "url": "https://cwpc.yiqiyun.com/app.089c9720b107f9ac223e.js?089c9720b107f9ac223e",
+      "name": "app.089c9720b107f9ac223e.js",
+      "sha256": "dd4cfa6237dd184c27bd83f899505098ca5f88dc32c8960b8d53d924083008a6",
+      "matchesPreviousCapture": true,
+      "fragments": [
+        {
+          "term": "accountDelete:function",
+          "offset": 93497,
+          "text": "y(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/showBaseAmount.rjson\"].concat(t,[{apiName:\"decideIsShowBaseAmount\"}]))},accountDelete:function(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/account/delete.rjson\"].concat(t))},accountDeletePZ:function(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/account/deleteCertificate.rjson\"].c"
+        },
+        {
+          "term": "detailWriteOff:function",
+          "offset": 94401,
+          "text": "e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/writeOff/updateRequest.rjson\"].concat(t))},detailWriteOff:function(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/writeOff/detail.rjson\"].concat(t))},deleteWriteOff:function(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/writeOff/delete.rjson\"].concat(t))}"
+        },
+        {
+          "term": "addWriteOff:function",
+          "offset": 94039,
+          "text": "r(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/writeOff/getList.rjson\"].concat(t))},addWriteOff:function(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/writeOff/add.rjson\"].concat(t))},writeOffUpdateRequest:function(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return r.a.postResult.apply(r.a,[\"/cashier/writeOff/updateRequest.rjson\"]."
+        }
+      ]
+    }
+  ],
+  "conclusions": [
+    "Official browser UI warns that deletion can remove related offset/write-off/income records; do not assume zero aggregate components prove no associations.",
+    "The browser uses /cashier/account/delete.rjson; its warning is risk evidence, not proof that the distinct public V2 endpoint has identical implementation.",
+    "The browser blocks certificateId and disabled accountStatus; public list display text alone is not a sufficient certificate check when IDs are provided.",
+    "Browser detailWriteOff uses /cashier/writeOff/detail.rjson, not an established public V2 endpoint. Do not forge its URL under the appKey API.",
+    "Browser UI includes otherMoneyObj and isCashJournal behavior. Public V2 journalId and full linkage semantics remain unqualified."
+  ]
+}

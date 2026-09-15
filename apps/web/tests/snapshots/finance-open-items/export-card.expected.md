@@ -1,0 +1,4 @@
+- button "Tool call finance_open_items · receivable":
+  - img
+  - img
+  - text: Tool call finance_open_items · receivable

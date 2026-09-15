@@ -1,0 +1,1546 @@
+{
+  "checkedAt": "2026-09-14T05:21:02.2331498+00:00",
+  "source": "https://yiqbopenapi.superboss.cc/#/share/awXPk8nW",
+  "menuEndpoint": "https://yiqbopenapi.superboss.cc/share/menu?id=awXPk8nW",
+  "leafCount": 45,
+  "financeCount": 22,
+  "finance": [
+    {
+      "id": "B2lGrmzD",
+      "name": "删除凭证",
+      "path": "/finance/certificate/delCertificate.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "aXYwLJ2r",
+      "name": "凭证列表",
+      "path": "/finance/certificate/list.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "kXOgpbXD",
+      "name": "生成科目",
+      "path": "/finance/subject/add.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "xXaZ4Yzo",
+      "name": "生成日记账",
+      "path": "/finance/cashjournal/add.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "V2JRL72y",
+      "name": "删除日记账",
+      "path": "/finance/cashjournal/delete.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "L2yPGEzm",
+      "name": "获取日记账列表",
+      "path": "/finance/cashjournal/getListPage.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "YX0wJR8x",
+      "name": "新增辅助核算",
+      "path": "/finance/auxiliary/add.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "nzdWQBXj",
+      "name": "获取帐套列表",
+      "path": "/finance/auxiliary/queryAccountList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "e24o3lzL",
+      "name": "根据帐套名称查询辅助类别",
+      "path": "/finance/auxiliary/queryAuxiliaryCategoryList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "VXELjN8v",
+      "name": "根据帐套名称和辅助类别名称查询辅助项目",
+      "path": "/finance/auxiliary/queryAuxiliaryItemList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "q2REAOzg",
+      "name": "查询日记账账户列表",
+      "path": "finance/cashjournal/getAccountList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "nzDO4yXp",
+      "name": "获取日记账收支类别列表",
+      "path": "finance/cashjournal/getCategoryList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "K8MVy7Xl",
+      "name": "凭证详情",
+      "path": "/finance/certificate/info.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "K2ZGNd8v",
+      "name": "生成凭证",
+      "path": "/finance/certificate/createCertificate.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "bXKD5az7",
+      "name": "根据帐套id查询科目信息",
+      "path": "/finance/auxiliary/querySubjectInfoList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "ez7dJ32a",
+      "name": "获取应收应付列表",
+      "path": "/finance/cashjournal/getCashierList",
+      "method": "POST"
+    },
+    {
+      "id": "a260dVXl",
+      "name": "科目余额表查询",
+      "path": "/finance/subject/getList.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "B2llxm2D",
+      "name": "生成应收应付日记账",
+      "path": "/finance/cashier/account/management/add.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "aXYejJXr",
+      "name": "删除应收应付日记账",
+      "path": "/finance/cashier/account/management/delete.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "Q2VMdJze",
+      "name": "核销应收应付日记账",
+      "path": "/finance/cashier/account/management/writeOff.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "58paodX3",
+      "name": "V2财务模块单点登录",
+      "path": "/finance/sso/getLoginUrl.rjson",
+      "method": "POST"
+    },
+    {
+      "id": "xXaMy0Xo",
+      "name": "生成凭证-返回凭证信息 ",
+      "path": "/finance/certificate/createCertificateRetInfo.rjson",
+      "method": "POST"
+    }
+  ],
+  "balanceDocument": {
+    "modified": "2026-09-04 15:12:39",
+    "description": "科目余额表查询\n【仅支持V2版本企业】",
+    "id": "a260dVXl",
+    "requestFields": [
+      {
+        "name": "pageNo",
+        "description": "当前页",
+        "type": "int32"
+      },
+      {
+        "name": "pageSize",
+        "description": "每页条数",
+        "type": "int32"
+      },
+      {
+        "name": "paginationCacheStrategy",
+        "description": "后端缓存配置策略",
+        "type": "object"
+      },
+      {
+        "name": "key",
+        "description": "No comments found.",
+        "type": "string"
+      },
+      {
+        "name": "refresh",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "expire",
+        "description": "No comments found.",
+        "type": "int32"
+      },
+      {
+        "name": "touch",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "displayPeriodTotal",
+        "description": "是否显示期间合计",
+        "type": "boolean"
+      },
+      {
+        "name": "corpId",
+        "description": "企业id",
+        "type": "string"
+      },
+      {
+        "name": "setOfBooksId",
+        "description": "所属账套id",
+        "type": "int64"
+      },
+      {
+        "name": "periodNumber",
+        "description": "期数起始",
+        "type": "string"
+      },
+      {
+        "name": "periodNumber2",
+        "description": "期数结束",
+        "type": "string"
+      },
+      {
+        "name": "beginDate",
+        "description": "日期起始",
+        "type": "string"
+      },
+      {
+        "name": "endDate",
+        "description": "日期结束",
+        "type": "string"
+      },
+      {
+        "name": "subjectInfoId",
+        "description": "科目id",
+        "type": "int64"
+      },
+      {
+        "name": "subjectCode",
+        "description": "科目编码",
+        "type": "string"
+      },
+      {
+        "name": "subjectNames",
+        "description": "科目名称，多个逗号隔开",
+        "type": "string"
+      },
+      {
+        "name": "subjectCodeList",
+        "description": "科目编码list",
+        "type": "array"
+      },
+      {
+        "name": "subjectCodeStart",
+        "description": "起始科目编码",
+        "type": "string"
+      },
+      {
+        "name": "subjectCodeEnd",
+        "description": "结束科目编码",
+        "type": "string"
+      },
+      {
+        "name": "subjectLevelStart",
+        "description": "科目级别开始",
+        "type": "int32"
+      },
+      {
+        "name": "subjectLevelEnd",
+        "description": "科目级别结束",
+        "type": "int32"
+      },
+      {
+        "name": "auxiliaryCategoryId",
+        "description": "辅助类别id",
+        "type": "int64"
+      },
+      {
+        "name": "auxiliaryItemCode",
+        "description": "辅助项目编码",
+        "type": "string"
+      },
+      {
+        "name": "displaySubject",
+        "description": "是否显示科目",
+        "type": "boolean"
+      },
+      {
+        "name": "displaySubject2",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "displayOpposeSubject",
+        "description": "是否显示对方科目",
+        "type": "boolean"
+      },
+      {
+        "name": "displaySubjectAuxiliary",
+        "description": "是否显示辅助科目",
+        "type": "boolean"
+      },
+      {
+        "name": "displayBefourLoss",
+        "description": "是否显示损益之前的数据",
+        "type": "boolean"
+      },
+      {
+        "name": "displayNumber",
+        "description": "显示数量",
+        "type": "boolean"
+      },
+      {
+        "name": "exportAll",
+        "description": "是否导出全部",
+        "type": "boolean"
+      },
+      {
+        "name": "displayPeriodThisIsBlank",
+        "description": "本期发生额为空",
+        "type": "boolean"
+      },
+      {
+        "name": "displayPeriodAllIsBlank",
+        "description": "本期所有数据为空（期初、发生额、本年累积）",
+        "type": "boolean"
+      },
+      {
+        "name": "currencyId",
+        "description": "外币科目关联的外币id",
+        "type": "int64"
+      },
+      {
+        "name": "isAuxiliaryItem",
+        "description": "是否是辅助核算明细账查询",
+        "type": "boolean"
+      },
+      {
+        "name": "printRequest",
+        "description": "打印参数",
+        "type": "string"
+      },
+      {
+        "name": "displayDisableSubject",
+        "description": "是否显示禁用的科目",
+        "type": "boolean"
+      },
+      {
+        "name": "parentSubjectId",
+        "description": "父科目id",
+        "type": "int64"
+      },
+      {
+        "name": "isNeedPage",
+        "description": "是否需要分页",
+        "type": "boolean"
+      },
+      {
+        "name": "abstractName",
+        "description": "摘要",
+        "type": "string"
+      },
+      {
+        "name": "auxiliaryPageItemIdList",
+        "description": "辅助项目的id",
+        "type": "array"
+      },
+      {
+        "name": "itemId",
+        "description": "辅助项目的id",
+        "type": "int32"
+      },
+      {
+        "name": "amountStart",
+        "description": "开始金额",
+        "type": "double"
+      },
+      {
+        "name": "amountEnd",
+        "description": "结束金额",
+        "type": "double"
+      },
+      {
+        "name": "currencyFlag",
+        "description": "是否带币别筛选",
+        "type": "boolean"
+      },
+      {
+        "name": "subsidiaryFlag",
+        "description": "是否是明细账科目树查询",
+        "type": "boolean"
+      },
+      {
+        "name": "currency",
+        "description": "是否是本位币",
+        "type": "boolean"
+      },
+      {
+        "name": "currencyCodeList",
+        "description": "外币code的集合",
+        "type": "array"
+      },
+      {
+        "name": "itemName",
+        "description": "No comments found.",
+        "type": "string"
+      },
+      {
+        "name": "currencyCode",
+        "description": "币别编码",
+        "type": "string"
+      },
+      {
+        "name": "currencyMap",
+        "description": "No comments found.",
+        "type": "map"
+      },
+      {
+        "name": "params",
+        "description": "参数列表",
+        "type": "map"
+      },
+      {
+        "name": "any object",
+        "description": "any object.",
+        "type": "object"
+      },
+      {
+        "name": "pageSize",
+        "description": "每页条数",
+        "type": "int32"
+      },
+      {
+        "name": "startRow",
+        "description": "起始行",
+        "type": "int32"
+      },
+      {
+        "name": "endRow",
+        "description": "结束行(闭合)",
+        "type": "int32"
+      },
+      {
+        "name": "page",
+        "description": "当前页数",
+        "type": "int32"
+      },
+      {
+        "name": "tableId",
+        "description": "分表ID",
+        "type": "string"
+      },
+      {
+        "name": "orderField",
+        "description": "排序字段",
+        "type": "string"
+      },
+      {
+        "name": "sortCode",
+        "description": "排序方式ASC，DESC",
+        "type": "string"
+      },
+      {
+        "name": "beginTime",
+        "description": "开始时间（用于查询）",
+        "type": "string"
+      },
+      {
+        "name": "endTime",
+        "description": "结束时间（用于查询）",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "description": "主键 自增",
+        "type": "int64"
+      },
+      {
+        "name": "setOfBooksId",
+        "description": "所属账套id",
+        "type": "int64"
+      },
+      {
+        "name": "periodNumber",
+        "description": "期数",
+        "type": "string"
+      },
+      {
+        "name": "subjectInfoId",
+        "description": "科目id",
+        "type": "int64"
+      },
+      {
+        "name": "subjectCode",
+        "description": "科目编码",
+        "type": "string"
+      },
+      {
+        "name": "subjectName",
+        "description": "科目名称",
+        "type": "string"
+      },
+      {
+        "name": "subjectLevel",
+        "description": "科目级别",
+        "type": "int32"
+      },
+      {
+        "name": "parentSubjectId",
+        "description": "上级科目的id",
+        "type": "int64"
+      },
+      {
+        "name": "balanceDirection",
+        "description": "balance_direction<br>接待类别，true 贷，false：借",
+        "type": "boolean"
+      },
+      {
+        "name": "relationAuxiliary",
+        "description": "是否关联了辅助类别  0没关联 1关联了",
+        "type": "boolean"
+      },
+      {
+        "name": "subjectAuxiliary",
+        "description": "是否为辅助科目。0不是 1是",
+        "type": "boolean"
+      },
+      {
+        "name": "periodInitialBorrow",
+        "description": "期初余额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialLoan",
+        "description": "期初余额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBalance",
+        "description": "period_initial_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBorrow",
+        "description": "本期发生额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodThisLoan",
+        "description": "本期发生额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBalance",
+        "description": "period_this_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBorrow",
+        "description": "本年累计发生额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodYearLoan",
+        "description": "本期发生额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBalance",
+        "description": "period_year_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBorrow",
+        "description": "期末余额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalLoan",
+        "description": "期末余额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBalance",
+        "description": "period_final_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodThisIsBlank",
+        "description": "本期发生额为空",
+        "type": "boolean"
+      },
+      {
+        "name": "periodAllIsBlank",
+        "description": "本期所有数据为空（期初、发生额、本年累积）",
+        "type": "boolean"
+      },
+      {
+        "name": "accountType",
+        "description": "本条记录的账目类型具体见BooksSubjectBalanceType",
+        "type": "string"
+      },
+      {
+        "name": "createdUserId",
+        "description": "created_user_id",
+        "type": "string"
+      },
+      {
+        "name": "createdUserName",
+        "description": "created_user_name",
+        "type": "string"
+      },
+      {
+        "name": "created",
+        "description": "created",
+        "type": "string"
+      },
+      {
+        "name": "modified",
+        "description": "modified",
+        "type": "string"
+      },
+      {
+        "name": "enableStatus",
+        "description": "本条状态  0作废 1正常",
+        "type": "boolean"
+      },
+      {
+        "name": "numberUnit",
+        "description": "单位",
+        "type": "string"
+      },
+      {
+        "name": "periodFinalBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "hasChild",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "currencyFinalLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyFinalBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyYearBalance",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyYearLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyYearBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyThisBalance",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyThisBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyInitialLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyInitialBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyThisLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "abstractName",
+        "description": "摘要 传递参数用",
+        "type": "string"
+      },
+      {
+        "name": "thisCurrencyMap",
+        "description": "No comments found.",
+        "type": "map"
+      },
+      {
+        "name": "params",
+        "description": "参数列表",
+        "type": "map"
+      },
+      {
+        "name": "any object",
+        "description": "any object.",
+        "type": "object"
+      },
+      {
+        "name": "pageSize",
+        "description": "每页条数",
+        "type": "int32"
+      },
+      {
+        "name": "startRow",
+        "description": "起始行",
+        "type": "int32"
+      },
+      {
+        "name": "endRow",
+        "description": "结束行(闭合)",
+        "type": "int32"
+      },
+      {
+        "name": "page",
+        "description": "当前页数",
+        "type": "int32"
+      },
+      {
+        "name": "tableId",
+        "description": "分表ID",
+        "type": "string"
+      },
+      {
+        "name": "orderField",
+        "description": "排序字段",
+        "type": "string"
+      },
+      {
+        "name": "sortCode",
+        "description": "排序方式ASC，DESC",
+        "type": "string"
+      },
+      {
+        "name": "beginTime",
+        "description": "开始时间（用于查询）",
+        "type": "string"
+      },
+      {
+        "name": "endTime",
+        "description": "结束时间（用于查询）",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "description": "主键 自增",
+        "type": "int64"
+      },
+      {
+        "name": "setOfBooksId",
+        "description": "所属账套id",
+        "type": "int64"
+      },
+      {
+        "name": "periodNumber",
+        "description": "期数",
+        "type": "string"
+      },
+      {
+        "name": "subjectInfoId",
+        "description": "科目id",
+        "type": "int64"
+      },
+      {
+        "name": "subjectCode",
+        "description": "科目编码",
+        "type": "string"
+      },
+      {
+        "name": "subjectName",
+        "description": "科目名称",
+        "type": "string"
+      },
+      {
+        "name": "subjectLevel",
+        "description": "科目级别",
+        "type": "int32"
+      },
+      {
+        "name": "parentSubjectId",
+        "description": "上级科目的id",
+        "type": "int64"
+      },
+      {
+        "name": "balanceDirection",
+        "description": "balance_direction<br>接待类别，true 贷，false：借",
+        "type": "boolean"
+      },
+      {
+        "name": "relationAuxiliary",
+        "description": "是否关联了辅助类别  0没关联 1关联了",
+        "type": "boolean"
+      },
+      {
+        "name": "subjectAuxiliary",
+        "description": "是否为辅助科目。0不是 1是",
+        "type": "boolean"
+      },
+      {
+        "name": "periodInitialBorrow",
+        "description": "期初余额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialLoan",
+        "description": "期初余额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBalance",
+        "description": "period_initial_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBorrow",
+        "description": "本期发生额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodThisLoan",
+        "description": "本期发生额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBalance",
+        "description": "period_this_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBorrow",
+        "description": "本年累计发生额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodYearLoan",
+        "description": "本期发生额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBalance",
+        "description": "period_year_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBorrow",
+        "description": "期末余额借方",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalLoan",
+        "description": "期末余额贷方",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBalance",
+        "description": "period_final_balance",
+        "type": "number"
+      },
+      {
+        "name": "periodThisIsBlank",
+        "description": "本期发生额为空",
+        "type": "boolean"
+      },
+      {
+        "name": "periodAllIsBlank",
+        "description": "本期所有数据为空（期初、发生额、本年累积）",
+        "type": "boolean"
+      },
+      {
+        "name": "accountType",
+        "description": "本条记录的账目类型具体见BooksSubjectBalanceType",
+        "type": "string"
+      },
+      {
+        "name": "createdUserId",
+        "description": "created_user_id",
+        "type": "string"
+      },
+      {
+        "name": "createdUserName",
+        "description": "created_user_name",
+        "type": "string"
+      },
+      {
+        "name": "created",
+        "description": "created",
+        "type": "string"
+      },
+      {
+        "name": "modified",
+        "description": "modified",
+        "type": "string"
+      },
+      {
+        "name": "enableStatus",
+        "description": "本条状态  0作废 1正常",
+        "type": "boolean"
+      },
+      {
+        "name": "numberUnit",
+        "description": "单位",
+        "type": "string"
+      },
+      {
+        "name": "periodFinalBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBalanceNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBorrowNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearLoanNumber",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodFinalLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodInitialLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodThisLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBalancePrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearBorrowPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "periodYearLoanPrice",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "hasChild",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "currencyFinalLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyFinalBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyYearBalance",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyYearLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyYearBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyThisBalance",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyThisBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyInitialLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyInitialBorrow",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "currencyThisLoan",
+        "description": "No comments found.",
+        "type": "number"
+      },
+      {
+        "name": "abstractName",
+        "description": "摘要 传递参数用",
+        "type": "string"
+      },
+      {
+        "name": "auxiliaryItemIdList",
+        "description": "辅助项目id",
+        "type": "array"
+      },
+      {
+        "name": "isShowNOBalance",
+        "description": "是否展示科目期末为o的科目",
+        "type": "boolean"
+      },
+      {
+        "name": "isNotChangeAmountHide",
+        "description": "无发生额不显示-当报表中本期发生额和本年发生额都为0时，报表中不显示",
+        "type": "boolean"
+      },
+      {
+        "name": "userInfo",
+        "description": "No comments found.",
+        "type": "object"
+      },
+      {
+        "name": "tableId",
+        "description": "公司编号",
+        "type": "string"
+      },
+      {
+        "name": "accountId",
+        "description": "账套编号",
+        "type": "string"
+      },
+      {
+        "name": "runEnv",
+        "description": "运行环境",
+        "type": "string"
+      },
+      {
+        "name": "id",
+        "description": "主键",
+        "type": "int64"
+      },
+      {
+        "name": "corpId",
+        "description": "企业id",
+        "type": "string"
+      },
+      {
+        "name": "userId",
+        "description": "用户id",
+        "type": "string"
+      },
+      {
+        "name": "userName",
+        "description": "用户名称",
+        "type": "string"
+      },
+      {
+        "name": "userPicUrl",
+        "description": "用户图片url",
+        "type": "string"
+      },
+      {
+        "name": "ifAdmin",
+        "description": "是否管理员",
+        "type": "boolean"
+      },
+      {
+        "name": "sysLevel",
+        "description": "角色",
+        "type": "string"
+      },
+      {
+        "name": "ifBoss",
+        "description": "是否老板",
+        "type": "boolean"
+      },
+      {
+        "name": "ifActive",
+        "description": "是否激活",
+        "type": "boolean"
+      },
+      {
+        "name": "position",
+        "description": "职位信息",
+        "type": "string"
+      },
+      {
+        "name": "ifLeaderInDepts",
+        "description": "是否部门领导，map格式的json",
+        "type": "string"
+      },
+      {
+        "name": "department",
+        "description": "所属部门id列表",
+        "type": "string"
+      },
+      {
+        "name": "deptList",
+        "description": "部门id列表",
+        "type": "array"
+      },
+      {
+        "name": "userExt",
+        "description": "扩展",
+        "type": "string"
+      },
+      {
+        "name": "enableStatus",
+        "description": "启用/禁用，1：可用，0：不可用",
+        "type": "int32"
+      },
+      {
+        "name": "created",
+        "description": "创建时间",
+        "type": "string"
+      },
+      {
+        "name": "modified",
+        "description": "修改时间",
+        "type": "string"
+      },
+      {
+        "name": "ifAppAdmin",
+        "description": "是否系统管理员",
+        "type": "boolean"
+      },
+      {
+        "name": "ifAppAuth",
+        "description": "是否激活应用",
+        "type": "boolean"
+      },
+      {
+        "name": "ifAuthUser",
+        "description": "是否为授权应用用户",
+        "type": "boolean"
+      },
+      {
+        "name": "jobNumber",
+        "description": "工号",
+        "type": "string"
+      },
+      {
+        "name": "lastLoginTime",
+        "description": "最后登录时间",
+        "type": "string"
+      },
+      {
+        "name": "popupStatus",
+        "description": "弹出状态",
+        "type": "int32"
+      },
+      {
+        "name": "vatinvoiceAuth",
+        "description": "是否已经绑定<br>0：未绑定<br>1：已绑定<br>2：绑定失败",
+        "type": "int32"
+      },
+      {
+        "name": "alipayState",
+        "description": "支付宝电子发票员工授权的标记",
+        "type": "string"
+      },
+      {
+        "name": "alipayUserId",
+        "description": "支付宝电子发票员工userid",
+        "type": "string"
+      },
+      {
+        "name": "accessToken",
+        "description": "支付宝电子发票员工access_token",
+        "type": "string"
+      },
+      {
+        "name": "appId",
+        "description": "对接应用id",
+        "type": "string"
+      },
+      {
+        "name": "senior",
+        "description": "是否为高管",
+        "type": "boolean"
+      },
+      {
+        "name": "managerUserid",
+        "description": "员工直属领导ID",
+        "type": "string"
+      },
+      {
+        "name": "configId",
+        "description": "No comments found.",
+        "type": "int32"
+      },
+      {
+        "name": "custNo",
+        "description": "银企直连支付时所需的客户号",
+        "type": "string"
+      },
+      {
+        "name": "operatorNo",
+        "description": "银企直连支付时所需的操作员信息",
+        "type": "string"
+      },
+      {
+        "name": "chartConfigId",
+        "description": "报表id，权限用",
+        "type": "int32"
+      },
+      {
+        "name": "phone",
+        "description": "手机号码",
+        "type": "string"
+      },
+      {
+        "name": "email",
+        "description": "邮件",
+        "type": "string"
+      },
+      {
+        "name": "permanentAddr",
+        "description": "常驻地",
+        "type": "string"
+      },
+      {
+        "name": "permanentAddrList",
+        "description": "常驻地列表",
+        "type": "array"
+      },
+      {
+        "name": "id",
+        "description": "id",
+        "type": "int32"
+      },
+      {
+        "name": "title",
+        "description": "用户编号",
+        "type": "string"
+      },
+      {
+        "name": "userAccountId",
+        "description": "No comments found.",
+        "type": "string"
+      },
+      {
+        "name": "manualLogin",
+        "description": "模拟登陆",
+        "type": "boolean"
+      },
+      {
+        "name": "printInvoice",
+        "description": "是否打印发票",
+        "type": "boolean"
+      },
+      {
+        "name": "departmentRouter",
+        "description": "是否显示全路径(0:否;1:是;)默认1",
+        "type": "boolean"
+      },
+      {
+        "name": "nodePermission",
+        "description": "节点权限",
+        "type": "boolean"
+      },
+      {
+        "name": "indexCreate",
+        "description": "是否为首页的新建单据入口",
+        "type": "boolean"
+      },
+      {
+        "name": "payAccountId",
+        "description": "支付账户id",
+        "type": "int32"
+      },
+      {
+        "name": "autoCash",
+        "description": "是否为现金",
+        "type": "boolean"
+      },
+      {
+        "name": "startCodeList",
+        "description": "数据权限的查询 开始code",
+        "type": "array"
+      },
+      {
+        "name": "export",
+        "description": "是否为导出",
+        "type": "boolean"
+      },
+      {
+        "name": "print",
+        "description": "是否为打印",
+        "type": "boolean"
+      },
+      {
+        "name": "showSubjectCodeAllPath",
+        "description": "显示科目全路径",
+        "type": "boolean"
+      },
+      {
+        "name": "displaySubjectList",
+        "description": "同时显示到列表,是否显示科目名称",
+        "type": "boolean"
+      },
+      {
+        "name": "notDisplayZeroBalance",
+        "description": "余额为0不显示",
+        "type": "boolean"
+      },
+      {
+        "name": "auxiliaryCategoryTypeId",
+        "description": "No comments found.",
+        "type": "string"
+      },
+      {
+        "name": "identifyingCode",
+        "description": "唯一标识码，用于日志记录",
+        "type": "string"
+      },
+      {
+        "name": "search",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "sumHeji",
+        "description": "No comments found.",
+        "type": "boolean"
+      },
+      {
+        "name": "subjectBooksShowType",
+        "description": "No comments found.",
+        "type": "int32"
+      }
+    ],
+    "responseFields": [
+      {
+        "name": "apiName",
+        "type": "string"
+      },
+      {
+        "name": "result",
+        "type": "int32"
+      },
+      {
+        "name": "message",
+        "type": "string"
+      },
+      {
+        "name": "data",
+        "type": "object"
+      }
+    ]
+  }
+}

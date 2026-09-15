@@ -156,6 +156,10 @@ export type WorkspaceBrowserInjected = {
   ) => Promise<void>
   /** Remove a Workspace from its product category while retaining durable data. */
   removeWorkspaceFromCategory: (categoryId: string, workspaceId: WorkspaceId) => Promise<void>
+  /** Open product-owned details for one Workspace. */
+  openWorkspaceDetails?: (categoryId: string, workspaceId: WorkspaceId) => void
+  /** Run a product-owned inline status action without selecting its Workspace. */
+  activateWorkspaceBadge?: (categoryId: string, workspaceId: WorkspaceId) => Promise<void>
 }
 
 /** Full browser props: shell owner share + viewing store + injected actions + the locale seat. */

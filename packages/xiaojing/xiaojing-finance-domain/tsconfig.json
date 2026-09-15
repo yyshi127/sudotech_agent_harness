@@ -15,12 +15,14 @@
     { "path": "../../core/session" },
     { "path": "../../core/system-prompt" },
     { "path": "../../core/tools" },
+    { "path": "../../interaction/user-approval" },
     { "path": "../../preset/agent-presets" },
     { "path": "../../runtime-diagnostics/invariants" },
     { "path": "../../session/session-projection" },
     { "path": "../../typert/protocol" },
     { "path": "../../util/atomic-write" },
     { "path": "../../util/brand" },
+    { "path": "../../credentials/credentials" },
     { "path": "../../util/home-paths" },
     { "path": "../../workspace/workspace" }
   ]

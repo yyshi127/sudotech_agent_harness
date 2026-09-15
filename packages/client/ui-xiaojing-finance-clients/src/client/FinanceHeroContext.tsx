@@ -70,6 +70,13 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
   const activeClients = catalog.catalog.clients.filter(client => client.status === 'active')
   const selectedClientId = context !== null && 'clientId' in context ? context.clientId : undefined
   const selectedClient = activeClients.find(client => client.id === selectedClientId)
+  const clientLabel = (client: (typeof activeClients)[number]): string => {
+    const name = client.shortName ?? client.legalName
+    const connection = catalog.workspaces?.clients.find(entry => entry.clientId === client.id)?.connection
+    if (connection === undefined) return name
+    return `${name} · ${connection.accountName ?? t('savedAccount')} · ID ${connection.accountId}`
+  }
+  const selectedLabel = selectedClient === undefined ? undefined : clientLabel(selectedClient)
   const boundClientName = context?.state === 'bound' ? context.clientName : undefined
   const hasClientContext = selectedClientId !== undefined || boundClientName !== undefined
   const contextLocked = context?.locked === true
@@ -148,7 +155,7 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
           onClose={() => { setClientOpen(false) }}
           items={activeClients.map(client => ({
             id: client.id,
-            label: client.shortName ?? client.legalName,
+            label: clientLabel(client),
           }))}
           selectedId={selectedClientId}
           onSelect={(id) => {
@@ -163,13 +170,14 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
               type="button"
               className={`${css.selector} ${css.clientSelector}`}
               aria-label={t('chooseClient')}
+              title={selectedLabel}
               aria-haspopup="menu"
               aria-expanded={clientOpen}
               disabled={busy || catalog.status === 'loading' || contextLocked}
               onClick={() => { setClientOpen(value => !value) }}
             >
               <span className={css.selectorText}>
-                {selectedClient?.shortName ?? selectedClient?.legalName ?? boundClientName ?? t('chooseClient')}
+                {selectedLabel ?? boundClientName ?? t('chooseClient')}
               </span>
               <IconChevronDownOutline14 className={css.chevron} />
             </button>

@@ -1,0 +1,59 @@
+# Agent Note: Native finance reports through a bounded browser reader
+
+Status: rejected — Xiaojing's browser transport is not reliable enough for Finance report delivery.
+
+English | [中文](2026-09-14-native-finance-reports.zh.md)
+
+## Problem
+
+F4 requires native general, detail and auxiliary ledgers plus balance, income and cash-flow statements. The public finance catalog lacks these six query operations. A balance query cannot preserve native statement templates, formulas or ledger rows. Codex can inspect the user's Chrome, but that tool is not a Xiaojing product capability.
+
+## Proposal
+
+Native reference reads observe fixed initialization requests under the existing personal-page lease. A missing report opens once; an existing read-only report reopens its exact internal tab without closing unrelated tabs. Auxiliary candidate capture skips parent-tree and different category/period initializations, then validates the accepted source in Finance. The shared bounded observer cancels its initialization workflow on failure or timeout, including a slow workflow after an early response. Metadata projection preserves native IDs, rejects duplicate IDs and retains unverified coverage; exact matching returns every ambiguous candidate. The Finance reader resolves D02 subject and D03 category/item selectors from these qualified candidates before requesting the report. Caller-supplied internal IDs reject; ambiguity or absence stops the query. Reference and report reads share one saved-client revision check and cancellation/deadline, with independent ledger qualification on every capture.
+
+D02/D03 first-page execution selects exact native labels after periods; auxiliary selection chooses its category before the item. The fixed DOM reader scopes controls to the selected visible report, rejects duplicate or covered targets, and obtains pointer positions immediately before dispatch. Candidate waits share existing cancellation cleanup. Missing or virtualized-out candidates reject the read without declaring the item nonexistent. The Finance request planner requires labels separately from already resolved IDs; request qualification still rejects any different ID after a successful click.
+
+Native detail/auxiliary data may omit nested `success`, but an explicit failure must not become an empty or successful report. The projector accepts only boolean `true` when that field exists. Focused tests cover failure with retained rows, empty failure and malformed status. A simulated HTTP 401 rejects without reading the response body, releases subscriptions and permits a fresh capture after a successful response is available. Assembled snapshots distinguish a scope-qualified zero-row workbook from a failed capture, verify no file is published for the failure, and exercise a subsequent new query. These tests do not establish real login recovery or cover every failure mode.
+
+The observed [subject references](../../../../critique/f4-lab/native-subject-references-20260914.json) and [auxiliary references](../../../../critique/f4-lab/native-auxiliary-references-20260914.json) map native labels to returned internal IDs. Auxiliary category IDs and signed tree IDs are separate values; do not construct tree IDs from public auxiliary IDs. Candidate lists are query scoped, not a complete inventory. A paged root response can be empty while the native non-parent candidate response and visible roots contain items; it cannot alone prove that no item exists. Product selection must still qualify these references before use.
+
+The fixed period workflow selects the requested months before response capture. It observes active virtual-list options rather than guessing coordinates or assuming all months are rendered. A repeated option rejects an unavailable month; DOM waits are cancelled and disposed before return. Independent controls change their end first when required to preserve ordering. A range selection is not a transaction: interruption may leave UI filters changed, but no partial report is published and the next read selects its explicit months again. Finance plans the expanded cash-flow request before UI execution; expected scope is never rewritten from an observed response.
+
+The first-page command selects one of six fixed native menus using the existing semantic action runner under the same lease. It waits for the selected menu and its unique visible content with an enabled refresh control and no visible loading indicator. Hidden retained views do not establish readiness. Read-only DOM observers are disposed on success, timeout and cancellation before return. Menu selection neither resets filters nor proves their values; request qualification remains authoritative. Other filter selection still requires implementation. [Control observations](../../../../critique/f4-lab/native-view-controls-20260914.json) distinguish the balance sheet's single-period selector from the profit/cash-flow nested range control.
+
+[Observed request evidence](../../../../critique/f4-lab/native-ledger-binding-20260914.json) places the cash-flow ledger ID in the `accountId` HTTP header, not its JSON body. Capture the native refresh response instead of copying page authentication into another HTTP request. Default-ledger queries and visible labels alone are insufficient for request binding.
+
+The extension's internal `native_report` command captures a fixed refresh, first-page or next-page response on an attached tab. It checks the actual account header and rejects contradictory identity, unknown filters, overlapping queries, navigation and oversized results. Fixed pagination actions require one visible container and the expected enabled control; hidden retained ledger views cannot supply a target. The Host keeps one queue operation, selected page, exclusive lease and deadline across all pages. A synchronous Finance consumer validates each capture before admitting the next; failure, cancellation or the page cap prevents further dispatch. Listeners are removed after each capture, and authentication-header values are never read. Isolated browser and authenticated loopback tests cover these mechanisms, not full product acceptance.
+
+Use a fixed, read-only Youcheng reader behind the existing product browser coordinator. Reuse page discovery, authentication, ownership and cancellation rather than installing a second generic automation stack. The reader must bind the Finance client, native ledger, period, selection and column mode before releasing data. It must neither expose cookies nor accept arbitrary URLs, scripts or network methods from the model. Existing Edge support does not establish Chrome compatibility; qualify the actual product route before enabling the consumer.
+
+The finance package contains an internal native-response projector and literal-text XLSX writer. They preserve native row order, missing amounts and exact decimal strings without calculating totals. Balance-sheet fields mean period-end/year-start; the same native fields mean current/year-to-date in income and cash-flow statements. One response has unverified coverage even when its count equals its row count. An XLSX made by this writer is a formatted copy of native query data, not the vendor's original export.
+
+The Finance reader checks the saved ledger and qualifies each request against independently resolved kind, periods and filter/page fields. Ledger collection requires contiguous pages from one, stable native counts, exact per-page item counts and unique IDs across pages; general-ledger subject codes are also unique. General-ledger counts refer to groups, while output bounds include their nested opening/total rows. No partial collection is published. `selected-query-pages` records a Xiaojing count-based check, not a vendor guarantee, all-subject coverage or transactional snapshot. Statement-template coverage remains unverified. Read and workbook publication reject changed client configuration or credentials. Deployment bounds the whole operation, aggregate rows/bytes and page count derived from the row budget. Explicit D02/D03 labels select native subjects/items inside the read. Finance passes the expected D01–D03 page size to a fixed native selector before capture; unavailable sizes reject without a fallback. Isolated DOM tests cover page-size selection, but real product qualification remains pending. Remaining filters must still match the independently resolved criteria.
+
+The [native date-filter observation](../../../../critique/f4-lab/native-detail-date-scope-20260914.json) shows a detail query with no matching vouchers but nonzero monthly/year totals. Date qualification therefore validates voucher dates without filtering, recalculating or relabeling native summary rows. Results and workbooks explicitly warn about the distinction, including the no-voucher case. Dates must be a valid ordered pair within the selected periods; unfiltered month queries retain their existing interpretation.
+
+Source observations and offline verification remain separate from product availability. The opt-in native-report tool and assembled keyless snapshots cover six report requests, exact output values, foreign-ledger rejection, two-page general-ledger export and rejection when the second page changes period. Both pages share one browser lease, released on success or failure. An independent ZIP/XML reader compares every published cash-flow and multi-page general-ledger cell and ledger/period metadata with the qualified result. They mock the model, vendor HTTP and extension peer, so live-model semantic acceptance, remaining filters, native multi-page comparisons and installed delivery remain incomplete. [F4 acceptance](../../../../docs/integrations/youcheng-finance-f4-acceptance.md) owns delivery status.
+
+## Alternatives considered
+
+**Reconstruct from public balances.** This loses native templates and row semantics and does not satisfy the requested six native reports.
+
+**Use only generic model-driven clicks.** Existing semantic actions remain useful for selecting a page, but do not independently prove response scope, pagination or native column meanings.
+
+**Create another general-purpose extension.** The product already has page ownership and authenticated extension transport. A separate stack duplicates those responsibilities; route compatibility must still be tested.
+
+**Copy browser credentials into the finance HTTP adapter.** This exports session secrets and separates requests from the user's verified browser context. Native reads must remain within the authorized browser session.
+
+## Acceptance criteria
+
+- All six kinds work through the actual Finance application with natural-language requests and bounded output, not only developer scripts.
+- Query metadata proves ledger, period, subject/item selection and native column mode. Capture and validate the actual `accountId` request header, including cash flow; default-ledger reads and visible labels alone are insufficient.
+- Pagination and scope are explicit; incomplete, duplicate or changed pages cannot become a complete report. Missing values remain distinct from zero, including exports.
+- Cross-client access, concurrent ledger changes, expired login, cancellation, timeout and restart have assembled keyless coverage and independent real-browser checks.
+- Native page/export comparisons and current-package installation checks satisfy F4 before user acceptance. Existing F3 deferrals remain open.
+
+## Risks
+
+Native website endpoints can change independently of the public API. Browser debugging conflicts, page navigation and server-session ledger changes can invalidate a read. Unknown context must stop publication rather than fall back to another client or produce inferred accounting data. The current internal projector cannot establish those browser guarantees.
