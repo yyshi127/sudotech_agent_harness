@@ -1,1 +1,1 @@
-- button "打开财务成果 · 往来查询页-{{uuid}}.xlsx"
+- button "打开财务成果 · 应收导出-{{uuid}}.xlsx"

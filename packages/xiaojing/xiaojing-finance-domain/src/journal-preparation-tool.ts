@@ -4,6 +4,8 @@ import s from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { journalCreateRequestSchema } from './journal-preparation.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-journal-preparation-tool'
@@ -39,23 +41,28 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中准备日记账。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareJournal(exec.agent, args, exec.signal, config.maxBytes))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() =>
+        ctx.xiaojingFinanceDomain.prepareJournal(agent, args, exec.signal, config.maxBytes)))
     },
-    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看日记账记录' : '准备日记账预览', kind: 'other', rawInput: args }),
+    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看日记账记录' : '准备日记账预览', kind: 'other' }),
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '日记账记录操作失败'
-      : args.action === 'inspect' ? '日记账记录与回查' : '日记账预览（未创建）', content: result.content }),
+      : args.action === 'inspect' ? '日记账记录与回查' : '日记账预览（未创建）',
+    content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_create_journal',
-    description: '仅在用户要求创建日记账时，提交finance_prepare_journal展示的准确id/version。系统必须请求本次强制确认，聊天中的“已确认”不能绕过。只记载收入或支出，不执行实际收付款，不生成凭证、审核、核销或删除。accepted仅表示返回ID；以readback和complete判断本记录技术核验。结果未知或回查失败时inspect原记录，不重发、不另建相同内容规避防重复。',
+    description: '仅在用户要求创建日记账时，提交finance_prepare_journal展示的准确id/version。系统必须请求本次强制确认，聊天中的“已确认”不能绕过。只记载收入或支出，不执行实际收付款，不生成凭证、审核、核销或删除。接口返回记录标识后，仍须依据独立回查判断本记录是否完成一致性核对。结果未知或回查失败时inspect原记录，不重发、不另建相同内容规避防重复。',
     parameters: { id: { type: 'string', required: true }, version: { type: 'integer', required: true } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中创建日记账。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.createJournal(
-        exec.agent, journalCreateRequestSchema.parse(args), exec.signal, config.maxBytes))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain.createJournal(
+        agent, journalCreateRequestSchema.parse(args), exec.signal, config.maxBytes)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并创建日记账', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账创建未完成' : '日记账提交与核验状态', content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并创建日记账', kind: 'other' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账创建未完成' : '日记账创建结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

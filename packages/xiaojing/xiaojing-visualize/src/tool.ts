@@ -107,8 +107,8 @@ export function visualizeTool(ctx: Context, maxFragmentBytes: number): ToolDefin
       render: (_args, value) => [{
         type: 'text',
         text: value.action === 'update'
-          ? `Patched "${value.title}" in place (${value.sizeBytes} bytes; updated card at ${value.path}). The user sees the corrected visualization in the conversation; patch that path for any further correction.`
-          : `Rendered "${value.title}" inline (${value.sizeBytes} bytes; workspace copy at ${value.path}). The user sees the interactive visualization in the conversation.`,
+          ? `Updated "${value.title}" at ${value.path}. The user sees the corrected visualization in the conversation; use that path for any further correction.`
+          : `Rendered "${value.title}" inline. Workspace copy: ${value.path}. The user sees the interactive visualization in the conversation.`,
       }],
       // Project the fragment into persisted meta so the card survives replay:
       // the canonical value is not on the wire, only content + meta are.

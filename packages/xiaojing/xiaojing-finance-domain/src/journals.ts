@@ -82,8 +82,62 @@ export interface JournalResult {
   selection: JournalSelection
   rows: JournalRow[]
   summaries: JournalSummary[]
+  /** Number of pages read through the first empty page; absent for an ordinary page query. */
+  pagesRead?: number
   coverage: 'unverified'
   notice: string
+}
+
+/**
+ * Collect one journal selection through its first empty page without inventing a vendor total.
+ * @param query - Journal filters; its page values are ignored.
+ * @param read - Authenticated reader for one validated vendor page.
+ * @param signal - Cancellation checked around every page read.
+ * @param limits - Export page size and aggregate row and byte caps.
+ * @returns Unique business rows and the terminal page summaries with unverified coverage.
+ */
+export async function collectJournalPages(query: JournalQuery,
+  read: (query: JournalQuery) => Promise<JournalResult>, signal: AbortSignal,
+  limits: { pageSize: number; maxRows: number; maxBytes: number }): Promise<JournalResult> {
+  const base = resolveJournalQuery({ ...query, page: 1, pageSize: limits.pageSize })
+  const rows: JournalRow[] = []
+  const ids = new Set<JournalEntryId>()
+  let identity: { id: string; name: string } | undefined
+  let summaries: JournalSummary[] = []
+  let bytes = 0
+  let page = 1
+  for (;;) {
+    signal.throwIfAborted()
+    const selected: JournalQuery = { ...base, page, pageSize: limits.pageSize }
+    const result = await read(selected)
+    signal.throwIfAborted()
+    if (Object.entries(selected).some(([key, value]) => result.selection[key as keyof JournalQuery] !== value)) {
+      throw new Error('日记账导出来源与查询条件不一致。')
+    }
+    identity ??= { id: result.accountId, name: result.accountName }
+    if (identity.id !== result.accountId || identity.name !== result.accountName) throw new Error('日记账导出期间账套身份变化。')
+    bytes += Buffer.byteLength(JSON.stringify(result), 'utf8')
+    if (bytes > limits.maxBytes || rows.length + result.rows.length > limits.maxRows) {
+      throw new Error('日记账完整导出超过上限，请缩小日期范围后重试。')
+    }
+    for (const item of result.rows) {
+      if (ids.has(item.id)) throw new Error('日记账导出分页包含重复流水。')
+      ids.add(item.id)
+      rows.push(item)
+    }
+    summaries = result.summaries
+    if (result.rows.length === 0) break
+    page += 1
+  }
+  const result: JournalResult = {
+    accountId: identity.id, accountName: identity.name, selection: { ...base, page: 1, pageSize: limits.pageSize },
+    rows, summaries, pagesRead: page, coverage: 'unverified',
+    notice: '已从第一页开始逐页读取到首个空业务页，文件包含本次日期和账户条件返回的全部日记账业务行。接口不返回可独立核对的总记录数，也不提供原子快照，因此不宣称全账套完整。这不是收支核对或跨期比较结果，不能直接相减原始页或接口合计来替代核对。汇总标记与业务流水分表保存，金额空值不当作零；币种字段为空表示币种未提供。按接口原名报告余额，不证明日初日末余额已核验。',
+  }
+  if (Buffer.byteLength(JSON.stringify(result), 'utf8') > limits.maxBytes) {
+    throw new Error('日记账完整导出超过上限，请缩小日期范围后重试。')
+  }
+  return result
 }
 
 /**

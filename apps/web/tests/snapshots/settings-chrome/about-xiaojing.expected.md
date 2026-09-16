@@ -2,8 +2,24 @@
 - paragraph: 数豆科技
 - heading "小兢会计" [level=2]
 - paragraph: 小兢会计，您的AI办公搭子
-- text: 当前版本 v0.2.3
+- text: 当前版本 v0.2.4
 - paragraph: CURRENT RELEASE
+- heading "v0.2.4 版本新特性" [level=3]
+- text: 4 项功能亮点
+- list:
+  - listitem:
+    - text: F2
+    - paragraph: 新增有成财务凭证、科目余额、出纳流水、应收应付和基础资料的查询、分析与结果导出。
+  - listitem:
+    - text: F3
+    - paragraph: 新增凭证、出纳流水、应收应付和基础资料的受控新增、删除与已支持核销，写入前确认并保留回查记录。
+  - listitem:
+    - text: F4
+    - paragraph: 建立 Finance 能力清单，按已支持、有限支持和暂不支持回答；报销与六类无开放接口的原生报表不再被误报为可用。
+  - listitem:
+    - text: UI
+    - paragraph: 财务工作区显示“AI财务助手”，普通工作区保留“AI办公搭子”，两个使用场景清晰区分。
+- paragraph: VERSION HISTORY
 - heading "v0.2.3 版本新特性" [level=3]
 - text: 7 项功能亮点
 - list:

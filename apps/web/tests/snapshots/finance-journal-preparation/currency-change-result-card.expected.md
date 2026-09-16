@@ -1,6 +1,5 @@
 - text: 失败
-- 'button "Tool call Error: 日记账资料或新增位置已变化，请重新预览确认。" [expanded]':
+- button "日记账创建未完成 日记账资料或新增位置已变化，请重新预览确认。" [expanded]:
   - img
-  - text: "Tool call Error: 日记账资料或新增位置已变化，请重新预览确认。"
-- text: "IN { \"id\": \"{{uuid}}\", \"version\": 2 } OUT Error: 日记账资料或新增位置已变化，请重新预览确认。"
-- button "Inspect"
+  - text: 日记账创建未完成 日记账资料或新增位置已变化，请重新预览确认。
+- text: 日记账资料或新增位置已变化，请重新预览确认。

@@ -221,7 +221,9 @@ describe('visualizeTool sandbox policy', () => {
     const updateText = updateContent[0]
     if (createText?.type !== 'text' || updateText?.type !== 'text') throw new Error('visualize render was not text')
     expect(createText.text).toContain('Rendered "A" inline')
-    expect(updateText.text).toContain('Patched "A" in place')
+    expect(updateText.text).toContain('Updated "A"')
+    expect(createText.text).not.toContain('bytes')
+    expect(updateText.text).not.toContain('bytes')
     const meta = tool.output.presentationMeta?.({}, create)
     expect(meta).toEqual({
       kind: 'visualize',

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-finance-domain/README.md
-README.md: 68e9b5f9a8f22ac32df70d1f1c38e2e2b3501797
-README.zh.md: af729bee9c048a70aa7339b67eadf87a96d86815
+README.md: 48734020b4445cc139441efd4ecbf960c527b0bc
+README.zh.md: ee9a1189f23abeeda228cd03185fa437eee3e555

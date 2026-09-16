@@ -63,6 +63,7 @@ export function GenericToolCard({ toolName, block, cwd, home, openFile, inspect,
       body={singleFile ? null : model.body}
       output={model.output}
       errorSummary={model.errorSummary}
+      showSectionLabels={model.showTechnicalChrome}
       terminal={terminal}
       diff={diff}
       read={read}
@@ -71,7 +72,7 @@ export function GenericToolCard({ toolName, block, cwd, home, openFile, inspect,
       state={state}
       filePath={model.filePath}
       onOpenFile={singleFile ? openFile : undefined}
-      inspect={inspect}
+      inspect={model.showTechnicalChrome ? inspect : undefined}
     />
   )
 }

@@ -26,10 +26,17 @@ async function verifyConnectionIcon(row: Locator, connected: boolean): Promise<v
   })
   expect(layout).toEqual({ title: '数豆科技', nextRole: 'status', afterTitle: true, beforeStatus: true, degrees: connected ? 45 : 0 })
   if (connected) {
-    const successColor = await row.getByRole('status').locator('[data-state="done"]').evaluate(element => getComputedStyle(element).color)
-    expect(await button.evaluate(element => getComputedStyle(element).color)).toBe(successColor)
+    const brand = row.getByRole('status').locator('img[src="/youcheng-finance-logo.png"]')
+    expect(await brand.count()).toBe(1)
+    expect(await brand.evaluate((element) => {
+      const box = element.parentElement?.getBoundingClientRect()
+      return { width: box?.width, height: box?.height, overflow: getComputedStyle(element.parentElement!).overflow }
+    })).toEqual({ width: 16, height: 16, overflow: 'hidden' })
+    expect(await row.getByRole('status').locator('[data-state="done"]').count()).toBe(0)
     await button.hover()
-    expect(await button.evaluate(element => getComputedStyle(element).color)).toBe(successColor)
+    expect(await brand.count()).toBe(1)
+  } else {
+    expect(await row.locator('img[src="/youcheng-finance-logo.png"]').count()).toBe(0)
   }
 }
 
@@ -177,7 +184,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
     const status = page.getByRole('status', { name: /最近一次鉴权和账套核验成功/ })
     await status.waitFor()
     expect(await status.textContent()).toContain('数豆')
-    expect(await status.locator('[data-state="done"]').count()).toBe(1)
+    await verifyConnectionIcon(page.getByRole('treeitem').filter({ has: status }).first(), true)
     const source = await readFile(join(scaffold.harnessHome, 'finance', 'clients-v1.json'), 'utf8')
     expect(source).not.toMatch(/snapshot-app-secret|snapshot-token/)
     expect((await scaffold.ctx.xiaojingFinanceDomain.read(created.client.id)).client.financeSystem)
@@ -256,7 +263,6 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
       const connectedRow = page.getByRole('treeitem').filter({ has: page.getByRole('button', { name: /^重新连接账套 · 数豆科技/ }) }).first()
       expect(await connectedRow.getAttribute('aria-expanded')).toBe(expanded)
       expect(await status.textContent()).toContain('数豆')
-      expect(await status.locator('[data-state="done"]').count()).toBe(1)
       await verifyConnectionIcon(connectedRow, true)
       expect(await page.getByRole('dialog').count()).toBe(0)
       expect(vendorCalls).toBe(14)

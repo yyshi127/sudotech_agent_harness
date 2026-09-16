@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readSheet } from 'read-excel-file/node'
 import { expect, it } from 'vitest'
 import { analyzeBalances, balanceAnalysisSchema, withBalanceReconciliation } from '../src/balance-analysis.ts'
@@ -42,10 +41,10 @@ it('compares exact cents, retains unknowns and excludes vendor summaries from si
   expect(report.coverage).toBe('unverified')
   expect(report.current.summaries).toHaveLength(1)
   const bytes = await balanceAnalysisWorkbook(report)
-  expect(await readSheet(bytes, '期间差额')).toContainEqual(['1', '001001', '=SUM(1,2)', 'both',
+  expect(await readSheet(bytes, '期间差额')).toContainEqual(['001001', '=SUM(1,2)', '两个期间',
     '0.01', '不可计算', '-0.02', '0.00', '0.00', '0.00', '0.00', '不可计算'])
+  expect(await readSheet(bytes)).toEqual(await readSheet(bytes, '期间差额'))
   expect(await readSheet(bytes, '来源行')).toHaveLength(6)
-  expect(await readSheet(bytes, '查询说明')).toContainEqual(['结果 SHA256', createHash('sha256').update(JSON.stringify(report)).digest('hex')])
 })
 it('preserves baseline-only rows and does not invent zeros for an empty current result', async () => {
   const report = await analyzeBalances(selection, async (query) => {
@@ -99,5 +98,5 @@ it.each(['matched', 'mismatch', 'duplicate', 'blank', 'child'])(
     for (const [status, count] of Object.entries(counts)) {
       expect(count).toBe(Object.values(report.reconciliation.current).filter(check => check.status === status).length)
     }
-    expect(await readSheet(await balanceAnalysisWorkbook(report), '接口合计核对')).toHaveLength(9)
+    expect(await readSheet(await balanceAnalysisWorkbook(report), '合计核对')).toHaveLength(9)
   })

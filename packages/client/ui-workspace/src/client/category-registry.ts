@@ -33,6 +33,8 @@ export interface WorkspaceCategoryBadge {
   text?: string
   /** Product-neutral visual status. */
   state: 'idle' | 'pending' | 'success' | 'error'
+  /** Product-owned brand image whose leading square replaces the success-state dot. */
+  brandIconSrc?: string
   /** Accessible explanation and hover text; color alone is not the status. */
   label: string
   /** Accessible label for a link between title and badge text; pending disables it, success renders it horizontal and green. */

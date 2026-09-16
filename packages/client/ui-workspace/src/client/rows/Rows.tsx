@@ -180,8 +180,10 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBa
           {badge.text === undefined ? null : <span className={css.badgeText}>
             {badge.actionLabel === undefined || onBadgeAction === undefined ? ' - ' : ''}{badge.text}
           </span>}
-          {badge.state === 'idle' ? <span className={css.unverifiedDot} aria-hidden="true" />
-            : <StateDot state={badge.state === 'success' ? 'done' : badge.state === 'pending' ? 'ongoing' : 'error'} />}
+          {badge.state === 'success' && badge.brandIconSrc !== undefined
+            ? <span className={css.badgeBrandIcon} aria-hidden="true"><img src={badge.brandIconSrc} alt="" /></span>
+            : badge.state === 'idle' ? <span className={css.unverifiedDot} aria-hidden="true" />
+              : <StateDot state={badge.state === 'success' ? 'done' : badge.state === 'pending' ? 'ongoing' : 'error'} />}
         </span>}
       </span>
       <span className={css.rowActions}>

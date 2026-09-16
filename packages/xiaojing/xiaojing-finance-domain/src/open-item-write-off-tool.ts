@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-open-item-write-off-tool'
@@ -43,25 +45,29 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中准备或检查核销。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareOpenItemWriteOff(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() =>
+        ctx.xiaojingFinanceDomain.prepareOpenItemWriteOff(agent, args, exec.signal, config)))
     },
     presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '只读检查原核销记录' : '准备整笔核销方案',
-      kind: 'other', rawInput: args }),
+      kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '核销准备或检查未完成' : '核销方案与执行限制',
-      content: result.content }),
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_write_off_open_item',
-    description: '执行finance_prepare_open_item_write_off已展示的准确id/version，Host强制确认对象、完整余额、日期及资金账户。聊天同意不能绕过确认。确认前和发送前重查；已变化需重新预览。不发起银行收付款，不部分核销、反核销或自动处理其他关联。accepted不是核验完成，四项独立回查以readback为准；超时、响应丢失或回查失败只读inspect原id，不重发或另建同笔方案。',
+    description: '执行finance_prepare_open_item_write_off已展示的准确id/version，Host强制确认对象、完整余额、日期及资金账户。聊天同意不能绕过确认。确认前和发送前重查；已变化需重新预览。不发起银行收付款，不部分核销、反核销或自动处理其他关联。接口接收不等于核验完成，须以四项独立回查给出业务结论；超时、响应丢失或回查失败只读inspect原id，不重发或另建同笔方案。',
     parameters: { id: { type: 'string', required: true, description: '已展示的本地核销预览ID。' },
       version: { type: 'integer', required: true, description: '已展示的准确预览版本。' } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中确认核销。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.writeOffOpenItem(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() =>
+        ctx.xiaojingFinanceDomain.writeOffOpenItem(agent, args, exec.signal, config)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并核销指定往来', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '核销未完成' : '核销结果与独立回查',
-      content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并核销指定往来', kind: 'execute' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '核销未完成' : '核销结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

@@ -1,4 +1,4 @@
-- button "Tool call finance_vouchers · 2022-01":
+- button "凭证查询结果":
   - img
   - img
-  - text: Tool call finance_vouchers · 2022-01
+  - text: 凭证查询结果

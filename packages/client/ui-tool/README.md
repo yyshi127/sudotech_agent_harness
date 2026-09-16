@@ -16,6 +16,8 @@ The package also fills `conversation.details.tool` with `ToolDetails`. The row a
 
 Generic rows classify known Tool names into search, read, shell, write, edit, code, or generic variants. Running, successful, failed, and interrupted lifecycle states come only from the frozen call/result slice. File paths resolve against the session `cwd` only when the user invokes the Host open-file callback; presentation code does not read Session services.
 
+When a generic Tool supplies `callView` or `resultView`, that semantic presentation replaces raw arguments or model-facing output in both the conversation row and the details panel. Such rows also omit the fallback-only `IN`/`OUT` labels and trajectory inspection action. Tools without semantic presentations retain the diagnostic fallback.
+
 ## Atomic Tool views
 
 An owning business package registers its wire Tool name into `tool.call.toolview`:

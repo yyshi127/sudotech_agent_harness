@@ -1,6 +1,5 @@
 - text: 失败
-- 'button "Tool call Error: 有成日记账查询失败（network:ECONNRESET；阶段：日记账请求）。本次未取得有效结果，不代表没有流水；不要通过文件搜索或索取密钥代替查询。" [expanded]':
+- button "日记账查询失败 财务操作未完成，请检查帐套连接、有成财务权限和网络后重试。" [expanded]:
   - img
-  - text: "Tool call Error: 有成日记账查询失败（network:ECONNRESET；阶段：日记账请求）。本次未取得有效结果，不代表没有流水；不要通过文件搜索或索取密钥代替查询。"
-- text: "IN { \"month\": \"2026-09\" } OUT Error: 有成日记账查询失败（network:ECONNRESET；阶段：日记账请求）。本次未取得有效结果，不代表没有流水；不要通过文件搜索或索取密钥代替查询。"
-- button "Inspect"
+  - text: 日记账查询失败 财务操作未完成，请检查帐套连接、有成财务权限和网络后重试。
+- text: 财务操作未完成，请检查帐套连接、有成财务权限和网络后重试。

@@ -154,8 +154,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
             previousKey = await panel.getAttribute('data-approval-key')
             const text = await panel.textContent()
             if (confirmation.detailed) {
-              for (const value of ['往来删除演示账套', '确认版本 2', '0.01', String(openItemId),
-                direction === 'receivable' ? '应收' : '应付', '可能连带移除关联对冲、核销或收入记录']) expect(text).toContain(value)
+              for (const value of ['往来删除演示账套', '0.01', '测试往来单位',
+                direction === 'receivable' ? '应收' : '应付', '可能连带影响关联对冲、核销或收入记录']) expect(text).toContain(value)
+              expect(text).not.toMatch(new RegExp(`${openItemId}|确认版本|"version"`))
             } else expect(text).toContain('删除操作必须进行本次二次确认')
             expect(writes).toBe(approvals === 5 ? 1 : 0)
             if (approvals === 2) await compareOrRefreshGolden(fileURLToPath(new URL(
@@ -215,8 +216,16 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
           '/finance/cashjournal/getCashierList'].includes(path))).toBe(true)
         expect(await records.read(adapter.operationId as OpenItemDeletionId)).toMatchObject({ phase: 'prepared', version: 2,
           inventory: { selection: { direction } } })
-        await page.getByText('finance_prepare_open_item_deletion · prepare', { exact: true }).click()
-        await expect.poll(() => page.locator('body').innerText()).toContain('公开接口的完整关联影响未核实')
+        const cardSelector = '[data-chat-call-id="open-deletion-2"]'
+        const card = page.locator(cardSelector)
+        await card.waitFor()
+        await card.getByRole('button').first().click()
+        await expect.poll(() => card.textContent()).toContain(direction === 'payable'
+          ? '当前条件不足，未执行' : '已准备，等待确认')
+        expect(await card.textContent()).toContain('摘要：删除检查专用')
+        expect(await card.textContent()).not.toMatch(/公开接口|unverified|fingerprint|版本|72604/)
+        await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-deletion/${direction}-card.expected.md`,
+          import.meta.url)), await captureStableAria(page, cardSelector, scaffold.workspaceCwd), webSnapshotMode())
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-deletion/${direction}-results.expected.md`,
           import.meta.url)), JSON.stringify(results, null, 2).replaceAll(adapter.operationId, '<deletion-id>'), webSnapshotMode())
       } finally { await page.close(); await handle.dispose() }

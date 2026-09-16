@@ -23,8 +23,8 @@ class OpenItemAdapter extends LlmAdapter {
     if (this.calls === 1) {
       expect(JSON.stringify(options)).toContain('不要求固定关键词')
       expect(JSON.stringify(options)).toContain('previous-page 只称“上一页总计”')
-      expect(JSON.stringify(options)).toContain('导出时重新查询')
-      expect(JSON.stringify(options)).toContain('page 和 pageSize')
+      expect(JSON.stringify(options)).toContain('后端完整读取当前条件')
+      expect(JSON.stringify(options)).toContain('page/pageSize 只影响普通查询')
       expect(JSON.stringify(options)).toContain('本次查询记录的未结余额')
       expect(JSON.stringify(options)).toContain('summaries 币种为空时不能借用业务行币种')
       const id = CallId('open-item-query')
@@ -36,10 +36,12 @@ class OpenItemAdapter extends LlmAdapter {
     } else {
       const messages = JSON.stringify(options.messages)
       expect(messages).not.toMatch(/snapshot-secret|snapshot-token|snapshot-key|private-network/)
-      expect(messages).toContain(this.scenario === 'failure' ? '查询失败' : 'unverified')
-      const text = this.scenario === 'failure' ? '应收应付查询失败，不能判断没有往来。'
+      expect(messages).toContain(this.scenario === 'failure' ? '财务操作未完成'
+        : this.scenario === 'export' ? '"recordCount":1' : this.scenario === 'empty' ? '"totalCount":0' : '300.00')
+      const text = this.scenario === 'failure' ? '应收应付查询未完成，请检查帐套连接后重试。'
         : this.scenario === 'empty' ? '接口声明本次记录数为零，汇总不算往来记录。'
-          : `本页${this.scenario === 'payable' ? '应付' : '应收'}金额 300.00 CNY、余额 200.00 CNY，汇总不是业务记录。`
+          : this.scenario === 'export' ? '2026年9月应收已导出，共1笔。'
+            : `本页${this.scenario === 'payable' ? '应付' : '应收'}金额 300.00 CNY、余额 200.00 CNY，汇总不是业务记录。`
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
@@ -49,6 +51,7 @@ class OpenItemAdapter extends LlmAdapter {
 }
 
 it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty', 'failure', 'export'])('queries open-items through the real Finance preset: %s', async (scenario) => {
+  vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
     default: 'standard', roots: [
       { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
@@ -66,7 +69,8 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
     if (url.pathname.includes('queryAccountList')) return Response.json({ result: 100, data: [{ id: '35601', sobName: '应收应付测试账套' }] })
     expect(url.pathname).toBe('/finance/cashjournal/getCashierList')
     if (typeof init?.body !== 'string') throw new Error('Expected JSON body')
-    expect(JSON.parse(init.body)).toEqual({ setOfBooksId: 35601, direction: scenario === 'payable' ? 1 : 0, periodNumberStart: '2026-09', periodNumberEnd: '2026-09', page: 1, pageSize: 20 })
+    expect(JSON.parse(init.body)).toEqual({ setOfBooksId: 35601, direction: scenario === 'payable' ? 1 : 0,
+      periodNumberStart: '2026-09', periodNumberEnd: '2026-09', page: 1, pageSize: scenario === 'export' ? 100 : 20 })
     if (scenario === 'failure') throw new TypeError('private-network snapshot-secret')
     return Response.json({ result: 100, data: scenario === 'empty'
       ? { count: 0, list: [marker] }
@@ -93,7 +97,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
       await workspace.attachSession(handle.agent.session.id)
       await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
       const before = await readFile(join(scaffold.harnessHome, 'finance/clients-v1.json'), 'utf8')
-      handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: scenario === 'export' ? '导出2026年9月应收的第一页记录，保留范围说明。' : scenario === 'payable' ? '查查2026年9月我们还欠别人的款，只查询。' : '查查2026年9月别人欠我们的款，只查询。' }], source: { kind: 'user' } }))
+      handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: scenario === 'export' ? '导出2026年9月全部应收记录。' : scenario === 'payable' ? '查查2026年9月我们还欠别人的款，只查询。' : '查查2026年9月别人欠我们的款，只查询。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(2)
       const events = handle.agent.session.events
@@ -114,9 +118,16 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
         const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing page export receipt')
-        const receipt = JSON.parse(text.text) as { report: unknown; file: unknown }
-        expect(receipt.file).toEqual(file)
-        resultSnapshot = JSON.stringify({ report: receipt.report, publishedXlsx: true, hashMatchesBytes: true }, null, 2)
+        const receipt = JSON.parse(text.text) as {
+          accountName: string
+          direction: string
+          periodStart: string
+          periodEnd: string
+          recordCount: number
+          exportFile: { path: string; name: string }
+        }
+        expect(receipt.exportFile).toEqual({ path: file.path, name: file.name })
+        resultSnapshot = JSON.stringify({ ...receipt, exportFile: { publishedXlsx: true } }, null, 2)
       }
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-items/${scenario}-result.expected.md`, import.meta.url)), resultSnapshot, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })

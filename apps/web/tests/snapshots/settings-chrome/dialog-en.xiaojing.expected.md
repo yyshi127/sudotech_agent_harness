@@ -19,6 +19,9 @@
     - button "Channels":
       - img
       - text: Channels
+    - button "Attachment storage":
+      - img
+      - text: Attachment storage
     - button "Browser Control":
       - img
       - text: Browser Control

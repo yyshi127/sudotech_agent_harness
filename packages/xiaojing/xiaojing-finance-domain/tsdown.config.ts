@@ -13,7 +13,7 @@ export default defineConfig([
     clean: false,
   },
   {
-    entry: ['lib/types/context.js'],
+    entry: ['lib/types/context.js', 'lib/types/capabilities.js'],
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',

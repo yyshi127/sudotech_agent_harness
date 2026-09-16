@@ -63,24 +63,22 @@ class BalanceAdapter extends LlmAdapter {
     } else {
       const messages = JSON.stringify(options.messages)
       expect(messages).not.toMatch(/snapshot-secret|snapshot-token|snapshot-key|private-network/)
-      expect(messages).toContain(this.scenario === 'compare-invalid' ? '余额分析须指定单个' : this.scenario === 'failure' ? '查询失败' : 'unverified')
-      if (this.scenario !== 'failure' && this.scenario !== 'compare-invalid') expect(messages).toContain('期初期末相等也不能证明期间没有发生')
-      if (this.scenario === 'compare') {
-        expect(messages).toContain('returnedRowSums')
-        expect(messages).toContain('ledger-base')
-        expect(messages).toContain('differences')
-      }
-      if (this.scenario === 'report' || this.scenario === 'export') {
+      expect(messages).toContain(this.scenario === 'compare-invalid' ? '余额分析须指定单个'
+        : this.scenario === 'failure' ? '财务操作未完成'
+          : this.scenario === 'export' || this.scenario === 'compare' ? '"exportFile"' : 'unverified')
+      if (!['failure', 'compare-invalid', 'export', 'compare'].includes(this.scenario)) expect(messages).toContain('期初期末相等也不能证明期间没有发生')
+      if (this.scenario === 'report') {
         expect(messages).toContain('1000.00')
         expect(messages).toContain('852.22')
         expect(messages).not.toContain('1,000.00')
       }
       const text = this.scenario === 'failure' ? '余额查询失败，不能判断没有余额。'
         : this.scenario === 'compare-invalid' ? '跨期比较不能与多月累计范围混用，未查询、未生成文件。'
-          : this.scenario === 'compare' ? '已导出一级科目九月减八月的比较。期初借方差额为 0.00，期初贷方未提供，不能计算差额。返回行加总不代表全账套完整合计。'
-            : this.scenario === 'empty' ? '本次没有科目行，不能据此判断账套余额为零。'
-              : this.scenario === 'level' ? '本次仅查询二级科目，返回 100101；不代表查询了全部层级。'
-                : '库存现金期初借方为 1000.00，期末借方为 852.22。本期合计借方和贷方均为 198.78；未提供的汇总字段仍为未提供，不改写借贷列、不推断划转。'
+          : this.scenario === 'compare' ? '2026年9月与8月的一级科目余额比较已导出，共1个科目。'
+            : this.scenario === 'export' ? '2026年9月科目余额已导出，共1个科目。'
+              : this.scenario === 'empty' ? '本次没有科目行，不能据此判断账套余额为零。'
+                : this.scenario === 'level' ? '本次仅查询二级科目，返回 100101；不代表查询了全部层级。'
+                  : '库存现金期初借方为 1000.00，期末借方为 852.22。本期合计借方和贷方均为 198.78；未提供的汇总字段仍为未提供，不改写借贷列、不推断划转。'
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
@@ -90,6 +88,7 @@ class BalanceAdapter extends LlmAdapter {
 }
 
 it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure', 'export', 'level', 'range', 'analysis', 'retry', 'compare', 'compare-invalid', 'root'])('queries balances through the real Finance preset: %s', async (scenario) => {
+  vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
     default: 'standard', roots: [
       { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
@@ -142,6 +141,8 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'finance').then(() => undefined),
     })
     try {
+      expect(ctx.tools.get('finance_balances', handle.agent)?.presentCall).toBeTypeOf('function')
+      expect(ctx.tools.get('finance_balances', handle.agent)?.presentResult).toBeTypeOf('function')
       const workspace = await ctx.workspaceRegistry.resolveByPath(workspacePath)
       if (workspace === undefined) throw new Error('Missing workspace')
       await workspace.attachSession(handle.agent.session.id)
@@ -179,9 +180,18 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
         const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing balance export receipt')
-        const receipt = JSON.parse(text.text) as { report: unknown; file: unknown }
-        expect(receipt.file).toEqual(file)
-        resultSnapshot = JSON.stringify({ report: receipt.report, publishedXlsx: true, hashMatchesBytes: true }, null, 2)
+        const receipt = JSON.parse(text.text) as {
+          accountName: string
+          month: string
+          monthEnd?: string
+          compareMonth?: string
+          subjectCount: number
+          summaryCount?: number
+          differenceCount?: number
+          exportFile: { path: string; name: string }
+        }
+        expect(receipt.exportFile).toEqual({ path: file.path, name: file.name })
+        resultSnapshot = JSON.stringify({ ...receipt, exportFile: { publishedXlsx: true } }, null, 2)
       }
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-balances/${scenario}-result.expected.md`, import.meta.url)), resultSnapshot, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })

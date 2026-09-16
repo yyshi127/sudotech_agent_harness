@@ -205,6 +205,10 @@
   overflow-y: auto;
 }
 
+.ioSectionUnlabeled {
+  grid-template-columns: 1fr;
+}
+
 /* Card-internal scrollbar: a 2px transparent border clips the thumb inward so
    it floats off the rounded card edge instead of hugging it (the terminal
    card's own output scroller carries the same treatment in TerminalBlock). */

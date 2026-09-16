@@ -39,28 +39,17 @@ class JournalAdapter extends LlmAdapter {
       const messages = JSON.stringify(options.messages)
       expect(messages).not.toMatch(/snapshot-secret|snapshot-token|snapshot-key|private-network/)
       const failed = this.scenario === 'failure' || this.scenario === 'bank-mismatch' || this.scenario === 'analysis-rejected'
-      if (this.scenario === 'failure') expect(messages).toContain('network:ECONNRESET；阶段：日记账请求')
-      expect(messages).toContain(failed ? this.scenario === 'analysis-rejected' ? '未通过核验' : '查询失败' : this.scenario.startsWith('analysis-') ? 'empty-page-and-totals-reconciled' : 'unverified')
-      if (!failed && !this.scenario.startsWith('analysis-')) {
-        expect(messages).toContain('币种未提供')
-        expect(messages).toContain('不证明日初日末余额已核验')
-        expect(messages).toContain('不是收支核对或跨期比较结果')
-        expect(messages).toContain('不能直接相减原始页或接口合计来替代核对')
-      }
-      if (this.scenario === 'analysis-export') {
-        expect(messages).toContain('不是有成接口声明的完整性或原子快照保证')
-        expect(messages).toContain('expenseMissingValueCount')
-        expect(messages).toContain('\\"expenseMissingValueCount\\":1')
-        expect(messages).toContain('不是缺少流水记录')
-        expect(messages).not.toContain('missingExpenseRows')
-      }
+      expect(messages).toContain(failed
+        ? this.scenario === 'analysis-rejected' ? '与接口合计不一致' : '财务操作未完成'
+        : this.scenario.endsWith('export') ? '"exportFile"' : '120.00')
       const text = this.scenario === 'analysis-rejected' ? '接口收支合计与已提供业务金额不一致，未生成汇总或文件；不能手工拼凑合计。'
         : failed ? '日记账查询失败，不能判断没有流水。'
-          : this.scenario === 'analysis-export' ? '账户174553的9月收入120.00 CNY，支出0.00；8月返回空集合且接口合计为零，收入差额120.00，支出差额0.00。小兢会计已读至空页并核对接口合计，这不是有成的完整性或原子快照保证；已导出本次核对结果。'
-            : this.scenario === 'boundary-export' ? '9月8日本次查询页未返回业务流水；接口初始余额与合计均为100.00，币种未提供，收支未提供；不证明全天没有收支或日初日末余额已核验。已导出本页Excel。'
-              : this.scenario === 'bank-empty' ? '所选银行账户本页没有业务流水，不代表全部期间。'
-                : this.scenario === 'empty' ? '本次只有余额汇总，不代表全账套没有流水。'
-                  : '本页库存现金收入 120.00 CNY，余额汇总不是业务流水。'
+          : this.scenario === 'analysis-export' ? '账户174553的2026年9月与8月收支分析已导出，共1笔当前记录。'
+            : this.scenario === 'boundary-export' ? '2026年9月8日的库存现金流水已导出，本次共0笔。'
+              : this.scenario === 'export' ? '2026年9月日记账已导出，共1笔。'
+                : this.scenario === 'bank-empty' ? '所选银行账户本页没有业务流水，不代表全部期间。'
+                  : this.scenario === 'empty' ? '本次只有余额汇总，不代表全账套没有流水。'
+                    : '本页库存现金收入 120.00 CNY，余额汇总不是业务流水。'
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
@@ -70,6 +59,7 @@ class JournalAdapter extends LlmAdapter {
 }
 
 it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure', 'export', 'bank-empty', 'bank-mismatch', 'boundary-export', 'analysis-export', 'analysis-rejected'])('queries journals through the real Finance preset: %s', async (scenario) => {
+  vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
     default: 'standard', roots: [
       { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
@@ -99,15 +89,26 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       const total = { ...marker, abstractStr: '合计', borrow: body.periodNumber === '2026-08' ? 0 : scenario === 'analysis-rejected' ? 121 : 120, loan: 0 }
       return Response.json({ result: 100, data: body.periodNumber === '2026-09' && body.page === 1 ? [marker, { ...row, loan: undefined }, total] : [total] })
     }
-    expect(JSON.parse(init.body)).toEqual({ accountName: '日记账测试账套', periodNumber: '2026-09', dateStart: '2026-09-01', dateEnd: '2026-09-30', page: 1, pageSize: 20,
+    const body = JSON.parse(init.body) as { page: number }
+    expect(body).toMatchObject({ accountName: '日记账测试账套', periodNumber: '2026-09', dateStart: '2026-09-01', dateEnd: '2026-09-30',
+      pageSize: scenario.endsWith('export') ? 100 : 20,
       ...scenario === 'boundary-export' ? { dateStart: '2026-09-08', dateEnd: '2026-09-08', subjectId: 174553 } : {},
       ...scenario.startsWith('bank-') ? { subjectId: 174554 } : {} })
+    if (scenario.endsWith('export')) {
+      expect(body.page).toBeGreaterThanOrEqual(1)
+      expect(body.page).toBeLessThanOrEqual(2)
+    } else {
+      expect(body.page).toBe(1)
+    }
     if (scenario === 'failure') throw new TypeError('private-network snapshot-secret', {
       cause: Object.assign(new Error('private-network snapshot-secret'), { code: 'ECONNRESET' }),
     })
     if (scenario === 'bank-empty') return Response.json({ result: 100, data: [] })
     if (scenario === 'boundary-export') return Response.json({ result: 100, data: [
       { ...marker, balance: 100, baseBalance: 100 }, { ...marker, abstractStr: '合计', balance: 100, baseBalance: 100 },
+    ] })
+    if (scenario === 'export' && body.page === 2) return Response.json({ result: 100, data: [
+      { ...marker, abstractStr: '合计', borrow: '120.00', loan: 0, balance: 120 },
     ] })
     return Response.json({ result: 100, data: scenario === 'empty'
       ? [marker, { ...marker, abstractStr: '合计' }]
@@ -135,7 +136,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
       const before = await readFile(join(scaffold.harnessHome, 'finance/clients-v1.json'), 'utf8')
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: scenario === 'export'
-        ? '导出2026年9月日记账第一页，保留范围说明。'
+        ? '导出2026年9月全部日记账，保留范围说明。'
         : scenario.startsWith('analysis-') ? '比较账户174553的2026年9月和8月收支，核对分页和接口合计，成功后导出Excel，失败不要出文件。'
           : scenario === 'boundary-export' ? '看看2026年9月8日库存现金174553当天流水和结余，导出Excel，不把缺失数值当零。'
             : scenario.startsWith('bank-') ? '只查已确认的银行账户174554，2026年9月第一页。' : '查查2026年9月现金进出流水，只查询。' }], source: { kind: 'user' } }))
@@ -148,13 +149,15 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       expect(await readFile(join(scaffold.harnessHome, 'finance/clients-v1.json'), 'utf8')).toBe(before)
       const pagePaths = ['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson',
         ...scenario.startsWith('bank-') || scenario === 'boundary-export' || scenario.startsWith('analysis-') ? ['/finance/cashjournal/getAccountList.rjson'] : [], '/finance/cashjournal/getListPage.rjson']
-      expect(paths).toEqual([...Array.from({ length: scenario === 'analysis-export' ? 3 : scenario === 'analysis-rejected' ? 2 : 1 }, () => pagePaths).flat(), ...scenario === 'failure' ? ['/finance/cashjournal/getListPage.rjson'] : []])
+      expect(paths).toEqual([...Array.from({ length: scenario === 'analysis-export' ? 3
+        : scenario === 'analysis-rejected' || scenario === 'export' ? 2 : 1 }, () => pagePaths).flat(),
+      ...scenario === 'failure' ? ['/finance/cashjournal/getListPage.rjson'] : []])
       if (scenario === 'analysis-rejected') {
         expect(events.some(event => event.type === 'finance/file-published')).toBe(false)
         expect(JSON.stringify(results)).toContain('与接口合计不一致')
       }
       if (scenario === 'bank-mismatch') {
-        expect(JSON.stringify(results)).toContain('日记账校验')
+        expect(JSON.stringify(results)).toContain('财务操作未完成')
         expect(JSON.stringify(results)).not.toContain('库存现金')
         expect(events.some(event => event.type === 'finance/file-published')).toBe(false)
       }
@@ -170,9 +173,17 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
         const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing page export receipt')
-        const receipt = JSON.parse(text.text) as { report: unknown; file: unknown }
-        expect(receipt.file).toEqual(file)
-        resultSnapshot = JSON.stringify({ report: receipt.report, publishedXlsx: true, hashMatchesBytes: true }, null, 2)
+        const receipt = JSON.parse(text.text) as {
+          accountName: string
+          month: string
+          dateStart: string
+          dateEnd: string
+          baselineMonth?: string
+          recordCount: number
+          exportFile: { path: string; name: string }
+        }
+        expect(receipt.exportFile).toEqual({ path: file.path, name: file.name })
+        resultSnapshot = JSON.stringify({ ...receipt, exportFile: { publishedXlsx: true } }, null, 2)
       }
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journals/${scenario}-result.expected.md`, import.meta.url)), resultSnapshot, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
@@ -183,8 +194,9 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       await card.waitFor()
       if (scenario === 'boundary-export') {
         await card.getByRole('button').first().click()
-        expect(await card.textContent()).toContain('本次查询页未返回业务流水')
-        expect(await card.textContent()).toContain('币种未提供')
+        expect(await card.textContent()).toContain('流水：0 笔')
+        expect(await card.textContent()).toContain('导出文件：')
+        expect(await card.textContent()).not.toMatch(/首个空业务页|币种未提供|coverage|pageSize|接口/)
         await card.getByRole('button').first().click()
       } else if (!scenario.endsWith('export')) await card.getByRole('button').first().click()
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journals/${scenario}-card.expected.md`, import.meta.url)), await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())

@@ -1,5 +1,4 @@
-- button "Tool call finance_prepare_voucher · prepare" [expanded]:
+- button "本地凭证预览（未创建）" [expanded]:
   - img
-  - text: Tool call finance_prepare_voucher · prepare
-- text: "IN { \"action\": \"prepare\", \"input\": { \"date\": \"2026-09-09\", \"documentMaker\": \"测试员\", \"sourcePaths\": [], \"entries\": [ { \"summary\": \"银行取现\", \"subjectCode\": \"1001\", \"side\": \"debit\", \"amount\": \"0.30\", \"auxiliary\": [] }, { \"summary\": \"银行取现\", \"subjectCode\": \"1002\", \"side\": \"credit\", \"amount\": \"0.30\", \"auxiliary\": [] } ] } } OUT {\"id\":\"{{uuid}}\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"prepare-ledger\",\"name\":\"凭证准备演示\"},\"input\":{\"date\":\"2026-09-09\",\"documentMaker\":\"测试员\",\"entries\":[{\"summary\":\"银行取现\",\"subjectCode\":\"1001\",\"side\":\"debit\",\"amount\":\"0.30\",\"auxiliary\":[]},{\"summary\":\"银行取现\",\"subjectCode\":\"1002\",\"side\":\"credit\",\"amount\":\"0.30\",\"auxiliary\":[]}],\"sourcePaths\":[]},\"totalDebit\":\"0.30\",\"totalCredit\":\"0.30\",\"references\":[{\"subject\":{\"id\":\"1001\",\"code\":\"1001\",\"name\":\"库存现金\",\"status\":\"enabled\",\"hasChildren\":false,\"auxiliaryCodes\":[],\"currencyCodes\":[]},\"auxiliary\":[]},{\"subject\":{\"id\":\"1002\",\"code\":\"1002\",\"name\":\"银行存款\",\"status\":\"enabled\",\"hasChildren\":false,\"auxiliaryCodes\":[],\"currencyCodes\":[]},\"auxiliary\":[]}],\"sources\":[],\"uploadedOriginals\":[],\"missingFields\":[\"certificateCode\"],\"notice\":\"仅本地准备，未创建有成凭证。已核对输入、返回基础资料和来源文件大小／哈希；外币按原币乘用户确认汇率逐条十进制四舍五入到分，不验证汇率选取是否恰当，也不沿用网页浮点舍入误差。可写期间仍由有成提交校验，上传关联尚未核验，未证明票据真实性。未获得写入确认，当前工具不支持提交。\"}"
-- button "Inspect"
+  - text: 本地凭证预览（未创建）
+- text: 账套：凭证准备演示 状态：已准备，等待确认 日期：2026-09-09 借方合计：0.30；贷方合计：0.30

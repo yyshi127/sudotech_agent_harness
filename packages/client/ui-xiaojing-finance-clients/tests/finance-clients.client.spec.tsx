@@ -814,7 +814,9 @@ describe('Finance client plugin composition', () => {
     expect(api.checkConnection).not.toHaveBeenCalled()
     await workspaceCategories.activateWorkspaceBadge('finance', 'finance-client' as WorkspaceId)
     expect(api.checkConnection).toHaveBeenCalledExactlyOnceWith(clientId)
-    expect(workspaceCategories.store.getSnapshot().categories[0]?.workspaceBadges?.[0]).toMatchObject({ text: '演示账套', state: 'success' })
+    expect(workspaceCategories.store.getSnapshot().categories[0]?.workspaceBadges?.[0]).toMatchObject({
+      text: '演示账套', state: 'success', brandIconSrc: '/youcheng-finance-logo.png',
+    })
     expect(connectWorkspace).not.toHaveBeenCalled()
     expect(api.stage).not.toHaveBeenCalled()
 

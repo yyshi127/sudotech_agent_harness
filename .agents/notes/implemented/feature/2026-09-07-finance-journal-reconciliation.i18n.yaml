@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-finance-journal-reconciliation.md
-2026-09-07-finance-journal-reconciliation.md: eceef3b29e99b2132808fadf3edd957ab6204a16
-2026-09-07-finance-journal-reconciliation.zh.md: 0ef9ad507fdec3ec0be392fb01161b0eb84dfa7e
+2026-09-07-finance-journal-reconciliation.md: 818d386a1d9c049e87d8c96143c641850c065d53
+2026-09-07-finance-journal-reconciliation.zh.md: e38c4cc0d9be6590a12048a8931e3ab2c1c32108

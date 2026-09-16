@@ -19,6 +19,9 @@
     - button "频道":
       - img
       - text: 频道
+    - button "附件存储":
+      - img
+      - text: 附件存储
     - button "浏览器控制":
       - img
       - text: 浏览器控制

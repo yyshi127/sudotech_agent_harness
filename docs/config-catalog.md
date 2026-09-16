@@ -3442,7 +3442,7 @@ export interface AttachmentStorageConfig {
 }
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts:142`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts:144`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
 
 <a id="deepseek-aidsh-xiaojing-finance-evidence"></a>
 

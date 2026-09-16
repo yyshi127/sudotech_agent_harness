@@ -120,9 +120,70 @@ export interface VoucherPage {
   total: number
   hasMore: boolean
   voucherCount: number
+  /** Number of vendor pages read for a complete export; absent for an ordinary page query. */
+  pagesRead?: number
   /** Scope and completeness limits accompanying every model-visible page. */
   notice: string
   rows: VoucherRow[]
+}
+
+/**
+ * Complete matching voucher rows collected from stable, count-reconciled vendor pages.
+ * @param query - Voucher filters; its page values are ignored.
+ * @param read - Authenticated reader for one validated vendor page.
+ * @param signal - Cancellation checked around every page read.
+ * @param options - Export page size and aggregate result byte cap.
+ * @returns Every unique voucher row after its count matches the stable vendor total.
+ */
+export async function collectVoucherPages(query: VoucherQuery,
+  read: (query: VoucherQuery) => Promise<VoucherPage>, signal: AbortSignal,
+  options: { pageSize: number; maxBytes: number }): Promise<VoucherPage> {
+  validateVoucherQuery({ ...query, page: 1, pageSize: options.pageSize })
+  const rows: VoucherRow[] = []
+  const voucherIds = new Set<string>()
+  let identity: { id: string; name: string } | undefined
+  let total: number | undefined
+  let bytes = 0
+  let page = 1
+  for (;;) {
+    signal.throwIfAborted()
+    const selected: VoucherQuery = { ...query, page, pageSize: options.pageSize }
+    const result = await read(selected)
+    signal.throwIfAborted()
+    if (result.page !== page || result.pageSize !== options.pageSize || result.month !== (query.month ?? '不限月份') ||
+      result.monthEnd !== query.monthEnd || result.summary !== query.summary) throw new Error('凭证导出来源与查询条件不一致。')
+    identity ??= { id: result.accountId, name: result.accountName }
+    if (identity.id !== result.accountId || identity.name !== result.accountName) throw new Error('凭证导出期间账套身份变化。')
+    total ??= result.total
+    if (total !== result.total) throw new Error('凭证导出期间接口总张数发生变化，请重新导出。')
+    bytes += Buffer.byteLength(JSON.stringify(result), 'utf8')
+    if (bytes > options.maxBytes) throw new Error('凭证完整导出超过上限，请缩小会计期间后重试。')
+    const pageIds = new Set(result.rows.map(row => row.voucherId))
+    if (pageIds.size !== result.voucherCount) throw new Error('凭证导出页的凭证数与分录不一致。')
+    for (const id of pageIds) {
+      if (voucherIds.has(id)) throw new Error('凭证导出分页包含重复凭证。')
+      voucherIds.add(id)
+    }
+    rows.push(...result.rows)
+    if (!result.hasMore) break
+    if (result.voucherCount === 0) throw new Error('凭证导出在完成前出现空页。')
+    page += 1
+  }
+  if (voucherIds.size !== total) {
+    throw new Error('凭证导出张数与接口总张数不一致，未生成不完整文件。')
+  }
+  const result: VoucherPage = {
+    accountId: identity.id, accountName: identity.name, month: query.month ?? '不限月份',
+    ...query.monthEnd === undefined ? {} : { monthEnd: query.monthEnd },
+    ...query.summary === undefined ? {} : { summary: query.summary },
+    page: 1, pageSize: options.pageSize, total, hasMore: false, voucherCount: voucherIds.size,
+    pagesRead: page, rows,
+    notice: '已从第一页开始逐页读取，并核对导出凭证张数与接口总张数；文件包含本次筛选返回的全部凭证分录。month/monthEnd 按起止会计期间传给接口，列表未返回独立会计期间，期间筛选未逐笔复核。summary 由接口筛选，精确或模糊匹配语义未核验。接口不提供原子快照，导出期间发生的数据变化仍可能导致失败或无法识别。金额保持精确文本，未推断币种或合计。',
+  }
+  if (Buffer.byteLength(JSON.stringify(result), 'utf8') > options.maxBytes) {
+    throw new Error('凭证完整导出超过上限，请缩小会计期间后重试。')
+  }
+  return result
 }
 
 /**

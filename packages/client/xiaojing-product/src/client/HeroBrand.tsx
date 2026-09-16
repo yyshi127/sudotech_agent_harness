@@ -32,11 +32,15 @@ export function HeroBrandMark({ size, className, t }: HeroBrandMarkProps): React
 }
 
 /** Render the Xiaojing product title and internal-beta badge. */
-export function HeroBrandContent({ t }: HeroBrandContentProps): ReactNode {
+export function HeroBrandContent({ t, useSessions }: HeroBrandContentProps): ReactNode {
   const version = useApplicationVersion()
+  const finance = useSessions((state) => {
+    const current = state.current
+    return current !== undefined && state.byId[current]?.agentPreset === 'finance'
+  })
   return (
     <>
-      <span className={css.title}>{t('heroTitle')}</span>
+      <span className={css.title}>{t(finance ? 'financeHeroTitle' : 'heroTitle')}</span>
       <span className={css.badge}>{t('beta')} v{version}</span>
     </>
   )

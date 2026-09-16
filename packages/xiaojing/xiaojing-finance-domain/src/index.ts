@@ -22,7 +22,8 @@ import { financeClientProjectionDefinition } from './projection.ts'
 import { FinanceConsultationWorkspaceStore } from './consultation-store.ts'
 import { FinanceClientStore, type PrepareFinanceClientCommit } from './store.ts'
 import { resolveYouchengApiUrls, YouchengConnection } from './youcheng.ts'
-import { validateVoucherId, validateVoucherQuery, type VoucherDetail, type VoucherPage, type VoucherQuery } from './vouchers.ts'
+import { collectVoucherPages, validateVoucherId, validateVoucherQuery,
+  type VoucherDetail, type VoucherPage, type VoucherQuery } from './vouchers.ts'
 import { validateVoucherPreparation, voucherPreparationRequestSchema, voucherCreateRequestSchema } from './voucher-preparation.ts'
 import { resolveVoucherReferences } from './voucher-references.ts'
 import { VoucherRecords, type PreparedVoucherId, type PreparedVoucherRecord } from './voucher-records.ts'
@@ -32,7 +33,7 @@ import type { VoucherOriginalVerificationOptions } from './voucher-originals.ts'
 import { readFinanceOriginal, financeOriginalExtension } from './original-file.ts'
 import { z } from 'zod'
 import { balanceQuerySchema, type BalanceQuery, type BalanceResult } from './balances.ts'
-import { resolveJournalQuery, type JournalQuery, type JournalResult } from './journals.ts'
+import { collectJournalPages, resolveJournalQuery, type JournalQuery, type JournalResult } from './journals.ts'
 import { journalPreparationRequestSchema, journalCreateRequestSchema, validateJournalPreparation,
   resolveJournalReferences, type JournalPreparationInput } from './journal-preparation.ts'
 import { JournalRecords, type PreparedJournalId } from './journal-records.ts'
@@ -43,7 +44,7 @@ import { MasterDataRecords, type PreparedMasterDataId, type PreparedMasterDataRe
 import { masterDataPreparationRequestSchema, masterDataCreateRequestSchema, validateMasterDataProposal } from './master-data-preparation.ts'
 import type { SubjectReadback } from './subject-submission.ts'
 import type { AuxiliaryReadback } from './master-data-submission.ts'
-import { openItemQuerySchema, type OpenItemQuery, type OpenItemResult } from './open-items.ts'
+import { collectOpenItemPages, openItemQuerySchema, type OpenItemQuery, type OpenItemResult } from './open-items.ts'
 import { openItemPreparationRequestSchema, openItemCreateRequestSchema, validateOpenItemPreparation } from './open-item-preparation.ts'
 import { OpenItemRecords, type PreparedOpenItemId } from './open-item-records.ts'
 import { OpenItemDeletionRecords, type OpenItemDeletionId } from './open-item-deletion-records.ts'
@@ -64,6 +65,7 @@ import { analyzeBalances, balanceAnalysisSchema, withBalanceReconciliation,
 import { balanceAnalysisWorkbook } from './balance-analysis-workbook.ts'
 import { journalWorkbook, openItemPageWorkbook } from './ledger-page-workbook.ts'
 import { referenceQuerySchema, type ReferenceQuery, type ReferenceResult } from './references.ts'
+import { financeApprovalReason } from './approval-presentation.ts'
 import {
   FinanceWorkspacePresentationStore,
   type FinanceWorkspacePresentationRecord,
@@ -1118,17 +1120,20 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   }
 
   /**
-   * Query and publish one explicitly bounded voucher page without ledger-wide completeness claims.
+   * Query every count-reconciled voucher page and publish the business rows as XLSX.
    * @param agent - Owning bound Finance session.
-   * @param query - Page and filters, not caller-authored accounting data.
-   * @param signal - Cancellation checked before writing and before publication starts.
-   * @returns Exact queried page and committed local file; the work copy is preserved.
+   * @param query - Filters; caller page settings do not limit the export.
+   * @param signal - Cancellation checked during reads, before writing, and before publication starts.
+   * @returns Complete count-reconciled report and committed local file; the work copy is preserved.
    */
   async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<{
     report: VoucherPage
     file: FinanceManagedFile
   }> {
-    return this.exportFinanceReport(agent, signal, stopped => this.queryVouchers(agent, query, stopped), voucherWorkbook, '凭证查询页')
+    return this.exportFinanceReport(agent, signal, stopped => this.readBoundFinance(agent, stopped,
+      (config, secret, bounded) => collectVoucherPages(query,
+        selected => this.youcheng.queryVouchers(config, secret, selected, bounded, this.voucherMaxResultBytes),
+        bounded, { pageSize: query.pageSize, maxBytes: this.voucherMaxResultBytes })), voucherWorkbook, '凭证导出')
   }
 
   /**
@@ -1146,31 +1151,40 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   }
 
   /**
-   * Query and publish one journal page, retaining its missing completeness evidence.
+   * Query journal pages through the first empty page and publish the business rows as XLSX.
    * @param agent - Owning bound Finance session.
-   * @param query - Dates, account selector and bounded page.
-   * @param signal - Cancellation checked before writing and publication.
-   * @returns Exact source report and committed workbook, with summaries separated.
+   * @param query - Dates and account selector; caller page settings do not limit the export.
+   * @param signal - Cancellation checked during reads, before writing, and before publication.
+   * @returns Collected report and committed workbook, with vendor summaries separated.
    */
   async exportJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<{
     report: JournalResult
     file: FinanceManagedFile
   }> {
-    return this.exportFinanceReport(agent, signal, stopped => this.queryJournals(agent, query, stopped), journalWorkbook, '日记账查询页')
+    return this.exportFinanceReport(agent, signal, stopped => this.readBoundFinance(agent, stopped,
+      (config, secret, bounded) => collectJournalPages(query,
+        selected => this.youcheng.queryJournals(config, secret, selected, bounded,
+          this.journalMaxRows, this.journalMaxBytes), bounded,
+        { pageSize: this.analysisPageSize, maxRows: this.journalMaxRows, maxBytes: this.journalMaxBytes })), journalWorkbook, '日记账导出')
   }
 
   /**
-   * Query and publish one raw receivable/payable page without additional aggregation.
+   * Query every count-reconciled receivable or payable page and publish the business rows as XLSX.
    * @param agent - Owning bound Finance session.
-   * @param query - Direction, periods and bounded page.
-   * @param signal - Cancellation checked before writing and publication.
-   * @returns Exact source report and committed workbook; settlement is not a bank payment claim.
+   * @param query - Direction and periods; caller page settings do not limit the export.
+   * @param signal - Cancellation checked during reads, before writing, and before publication.
+   * @returns Complete count-reconciled report and committed workbook; settlement is not a bank payment claim.
    */
   async exportOpenItemPage(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<{
     report: OpenItemResult
     file: FinanceManagedFile
   }> {
-    return this.exportFinanceReport(agent, signal, stopped => this.queryOpenItems(agent, query, stopped), openItemPageWorkbook, '往来查询页')
+    const label = query.direction === 'receivable' ? '应收导出' : '应付导出'
+    return this.exportFinanceReport(agent, signal, stopped => this.readBoundFinance(agent, stopped,
+      (config, secret, bounded) => collectOpenItemPages(query,
+        selected => this.youcheng.queryOpenItems(config, secret, selected, bounded,
+          this.openItemMaxRows, this.openItemMaxBytes), bounded,
+        { pageSize: this.analysisPageSize, maxRows: this.openItemMaxRows, maxBytes: this.openItemMaxBytes })), openItemPageWorkbook, label)
   }
 
   private async exportFinanceReport<T>(agent: Agent, signal: AbortSignal,
@@ -1335,7 +1349,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         const approval = this.ctx.get('approval')
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_master_data', signal: stopped,
-          reason: `新增有成财务基础资料，请确认以下准确版本。不会修改已有资料或历史凭证。\n${JSON.stringify(preview, null, 2)}` }) !== 'allowed-once') {
+          reason: financeApprovalReason('create-master-data', preview) }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的确认，没有发送基础资料。')
         }
         await recheck()
@@ -1404,7 +1418,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
           : { content: 'unavailable', associations: 'unavailable', balance: 'unavailable', complete: false }
         const result = { id: saved.id, version: saved.version, phase: saved.phase, account, input: saved.input,
           outcome: saved.outcome ?? { state: 'outcome-unknown' }, readback, complete: readback.complete,
-          notice: '只读核验原往来，不重发。complete仅表示记录内容、关联及初始余额的技术比较，不表示实际收付款或核销。未找到或无法核验不等于未创建；未知结果不得通过另建相同内容重试。' }
+          notice: '只读核验原往来，不重发。完成状态仅表示记录内容、关联及初始余额已完成一致性核对，不表示实际收付款或核销。未找到或无法核验不等于未创建；未知结果不得通过另建相同内容重试。' }
         if (Buffer.byteLength(JSON.stringify(result), 'utf8') > maxBytes) throw new Error('往来结果超过大小限制。')
         return result
       }
@@ -1462,7 +1476,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         const approval = this.ctx.get('approval')
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_open_item', signal: stopped,
-          reason: `新增有成财务${current.input.direction === 'receivable' ? '应收' : '应付'}，请确认以下准确版本。不会收付款、核销或生成凭证。\n${JSON.stringify(preview, null, 2)}` }) !== 'allowed-once') {
+          reason: financeApprovalReason('create-open-item', preview) }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的确认，没有发送往来。')
         }
         await recheck()
@@ -1485,7 +1499,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
         }
       }
       return { id, version: request.version, phase: outcome.state, outcome, readback, complete: readback.complete,
-        notice: '往来发送结果已保存，不会自动重发。complete仅表示本记录技术核验，不表示实际收付款或核销。结果未知或回查未完成时查看原记录，不另建同内容重试。' }
+        notice: '往来发送结果已保存，不会自动重发。完成状态仅表示本记录已完成一致性核对，不表示实际收付款或核销。结果未知或回查未完成时查看原记录，不另建同内容重试。' }
     })()
     this.activeChecks.add(pending)
     try { return await pending }
@@ -1537,7 +1551,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
           : { content: 'unavailable', associations: 'unavailable', complete: false }
         const result = { id: saved.id, version: saved.version, phase: saved.phase, account, input: saved.input,
           outcome: saved.outcome ?? { state: 'outcome-unknown' }, readback, complete: readback.complete,
-          notice: '只读核验原日记账，不重发。complete仅表示记录内容及返回关联的技术比较，不证明实际收付款。未找到或无法核验不等于未创建；结果未知须核实原操作，不得新建同内容记录重试。' }
+          notice: '只读核验原日记账，不重发。完成状态仅表示记录内容及返回关联已完成一致性核对，不证明实际收付款。未找到或无法核验不等于未创建；结果未知须核实原操作，不得新建同内容记录重试。' }
         if (Buffer.byteLength(JSON.stringify(result), 'utf8') > maxBytes) throw new Error('日记账结果超过大小限制。')
         return result
       }
@@ -1595,7 +1609,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         const approval = this.ctx.get('approval')
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_journal', signal: stopped,
-          reason: `创建有成财务日记账，需确认以下准确版本。仅记账，不生成凭证、审核、核销或执行实际收付款。\n${JSON.stringify(preview, null, 2)}` }) !== 'allowed-once') {
+          reason: financeApprovalReason('create-journal', preview) }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的确认，没有发送日记账。')
         }
         await recheck()
@@ -1619,7 +1633,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
         }
       }
       return { id, version: request.version, phase: outcome.state, outcome, readback, complete: readback.complete,
-        notice: '已保存日记账发送结果，不会自动重发。complete仅表示本记录技术核验，不证明实际收付款；本工具未调用凭证生成或审核接口。回查失败或结果未知时查看原记录，不重新准备相同记录。' }
+        notice: '已保存日记账发送结果，不会自动重发。完成状态仅表示本记录已完成一致性核对，不证明实际收付款；没有生成凭证或执行审核。回查失败或结果未知时查看原记录，不重新准备相同记录。' }
     })()
     this.activeChecks.add(pending)
     try { return await pending }
@@ -1661,7 +1675,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
         const result = { id: saved.id, version: saved.version, phase: saved.phase, account, input: saved.input,
           outcome: observed ?? { state: 'outcome-unknown' }, ...readback === undefined ? {} : { readback },
           originals: voucherOriginalSummaries(saved), complete: readback?.complete ?? false,
-          notice: '仅按原凭证ID只读回查，不重新发送。complete 仅表示本张凭证的会计数据、辅助核算、原币／汇率及所选原件技术核验，不证明票据真实、会计处理恰当或已审核过账。原件以 readback.originals 为准；pending 需等源链接到期后再查，unavailable 不等于没有附件。结果未知且没有ID时需人工核实，不推定未创建。' }
+          notice: '仅按原凭证ID只读回查，不重新发送。完成状态仅表示本张凭证的会计数据、辅助核算、原币／汇率及所选原件已完成一致性核对，不证明票据真实、会计处理恰当或已审核过账。原件状态以回查结果为准；待确认时需等源链接到期后再查，暂时无法查询不等于没有附件。结果未知且没有ID时需人工核实，不推定未创建。' }
         if (Buffer.byteLength(JSON.stringify(result), 'utf8') > limits.maxBytes) throw new Error('凭证记录超过大小限制。')
         return result
       }
@@ -1691,7 +1705,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const preview = { account, input: prepared.input, totalDebit: prepared.totalDebit, totalCredit: prepared.totalCredit,
         references: references.entries, sources, uploadedOriginals: voucherOriginalSummaries(saved),
         missingFields: prepared.input.certificateCode === undefined ? ['certificateCode'] : [],
-        notice: '仅本地准备，未创建有成凭证。已核对输入、返回基础资料和来源文件大小／哈希；外币按原币乘用户确认汇率逐条十进制四舍五入到分，不验证汇率选取是否恰当，也不沿用网页浮点舍入误差。可写期间仍由有成提交校验，上传关联尚未核验，未证明票据真实性。未获得写入确认，当前工具不支持提交。' }
+        notice: '仅本地准备，未创建有成凭证。已核对输入、基础资料和所选来源文件；外币按原币乘用户确认汇率逐条四舍五入到分，不验证汇率选取是否恰当。可写期间仍由有成提交校验，上传关联尚未核验，未证明票据真实性。尚未获得本次创建确认。' }
       if (Buffer.byteLength(JSON.stringify(preview), 'utf8') > limits.maxBytes) throw new Error('凭证预览超过大小限制。')
       stopped.throwIfAborted()
       const record = request.action === 'prepare' ? await records.create(prepared.input, configurationDigest)
@@ -1758,8 +1772,8 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       await assertUnchanged()
       const reserved = await records.reserve(id, request.version, current.configurationDigest, async () => {
         const approval = this.ctx.get('approval')
-        const reason = `创建有成财务凭证，需确认以下准确版本。仅创建，不审核、过账、结账或付款。日期所属期间由有成写入校验，尚未独立证明可写；返回ID后仍需回查。\n${JSON.stringify(preview, null, 2)}`
-          + (storage === undefined ? '' : `\n原件将上传到以下 OSS 目标并以临时链接传给有成；上传文件会保留，但上传成功不等于有成已转存。\n${JSON.stringify(storage.config)}`)
+        const reason = financeApprovalReason('create-voucher', preview,
+          { attachmentsWillUpload: storage !== undefined })
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_voucher', reason, signal: stopped }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的创建确认，没有发送凭证。')
         }
@@ -1821,7 +1835,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       }
       return { id, version: request.version, phase: outcome.state, outcome, readback,
         originals: voucherOriginalSummaries(reserved), complete: readback.complete,
-        notice: '已保存发送结果，不会自动重发；回查失败不等于未创建。complete 仅表示本张凭证的会计数据、辅助核算、原币／汇率及所选原件技术核验，不证明票据真实、会计处理恰当或已审核过账。原件以 readback.originals 为准；pending 需等源链接到期后按原记录ID再查，unavailable 不等于没有附件。不要重新准备相同凭证。' }
+        notice: '已保存发送结果，不会自动重发；回查失败不等于未创建。完成状态仅表示本张凭证的会计数据、辅助核算、原币／汇率及所选原件已完成一致性核对，不证明票据真实、会计处理恰当或已审核过账。原件状态以回查结果为准；待确认时需等源链接到期后按原记录ID再查，暂时无法查询不等于没有附件。不要重新准备相同凭证。' }
     })()
     this.activeChecks.add(pending)
     try { return await pending }
@@ -1936,7 +1950,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         await fresh()
         const approval = this.ctx.get('approval')
-        const reason = `删除指定有成财务凭证，本地准备记录 ${id}，需确认准确版本 ${request.version}。凭证和分录将被移除，不联动删除其他业务，不执行实际收付款；不提供自动撤销。${VOUCHER_DELETION_ATTACHMENT_NOTICE}\n${current.previewJson}`
+        const reason = financeApprovalReason('delete-voucher', current.previewJson)
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_delete_voucher', reason,
           signal: stopped }) !== 'allowed-once') throw new Error('未获得本次准确版本的删除确认，没有发送。')
         await fresh()
@@ -2072,7 +2086,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         await fresh()
         const approval = this.ctx.get('approval')
-        const reason = `删除指定日记账，本地准备记录 ${id}，确认版本 ${request.version}；仅移除此流水并影响账户记录余额，不联动删除凭证或往来，不执行实际收付款，不提供自动撤销。回查仅覆盖原账户和月份。\n${JSON.stringify(before.target)}`
+        const reason = financeApprovalReason('delete-journal', before.target)
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_delete_journal', reason,
           signal: stopped }) !== 'allowed-once') throw new Error('未获得本次准确版本的日记账删除确认，没有发送。')
         await fresh()
@@ -2315,10 +2329,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
         if (JSON.stringify(preview) !== JSON.stringify(record)) throw new Error('应收应付删除预览已变化，请重新确认。')
         await fresh()
         const approval = this.ctx.get('approval')
-        const direction = before.selection.direction === 'receivable' ? '应收' : '应付'
-        const reason = `删除指定${direction}记录，确认版本 ${request.version}。已检查公开列表返回的状态、金额、附件、凭证、订单及核销金额；审核状态、记录来源和完整关联影响仍未核实。有成提示删除可能连带移除关联对冲、核销或收入记录。仅发送一次，结果未知不得重发；回查仅覆盖原方向和期间。\n${JSON.stringify({ id, version: request.version,
-          accountId: before.accountId, accountName: before.accountName, selection: before.selection, target,
-          unverified: target.unverified })}`
+        const reason = financeApprovalReason('delete-open-item', target)
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_delete_open_item', reason,
           signal: stopped }) !== 'allowed-once') throw new Error('未获得本次准确版本的应收应付删除确认，没有发送。')
         await fresh()
@@ -2391,12 +2402,12 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
         if (JSON.stringify(preview) !== JSON.stringify(record)) throw new Error('核销预览已变化，请重新确认。')
         approvedCash = await fresh()
         const approval = this.ctx.get('approval')
-        const reason = `确认整笔${before.input.direction === 'receivable' ? '应收' : '应付'}核销，版本 ${request.version}。记录已收已付并生成资金流水，不发起银行收付款，不自动处理其他关联，不提供反核销。期间锁定状态未提供，不能保证可记账；重查不构成外部并发锁。\n${JSON.stringify({ id, version: request.version,
-          accountId: before.source.accountId, accountName: before.source.accountName, input: before.input,
-          businessAccountId: before.businessAccountId,
+        const reason = financeApprovalReason('write-off-open-item', {
+          accountName: before.source.accountName, input: before.input,
           target: selectOpenItemWriteOffTarget(before.input, before.source,
             { id: before.source.accountId, name: before.source.accountName }),
-          cash: approvedCash })}`
+          cash: approvedCash,
+        })
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_write_off_open_item', reason,
           signal: stopped }) !== 'allowed-once') throw new Error('未获得本次准确版本的核销确认，没有发送。')
         if (JSON.stringify(await fresh()) !== JSON.stringify(approvedCash)) throw new Error('资金科目配置已变化，请重新预览确认。')

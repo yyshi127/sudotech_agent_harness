@@ -22,6 +22,10 @@
       "types": "./lib/types/context.d.ts",
       "default": "./lib/context.js"
     },
+    "./capabilities": {
+      "types": "./lib/types/capabilities.d.ts",
+      "default": "./lib/capabilities.js"
+    },
     "./files-tool": {
       "types": "./lib/types/files-tool.d.ts",
       "default": "./lib/files-tool.js"
@@ -113,6 +117,7 @@
     "lib/index.js",
     "lib/invariant.js",
     "lib/context.js",
+    "lib/capabilities.js",
     "lib/files-tool.js",
     "lib/vouchers-tool.js",
     "lib/balances-tool.js",

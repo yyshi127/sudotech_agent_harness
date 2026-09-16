@@ -179,7 +179,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
             await expect.poll(() => panel.getAttribute('data-approval-key')).not.toBe(previousKey)
             previousKey = await panel.getAttribute('data-approval-key')
             const text = await panel.textContent()
-            for (const value of ['核销演示账套', '版本 2', '0.19', String(openItemId), '期间锁定状态未提供']) expect(text).toContain(value)
+            for (const value of ['核销演示账套', '0.19', '测试往来单位', '库存现金',
+              direction === 'receivable' ? '应收' : '应付']) expect(text).toContain(value)
+            expect(text).not.toMatch(new RegExp(`${openItemId}|版本 2|期间锁定状态未提供|"version"`))
             expect(writes).toBe(0)
             if (approvals === 0) await compareOrRefreshGolden(fileURLToPath(new URL(
               `./snapshots/finance-open-item-write-off/${scenario}-approval.expected.md`, import.meta.url)),
@@ -206,7 +208,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
           expect(await records.read(adapter.operationId as OpenItemWriteOffId)).toMatchObject({ version: 2,
             phase: preflightFailed ? 'not-sent' : lost ? 'outcome-unknown' : 'accepted' })
           if (preflightFailed) expect(JSON.parse(text.text)).toMatchObject({ outcome: {
-            state: 'not-sent', reason: 'preflight-failed', preflightStage: 'source-read' } })
+            state: 'not-sent', reason: 'preflight-failed' } })
           expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest|ownerDigest/)
           await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-write-off/${scenario}-results.expected.md`,
             import.meta.url)), JSON.stringify(results, null, 2).replaceAll(adapter.operationId, '<write-off-id>'), webSnapshotMode())
@@ -235,8 +237,16 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
             input: { direction, date: '2022-01-10' }, source: { rows: [{ balance: '0.19' }] } } })
         if (accepted) expect(await records.read(adapter.operationId as OpenItemWriteOffId))
           .toMatchObject({ outcome: { state: 'accepted', receiptId } })
-        await page.getByText('finance_prepare_open_item_write_off · prepare', { exact: true }).click()
-        await expect.poll(() => page.locator('body').innerText()).toContain('资金账户的本位币科目配置尚未核实')
+        const cardSelector = '[data-chat-call-id="write-off-2"]'
+        const card = page.locator(cardSelector)
+        await card.waitFor()
+        await card.getByRole('button').first().click()
+        await expect.poll(() => card.textContent()).toContain('当前条件不足，未执行')
+        expect(await card.textContent()).toContain(direction === 'receivable' ? '业务类型：应收' : '业务类型：应付')
+        expect(await card.textContent()).toContain('资金账户的本位币科目配置尚未核实，不能执行核销')
+        expect(await card.textContent()).not.toMatch(/unverified|sourceQuery|fingerprint|版本/)
+        await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-write-off/${scenario}-card.expected.md`,
+          import.meta.url)), await captureStableAria(page, cardSelector, scaffold.workspaceCwd), webSnapshotMode())
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-write-off/${scenario}-results.expected.md`,
           import.meta.url)), JSON.stringify(results, null, 2).replaceAll(adapter.operationId, '<write-off-id>'), webSnapshotMode())
       } finally { await page.close(); await handle.dispose() }

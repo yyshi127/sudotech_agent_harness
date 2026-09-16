@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { CallId } from '@deepseek-ai/dsh-llm'
-import SystemPrompt, { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
+import SystemPrompt, { PERSONA_SECTION, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import * as XiaojingProduct from '../src/index.ts'
-import { deletionApprovalReason, XIAOJING_PERSONA } from '../src/index.ts'
+import { deletionApprovalReason, XIAOJING_PERSONA, XIAOJING_RESPONSE_POLICY } from '../src/index.ts'
 
 async function mountedProduct(): Promise<Context> {
   const ctx = new Context()
@@ -72,6 +72,20 @@ describe('Xiaojing product persona', () => {
     await ctx.fiber.dispose()
   })
 
+  it('keeps internal execution evidence out of every Xiaojing final answer', async () => {
+    const ctx = await mountedProduct()
+
+    const policy = (await ctx.systemPrompt.assemble()).sections
+      .find(section => section.name === 'xiaojing:business-facing-responses')?.text
+    expect(policy).toBe(XIAOJING_RESPONSE_POLICY)
+    expect(policy).toContain('Treat it as internal working context')
+    expect(policy).toContain('Translate internal lifecycle states')
+    expect(policy).toContain('do not narrate failed attempts')
+    expect(policy).toContain('do not expose internal error codes')
+    expect(policy).toContain('Do not append checksums, byte sizes')
+    await ctx.fiber.dispose()
+  })
+
   it('leaves an explicitly configured persona unchanged', async () => {
     const ctx = new Context()
     await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false, persona: 'User-selected persona.' }).await()
@@ -79,7 +93,9 @@ describe('Xiaojing product persona', () => {
     await ctx.plugin(ApprovalService, { policy: 'never' }).await()
     await ctx.plugin(XiaojingProduct).await()
 
-    expect(renderPrompt(await ctx.systemPrompt.assemble())).toBe('User-selected persona.')
+    const assembled = await ctx.systemPrompt.assemble()
+    expect(assembled.sections.find(section => section.name === PERSONA_SECTION)?.text).toBe('User-selected persona.')
+    expect(renderPrompt(assembled)).toContain(XIAOJING_RESPONSE_POLICY)
     await ctx.fiber.dispose()
   })
 })

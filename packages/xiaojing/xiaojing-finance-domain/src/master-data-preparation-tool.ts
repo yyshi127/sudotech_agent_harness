@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { masterDataPreparationRequestSchema, masterDataCreateRequestSchema, validateMasterDataProposal } from './master-data-preparation.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-master-data-preparation-tool'
@@ -51,27 +53,32 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中准备基础资料。')
+      const agent = exec.agent
       const { kind, input, ...command } = preparationCommand.parse(args)
       const request = masterDataPreparationRequestSchema.parse(args.action === 'inspect' ? args
         : { ...command, proposal: { kind, input } })
       if (request.action !== 'inspect') validateMasterDataProposal(request.proposal, config.maxBytes)
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareMasterData(exec.agent, request, exec.signal, config.maxBytes))
+      return financeModelJson(await financeModelCall(() =>
+        ctx.xiaojingFinanceDomain.prepareMasterData(agent, request, exec.signal, config.maxBytes)))
     },
-    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看基础资料记录' : '准备基础资料预览', kind: 'other', rawInput: args }),
+    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看基础资料记录' : '准备基础资料预览', kind: 'other' }),
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '基础资料操作未完成'
-      : args.action === 'inspect' ? '基础资料记录与回查' : '基础资料预览（未创建）', content: result.content }),
+      : args.action === 'inspect' ? '基础资料记录与回查' : '基础资料预览（未创建）',
+    content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_create_master_data',
-    description: '仅在用户要求新增科目或辅助项目时提交finance_prepare_master_data返回的准确id/version。系统强制确认完整版本，聊天中的同意不能绕过。accepted只表示接口接收，不含新建ID，必须分别报告readback和complete；辅助启用状态未提供，不能宣称全面核验。未知结果只inspect原记录，不重发，不换编码或会话规避防重复；不修改历史资料或凭证。',
+    description: '仅在用户要求新增科目或辅助项目时提交finance_prepare_master_data返回的准确id/version。系统强制确认完整版本，聊天中的同意不能绕过。接口接收不等于新增内容已完成核验，须依据独立回查给出业务结论；辅助启用状态未提供，不能宣称全面核验。未知结果只inspect原记录，不重发，不换编码或会话规避防重复；不修改历史资料或凭证。',
     parameters: { id: { type: 'string', required: true }, version: { type: 'integer', required: true } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中创建基础资料。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.createMasterData(exec.agent,
-        masterDataCreateRequestSchema.parse(args), exec.signal, config.maxBytes))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain.createMasterData(agent,
+        masterDataCreateRequestSchema.parse(args), exec.signal, config.maxBytes)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并创建基础资料', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '基础资料创建未完成' : '基础资料提交与核验状态', content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并创建基础资料', kind: 'other' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '基础资料创建未完成' : '基础资料创建结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

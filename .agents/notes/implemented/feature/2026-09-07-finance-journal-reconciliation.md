@@ -20,7 +20,7 @@ The [journal analysis](../../../../packages/xiaojing/xiaojing-finance-domain/src
 
 The result names its evidence `empty-page-and-totals-reconciled`, retains source IDs and missing-value counts, and excludes historical balance and cross-source accounting conclusions. A matching sum does not establish every missing opposite-side amount as zero. Empty periods with missing total fields fail; explicit zero totals can be reconciled against an empty returned set. Pagination and aggregate agreement do not establish a vendor count or atomic snapshot.
 
-The existing journal consumer exposes analysis and optional Excel publication. Host lifecycle checks reject changes to the bound client or credentials. One deadline and deployment row/byte caps bound collection; each page uses the existing authenticated account-validated query. Workbooks preserve the exact report, source nulls, comparison direction and hashes as text cells. Failed reconciliation never publishes a file.
+The existing journal consumer exposes analysis and optional Excel publication. Host lifecycle checks reject changes to the bound client or credentials. One deadline and deployment row/byte caps bound collection; each page uses the existing authenticated account-validated query. Workbooks preserve the exact report, source nulls and comparison direction as text cells, open on reconciliation data, and put ordinary export notes last without exposing endpoint names or technical digests. Failed reconciliation never publishes a file.
 
 ## Alternatives considered
 

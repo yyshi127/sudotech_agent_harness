@@ -74,7 +74,6 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
     for (const scenario of ['accepted', 'lost', 'changed-confirmation', 'attached'] as const) {
       const changedConfirmation = scenario === 'changed-confirmation'
       const attached = scenario === 'attached'
-      const attachmentNotice = '本操作不清理原OSS文件；凭证删除不证明有成转存附件已清除，也不保证附件长期保留。'
       const voucherId = scenario === 'accepted' ? '123' : scenario === 'lost' ? '124' : attached ? '126' : '125'
       const adapter = new DeletionAdapter(voucherId, changedConfirmation)
       const provider = `voucher-delete-${scenario}`
@@ -153,8 +152,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
           previousKey = await panel.getAttribute('data-approval-key')
           const text = await panel.textContent()
           if (confirmation.detailed) {
-            for (const value of ['删除演示账套', '准确版本 2', '0.01', voucherId]) expect(text).toContain(value)
-            expect(text).toContain(attachmentNotice)
+            for (const value of ['删除演示账套', '记-40', '2022-01-01', '2 行']) expect(text).toContain(value)
+            expect(text).not.toMatch(new RegExp(`${voucherId}|准确版本|"version"`))
+            expect(text).toContain('原 OSS 文件不会随凭证删除')
           } else expect(text).toContain('删除操作必须进行本次二次确认')
           expect(writes).toBe(approvals === 5 ? 1 : 0)
           if (approvals === 2) await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-voucher-deletion/${scenario}-approval.expected.md`,
@@ -185,7 +185,6 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
         } else {
           expect(JSON.stringify(results[5])).toContain('发送记录')
           expect(JSON.stringify(results[6])).toContain('absent')
-          for (const index of [0, 1, 4, 6]) expect(JSON.stringify(results[index])).toContain(attachmentNotice)
         }
         expect(JSON.stringify(results)).not.toMatch(
           /snapshot-key|snapshot-secret|snapshot-token|configurationDigest|original\.invalid|vendor\.invalid/)

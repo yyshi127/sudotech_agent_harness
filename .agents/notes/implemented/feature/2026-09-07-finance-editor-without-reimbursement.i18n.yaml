@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-finance-editor-without-reimbursement.md
-2026-09-07-finance-editor-without-reimbursement.md: f0ae673c4b2f4f4a627cfd48bc06c220b22e970e
-2026-09-07-finance-editor-without-reimbursement.zh.md: 3e2091ddc211c4de30cd7404c0755c546b674d70
+2026-09-07-finance-editor-without-reimbursement.md: af8bb0e16d77e8b91f517374eb247e0adcb2ca54
+2026-09-07-finance-editor-without-reimbursement.zh.md: e747e3e871f05ab687522d49e84208d8d2c3eace

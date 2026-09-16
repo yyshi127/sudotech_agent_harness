@@ -157,15 +157,18 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data preview
           await panel.waitFor()
           await expect.poll(() => panel.getAttribute('data-approval-key')).not.toBe(previousKey)
           previousKey = await panel.getAttribute('data-approval-key')
-          for (const value of ['基础资料演示账套', '"version": 2', kind, '修改后测试']) expect(await panel.textContent()).toContain(value)
+          const approvalText = await panel.textContent()
+          for (const value of ['基础资料演示账套', kind === 'subject' ? '会计科目' : '辅助核算项目', '修改后测试']) {
+            expect(approvalText).toContain(value)
+          }
           if (adapter.root) {
-            expect(await panel.textContent()).toContain('"parentCode": null')
-            expect(await panel.textContent()).toContain('new-root')
+            expect(approvalText).toContain('一级科目')
+            expect(approvalText).toContain('1099')
           }
           if (adapter.accounting !== undefined) {
-            expect(await panel.textContent()).toContain('accounting')
-            expect(await panel.textContent()).toContain(adapter.accounting === 'currency' ? 'USD' : '473815')
+            expect(approvalText).toContain(adapter.accounting === 'currency' ? '外币核算：美元（USD）' : '辅助核算：供应商')
           }
+          expect(approvalText).not.toMatch(/"version"|"proposal"|"references"|prepared-id|snapshot-key|snapshot-secret/)
           expect(writes).toBe(0)
           expect(await records().read(adapter.preparedId as PreparedMasterDataId)).toMatchObject({ phase: 'prepared', version: 2 })
           if (approvals === 0 && kind === 'subject') {
@@ -200,7 +203,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data preview
         const card = page.locator(selector)
         await card.waitFor()
         await card.getByRole('button').first().click()
-        await expect.poll(() => card.textContent()).toContain(durable.phase)
+        await expect.poll(() => card.textContent()).toContain(kind === 'subject' ? '已完成并核对' : '结果待确认')
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-master-data-preparation/${scenario}-result-card.expected.md`, import.meta.url)),
           normalize(await captureStableAria(page, selector, scaffold.workspaceCwd)), webSnapshotMode())
         outputs.push({ kind, ...adapter.root ? { root: true } : {},

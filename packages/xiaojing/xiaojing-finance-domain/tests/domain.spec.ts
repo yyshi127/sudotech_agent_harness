@@ -321,9 +321,10 @@ describe('saved Youcheng binding verification', () => {
       }))
       const approval = vi.fn(async (request: { toolName: string; reason: string }) => {
         expect(request.toolName).toBe('finance_write_off_open_item')
-        expect(request.reason).toContain('期间锁定状态未提供')
-        expect(request.reason).toContain(String(raw.id))
-        expect(request.reason).not.toMatch(/fake-key|fake-secret|fake-token/)
+        for (const value of [direction === 'receivable' ? '应收' : '应付', '测试客户', '0.19', '库存现金']) {
+          expect(request.reason).toContain(value)
+        }
+        expect(request.reason).not.toMatch(new RegExp(`${raw.id}|期间锁定状态未提供|fake-key|fake-secret|fake-token`))
         if (mode === 'denied') return 'denied' as const
         if (mode === 'target-changed') raw.abstractStr = '已被他人修改'
         if (mode === 'subject-changed') subject.subjectName = '改名现金'
@@ -667,8 +668,9 @@ describe('saved Youcheng binding verification', () => {
         }))
         const approval = vi.fn(async (request: { toolName: string; reason: string }) => {
           expect(request.toolName).toBe('finance_delete_open_item')
-          for (const value of ['确认版本 1', '72604', direction === 'receivable' ? '应收' : '应付',
-            '可能连带移除关联对冲、核销或收入记录']) expect(request.reason).toContain(value)
+          for (const value of [direction === 'receivable' ? '应收' : '应付', '测试往来单位', '0.01',
+            '可能连带影响关联对冲、核销或收入记录']) expect(request.reason).toContain(value)
+          expect(request.reason).not.toMatch(/确认版本|72604|"version"/)
           approved = true
           return 'allowed-once'
         })
@@ -759,9 +761,8 @@ describe('saved Youcheng binding verification', () => {
           { id: preview.id, version: 1, approved: true }, controller.signal, limits)).rejects.toThrow()
         const approval = vi.fn(async (request: { toolName: string; reason: string }) => {
           expect(request.toolName).toBe('finance_delete_journal')
-          expect(request.reason).toContain(preview.id)
-          expect(request.reason).toContain('0.01')
-          expect(request.reason).toContain('123')
+          for (const value of ['库存现金', '删除测试', '0.01']) expect(request.reason).toContain(value)
+          expect(request.reason).not.toMatch(new RegExp(`${preview.id}|"version"|"id"`))
           approved = true
           if (mode === 'changed') changed = true
           if (mode === 'stale-version') await ctx.xiaojingFinanceDomain.prepareJournalDeletion(finance,
@@ -853,9 +854,8 @@ describe('saved Youcheng binding verification', () => {
         if (!('id' in preview)) throw new Error('Missing deletion ID')
         const approval = vi.fn(async (request: { toolName: string; reason: string }) => {
           expect(request.toolName).toBe('finance_delete_voucher')
-          expect(request.reason).toContain(preview.id)
-          expect(request.reason).toContain('0.01')
-          expect(request.reason).toContain('123')
+          for (const value of ['记-40', '2022-01-01', '2 行']) expect(request.reason).toContain(value)
+          expect(request.reason).not.toMatch(new RegExp(`${preview.id}|"version"|"certificateId"`))
           approved = true
           if (mode === 'changed') modified = '2026-09-11'
           if (mode === 'stale-version') await ctx.xiaojingFinanceDomain.prepareVoucherDeletion(finance,
@@ -1249,7 +1249,9 @@ describe('XiaojingFinanceDomain', () => {
       expect(writes).toBe(0)
       const approval = vi.fn(async (request: { toolName: string; reason: string }) => {
         expect(request.toolName).toBe('finance_create_open_item')
-        for (const value of ['演示账套', '0.05', '不是完整账户目录', '70000', '"version": 1']) expect(request.reason).toContain(value)
+        for (const value of ['演示账套', '0.05', payable ? '供应商：往来测试' : '客户：往来测试',
+          payable ? '应付账款' : '应收账款']) expect(request.reason).toContain(value)
+        expect(request.reason).not.toMatch(/不是完整账户目录|70000|"version"/)
         approved = true
         if (mode === 'account-changed') status = 1
         if (mode === 'source-changed') sourceId = 70001
@@ -1407,6 +1409,9 @@ describe('XiaojingFinanceDomain', () => {
       expect(rules[0]?.text).toContain('名称相同不证明账户与科目对应')
       expect(rules[0]?.text).toContain('不代表所有期初余额缺失')
       expect(rules[0]?.text).toContain('不能调用报销模块的users/staff接口来核实财务成员')
+      expect(rules[0]?.text).toContain('最终回答、表格和文件先给业务结果与实际数据')
+      expect(rules[0]?.text).toContain('不展示工具名、接口路径、参数名、原始 JSON、内部记录 ID、版本号、哈希、指纹、分页字段或英文状态码')
+      expect(rules[0]?.text).toContain('展示层精简不得改变金额、范围、执行状态或风险判断')
       for (const context of [{}, { agent: agent(ctx, 'read-standard', 'standard', standardRoot) }, { agent: agent(ctx, 'read-consult', 'finance', standardRoot) }]) {
         expect((await ctx.systemPrompt.assemble(context)).sections.some(section => section.name === 'xiaojing:finance-read-evidence')).toBe(false)
       }
@@ -1415,25 +1420,34 @@ describe('XiaojingFinanceDomain', () => {
     } finally { await dispose() }
   })
 
-  it('contributes current reimbursement rules only for bound Finance sessions and removes them on disposal', async () => {
+  it('contributes the capability inventory only to Finance sessions and removes it on disposal', async () => {
     const { ctx, financeRoot, standardRoot, dispose } = await mounted()
     try {
       await ctx.plugin(SystemPrompt).await()
       const consumer = ctx.plugin(financeContext)
       await consumer.await()
-      const created = await createClient(ctx, financeRoot, 0, '报销上下文', '上海')
-      const finance = agent(ctx, 'reimbursement-context', 'finance', created.client.workspacePath)
+      const created = await createClient(ctx, financeRoot, 0, '能力上下文', '上海')
+      const finance = agent(ctx, 'capability-context', 'finance', created.client.workspacePath)
       await ctx.xiaojingFinanceDomain.stage(finance, { mode: 'client', clientId: created.client.id })
       const assembly = await ctx.systemPrompt.assemble({ agent: finance })
-      const rules = assembly.contexts.find(section => section.name === 'xiaojing:reimbursement')
-      expect(rules?.text).toContain('模板查询未列出 attachment 不代表不能带附件')
-      expect(rules?.text).toContain('先用 status 回查')
+      const rules = assembly.sections.find(section => section.name === 'xiaojing:finance-capabilities')
+      expect(rules?.text).toContain('当前会话已绑定客户档案')
+      expect(rules?.text).toContain('小兢会计，您的AI财务助手')
+      expect(rules?.text).toContain('不得在一般介绍中主动逐项展开')
+      expect(rules?.text).toContain('[暂不支持] 报销业务（适用范围：当前财务工作区）')
+      expect(rules?.text).toContain('[暂不支持] 六类原生账簿与报表（适用范围：当前有成财务接入）')
+      expect(rules?.text).toContain('支持状态只适用于条目标明的范围')
       expect(assembly.contexts.some(section => section.name === 'xiaojing:finance-client')).toBe(true)
-      for (const context of [{}, { agent: agent(ctx, 'context-standard', 'standard', standardRoot) }, { agent: agent(ctx, 'context-consult', 'finance', standardRoot) }]) {
-        expect((await ctx.systemPrompt.assemble(context)).contexts.some(section => section.name === 'xiaojing:reimbursement')).toBe(false)
-      }
+      const consultation = await ctx.systemPrompt.assemble({ agent: agent(ctx, 'context-consult', 'finance', standardRoot) })
+      expect(consultation.sections.find(section => section.name === 'xiaojing:finance-capabilities')?.text)
+        .toContain('当前会话是通用财务咨询，未绑定客户')
+      for (const context of [{}, { agent: agent(ctx, 'context-standard', 'standard', standardRoot) }])
+        expect((await ctx.systemPrompt.assemble(context)).sections.some(section => section.name === 'xiaojing:finance-capabilities')).toBe(false)
+      expect(assembly.contexts.some(section => section.name === 'xiaojing:reimbursement')).toBe(false)
       await consumer.dispose()
       expect((await ctx.systemPrompt.assemble({ agent: finance })).contexts).toEqual([])
+      expect((await ctx.systemPrompt.assemble({ agent: finance })).sections
+        .some(section => section.name === 'xiaojing:finance-capabilities')).toBe(false)
     } finally { await dispose() }
   })
 

@@ -85,11 +85,15 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     if (agent === undefined) throw new Error(`the settled Web agent ${settledSessionId} is no longer live`)
     const system = agent.session.requestHeader()?.system
     if (system === undefined) throw new Error('the settled Web request has no system prompt')
-    const prefix = system.split('\n\n').slice(0, 4).join('\n\n')
+    const normalized = system
       .split(REPO_ROOT).join('{{sourceRoot}}')
       .split(join(scaffold.workspaceCwd, 'workspace')).join('{{cwd}}')
       .split(scaffold.baseUrl).join('{{webUrl}}')
-    await compareOrRefreshGolden(SYSTEM_PROMPT_EXPECTED, prefix, MODE)
+    const prefix = normalized.split('\n\n').slice(0, 4).join('\n\n')
+    const responsePolicy = normalized.split('\n\n')
+      .find(section => section.startsWith('User-facing response rules:'))
+    if (responsePolicy === undefined) throw new Error('the assembled prompt has no Xiaojing response policy')
+    await compareOrRefreshGolden(SYSTEM_PROMPT_EXPECTED, `${prefix}\n\n${responsePolicy}`, MODE)
   })
 
   it('exposes the assembled Web URL to the real bash tool', async () => {

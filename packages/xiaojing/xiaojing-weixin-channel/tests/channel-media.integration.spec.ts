@@ -548,6 +548,9 @@ describe('Xiaojing Weixin media assembly', () => {
         signal: new AbortController().signal,
       } as unknown as ToolRunContext)
       expect(result).toMatchObject({ sent: true, name: '月报.pdf', kind: 'file' })
+      const content = sendTool.output.render({ file_path: filePath }, result as never)
+      expect(content).toEqual([{ type: 'text', text: '文件已发送：月报.pdf' }])
+      expect(JSON.stringify(content)).not.toContain('bytes')
       emit('session/event', agent.session, {
         type: 'assistant/message', seq: 1, time: Date.now(),
         data: { turn: 1, message: { role: 'assistant', content: [{ type: 'text', text: '月报已经发送。' }] } },

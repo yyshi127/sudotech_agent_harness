@@ -15,6 +15,7 @@ import {
   FinanceManagedFileId,
   type FinanceClientBinding,
 } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
+import { FINANCE_CAPABILITIES } from '@deepseek-ai/dsh-xiaojing-finance-domain/capabilities'
 import {
   provisionFinanceClientWorkspace,
   resolveFinanceClientWorkspace,
@@ -221,6 +222,8 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
     ])
     const contextA = assemblyA.contexts.find(context => context.name === 'xiaojing:finance-client')?.text ?? ''
     const contextB = assemblyB.contexts.find(context => context.name === 'xiaojing:finance-client')?.text ?? ''
+    const capabilitiesA = assemblyA.sections.find(section => section.name === 'xiaojing:finance-capabilities')?.text ?? ''
+    const capabilitiesB = assemblyB.sections.find(section => section.name === 'xiaojing:finance-capabilities')?.text ?? ''
     const [listA, listB, readA, readB] = await Promise.all([
       executeChecked(ctx, clientA.agent, 'finance-stage1-list-a', 'finance_document', { action: 'list' }),
       executeChecked(ctx, clientB.agent, 'finance-stage1-list-b', 'finance_document', { action: 'list' }),
@@ -272,11 +275,27 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
     ])
     const financeOnlyTools = financeTools.filter(name => !standardTools.includes(name))
     const financeOnlySkills = financeSkills.filter(name => !standardSkills.includes(name)).sort()
+    const inventoriedTools = [...new Set(FINANCE_CAPABILITIES.flatMap(capability => capability.toolNames))].sort()
     const acceptance = {
+      capabilityContext: capabilitiesA,
       capabilityParity: {
         financeOnlyTools,
         financeOnlySkills,
         standardHasFinanceTools: standardTools.some(name => name.startsWith('finance_')),
+      },
+      capabilityGuidance: {
+        bothClientsReceiveSameInventory: capabilitiesA === capabilitiesB,
+        bindingDoesNotClaimConnection: capabilitiesA.includes('绑定只确认客户身份，不证明有成连接、权限或接口此刻可用'),
+        genericIntroductionUsesPositioning: capabilitiesA.includes('对外定位概述（用于一般能力介绍）')
+          && capabilitiesA.includes('小兢会计，您的AI财务助手')
+          && capabilitiesA.includes('不得主动罗列详细支持状态、接口限制、内部工具或六类原生报表等具体缺口'),
+        reportsRemainConnectorScoped: capabilitiesA.includes('[暂不支持] 六类原生账簿与报表（适用范围：当前有成财务接入）')
+          && capabilitiesA.includes('这不限制小兢会计基于用户提供的可靠资料进行分析或生成成果'),
+        registeredToolsMatchInventory: JSON.stringify(financeOnlyTools) === JSON.stringify(inventoriedTools),
+        reimbursementIsExcluded: capabilitiesA.includes('[暂不支持] 报销业务（适用范围：当前财务工作区）')
+          && !financeTools.includes('finance_reimbursement')
+          && !financeSkills.includes('finance-reimbursement'),
+        sourceOfTruthIsExplicit: capabilitiesA.includes('回答产品能力问题的唯一真源'),
       },
       clientIsolation: {
         clientAHasOnlyOwnContext: contextA.includes('甲方科技有限公司') && !contextA.includes('乙方商贸有限公司'),
@@ -301,10 +320,8 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
       },
     }
     const passed = !acceptance.capabilityParity.standardHasFinanceTools
-      && JSON.stringify(acceptance.capabilityParity.financeOnlyTools) === JSON.stringify([
-        'finance_attachment_upload', 'finance_calculation', 'finance_document', 'finance_evidence', 'finance_files', 'finance_reimbursement', 'finance_vouchers',
-      ])
-      && acceptance.capabilityParity.financeOnlySkills.length === 6
+      && acceptance.capabilityParity.financeOnlySkills.length === 5
+      && Object.values(acceptance.capabilityGuidance).every(Boolean)
       && Object.values(acceptance.clientIsolation).every(Boolean)
       && acceptance.documentTraceability.separateStoragePaths
       && acceptance.documentTraceability.clientAReadHasSourceLocation

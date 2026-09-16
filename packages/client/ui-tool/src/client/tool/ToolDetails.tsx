@@ -5,7 +5,7 @@ import { diffCardModel } from './models/diff-card-model.ts'
 import { readCardModel } from './models/read-card-model.ts'
 import { searchCardModel } from './models/search-card-model.ts'
 import { terminalBlockLabels, terminalCardModel } from './models/terminal-card-model.ts'
-import { resultText } from './models/tool-call-model.ts'
+import { displayedResultText, resultText } from './models/tool-call-model.ts'
 import { webCardModel } from './models/web-card-model.ts'
 import css from './ToolDetails.module.css'
 
@@ -56,7 +56,7 @@ export function ToolDetails({
   if (!('kind' in block)) return <div className={css.empty}>{t('details.running')}</div>
   return (
     <pre className={css.code} data-error={block.isError || undefined}>
-      {resultText(block)}
+      {displayedResultText(block)}
     </pre>
   )
 }

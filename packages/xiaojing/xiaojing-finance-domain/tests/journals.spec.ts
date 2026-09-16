@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { projectJournals, resolveJournalQuery } from '../src/journals.ts'
+import { collectJournalPages, projectJournals, resolveJournalQuery } from '../src/journals.ts'
 import { YouchengConnection } from '../src/youcheng.ts'
 
 const query = { month: '2026-09', page: 1, pageSize: 20 }
@@ -114,4 +114,28 @@ it.each(['unknown-account', 'network', 'secret', 'vendor-error'])('rejects %s in
   expect(errorText).toContain('查询失败')
   expect(errorText).not.toMatch(/fake-secret|private-/)
   expect(journalRequests).toBe(failure === 'unknown-account' ? 0 : 1)
+})
+
+it('exports journal rows from page one through the first empty business page', async () => {
+  const pages: number[] = []
+  const report = await collectJournalPages({ ...query, page: 7 }, (selected) => {
+    pages.push(selected.page)
+    const list = selected.page > 2 ? [marker, { ...marker, abstractStr: '合计' }]
+      : [{ ...entry, id: selected.page }]
+    return Promise.resolve(projectJournals(list, selected, account, 100, 65_536))
+  }, new AbortController().signal, { pageSize: 1, maxRows: 10, maxBytes: 65_536 })
+  expect(pages).toEqual([1, 2, 3])
+  expect(report).toMatchObject({ pagesRead: 3, coverage: 'unverified' })
+  expect(report.rows.map(item => item.id)).toEqual(['1', '2'])
+  expect(report.summaries.map(item => item.kind)).toEqual(['opening', 'total'])
+  expect(report.notice).toContain('首个空业务页')
+})
+
+it('refuses duplicate or oversized journal pagination', async () => {
+  await expect(collectJournalPages(query, selected => Promise.resolve(projectJournals(
+    [{ ...entry, id: 1 }], selected, account, 100, 65_536)), new AbortController().signal,
+  { pageSize: 1, maxRows: 10, maxBytes: 65_536 })).rejects.toThrow('重复流水')
+  await expect(collectJournalPages(query, selected => Promise.resolve(projectJournals(
+    [{ ...entry, id: selected.page }], selected, account, 100, 65_536)), new AbortController().signal,
+  { pageSize: 1, maxRows: 1, maxBytes: 65_536 })).rejects.toThrow('超过上限')
 })

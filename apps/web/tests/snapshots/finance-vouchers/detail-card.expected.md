@@ -1,4 +1,4 @@
-- button "Tool call finance_voucher_detail · voucher-1":
+- button "凭证详情":
   - img
   - img
-  - text: Tool call finance_voucher_detail · voucher-1
+  - text: 凭证详情

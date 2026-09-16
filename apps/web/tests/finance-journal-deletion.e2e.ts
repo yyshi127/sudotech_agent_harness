@@ -143,7 +143,8 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms journal deletion versions
           previousKey = await panel.getAttribute('data-approval-key')
           const text = await panel.textContent()
           if (confirmation.detailed) {
-            for (const value of ['流水删除演示账套', '确认版本 2', '0.01', journalId, '原账户和月份']) expect(text).toContain(value)
+            for (const value of ['流水删除演示账套', '库存现金', '删除专用测试', '0.01', '无法自动撤销']) expect(text).toContain(value)
+            expect(text).not.toMatch(new RegExp(`${journalId}|确认版本|"version"`))
           } else expect(text).toContain('删除操作必须进行本次二次确认')
           expect(writes).toBe(approvals === 5 ? 1 : 0)
           if (approvals === 2) await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journal-deletion/${scenario}-approval.expected.md`,

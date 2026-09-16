@@ -1,4 +1,4 @@
-- button "Tool call finance_balances · 2026-09":
+- button "科目余额表导出完成":
   - img
   - img
-  - text: Tool call finance_balances · 2026-09
+  - text: 科目余额表导出完成

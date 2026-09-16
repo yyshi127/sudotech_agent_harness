@@ -307,7 +307,10 @@ describe('WorkspaceBrowser', () => {
           reservedWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
           manageableWorkspaceIds: [wid('finance-standard'), wid('finance-client')],
           newSessionDisabledWorkspaceIds: [],
-          workspaceBadges: [{ workspaceId: wid('finance-client'), state: 'idle', label: '未核验', actionLabel: '连接账套' }],
+          workspaceBadges: [{
+            workspaceId: wid('finance-client'), state: 'success', label: '已连接', actionLabel: '连接账套',
+            brandIconSrc: '/test-finance-brand.png',
+          }],
           sections: [
             { id: 'consultations', label: '咨询', icon: 'discussion', workspaceIds: [wid('finance-standard')] },
             { id: 'clients', label: '客户', icon: 'person', workspaceIds: [wid('finance-client')] },
@@ -323,6 +326,8 @@ describe('WorkspaceBrowser', () => {
     await waitFor(() => { expect(screen.getByText('数豆科技')).toBeTruthy() })
 
     const clientRow = screen.getByText('数豆科技').closest('[role="treeitem"]')!
+    expect(clientRow.querySelector('img[src="/test-finance-brand.png"]')).toBeTruthy()
+    expect(clientRow.querySelector('[data-state="done"]')).toBeNull()
     const expanded = clientRow.getAttribute('aria-expanded')
     fireEvent.click(screen.getByRole('button', { name: '连接账套' }))
     expect(activateWorkspaceBadge).toHaveBeenCalledExactlyOnceWith('finance', wid('finance-client'))

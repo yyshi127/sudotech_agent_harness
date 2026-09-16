@@ -8,6 +8,7 @@ import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts
 import { classifyTool, resultText, toolRowModel } from '../src/client/tool/models/tool-call-model.ts'
 import { ToolRow } from '../src/client/tool/components/ToolRow.tsx'
 import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
+import { ToolDetails } from '../src/client/tool/ToolDetails.tsx'
 import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 
 afterEach(() => {
@@ -167,6 +168,45 @@ describe('tool-call-model', () => {
     expect(toolRowModel('bash', running({ argsRaw: 'raw' })).body).toBe('raw')
     expect(toolRowModel('bash', running({ argsRaw: '' })).body).toBeNull()
     expect(toolRowModel('bash', result({ call: null })).body).toBeNull()
+  })
+
+  it('uses generic presentation views instead of raw call arguments and results', () => {
+    const model = toolRowModel('finance_balances', result({
+      call: { name: 'finance_balances', argsRaw: '{"month":"2026-09","internalId":"secret"}' },
+      content: [{ type: 'text', text: '{"coverage":"unverified","internalId":"secret"}' }],
+      callView: { card: 'generic', title: '查询科目余额表', kind: 'read' },
+      resultView: { card: 'generic', title: '科目余额表', content: [{ type: 'text', text: '账套：演示账套\n科目：1 行' }] },
+    }))
+    expect(model).toMatchObject({
+      variant: 'read', title: '科目余额表', summary: '', body: null,
+      output: '账套：演示账套\n科目：1 行', errorSummary: null, showTechnicalChrome: false,
+    })
+  })
+
+  it('honors generic rawInput and explicit empty result content', () => {
+    const pending = toolRowModel('task', running({
+      name: 'task', argsRaw: '{"secret":"hidden"}',
+      callView: { card: 'generic', title: 'Run task', kind: 'execute', rawInput: { job: '42' } },
+    }))
+    expect(pending).toMatchObject({ title: 'Run task', summary: '', body: '{\n  "job": "42"\n}' })
+    const settled = toolRowModel('task', result({
+      call: { name: 'task', argsRaw: '{"secret":"hidden"}' },
+      content: [{ type: 'text', text: 'raw result' }],
+      callView: { card: 'generic', title: 'Run task', kind: 'execute' },
+      resultView: { card: 'generic', content: [] },
+    }))
+    expect(settled.body).toBeNull()
+    expect(settled.output).toBeNull()
+  })
+
+  it('keeps raw result content when a generic result view omits replacement content', () => {
+    const model = toolRowModel('task', result({
+      content: [{ type: 'text', text: 'raw result' }],
+      callView: { card: 'generic', title: 'Run task', kind: 'other' },
+      resultView: { card: 'generic', title: 'Task complete' },
+    }))
+    expect(model.title).toBe('Task complete')
+    expect(model.output).toBe('raw result')
   })
 
   it('a code row with an empty program falls back to the args JSON envelope', () => {
@@ -418,6 +458,33 @@ describe('GenericToolCard', () => {
     expect(view.getByText('Tool call')).toBeTruthy()
     expect(view.container.querySelector('[data-variant="others"]')).not.toBeNull()
     expect(view.container.querySelector('[data-state="running"]')).not.toBeNull()
+  })
+
+  it('renders a generic presenter without exposing raw arguments or model-facing output', () => {
+    const block = result({
+      call: { name: 'finance_balances', argsRaw: '{"internalId":"secret"}' },
+      content: [{ type: 'text', text: '{"coverage":"unverified"}' }],
+      callView: { card: 'generic', title: '查询科目余额表', kind: 'read' },
+      resultView: { card: 'generic', title: '科目余额表', content: [{ type: 'text', text: '科目：1 行' }] },
+    })
+    const view = render(<GenericToolCard {...props('finance_balances', block)} inspect={vi.fn()} />)
+    expect(view.getByText('科目余额表')).toBeTruthy()
+    fireEvent.click(view.getByRole('button'))
+    expect(view.getByText('科目：1 行')).toBeTruthy()
+    expect(view.queryByText(/internalId|coverage/)).toBeNull()
+    expect(view.queryByText('IN')).toBeNull()
+    expect(view.queryByText('OUT')).toBeNull()
+    expect(view.queryByText('Inspect')).toBeNull()
+  })
+
+  it('uses a generic presentResult in the details surface', () => {
+    const block = result({
+      content: [{ type: 'text', text: '{"technical":"raw"}' }],
+      resultView: { card: 'generic', content: [{ type: 'text', text: '业务结果' }] },
+    })
+    const view = render(<ToolDetails block={block} cwd="C:\\workspace" useHostDescription={selector => selector(undefined)} t={t} />)
+    expect(view.getByText('业务结果')).toBeTruthy()
+    expect(view.queryByText(/technical/)).toBeNull()
   })
 
   it('renders edit with its dedicated title, icon variant, and path summary', () => {

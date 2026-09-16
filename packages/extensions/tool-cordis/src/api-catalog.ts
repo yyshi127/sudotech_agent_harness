@@ -2679,9 +2679,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<{ report: VoucherPage file: FinanceManagedFile }>',
-        description: 'Query and publish one explicitly bounded voucher page without ledger-wide completeness claims.',
-        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Page and filters, not caller-authored accounting data.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication starts.' }],
-        returns: 'Exact queried page and committed local file; the work copy is preserved.',
+        description: 'Query every count-reconciled voucher page and publish the business rows as XLSX.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Filters; caller page settings do not limit the export.' }, { name: 'signal', description: 'Cancellation checked during reads, before writing, and before publication starts.' }],
+        returns: 'Complete count-reconciled report and committed local file; the work copy is preserved.',
       },
       {
         signature: 'async exportBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<{ report: BalanceResult file: FinanceManagedFile }>',
@@ -2691,15 +2691,15 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async exportJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<{ report: JournalResult file: FinanceManagedFile }>',
-        description: 'Query and publish one journal page, retaining its missing completeness evidence.',
-        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Dates, account selector and bounded page.' }, { name: 'signal', description: 'Cancellation checked before writing and publication.' }],
-        returns: 'Exact source report and committed workbook, with summaries separated.',
+        description: 'Query journal pages through the first empty page and publish the business rows as XLSX.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Dates and account selector; caller page settings do not limit the export.' }, { name: 'signal', description: 'Cancellation checked during reads, before writing, and before publication.' }],
+        returns: 'Collected report and committed workbook, with vendor summaries separated.',
       },
       {
         signature: 'async exportOpenItemPage(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<{ report: OpenItemResult file: FinanceManagedFile }>',
-        description: 'Query and publish one raw receivable/payable page without additional aggregation.',
-        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Direction, periods and bounded page.' }, { name: 'signal', description: 'Cancellation checked before writing and publication.' }],
-        returns: 'Exact source report and committed workbook; settlement is not a bank payment claim.',
+        description: 'Query every count-reconciled receivable or payable page and publish the business rows as XLSX.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Direction and periods; caller page settings do not limit the export.' }, { name: 'signal', description: 'Cancellation checked during reads, before writing, and before publication.' }],
+        returns: 'Complete count-reconciled report and committed workbook; settlement is not a bank payment claim.',
       },
       {
         signature: 'async prepareMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
@@ -4618,7 +4618,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'JournalResult',
-    declaration: 'export interface JournalResult {\n    accountId: string;\n    accountName: string;\n    selection: JournalSelection;\n    rows: JournalRow[];\n    summaries: JournalSummary[];\n    coverage: \'unverified\';\n    notice: string;\n}',
+    declaration: 'export interface JournalResult {\n    accountId: string;\n    accountName: string;\n    selection: JournalSelection;\n    rows: JournalRow[];\n    summaries: JournalSummary[];\n    pagesRead?: number;\n    coverage: \'unverified\';\n    notice: string;\n}',
   },
   {
     name: 'JournalRow',
@@ -4926,7 +4926,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'OpenItemResult',
-    declaration: 'export interface OpenItemResult {\n    accountId: string;\n    accountName: string;\n    selection: OpenItemQuery;\n    totalCount: number;\n    rows: OpenItemRow[];\n    summaries: OpenItemSummary[];\n    coverage: \'unverified\';\n    notice: string;\n}',
+    declaration: 'export interface OpenItemResult {\n    accountId: string;\n    accountName: string;\n    selection: OpenItemQuery;\n    totalCount: number;\n    rows: OpenItemRow[];\n    summaries: OpenItemSummary[];\n    pagesRead?: number;\n    coverage: \'unverified\' | \'vendor-count-reconciled\';\n    notice: string;\n}',
   },
   {
     name: 'OpenItemRow',
@@ -6134,7 +6134,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'VoucherPage',
-    declaration: 'export interface VoucherPage {\n    accountId: string;\n    accountName: string;\n    month: string;\n    monthEnd?: string;\n    summary?: string;\n    page: number;\n    pageSize: number;\n    total: number;\n    hasMore: boolean;\n    voucherCount: number;\n    notice: string;\n    rows: VoucherRow[];\n}',
+    declaration: 'export interface VoucherPage {\n    accountId: string;\n    accountName: string;\n    month: string;\n    monthEnd?: string;\n    summary?: string;\n    page: number;\n    pageSize: number;\n    total: number;\n    hasMore: boolean;\n    voucherCount: number;\n    pagesRead?: number;\n    notice: string;\n    rows: VoucherRow[];\n}',
   },
   {
     name: 'VoucherQuery',

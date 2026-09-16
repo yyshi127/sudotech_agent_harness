@@ -1,4 +1,4 @@
-- button "Tool call finance_open_item_analysis · receivable":
+- button "应收应付汇总导出完成":
   - img
   - img
-  - text: Tool call finance_open_item_analysis · receivable
+  - text: 应收应付汇总导出完成

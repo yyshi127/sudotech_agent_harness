@@ -25,6 +25,7 @@ import {
   FinanceManagedFileId,
   type FinanceClientBinding,
 } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
+import { FINANCE_CAPABILITIES } from '@deepseek-ai/dsh-xiaojing-finance-domain/capabilities'
 import {
   provisionFinanceClientWorkspace,
   resolveFinanceClientWorkspace,
@@ -44,6 +45,7 @@ const CLAUDE_CODE_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-clau
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
 const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
 const FINANCE_PROMPT = 'You are 小兢会计, an AI office companion configured for internal use, operating in Finance模式. Your working directory is {{cwd}}. Finance模式 retains every capability of Standard mode and applies an evidence-first discipline to finance and tax work. Distinguish confirmed facts, assumptions, and items that require verification. Do not invent laws, tax rules, accounting standards, citations, client facts, calculations, or completed business actions. When jurisdiction, taxpayer type, accounting standard, accounting period, or tax period can affect the answer, state the applicable assumptions or ask for the missing facts. For current Chinese finance or tax rules, prefer official sources and cite them; when applicability or legal effect cannot be established, say “待核验”. Do not claim that a submission, approval, posting, payment, filing, or external-system change succeeded unless a tool result verifies the final state. For imported PDF, DOCX, XLSX, PPTX, digital-invoice XML, OFD, CSV, or text documents, use finance_document instead of attempting shell, Python, Office, or ad-hoc converter commands. When finance_document reports visual_count, use its visuals action to inspect retained document pictures with the native visual model. For a simple identity question, answer concisely as “我是小兢会计，当前处于 Finance模式。” in Chinese, or the equivalent in the user\'s language. Do not volunteer internal model, provider, framework, runtime, or workspace-path details unless the user explicitly requests technical diagnostics. If asked about the product\'s technical origin, state accurately that it is based on DeepSeek Harness with internal branding and configuration; do not claim that SUDO Tech developed the underlying framework.'
+const INVENTORIED_FINANCE_TOOLS = [...new Set(FINANCE_CAPABILITIES.flatMap(capability => capability.toolNames))].sort()
 const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
 * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
 * You don't have access to the internet via this tool.
@@ -314,11 +316,7 @@ describe('the shipped Web composition', () => {
       expect(toolNames(ctx, finance.agent)).not.toContain('document_reader')
       expect(toolNames(ctx, finance.agent)).toEqual([
         ...standardTools.filter(name => name !== 'document_reader'),
-        'finance_calculation',
-        'finance_document',
-        'finance_evidence',
-        'finance_files',
-        'finance_vouchers',
+        ...INVENTORIED_FINANCE_TOOLS,
       ].sort())
       expect(toolParameterNames(ctx, finance.agent, 'finance_document'))
         .toEqual(['action', 'cursor', 'document_id'])
@@ -338,21 +336,19 @@ describe('the shipped Web composition', () => {
       expect(toolParameterNames(ctx, finance.agent, 'finance_files'))
         .toEqual(['action', 'preferredName', 'sourcePath'])
       expect(toolParameterNames(ctx, finance.agent, 'finance_vouchers'))
-        .toEqual(['month', 'page', 'pageSize'])
+        .toEqual(['exportExcel', 'month', 'monthEnd', 'page', 'pageSize', 'summary'])
       const standardAssembly = await ctx.systemPrompt.assemble(assembleContextFor(standard.agent))
       const financeAssembly = await ctx.systemPrompt.assemble(assembleContextFor(finance.agent))
       expect(financeAssembly.tools.map(tool => tool.name)).toEqual([
         ...standardAssembly.tools.map(tool => tool.name).filter(name => name !== 'document_reader'),
-        'finance_calculation',
-        'finance_document',
-        'finance_evidence',
-        'finance_files',
-        'finance_vouchers',
+        ...INVENTORIED_FINANCE_TOOLS,
       ].sort())
-      expect(financeAssembly.sections.filter(section => section.name !== 'deployment:persona'))
+      expect(financeAssembly.sections.filter(section => !['deployment:persona', 'xiaojing:finance-capabilities'].includes(section.name)))
         .toEqual(standardAssembly.sections.filter(section => section.name !== 'deployment:persona'))
       expect(financeAssembly.sections.find(section => section.name === 'deployment:persona')?.text)
         .toBe(FINANCE_PROMPT)
+      expect(financeAssembly.sections.find(section => section.name === 'xiaojing:finance-capabilities')?.text)
+        .toContain('当前会话是通用财务咨询，未绑定客户')
       expect(financeAssembly.contexts.find(section => section.name === 'xiaojing:finance-client')?.text)
         .toMatchInlineSnapshot(`
           "Finance 客户上下文：
@@ -372,8 +368,8 @@ describe('the shipped Web composition', () => {
         'finance-invoice-review',
         'finance-voucher-draft',
         'finance-data-analysis',
-        'finance-reimbursement',
       ]))
+      expect(financeSkills).not.toContain('finance-reimbursement')
       expect(standardSkills).not.toContain('finance-document-reading')
 
       const loaded = await ctx.tools.execute({
@@ -415,7 +411,6 @@ describe('the shipped Web composition', () => {
         'finance-invoice-review',
         'finance-voucher-draft',
         'finance-data-analysis',
-        'finance-reimbursement',
       ]) {
         const workflowSkill = await ctx.tools.execute({
           callId: CallId(`preset-${name}-skill-load`),

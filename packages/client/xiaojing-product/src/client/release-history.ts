@@ -20,6 +20,15 @@ interface ProductRelease {
  */
 export const XIAOJING_RELEASE_HISTORY = [
   {
+    version: '0.2.4',
+    features: [
+      { label: 'F2', copyKey: 'featureFinanceYouchengCore' },
+      { label: 'F3', copyKey: 'featureFinanceYouchengMaintenance' },
+      { label: 'F4', copyKey: 'featureFinanceCapabilityInventory' },
+      { label: 'UI', copyKey: 'featureFinanceWorkspaceIdentity' },
+    ],
+  },
+  {
     version: '0.2.3',
     features: [
       { label: 'F1-0', copyKey: 'featureFinanceFoundation' },

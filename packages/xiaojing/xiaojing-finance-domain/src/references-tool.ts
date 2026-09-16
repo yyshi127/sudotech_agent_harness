@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { referenceQuerySchema } from './references.ts'
 import type {} from './index.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-references-tool'
@@ -26,11 +28,14 @@ export function apply(ctx: Context): void {
     },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户帐套的 Finance 会话中查询基础资料。')
+      const agent = exec.agent
       const parsed = referenceQuerySchema.safeParse(args)
       if (!parsed.success) throw new Error('请指定有效资料类型；只有辅助项目必须填写 categoryCode。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.queryReferences(exec.agent, parsed.data, exec.signal))
+      return financeModelJson(await financeModelCall(() =>
+        ctx.xiaojingFinanceDomain.queryReferences(agent, parsed.data, exec.signal)))
     },
-    presentCall: args => ({ card: 'generic', title: '查询有成财务基础资料', kind: 'read', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '基础资料查询失败' : '基础资料查询结果', content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '查询有成财务基础资料', kind: 'read' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '基础资料查询失败' : '基础资料查询结果',
+      content: financeResultContent(result.content, result.isError, 'references') }),
   }))
 }

@@ -13,12 +13,12 @@ it('exports journal currencies, all amount sides and markers without merging the
     accountName: '现金', currencyCode: 'USD', baseCurrencyCode: 'CNY', borrow: '9007199254740993.01', loan: '-0.01' }],
   { month: '2026-09', page: 1, pageSize: 20 }, account, 100, 65536)
   const bytes = await journalWorkbook(report)
-  expect((await readSheet(bytes, '日记账业务'))[1]).toEqual(['123', '2026-09-07', '=1+1', '001001', '现金', 'USD', 'CNY',
+  expect(await readSheet(bytes)).toEqual(await readSheet(bytes, '日记账明细'))
+  expect((await readSheet(bytes, '日记账明细'))[1]).toEqual(['2026-09-07', '=1+1', '001001', '现金', 'USD', 'CNY',
     '9007199254740993.01', '-0.01', '0.00', '未提供', '未提供', '0.00', null, null])
-  const summaries = await readSheet(bytes, '接口汇总')
+  const summaries = await readSheet(bytes, '合计')
   expect(summaries).toHaveLength(2)
   expect(summaries[1]?.[0]).toBe('opening')
-  expect(await readSheet(bytes, '查询说明')).toContainEqual(['完整性', 'unverified'])
 })
 
 it.each(['receivable', 'payable'] as const)('exports %s with nullable flags, eight amounts and separate page totals', async (direction) => {
@@ -31,10 +31,11 @@ it.each(['receivable', 'payable'] as const)('exports %s with nullable flags, eig
   pageUpRecord: { ...marker, abstractStr: '上一页的总计' } },
   { direction, periodStart: '2026-09', periodEnd: '2026-09', page: 1, pageSize: 20 }, account, 100, 65536)
   const bytes = await openItemPageWorkbook(report)
-  expect((await readSheet(bytes, '往来业务'))[1]).toEqual(['123', '2026-09-07', '+SUM(1,2)', '1122', '应收', '00456', '辅助',
+  const detailSheet = direction === 'receivable' ? '应收明细' : '应付明细'
+  expect(await readSheet(bytes)).toEqual(await readSheet(bytes, detailSheet))
+  expect((await readSheet(bytes, detailSheet))[1]).toEqual(['2026-09-07', '+SUM(1,2)', '1122', '应收', '辅助',
     'USD', 'CNY', '300.00', '-0.01', '0.00', '0.00', '100.00', '1.00', '2.00', '3.00', '未提供', 'false', null, '@备注'])
-  expect((await readSheet(bytes, '接口汇总')).slice(1).map(r => r[0])).toEqual(['total', 'previous-page'])
-  expect(await readSheet(bytes, '查询说明')).toContainEqual(['查询条件', JSON.stringify(report.selection)])
+  expect((await readSheet(bytes, '合计')).slice(1).map(r => r[0])).toEqual(['total', 'previous-page'])
   report.rows = []
-  expect(await readSheet(await openItemPageWorkbook(report), '往来业务')).toHaveLength(1)
+  expect(await readSheet(await openItemPageWorkbook(report), detailSheet)).toHaveLength(1)
 })

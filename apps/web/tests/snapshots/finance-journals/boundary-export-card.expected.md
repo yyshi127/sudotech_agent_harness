@@ -1,4 +1,4 @@
-- button "Tool call finance_journals · 2026-09":
+- button "日记账导出完成":
   - img
   - img
-  - text: Tool call finance_journals · 2026-09
+  - text: 日记账导出完成

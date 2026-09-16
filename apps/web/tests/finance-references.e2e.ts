@@ -114,8 +114,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('queries five reference kinds witho
       const card = page.locator('[data-chat-call-id="reference-1"]')
       await card.waitFor()
       await card.getByRole('button').first().click()
-      await expect.poll(() => card.textContent()).toContain('unverified')
-      await expect.poll(() => card.textContent()).toContain('期间费用')
+      await expect.poll(() => card.textContent()).toContain('资料类型：会计科目')
+      await expect.poll(() => card.textContent()).toContain('返回记录：2 条')
+      expect(await card.textContent()).not.toMatch(/unverified|coverage|requestedLimit|returnedCount|接口/)
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-references/card.expected.md', import.meta.url)),
         await captureStableAria(page, '[data-chat-call-id="reference-1"]', scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('reference-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })

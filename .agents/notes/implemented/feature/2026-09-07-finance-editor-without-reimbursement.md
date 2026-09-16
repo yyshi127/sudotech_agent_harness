@@ -10,7 +10,7 @@ The financial ledger editor includes reimbursement credentials even though the c
 
 ## Decision
 
-The ledger overlay does not mount the reimbursement settings component or inject its read, save, and test actions. Financial connection fields and the separate attachment-storage settings remain available. The [existing reimbursement capability](2026-09-04-reimbursement-draft-attachments.md) retains its backend services, credentials, and receipts; this UI change is not full business isolation.
+The ledger overlay does not mount the reimbursement settings component or inject its read, save, and test actions. Financial connection fields and the separate attachment-storage settings remain available. The [retained reimbursement backend](2026-09-04-reimbursement-draft-attachments.md) keeps its services, credentials, and receipts, while the [canonical capability inventory](2026-09-15-finance-capability-inventory.md) also removes reimbursement prompt, tool, and skill exposure from the current Finance preset.
 
 ## Alternatives considered
 
@@ -20,4 +20,4 @@ The ledger overlay does not mount the reimbursement settings component or inject
 
 ## Consequences
 
-Users cannot configure reimbursement from ledger information. The assembled Web editor regression checks absence of reimbursement fields and controls while exercising financial save, connection verification, and responsive layout. Its accessibility snapshot records the displayed editor.
+Users cannot configure or invoke reimbursement from current Finance conversations. Historical records and Host services remain intact. The assembled Web editor regression checks absence of reimbursement fields and controls while exercising financial save, connection verification, and responsive layout. Its accessibility snapshot records the displayed editor.

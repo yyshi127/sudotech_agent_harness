@@ -55,6 +55,8 @@ export interface ToolRowProps {
   output?: string | null | undefined
   /** Error first line shown as the collapsed summary on an error row; null/absent = keep `summary`. */
   errorSummary?: string | null | undefined
+  /** Show fallback IN/OUT captions; semantic presenters omit these implementation labels. */
+  showSectionLabels?: boolean | undefined
   /**
    * Terminal-card material for a call whose render intent is a terminal card
    * (derived by `terminalCardModel`); it replaces the text sections when
@@ -136,6 +138,7 @@ export function ToolRow({
   body,
   output,
   errorSummary,
+  showSectionLabels = true,
   terminal,
   diff,
   read,
@@ -270,8 +273,8 @@ export function ToolRow({
                         {(cardBody !== null || outputText !== null) && (
                           <div className={css.ioCard}>
                             {cardBody !== null && (
-                              <div className={css.ioSection}>
-                                <span className={css.ioLabel}>IN</span>
+                              <div className={clsx(css.ioSection, !showSectionLabels && css.ioSectionUnlabeled)}>
+                                {showSectionLabels && <span className={css.ioLabel}>IN</span>}
                                 <span className={css.ioText}>{cardBody}</span>
                               </div>
                             )}
@@ -279,8 +282,8 @@ export function ToolRow({
                               <span className={css.ioDivider} aria-hidden />
                             )}
                             {outputText !== null && (
-                              <div className={css.ioSection}>
-                                <span className={css.ioLabel}>OUT</span>
+                              <div className={clsx(css.ioSection, !showSectionLabels && css.ioSectionUnlabeled)}>
+                                {showSectionLabels && <span className={css.ioLabel}>OUT</span>}
                                 <span className={css.ioText} data-error={state === 'error' || undefined}>
                                   {outputText}
                                 </span>

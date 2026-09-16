@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-voucher-deletion-tool'
@@ -35,25 +37,29 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的 Finance 会话中准备删除。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareVoucherDeletion(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .prepareVoucherDeletion(agent, args, exec.signal, config)))
     },
     presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '只读检查凭证删除记录' : '准备凭证删除预览',
-      kind: 'other', rawInput: args }),
+      kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '删除准备或检查未完成' : '凭证删除预览与检查',
-      content: result.content }),
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_delete_voucher',
-    description: '仅在用户明确要求删除时，提交 finance_prepare_voucher_deletion 已展示的准确 id/version。系统强制请求本次确认，聊天里说“已确认”不能绕过。目标或状态变化需重新预览；取消、拒绝或过期版本不得发送。共享目标记录防止换会话重复发送。删除只移除指定凭证，不联动删除日记账、应收应付，不审核、结账或实际支付，不提供自动撤销。accepted 只表示接口接收；readback.state=absent 才表示两次完整独立列表未发现目标。结果未知、超时或回查失败用原 id inspect，不重发、不重新准备同目标。',
+    description: '仅在用户明确要求删除时，提交 finance_prepare_voucher_deletion 已展示的准确 id/version。系统强制请求本次确认，聊天里说“已确认”不能绕过。目标或状态变化需重新预览；取消、拒绝或过期版本不得发送。共享目标记录防止换会话重复发送。删除只移除指定凭证，不联动删除日记账、应收应付，不审核、结账或实际支付，不提供自动撤销。接口接收后仍须依据两次独立列表回查判断是否完成。结果未知、超时或回查失败用原 id inspect，不重发、不重新准备同目标。',
     parameters: { id: { type: 'string', required: true, description: '本地删除预览 ID。' },
       version: { type: 'integer', required: true, description: '已向用户展示的准确预览版本。' } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的 Finance 会话中删除凭证。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.deleteVoucher(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .deleteVoucher(agent, args, exec.signal, config)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并删除指定凭证', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '凭证删除未完成' : '凭证删除结果与独立回查',
-      content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并删除指定凭证', kind: 'delete' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '凭证删除未完成' : '凭证删除结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

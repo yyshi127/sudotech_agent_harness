@@ -14,7 +14,7 @@ The [Finance domain](../../../../packages/xiaojing/xiaojing-finance-domain/READM
 
 ## Alternatives considered
 
-The optional page export serializes the Host result and publishes it using the same tracked file lifecycle as open-item analysis. It retains the distinction between vouchers and entry rows, explicit pagination, filters and source digest. Money remains text to preserve precision; external names cannot become formulas. It does not infer a currency, fabricate totals or claim that one page covers the ledger. No model-authored rows or target paths are accepted.
+The optional export starts from page one, rejects changed totals, short pages and duplicate vouchers, and publishes only after the unique voucher count matches the vendor total. It retains the distinction between vouchers and entry rows and the requested filters. The workbook opens on business entries and places ordinary scope and limitation notes last; it does not expose endpoint names or technical digests as spreadsheet content. Money remains text to preserve precision, and external names cannot become formulas. It does not infer a currency, fabricate totals or claim an atomic vendor snapshot. No model-authored rows or target paths are accepted.
 
 **Ad-hoc shell requests** expose credentials and leave ledger selection to the model.
 

@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-open-item-deletion-tool'
@@ -36,25 +38,29 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的 Finance 会话中检查应收应付删除条件。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareOpenItemDeletion(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .prepareOpenItemDeletion(agent, args, exec.signal, config)))
     },
     presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '只读检查应收应付删除记录' : '检查应收应付删除条件',
-      kind: 'other', rawInput: args }),
+      kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '应收应付删除检查未完成' : '应收应付删除条件与限制',
-      content: result.content }),
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_delete_open_item',
-    description: '执行finance_prepare_open_item_deletion已展示的准确id/version。Host在确认前及发送前重查账套、方向、期间、目标状态和已观察关联，并强制确认公开接口无法完整排除的连带删除风险。聊天同意不能绕过确认；已知关联或状态限制禁止发送。accepted不是删除核验完成，回查只覆盖原方向及期间；超时、响应丢失或回查失败只读inspect原id，绝不重发。',
+    description: '执行finance_prepare_open_item_deletion已展示的准确id/version。Host在确认前及发送前重查账套、方向、期间、目标状态和已观察关联，并强制确认公开接口无法完整排除的连带删除风险。聊天同意不能绕过确认；已知关联或状态限制禁止发送。接口接收不等于删除已核验完成，回查只覆盖原方向及期间；超时、响应丢失或回查失败只读inspect原id，绝不重发。',
     parameters: { id: { type: 'string', required: true, description: '已展示的本地应收应付删除预览ID。' },
       version: { type: 'integer', required: true, description: '已展示的准确预览版本。' } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中确认应收应付删除。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.deleteOpenItem(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .deleteOpenItem(agent, args, exec.signal, config)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并删除指定应收应付', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '应收应付删除未完成' : '应收应付删除结果与回查',
-      content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并删除指定应收应付', kind: 'delete' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '应收应付删除未完成' : '应收应付删除结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

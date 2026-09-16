@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { readSheet } from 'read-excel-file/node'
 import { analyzeJournals, type JournalAnalysisQuery } from '../src/journal-analysis.ts'
@@ -86,18 +85,15 @@ it('enforces row, accumulated-byte and cancellation limits', async () => {
   expect(notRead).not.toHaveBeenCalled()
 })
 
-it('exports exact text, nulls, scope, hashes and backend differences without spreadsheet formulas', async () => {
+it('exports business totals, exact source values and backend differences without spreadsheet formulas', async () => {
   const result = await analyzeJournals(query, async selected => page(selected), new AbortController().signal, limits)
   const bytes = await journalAnalysisWorkbook(result)
-  expect((await readSheet(bytes, '核对结果'))[0]).toContain('支出金额未提供的单元格数')
-  expect(await readSheet(bytes, '查询说明')).toContainEqual(['结果 SHA256', createHash('sha256').update(JSON.stringify(result)).digest('hex')])
-  expect(await readSheet(bytes, '查询说明')).toContainEqual(['账套名称', '=SUM(1,2)'])
-  expect(await readSheet(bytes, '查询说明')).toContainEqual(['核验执行方', 'xiaojing'])
-  expect((await readSheet(bytes, '核对结果'))[1]).toEqual(['当前', '2026-09', '2026-09-01', '2026-09-30', '3', '2', 'RMB', '0.30', '0.00', '0', '2'])
-  const sources = await readSheet(bytes, '来源流水')
+  expect(await readSheet(bytes)).toEqual(await readSheet(bytes, '收支汇总'))
+  expect((await readSheet(bytes, '收支汇总'))[1]).toEqual(['当前', '2026-09', '2026-09-01', '2026-09-30', 'RMB', '0.30', '0.00'])
+  const sources = await readSheet(bytes, '流水明细')
   expect(sources).toHaveLength(3)
-  expect(sources[1]!.slice(0, 4)).toEqual(['当前', '1', '2026-09-07', '=HYPERLINK("https://example.com")'])
-  expect(sources[1]!.slice(8, 11)).toEqual(['0.10', '未提供', '未提供'])
+  expect(sources[1]!.slice(0, 3)).toEqual(['当前', '2026-09-07', '=HYPERLINK("https://example.com")'])
+  expect(sources[1]!.slice(7, 10)).toEqual(['0.10', '未提供', '未提供'])
   expect((await readSheet(bytes, '期间差额'))[1]).toEqual(['RMB', '0.30', '0.00'])
 })
 

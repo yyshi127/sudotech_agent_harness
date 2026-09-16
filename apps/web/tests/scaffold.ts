@@ -1010,6 +1010,7 @@ export async function captureStableAria(page: Page, selector: string, workspaceC
 export async function compareOrRefreshGolden(goldenPath: string, actual: string, mode: WebSnapshotMode): Promise<void> {
   const payload = `${actual}\n`
   if (mode === 'refresh') {
+    if (existsSync(goldenPath) && await readFile(goldenPath, 'utf8') === payload) return
     await writeFile(goldenPath, payload)
     return
   }

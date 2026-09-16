@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-帐套弹窗不挂载报销设置组件，也不注入其读取、保存和测试操作。财务连接字段与独立的附件存储设置仍然可用。[既有报销能力](2026-09-04-reimbursement-draft-attachments.zh.md)保留后端服务、凭据与回执；这项界面修改不代表完整业务隔离。
+帐套弹窗不挂载报销设置组件，也不注入其读取、保存和测试操作。财务连接字段与独立的附件存储设置仍然可用。[保留的报销后端](2026-09-04-reimbursement-draft-attachments.zh.md)继续保存服务、凭据和回执；[Finance 权威能力清单](2026-09-15-finance-capability-inventory.zh.md)同时从当前 Finance 预设移除报销提示词、工具和 skill。
 
 ## Alternatives considered
 
@@ -20,4 +20,4 @@ Status: implemented
 
 ## Consequences
 
-用户不能从帐套信息配置报销。组装 Web 编辑器回归检查报销字段和按钮不存在，同时验证财务保存、连接核验及响应式布局。无障碍快照记录实际展示的编辑器。
+用户不能从帐套信息配置报销，也不能从当前 Finance 对话调用报销。历史记录和 Host 服务保持完整。组装 Web 编辑器回归检查报销字段和按钮不存在，同时验证财务保存、连接核验及响应式布局。无障碍快照记录实际展示的编辑器。

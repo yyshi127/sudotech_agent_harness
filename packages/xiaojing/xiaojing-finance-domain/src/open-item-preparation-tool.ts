@@ -4,6 +4,8 @@ import s from '@deepseek-ai/schemastery'
 import { defineTool, type ParameterSchemaSpec } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { openItemPreparationRequestSchema, openItemCreateRequestSchema } from './open-item-preparation.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-open-item-preparation-tool'
@@ -33,11 +35,13 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中查询往来账户。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.queryObservedOpenItemAccounts(exec.agent, args, exec.signal))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .queryObservedOpenItemAccounts(agent, args, exec.signal)))
     },
-    presentCall: args => ({ card: 'generic', title: '查询已有往来账户属性', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '往来账户属性查询失败' : '已有往来账户（非完整目录）',
-      content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '查询已有往来账户属性', kind: 'other' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '往来账户查询失败' : '已有往来账户',
+      content: financeResultContent(result.content, result.isError, 'references') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_prepare_open_item',
@@ -59,24 +63,28 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中准备往来。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareOpenItem(exec.agent,
-        openItemPreparationRequestSchema.parse(args), exec.signal, config.maxBytes))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain.prepareOpenItem(agent,
+        openItemPreparationRequestSchema.parse(args), exec.signal, config.maxBytes)))
     },
-    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看原往来记录' : '准备应收应付预览', kind: 'other', rawInput: args }),
+    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看原往来记录' : '准备应收应付预览', kind: 'other' }),
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '往来记录操作失败'
-      : args.action === 'inspect' ? '原往来记录与回查' : '应收应付预览（未创建）', content: result.content }),
+      : args.action === 'inspect' ? '应收应付记录' : '应收应付预览（未创建）',
+    content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_create_open_item',
-    description: '仅在用户要求新增应收或应付时，提交finance_prepare_open_item展示的准确id/version。系统必须请求本次强制确认，聊天口头确认不能绕过。accepted只表示返回ID；以readback各项和complete判断记录内容、关联与初始余额是否核验，不代表已收付款或核销。超时或结果未知只inspect原记录，不重发，不另建相同内容规避防重复。',
+    description: '仅在用户要求新增应收或应付时，提交finance_prepare_open_item展示的准确id/version。系统必须请求本次强制确认，聊天口头确认不能绕过。接口返回记录标识后，仍须以独立回查判断记录内容、关联与初始余额是否核验，不代表已收付款或核销。超时或结果未知只inspect原记录，不重发，不另建相同内容规避防重复。',
     parameters: { id: { type: 'string', required: true }, version: { type: 'integer', required: true } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的Finance会话中创建往来。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.createOpenItem(exec.agent,
-        openItemCreateRequestSchema.parse(args), exec.signal, config.maxBytes))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain.createOpenItem(agent,
+        openItemCreateRequestSchema.parse(args), exec.signal, config.maxBytes)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并创建应收应付', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '往来创建未完成' : '往来提交与核验状态', content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并创建应收应付', kind: 'other' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '往来创建未完成' : '应收应付创建结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

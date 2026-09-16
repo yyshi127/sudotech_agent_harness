@@ -1175,11 +1175,10 @@ export class XiaojingWeixinChannel {
           properties: {
             sent: { type: 'boolean', required: true },
             name: { type: 'string', required: true },
-            bytes: { type: 'integer', required: true },
             kind: { type: 'string', enum: ['image', 'file'], required: true },
           },
         },
-        render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+        render: (_args, value) => [{ type: 'text', text: `文件已发送：${value.name}` }],
       },
       execute: async (args, exec) => {
         const active = this.active
@@ -1216,7 +1215,7 @@ export class XiaojingWeixinChannel {
           toUserId: account.ownerUserId,
           contextToken: active.task.contextToken,
         }, caption, exec.signal)
-        return { sent: true, name: file.name, bytes: file.bytes, kind: file.kind }
+        return { sent: true, name: file.name, kind: file.kind }
       },
       presentCall: args => ({
         card: 'generic',

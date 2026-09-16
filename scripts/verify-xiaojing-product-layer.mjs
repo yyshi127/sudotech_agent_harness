@@ -64,10 +64,6 @@ const expectedFinanceRules = {
       name: 'finance-data-analysis',
       path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-data-analysis/SKILL.md',
     },
-    {
-      name: 'finance-reimbursement',
-      path: 'apps/cli/config/xiaojing-agent-presets/finance/skills/finance-reimbursement/SKILL.md',
-    },
   ],
   host: {
     directory: 'packages/xiaojing',

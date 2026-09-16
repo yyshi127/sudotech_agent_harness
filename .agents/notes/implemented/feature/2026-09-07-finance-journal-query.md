@@ -16,7 +16,7 @@ The Finance tool resolves month boundaries before requesting the vendor, reuses 
 
 Populated ledger 35601 probes establish that the vendor ignores `accountIdList` but applies `subjectId` using the cash-account ID, not the general-ledger subject ID. The adapter sends that field and rejects business rows lacking the selected identity. Returned `subjectName` and `subjectCode` supply labels when account labels are blank.
 
-The optional source-page workbook keeps every projected transaction field and separates opening/total markers on another sheet. Query selection, original/base currencies and missing amount labels survive publication. Exact text cells prevent formula interpretation and monetary rounding. The existing tracked publication operation owns the file and durable receipt; local export does not imply complete journal coverage.
+The optional export workbook starts at page one and continues through the first page without business transactions. It keeps every projected transaction field and separates opening/total markers on another sheet. Query selection, original/base currencies and missing amount labels survive publication. Business data is first and ordinary scope notes are last; endpoint names and technical digests are not spreadsheet content. Exact text cells prevent formula interpretation and monetary rounding. The existing tracked publication operation owns the file and durable receipt. Because the endpoint supplies no trusted count or final-page flag, reaching the first empty business page does not establish vendor-certified completeness or an atomic snapshot.
 
 **Treat every array item as a transaction.** This reports two fictitious transactions for an empty ledger and duplicates totals.
 

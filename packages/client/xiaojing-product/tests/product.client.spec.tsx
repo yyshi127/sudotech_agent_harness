@@ -19,6 +19,12 @@ const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by Xiaojing product components') }) as never
 const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
 
+function sessionHook(agentPreset?: string) {
+  const summary: { agentPreset?: string } = agentPreset === undefined ? {} : { agentPreset }
+  return ((selector: (state: { current: string; byId: Record<string, { agentPreset?: string }> }) => unknown) =>
+    selector({ current: 'current', byId: { current: summary } })) as never
+}
+
 afterEach(() => {
   cleanup()
   document.getElementById('root')?.remove()
@@ -60,9 +66,12 @@ describe('Xiaojing product UI', () => {
     render(<HeroBrandMark {...kit} size={34} className="hero-mark" t={t} />)
     expect(screen.getByRole('img', { name: '小兢会计' }).getAttribute('src')).toBe('/sdoobot-avatar.png')
     expect(screen.getByRole('img', { name: '小兢会计' }).getAttribute('style')).toContain('width: 34px')
-    render(<HeroBrandContent {...kit} t={t} />)
+    render(<HeroBrandContent {...kit} useSessions={sessionHook('standard')} t={t} />)
     expect(screen.getByText('小兢会计，您的AI办公搭子')).toBeTruthy()
-    expect(screen.getByText('内测版 v0.2.3')).toBeTruthy()
+    expect(screen.getByText('内测版 v0.2.4')).toBeTruthy()
+    cleanup()
+    render(<HeroBrandContent {...kit} useSessions={sessionHook('finance')} t={t} />)
+    expect(screen.getByText('小兢会计，您的AI财务助手')).toBeTruthy()
   })
 
   it('renders independent sidebar mark and name occupants', () => {
@@ -78,21 +87,27 @@ describe('Xiaojing product UI', () => {
   it('renders incremental current and historical release features', () => {
     render(<AboutSection {...kit} close={vi.fn()} t={t} />)
     expect(screen.getByRole('heading', { name: '小兢会计' })).toBeTruthy()
-    expect(screen.getByText('当前版本 v0.2.3')).toBeTruthy()
+    expect(screen.getByText('当前版本 v0.2.4')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'v0.2.4 版本新特性' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'v0.2.3 版本新特性' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'v0.2.2 版本新特性' })).toBeTruthy()
+    expect(screen.getByText('F2')).toBeTruthy()
+    expect(screen.getByText('F3')).toBeTruthy()
+    expect(screen.getByText('F4')).toBeTruthy()
+    expect(screen.getByText('UI')).toBeTruthy()
+    expect(screen.getByText(/建立 Finance 能力清单/)).toBeTruthy()
     expect(screen.getByText('F1-0')).toBeTruthy()
     expect(screen.getByText('F1-6')).toBeTruthy()
     expect(screen.getByText(/新增财务工作区、客户档案与客户工作区/)).toBeTruthy()
     expect(screen.getByText(/桌面小兢通过动作和表情/)).toBeTruthy()
-    expect(screen.getAllByRole('listitem')).toHaveLength(13)
+    expect(screen.getAllByRole('listitem')).toHaveLength(17)
   })
 
   it('keeps the current version at the head of immutable release history', () => {
     const versions = XIAOJING_RELEASE_HISTORY.map(release => release.version)
     expect(versions[0]).toBe(XIAOJING_PRODUCT_VERSION)
     expect(new Set(versions).size).toBe(versions.length)
-    expect(versions).toEqual(['0.2.3', '0.2.2'])
+    expect(versions).toEqual(['0.2.4', '0.2.3', '0.2.2'])
   })
 
   it('activates every product occupant and theme only for the Xiaojing build profile', async () => {

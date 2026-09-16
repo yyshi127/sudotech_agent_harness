@@ -49,10 +49,6 @@
       {
         "name": "finance-data-analysis",
         "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-data-analysis/SKILL.md"
-      },
-      {
-        "name": "finance-reimbursement",
-        "path": "apps/cli/config/xiaojing-agent-presets/finance/skills/finance-reimbursement/SKILL.md"
       }
     ],
     "host": {
@@ -98,6 +94,7 @@
   "assets": [
     "apps/web/public/sdoobot-avatar.png",
     "apps/web/public/sudo-logo-gray.png",
+    "apps/web/public/youcheng-finance-logo.png",
     "apps/web/public/desktop-companion/idle.webp"
   ],
   "desktopManifests": [

@@ -16,6 +16,8 @@ Client 工具展示插件。`ui-conversation` 通过 `conversation.chat.node` �
 
 通用行把已知工具名称归类为 search、read、shell、write、edit、code 或 generic 变体。运行中、成功、失败和中断状态只来自冻结的 call/result slice。只有用户调用 Host 打开文件回调时，文件路径才相对会话 `cwd` 解析；展示代码不读取会话服务。
 
+通用工具提供 `callView` 或 `resultView` 时，会话行与详情面板都使用该业务展示替代原始参数或模型可见输出。这类行同时隐藏只供兜底诊断使用的 `IN`／`OUT` 标签和调用轨迹入口。没有业务展示的工具继续保留诊断兜底。
+
 ## 原子工具视图
 
 拥有该视图的业务包将其 wire 工具名称注册进 `tool.call.toolview`：

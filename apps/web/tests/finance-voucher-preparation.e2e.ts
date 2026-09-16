@@ -227,7 +227,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
       const card = page.locator('[data-chat-call-id="preparation-1"]')
       await card.waitFor()
       await card.getByRole('button').first().click()
-      await expect.poll(() => card.textContent()).toContain('未创建')
+      await expect.poll(() => card.textContent()).toContain('已准备，等待确认')
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-voucher-preparation/card.expected.md', import.meta.url)),
         normalize(await captureStableAria(page, '[data-chat-call-id="preparation-1"]', scaffold.workspaceCwd)), webSnapshotMode())
       const records = new VoucherRecords(join(scaffold.harnessHome, 'finance/voucher-preparations'),
@@ -291,10 +291,10 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
         const writesBefore = paths.filter(path => path.includes('createCertificate')).length
         const disposeApproval = mode === 'accepted' ? undefined : ctx.on('approval/request', async (req) => {
           expect(req.toolName).toBe('finance_create_voucher')
-          expect(req.reason).toContain('凭证准备演示')
-          expect(req.reason).toContain('"version": 1')
-          expect(req.reason).toContain('"certificateCode": 36')
-          expect(req.reason).toContain('0.30')
+          for (const value of ['凭证准备演示', '凭证号：36', '借方合计：0.30', '贷方合计：0.30']) {
+            expect(req.reason).toContain(value)
+          }
+          expect(req.reason).not.toMatch(/"version"|"certificateCode"|snapshot-key|snapshot-secret/)
           expect(paths.filter(path => path.includes('createCertificate'))).toHaveLength(writesBefore)
           approvals++
           if (approvals === 1) return 'rejected'
@@ -324,9 +324,10 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
               await expect.poll(() => panel.getAttribute('data-approval-key')).not.toBe(previousKey)
               previousKey = await panel.getAttribute('data-approval-key')
               const previewText = await panel.textContent()
-              for (const value of ['凭证准备演示', '"version": 1', '"certificateCode": 36', '0.30']) {
+              for (const value of ['凭证准备演示', '凭证号：36', '借方合计：0.30', '贷方合计：0.30', '库存现金', '银行存款']) {
                 expect(previewText).toContain(value)
               }
+              expect(previewText).not.toMatch(/"version"|"certificateCode"|prepared-id|snapshot-key|snapshot-secret/)
               expect(paths.filter(path => path.includes('createCertificate'))).toHaveLength(writesBefore)
               expect(await records.read(adapter.preparedId as PreparedVoucherId)).toMatchObject({ phase: 'prepared', version: 1 })
               if (approvals === 0) {
@@ -369,7 +370,8 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
             const submittedCard = page.locator('[data-chat-call-id="creation-accepted-3"]')
             await submittedCard.waitFor()
             await submittedCard.getByRole('button').first().click()
-            await expect.poll(() => submittedCard.textContent()).toContain('270826')
+            await expect.poll(() => submittedCard.textContent()).toContain('已完成并核对')
+            expect(await submittedCard.textContent()).not.toContain('270826')
             await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-voucher-preparation/submitted-card.expected.md', import.meta.url)),
               normalize(await captureStableAria(page, '[data-chat-call-id="creation-accepted-3"]', scaffold.workspaceCwd)), webSnapshotMode())
           }

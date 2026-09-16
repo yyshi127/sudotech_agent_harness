@@ -20,7 +20,7 @@ The journal tool description and logged result notice explicitly constrain empty
 
 ## Consequences
 
-The same interpretation rule applies to open items: previous-page totals are not initial balances, and an export that queries again is not a prior snapshot. The open-item consumer instructs the model to preserve these labels, repeat explicit pagination for subsequent exports and use the returned file path. Its assembled scenario checks that these instructions reach the model; it does not assert that a mocked answer proves compliance.
+The same interpretation rule applies to open items: previous-page totals are not initial balances, and an export that queries again is not a prior snapshot. The open-item consumer instructs the model to preserve these labels, reuse the requested direction and period for subsequent exports, let the Host collect and reconcile all pages, and use the returned file path. Its assembled scenario checks that these instructions reach the model; it does not assert that a mocked answer proves compliance.
 
 Open-item query and analysis instructions also preserve balance timing and aggregate provenance through the final conclusion. Local currency groups do not supply missing currency to vendor summary rows. A live retest corrected the previous-page label but still called the returned balance a month-end balance; that result remains a failed whole-answer acceptance, not evidence that the instructions guarantee compliance.
 

@@ -204,6 +204,11 @@ it('assembles the shipped Web catalog, file-reference guidance, retry policy, an
     const fileReferenceSection = prompt.sections
       .find(section => section.name === 'ui:deliverable-file-references')
     expect(fileReferenceSection?.text).toBe(readFileSync(FILE_REFERENCE_PROMPT, 'utf8').trimEnd())
+    const responsePolicy = prompt.sections
+      .find(section => section.name === 'xiaojing:business-facing-responses')
+    expect(responsePolicy?.text).toContain('Lead with the completed business outcome')
+    expect(responsePolicy?.text).toContain('do not narrate failed attempts')
+    expect(responsePolicy?.text).toContain('provide the exact usable file reference')
     const automationContext = prompt.contexts.find(context => context.name === 'xiaojing:built-in-automation')
     expect(automationContext?.text).toMatchInlineSnapshot(`
       "Built-in Xiaojing automation capabilities:

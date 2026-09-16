@@ -4,6 +4,8 @@ import s from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { voucherCreateRequestSchema } from './voucher-preparation.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-voucher-preparation-tool'
@@ -56,15 +58,18 @@ export function apply(ctx: Context, config: Config): void {
     },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户帐套的 Finance 会话中准备凭证。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareVoucher(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .prepareVoucher(agent, args, exec.signal, config)))
     },
-    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看财务凭证记录' : '准备财务凭证预览', kind: 'other', rawInput: args }),
+    presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '查看财务凭证记录' : '准备财务凭证预览', kind: 'other' }),
     presentResult: (args, result) => ({ card: 'generic',
-      title: result.isError ? '凭证记录操作失败' : args.action === 'inspect' ? '财务凭证记录与回查' : '本地凭证预览（未创建）', content: result.content }),
+      title: result.isError ? '凭证记录操作失败' : args.action === 'inspect' ? '财务凭证记录与回查' : '本地凭证预览（未创建）',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_create_voucher',
-    description: '将 finance_prepare_voucher 已展示的准确 id/version 提交创建。仅在用户要求创建时调用；系统会展示完整内容请求本次强制确认，聊天中的“已确认”不能绕过确认。不得重新生成分录或猜凭证号。已选择的PDF/PNG/JPG原件确认后先上传OSS、保存回执，再将全部临时链接交给有成；任一上传失败就不创建，不能省略。上传回执不等于有成转存证明，签名链接不返回模型。外币保留原币金额和已确认汇率，按预览中的逐条十进制舍入校验，不得删除外币信息绕过检查。仅创建，不审核、过账、结账、付款。结果未知或回查失败时用 finance_prepare_voucher inspect 查看原记录，不重发、不新建同内容记录。accepted 只表示收到凭证ID，不等于完整核验通过。',
+    description: '将 finance_prepare_voucher 已展示的准确 id/version 提交创建。仅在用户要求创建时调用；系统会展示完整内容请求本次强制确认，聊天中的“已确认”不能绕过确认。不得重新生成分录或猜凭证号。已选择的PDF/PNG/JPG原件确认后先上传OSS、保存回执，再将全部临时链接交给有成；任一上传失败就不创建，不能省略。上传回执不等于有成转存证明，签名链接不返回模型。外币保留原币金额和已确认汇率，按预览中的逐条十进制舍入校验，不得删除外币信息绕过检查。仅创建，不审核、过账、结账、付款。结果未知或回查失败时用 finance_prepare_voucher inspect 查看原记录，不重发、不新建同内容记录。接口返回凭证标识不等于完整核验通过。',
     parameters: {
       id: { type: 'string', required: true, description: '此前本会话预览返回的本地记录ID。' },
       version: { type: 'integer', required: true, description: '用户看到的最新预览版本。' },
@@ -72,10 +77,12 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户帐套的 Finance 会话中创建凭证。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.createVoucher(
-        exec.agent, voucherCreateRequestSchema.parse(args), exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain.createVoucher(
+        agent, voucherCreateRequestSchema.parse(args), exec.signal, config)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并创建财务凭证', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '凭证创建未完成' : '凭证提交记录与核验状态', content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并创建财务凭证', kind: 'other' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '凭证创建未完成' : '凭证创建结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

@@ -21,7 +21,7 @@ class AnalysisAdapter extends LlmAdapter {
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.calls += 1
     if (this.calls === 1) {
-      expect(JSON.stringify(options)).toContain('后端自行逐页取数')
+      expect(JSON.stringify(options)).toContain('后端自行完整取数')
       expect(JSON.stringify(options)).toContain('本次查询记录的未结余额')
       expect(JSON.stringify(options)).toContain('有成接口提供业务明细，小兢会计在本地计算分组与差额')
       const id = CallId('analysis-query')
@@ -33,15 +33,13 @@ class AnalysisAdapter extends LlmAdapter {
     } else {
       const messages = JSON.stringify(options.messages)
       expect(messages).not.toMatch(/snapshot-secret|snapshot-token|snapshot-key|private-network/)
-      expect(messages).toContain(this.scenario === 'missing-dimension' ? '可改为按币种汇总' : this.scenario === 'failure' ? '查询失败' : 'vendor-count-reconciled')
-      if (this.scenario !== 'missing-dimension' && this.scenario !== 'failure') {
-        expect(messages).toContain('小兢会计根据有成接口返回的业务行在本地计算分组与差额')
-        expect(messages).not.toContain('非空真实样例仍待验收')
-      }
+      expect(messages).toContain(this.scenario === 'missing-dimension' ? '可改为按币种汇总'
+        : this.scenario === 'failure' ? '财务操作未完成' : this.scenario === 'export' ? '"recordCount":1' : '200.00')
       const text = this.scenario === 'missing-dimension' ? '记录缺少科目分组标识，未生成分析文件。可改为按币种汇总，不按名称猜测科目。'
         : this.scenario === 'failure' ? '应收应付查询失败，不能判断没有往来。'
           : this.scenario === 'empty' ? '接口声明本次记录数为零，汇总不算往来记录。'
-            : `两组${this.scenario === 'payable' ? '应付' : '应收'}金额差额 200.00 CNY、余额差额 150.00 CNY，不代表历史期末余额变化。`
+            : this.scenario === 'export' ? '2026年9月与8月的应收币种分析已导出，共1笔当前记录。'
+              : `两组${this.scenario === 'payable' ? '应付' : '应收'}金额差额 200.00 CNY、余额差额 150.00 CNY，不代表历史期末余额变化。`
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
@@ -51,6 +49,7 @@ class AnalysisAdapter extends LlmAdapter {
 }
 
 it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty', 'failure', 'export', 'missing-dimension'])('queries open-items through the real Finance preset: %s', async (scenario) => {
+  vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
     default: 'standard', roots: [
       { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
@@ -122,9 +121,18 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
         const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing export receipt')
-        const receipt = JSON.parse(text.text) as { report: unknown; file: unknown }
-        expect(receipt.file).toEqual(file)
-        snapshotResult = JSON.stringify({ report: receipt.report, publishedXlsx: true, hashMatchesBytes: true }, null, 2)
+        const receipt = JSON.parse(text.text) as {
+          accountName: string
+          direction: string
+          periodStart: string
+          periodEnd: string
+          recordCount: number
+          groupCount: number
+          differenceCount: number
+          exportFile: { path: string; name: string }
+        }
+        expect(receipt.exportFile).toEqual({ path: file.path, name: file.name })
+        snapshotResult = JSON.stringify({ ...receipt, exportFile: { publishedXlsx: true } }, null, 2)
       }
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-analysis/${scenario}-result.expected.md`, import.meta.url)), snapshotResult, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })

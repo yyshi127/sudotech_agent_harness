@@ -1,4 +1,4 @@
-- button "Tool call finance_open_items · receivable":
+- button "应收导出完成":
   - img
   - img
-  - text: Tool call finance_open_items · receivable
+  - text: 应收导出完成

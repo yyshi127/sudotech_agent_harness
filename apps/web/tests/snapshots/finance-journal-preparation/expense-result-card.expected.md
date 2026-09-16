@@ -1,5 +1,4 @@
-- button "Tool call finance_create_journal · {{uuid}}" [expanded]:
+- button "日记账创建结果" [expanded]:
   - img
-  - text: Tool call finance_create_journal · {{uuid}}
-- text: "IN { \"id\": \"{{uuid}}\", \"version\": 2 } OUT {\"id\":\"{{uuid}}\",\"version\":2,\"phase\":\"outcome-unknown\",\"outcome\":{\"state\":\"outcome-unknown\"},\"readback\":{\"content\":\"unavailable\",\"associations\":\"unavailable\",\"complete\":false},\"complete\":false,\"notice\":\"已保存日记账发送结果，不会自动重发。complete仅表示本记录技术核验，不证明实际收付款；本工具未调用凭证生成或审核接口。回查失败或结果未知时查看原记录，不重新准备相同记录。\"}"
-- button "Inspect"
+  - text: 日记账创建结果
+- text: 状态：结果待确认，请勿重复操作

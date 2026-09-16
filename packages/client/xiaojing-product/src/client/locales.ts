@@ -2,6 +2,7 @@
 
 export const zh = {
   heroTitle: '小兢会计，您的AI办公搭子',
+  financeHeroTitle: '小兢会计，您的AI财务助手',
   beta: '内测版',
   brandAlt: '数豆科技',
   assistantAlt: '小兢会计',
@@ -27,6 +28,10 @@ export const zh = {
   featureFinanceDocuments: '统一解析 PDF、Word、Excel、PPTX、图片及数电发票，支持内嵌图片和扫描型 PDF 的视觉读取。',
   featureFinanceSkills: '新增四类可复核的财税试算与首批五个专业流程技能，保留输入、公式、依据和结果轨迹。',
   featureFinanceAcceptance: '完成 Finance 第一阶段集成验收，覆盖多客户隔离、资料可追溯、计算一致性及升级数据保护。',
+  featureFinanceYouchengCore: '新增有成财务凭证、科目余额、出纳流水、应收应付和基础资料的查询、分析与结果导出。',
+  featureFinanceYouchengMaintenance: '新增凭证、出纳流水、应收应付和基础资料的受控新增、删除与已支持核销，写入前确认并保留回查记录。',
+  featureFinanceCapabilityInventory: '建立 Finance 能力清单，按已支持、有限支持和暂不支持回答；报销与六类无开放接口的原生报表不再被误报为可用。',
+  featureFinanceWorkspaceIdentity: '财务工作区显示“AI财务助手”，普通工作区保留“AI办公搭子”，两个使用场景清晰区分。',
   featureVision: '原生视觉模型与统一上传入口，图片和文档自动选择正确处理方式。',
   featureWeixin: '微信频道支持远程任务、进度反馈、文件收发与高风险操作确认。',
   featureEdge: 'Edge 浏览器控制支持专用浏览器和可选的个人网页接管。',
@@ -38,6 +43,7 @@ export const zh = {
 /** English Xiaojing product dictionary. */
 export const en: { [Key in keyof typeof zh]: string } = {
   heroTitle: 'Xiaojing Accounting, Your AI Workmate',
+  financeHeroTitle: 'Xiaojing Accounting, Your AI Finance Assistant',
   beta: 'Internal Beta',
   brandAlt: 'SUDO Tech',
   assistantAlt: 'Xiaojing Accounting',
@@ -63,6 +69,10 @@ export const en: { [Key in keyof typeof zh]: string } = {
   featureFinanceDocuments: 'Unified PDF, Word, Excel, PPTX, image, and digital-invoice reading, including embedded visuals and scanned-PDF vision.',
   featureFinanceSkills: 'Added four reproducible tax calculations and the first five professional workflow skills with inputs, formulas, authorities, and results preserved.',
   featureFinanceAcceptance: 'Completed Stage 1 integration acceptance for multi-client isolation, provenance, calculation consistency, and upgrade data protection.',
+  featureFinanceYouchengCore: 'Added Youcheng Finance queries, analysis, and result exports for vouchers, balances, cash journals, receivables, payables, and reference data.',
+  featureFinanceYouchengMaintenance: 'Added confirmed creation, deletion, and supported write-off workflows for vouchers, cash journals, open items, and reference data, with durable readback records.',
+  featureFinanceCapabilityInventory: 'Added an authoritative Finance capability inventory that distinguishes supported, limited, and unsupported work; reimbursement and six native reports without open APIs are no longer presented as available.',
+  featureFinanceWorkspaceIdentity: 'Finance workspaces identify Xiaojing as an AI finance assistant while ordinary workspaces retain the AI workmate identity.',
   featureVision: 'Native vision and one upload entry route images and documents to the correct workflow.',
   featureWeixin: 'The Weixin channel supports remote tasks, progress updates, file exchange, and risk confirmation.',
   featureEdge: 'Edge control supports a managed browser and optional attachment to personal Web pages.',

@@ -1,5 +1,4 @@
-- button "Tool call finance_references · subjects" [expanded]:
+- button "基础资料查询结果" [expanded]:
   - img
-  - text: Tool call finance_references · subjects
-- text: "IN { \"kind\": \"subjects\", \"name\": \"费用\" } OUT {\"accountId\":\"ref-ledger\",\"accountName\":\"基础资料演示\",\"kind\":\"subjects\",\"requestedLimit\":1000,\"returnedCount\":2,\"coverage\":\"unverified\",\"selection\":\"ambiguous\",\"rows\":[{\"id\":\"6602\",\"code\":\"6602\",\"name\":\"费用\",\"status\":\"enabled\",\"parentCode\":\"\",\"subjectType\":\"期间费用\",\"hasChildren\":true,\"directionRaw\":\"0\"},{\"id\":\"660201\",\"code\":\"660201\",\"name\":\"费用\",\"status\":\"disabled\",\"parentCode\":\"6602\",\"hasChildren\":false}],\"notice\":\"接口未提供总数或翻页游标，完整性未验证；筛选仅针对本次返回。同名不猜选，未找到不自动新增；unknown 不代表启用。本次科目 directionRaw：0借1贷；未返回方向时不能根据名称或会计惯例推断。subjectType 是返回的科目类型名称；缺失或空白时不推断类型。\"}"
-- button "Inspect"
+  - text: 基础资料查询结果
+- text: 账套：基础资料演示 资料类型：会计科目 返回记录：2 条

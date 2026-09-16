@@ -1,5 +1,4 @@
-- button "Tool call finance_create_master_data · {{uuid}}" [expanded]:
+- button "基础资料创建结果" [expanded]:
   - img
-  - text: Tool call finance_create_master_data · {{uuid}}
-- text: "IN { \"id\": \"{{uuid}}\", \"version\": 2 } OUT {\"id\":\"{{uuid}}\",\"version\":2,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\"},\"readback\":{\"content\":\"matched\",\"configuration\":\"matched\",\"complete\":true},\"complete\":true,\"notice\":\"已保存发送结果，不会自动重发。accepted不包含有成新建ID；按原编码独立比较。未知结果即使找到同编码资料也不转成成功；辅助启用状态未核验。\"}"
-- button "Inspect"
+  - text: 基础资料创建结果
+- text: 状态：已完成并核对

@@ -145,7 +145,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('requires the exact journal revisio
           await expect.poll(() => panel.getAttribute('data-approval-key')).not.toBe(previousKey)
           previousKey = await panel.getAttribute('data-approval-key')
           const text = await panel.textContent()
-          for (const value of ['日记账演示账套', '"version": 2', adapter.revised.amount, direction, '库存现金']) expect(text).toContain(value)
+          for (const value of ['日记账演示账套', adapter.revised.amount,
+            direction === 'income' ? '收入' : '支出', '库存现金', '日记账闭环测试']) expect(text).toContain(value)
+          expect(text).not.toMatch(/"version"|prepared-id|snapshot-key|snapshot-secret/)
           expect(writes).toBe(0)
           expect(await records.read(adapter.preparedId as PreparedJournalId)).toMatchObject({ phase: 'prepared', version: 2 })
           if (approvals === 0) await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journal-preparation/${scenario}-approval.expected.md`, import.meta.url)),
@@ -176,7 +178,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('requires the exact journal revisio
         const card = page.locator(selector)
         await card.waitFor()
         await card.getByRole('button').first().click()
-        await expect.poll(() => card.textContent()).toContain(scenario === 'currency-change' ? '资料或新增位置已变化' : durable.phase)
+        await expect.poll(() => card.textContent()).toContain(scenario === 'currency-change'
+          ? '资料或新增位置已变化'
+          : scenario === 'expense' ? '结果待确认' : '已完成并核对')
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journal-preparation/${scenario}-result-card.expected.md`, import.meta.url)),
           normalize(await captureStableAria(page, selector, scaffold.workspaceCwd)), webSnapshotMode())
         outputs.push({ scenario, direction, writes, results: JSON.parse(normalize(JSON.stringify(results))) as unknown })

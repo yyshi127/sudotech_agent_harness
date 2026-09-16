@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
+import { financeModelCall, financeModelJson } from './model-result.ts'
+import { financeResultContent } from './result-presentation.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-journal-deletion-tool'
@@ -35,25 +37,29 @@ export function apply(ctx: Context, config: Config): void {
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的 Finance 会话中准备流水删除。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.prepareJournalDeletion(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .prepareJournalDeletion(agent, args, exec.signal, config)))
     },
     presentCall: args => ({ card: 'generic', title: args.action === 'inspect' ? '只读检查日记账删除记录' : '准备日记账删除预览',
-      kind: 'other', rawInput: args }),
+      kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账删除检查未完成' : '日记账删除预览与检查',
-      content: result.content }),
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
   ctx.tools.register(defineTool({
     name: 'finance_delete_journal',
-    description: '仅在用户明确要求删除时，执行 finance_prepare_journal_deletion 已展示的准确 id/version。Host 强制请求本次确认，聊天中的同意不绕过确认。状态、版本或配置变化需重新预览；拒绝、取消不发送。不联动删除凭证或应收应付，不审核、结账、核销或实际收付款，不提供自动撤销。accepted 仅表示接口接收；readback 分别报告目标、剩余流水内容和余额，not-observed 仅限原月份及账户，不证明全账套删除。超时、响应丢失或回查失败保留原 id 只读 inspect，不重发，不重新准备同目标。',
+    description: '仅在用户明确要求删除时，执行 finance_prepare_journal_deletion 已展示的准确 id/version。Host 强制请求本次确认，聊天中的同意不绕过确认。状态、版本或配置变化需重新预览；拒绝、取消不发送。不联动删除凭证或应收应付，不审核、结账、核销或实际收付款，不提供自动撤销。接口接收后仍须依据独立回查判断是否完成；原月份及账户未再发现目标，不等于全账套不存在。超时、响应丢失或回查失败保留原 id 只读 inspect，不重发，不重新准备同目标。',
     parameters: { id: { type: 'string', required: true, description: '已展示的本地删除预览 ID。' },
       version: { type: 'integer', required: true, description: '已展示的准确预览版本。' } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('请在客户账套的 Finance 会话中删除日记账。')
-      return JSON.stringify(await ctx.xiaojingFinanceDomain.deleteJournal(exec.agent, args, exec.signal, config))
+      const agent = exec.agent
+      return financeModelJson(await financeModelCall(() => ctx.xiaojingFinanceDomain
+        .deleteJournal(agent, args, exec.signal, config)))
     },
-    presentCall: args => ({ card: 'generic', title: '确认并删除指定日记账', kind: 'other', rawInput: args }),
-    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账删除未完成' : '日记账删除结果与范围内回查',
-      content: result.content }),
+    presentCall: () => ({ card: 'generic', title: '确认并删除指定日记账', kind: 'delete' }),
+    presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账删除未完成' : '日记账删除结果',
+      content: financeResultContent(result.content, result.isError, 'operation') }),
   }))
 }

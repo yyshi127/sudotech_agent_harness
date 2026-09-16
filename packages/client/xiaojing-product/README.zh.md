@@ -6,9 +6,9 @@
 
 ## 产品贡献
 
-浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`onboarding.content` 和 `settings.section`。产品文案、配色覆盖、带版本号的内测标签、按版本倒序排列的增量更新历史和默认人格位于本包。发布新版本时只在历史首部增加一条记录，旧记录保持不变，防止把旧功能重新归入当前版本。Electron 通过一个受限 preload 方法提供应用实际版本；普通 Web 预览使用必须与 `apps/desktop/package.json` 相同的受检 fallback。测试要求该 fallback 与更新历史首项一致，并拒绝重复版本号。产品层门禁会拒绝版本不一致，也会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。插件生命周期还会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在插件卸载时恢复通用值。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 `dsh-v0.1.1-rc.2` 基线、通用 slot、浏览器资源路径、桌面产品清单，以及显示为 `Finance模式` 的产品自有 `finance` 预设。产品层门禁会解析 Finance 与标准模式组装，只允许 Finance 人格和清单登记的产品 skill 根目录不同。
+浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`onboarding.content` 和 `settings.section`。产品文案、配色覆盖、带版本号的内测标签、按版本倒序排列的增量更新历史和默认人格位于本包。普通工作区的新会话欢迎语是 `小兢会计，您的AI办公搭子`；Finance 会话显示 `小兢会计，您的AI财务助手`。`0.2.4` 同时显示在欢迎区版本角标和“关于小兢”更新历史首项。发布新版本时只在历史首部增加一条记录，旧记录保持不变，防止把旧功能重新归入当前版本。Electron 通过一个受限 preload 方法提供应用实际版本；普通 Web 预览使用必须与 `apps/desktop/package.json` 相同的受检 fallback。测试要求该 fallback 与更新历史首项一致，并拒绝重复版本号。产品层门禁会拒绝版本不一致，也会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。插件生命周期还会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在插件卸载时恢复通用值。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 `dsh-v0.1.1-rc.2` 基线、通用 slot、浏览器资源路径、桌面产品清单，以及显示为 `Finance模式` 的产品自有 `finance` 预设。产品层门禁会解析 Finance 与标准模式组装，只允许 Finance 人格和清单登记的产品 skill 根目录不同。
 
-`finance` 预设位于 `apps/cli/config/xiaojing-agent-presets/`，profile 启动只为 `xiaojing` Client profile 增加该根目录，官方预设根目录保持不变。本 Client 插件通过通用 `AgentPresetDisplayRegistry` 提供 Finance 的本地化显示文案，因此官方预设界面不包含产品 id 或产品文字。`product.json.financeExtension` 登记 Finance skills，并负责未来 Finance 包名前缀、组合行前缀、兼容适配文件名和受保护的 `harness/finance` 持久化根目录。Host 与 Client 包清单在出现服务型财务能力前保持为空；纯指令 skill 不需要空的占位包。
+`finance` 预设位于 `apps/cli/config/xiaojing-agent-presets/`，profile 启动只为 `xiaojing` Client profile 增加该根目录，官方预设根目录保持不变。本 Client 插件通过通用 `AgentPresetDisplayRegistry` 提供 Finance 的本地化显示文案，因此官方预设界面不包含产品 id 或产品文字。`product.json.financeExtension` 登记当前五个 Finance skills 和已实现的 Host／Client 包族，并负责组合行前缀、兼容适配文件名和受保护的 `harness/finance` 持久化根目录。已移除或未来能力不会以占位 skill 清单项保留。
 
 Host 产品插件还拥有小兢会计的强制删除策略。显式删除工具和 shell 删除命令即使在会话策略为 `never` 时，也会通过共享审批通道请求一次性确认。单调工具 guard 会拒绝任何未通过该次确认的匹配调用。浏览器和 Windows 控制提供方在各自工具内部，将删除／移除／卸载目标以及 Delete 键归类为强制确认。
 
@@ -22,11 +22,25 @@ Host 产品插件还拥有小兢会计的强制删除策略。显式删除工具
 
 ## 中国财税官方来源核验
 
-产品自有 `finance-tax-research-cn` skill 要求 Finance模式在形成依赖规则的结论前，先识别适用地区、纳税人事实、交易事实、会计或纳税期间和答案对应日期。它调用 `finance_evidence`，只把搜索摘要当作发现线索，并把缺少官方正文、现行效力或适用性证据的事项标为 `待核验`。另外四个 skill 分别组织发票审核、凭证草拟、财务数据分析和报销审核；它们只编排共享文档、官方依据、确定性试算和受控文件工具，不执行过账、申报、审批、付款或外部系统修改。
+产品自有 `finance-tax-research-cn` skill 要求 Finance模式在形成依赖规则的结论前，先识别适用地区、纳税人事实、交易事实、会计或纳税期间和答案对应日期。它调用 `finance_evidence`，只把搜索摘要当作发现线索，并把缺少官方正文、现行效力或适用性证据的事项标为 `待核验`。另外四个 skill 分别覆盖财务文档读取、发票审核、凭证草拟和财务数据分析。它们编排共享文档、官方依据、确定性试算和受控文件工具，但 skill 名称本身不能证明某项业务操作已支持。当前 Finance 预设不包含报销 skill。
 
 该 skill 不保存法规正文，不建设爬虫或 RAG 索引，也不启用通用 HTTP 抓取。搜索摘要不能被当作完整条文；官方结果不足以支持结论时，回答必须保持非确定性。删除清单项、预设 skill 目录和自定义根即可移除该能力，不修改 Harness 核心包或用户数据。
 
 ## Model Experience
+
+### 全局业务化回答
+
+#### 模型看到的内容
+
+所有小兢会计预设在人格组装后都会获得一段稳定的回答规则。最终回答必须先给可用的业务结果；任务成功后不叙述内部执行证据和失败尝试；任务失败时只给用户可理解的原因和下一步；生成文件按内容及可用位置交付，不附带内部审计元数据。只有用户明确要求技术诊断时才展示技术细节。各工具仍须先生成模型安全的结果，不能用这段提示词替代对传输、重试、分页、校验值和测试信息的源头过滤。
+
+#### Token 影响
+
+每次模型请求增加一个固定的产品级段落。Finance 只追加会计解释和操作安全规则，不重复工具执行证据。
+
+#### KV Cache 影响
+
+该规则对所有预设保持稳定前缀，只在产品回答策略变化时改变。
 
 ### 强制删除指令
 
@@ -87,5 +101,5 @@ You are 小兢会计, an AI office companion configured for internal use, operat
 - 产品层依赖 `dsh-v0.1.1-rc.2` 集成基线上的六个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
 - 浏览器图片仍是由 `product.json` 登记的应用级 public 资源；检查脚本验证其存在，但不会将其嵌入客户端 bundle。
 - Shell 分类会识别显式删除命令，但无法推断无关且不透明的第三方可执行文件内部隐藏的破坏行为；任何新增且能删除用户数据的工具都必须公开并强制执行自己的删除分类。
-- `Finance模式` 现已具备本地客户上下文、专属财务工作区、共享文档提取与视觉读取、官方财税依据研究、四类带版本的确定性试算和首批五个专业财务流程 skill；仍无本地法规语料、有成工作流、SDOO 集成、申报或过账连接器及合规引擎。
+- `Finance模式` 现已具备本地客户上下文、专属财务工作区、文档与票据初审、官方财税依据研究、确定性试算、财务成果文件管理，以及已实现的有成查询和受控维护操作。权威能力清单将各业务领域标为已支持、有限支持或暂不支持。总账、明细账、辅助账、资产负债表、利润表、现金流量表、报销、审核、过账、结账、申报和实际支付都不是当前 Finance 对话能力。
 - 受保护的 `harness/finance` 根目录保存带 schema 版本的客户、文档与依据数据；确定性试算不新增独立账本，完整输入与输出保留在会话日志中。

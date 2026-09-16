@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { YouchengConnection } from '../src/youcheng.ts'
-import { projectVoucherPage, validateVoucherQuery } from '../src/vouchers.ts'
+import { collectVoucherPages, projectVoucherPage, validateVoucherQuery } from '../src/vouchers.ts'
 
 const urls = { test: 'https://example.test', production: 'https://example.test' }
 const config = { system: 'youcheng' as const, environment: 'test' as const, appKey: 'fake-key', accountCode: 'ledger-2' }
@@ -161,5 +161,28 @@ describe('temporary Youcheng voucher query', () => {
       controller.abort()
     })))
     await expect(adapter.queryVouchers(config, 'fake-secret', query, controller.signal, 1024)).rejects.toThrow('已取消')
+  })
+
+  it('exports every voucher page from page one and reconciles the vendor total', async () => {
+    const pages: number[] = []
+    const report = await collectVoucherPages({ ...query, page: 9 }, (selected) => {
+      pages.push(selected.page)
+      const item = { ...row, certificateId: `voucher-${selected.page}`, certificateCode: selected.page }
+      return Promise.resolve(projectVoucherPage({ success: true, count: 2, list: [item] }, selected, account, 65_536))
+    }, signal(), { pageSize: 1, maxBytes: 65_536 })
+    expect(pages).toEqual([1, 2])
+    expect(report).toMatchObject({ page: 1, pageSize: 1, total: 2, voucherCount: 2, hasMore: false, pagesRead: 2 })
+    expect(report.rows.map(item => item.voucherId)).toEqual(['voucher-1', 'voucher-1', 'voucher-2', 'voucher-2'])
+    expect(report.notice).toContain('全部凭证分录')
+  })
+
+  it('refuses an incomplete or changing voucher export', async () => {
+    await expect(collectVoucherPages(query, selected => Promise.resolve(projectVoucherPage(
+      { success: true, count: selected.page === 1 ? 2 : 3,
+        list: [{ ...row, certificateId: `voucher-${selected.page}` }] }, selected, account, 65_536)),
+    signal(), { pageSize: 1, maxBytes: 65_536 })).rejects.toThrow('总张数')
+    await expect(collectVoucherPages(query, selected => Promise.resolve(projectVoucherPage(
+      { success: true, count: 2, list: [row] }, selected, account, 65_536)),
+    signal(), { pageSize: 1, maxBytes: 65_536 })).rejects.toThrow('重复凭证')
   })
 })

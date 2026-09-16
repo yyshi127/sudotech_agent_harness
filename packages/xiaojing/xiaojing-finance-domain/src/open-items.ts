@@ -82,8 +82,68 @@ export interface OpenItemResult {
   totalCount: number
   rows: OpenItemRow[]
   summaries: OpenItemSummary[]
-  coverage: 'unverified'
+  /** Number of count-reconciled pages read for an export; absent for an ordinary page query. */
+  pagesRead?: number
+  coverage: 'unverified' | 'vendor-count-reconciled'
   notice: string
+}
+
+/**
+ * Collect every page declared by the vendor for one receivable or payable selection.
+ * @param query - Direction and period filters; its page values are ignored.
+ * @param read - Authenticated reader for one validated vendor page.
+ * @param signal - Cancellation checked around every page read.
+ * @param limits - Export page size and aggregate row and byte caps.
+ * @returns Every unique business row after its count matches the stable vendor total.
+ */
+export async function collectOpenItemPages(query: OpenItemQuery,
+  read: (query: OpenItemQuery) => Promise<OpenItemResult>, signal: AbortSignal,
+  limits: { pageSize: number; maxRows: number; maxBytes: number }): Promise<OpenItemResult> {
+  const base = openItemQuerySchema.parse({ ...query, page: 1, pageSize: limits.pageSize })
+  const rows: OpenItemRow[] = []
+  const ids = new Set<OpenItemId>()
+  let identity: { id: string; name: string } | undefined
+  let total: number | undefined
+  let summaries: OpenItemSummary[] = []
+  let bytes = 0
+  let page = 1
+  do {
+    signal.throwIfAborted()
+    const selected: OpenItemQuery = { ...base, page }
+    const result = await read(selected)
+    signal.throwIfAborted()
+    if (Object.entries(selected).some(([key, value]) => result.selection[key as keyof OpenItemQuery] !== value)) {
+      throw new Error('应收应付导出来源与查询条件不一致。')
+    }
+    identity ??= { id: result.accountId, name: result.accountName }
+    if (identity.id !== result.accountId || identity.name !== result.accountName) throw new Error('应收应付导出期间账套身份变化。')
+    total ??= result.totalCount
+    if (total !== result.totalCount || total > limits.maxRows) throw new Error('应收应付导出总数变化或超过上限，请缩小期间后重试。')
+    bytes += Buffer.byteLength(JSON.stringify(result), 'utf8')
+    if (bytes > limits.maxBytes) throw new Error('应收应付完整导出超过上限，请缩小期间后重试。')
+    const expected = Math.min(limits.pageSize, total - rows.length)
+    if (result.rows.length !== expected) throw new Error('应收应付导出分页记录数与接口总数不一致。')
+    for (const item of result.rows) {
+      if (ids.has(item.id)) throw new Error('应收应付导出分页包含重复记录。')
+      ids.add(item.id)
+      rows.push(item)
+    }
+    const totals = result.summaries.filter(item => item.kind === 'total')
+    if (totals.length > 0) summaries = totals
+    page += 1
+  } while (rows.length < total)
+  if (rows.length !== total) {
+    throw new Error('应收应付导出记录数与接口总数不一致，未生成不完整文件。')
+  }
+  const result: OpenItemResult = {
+    accountId: identity.id, accountName: identity.name, selection: { ...base, page: 1 }, totalCount: total,
+    rows, summaries, pagesRead: page - 1, coverage: 'vendor-count-reconciled',
+    notice: '已从第一页开始逐页读取，并核对业务记录数与接口声明总数；文件包含本次方向和期间条件返回的全部应收或应付记录。接口不提供原子快照，导出期间发生的数据变化仍可能导致失败或无法识别。结清及已收已付金额不证明真实银行收付款。',
+  }
+  if (Buffer.byteLength(JSON.stringify(result), 'utf8') > limits.maxBytes) {
+    throw new Error('应收应付完整导出超过上限，请缩小期间后重试。')
+  }
+  return result
 }
 
 /**

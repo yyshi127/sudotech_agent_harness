@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { openItemQuerySchema, projectOpenItems } from '../src/open-items.ts'
+import { collectOpenItemPages, openItemQuerySchema, projectOpenItems } from '../src/open-items.ts'
 import { YouchengConnection } from '../src/youcheng.ts'
 
 const query = { direction: 'receivable' as const, periodStart: '2026-09', periodEnd: '2026-09', page: 1, pageSize: 20 }
@@ -94,4 +94,33 @@ it.each(['network', 'secret', 'vendor-error'])('reports %s as failure without le
   catch (error) { message = String(error) }
   expect(message).toContain('查询失败')
   expect(message).not.toMatch(/fake-secret|private-/)
+})
+
+it('exports every open-item page from page one and reconciles the vendor count', async () => {
+  const pages: number[] = []
+  const report = await collectOpenItemPages({ ...query, page: 8 }, (selected) => {
+    pages.push(selected.page)
+    return Promise.resolve(projectOpenItems({ count: 2,
+      list: [{ ...entry, id: selected.page }], ...selected.page === 2 ? { pageUpRecord: {
+        ...marker, abstractStr: '上一页的总计' } } : {} }, selected, account, 100, 65_536))
+  }, new AbortController().signal, { pageSize: 1, maxRows: 10, maxBytes: 65_536 })
+  expect(pages).toEqual([1, 2])
+  expect(report).toMatchObject({ totalCount: 2, pagesRead: 2, coverage: 'vendor-count-reconciled' })
+  expect(report.rows.map(item => item.id)).toEqual(['1', '2'])
+  expect(report.notice).toContain('全部应收或应付记录')
+})
+
+it('refuses changing totals, short pages, and duplicate open items', async () => {
+  await expect(collectOpenItemPages(query, selected => Promise.resolve(projectOpenItems({
+    count: selected.page === 1 ? 2 : 3, list: [{ ...entry, id: selected.page }],
+  }, selected, account, 100, 65_536)), new AbortController().signal,
+  { pageSize: 1, maxRows: 10, maxBytes: 65_536 })).rejects.toThrow('总数变化')
+  await expect(collectOpenItemPages(query, selected => Promise.resolve(projectOpenItems({
+    count: 2, list: selected.page === 1 ? [{ ...entry, id: 1 }] : [],
+  }, selected, account, 100, 65_536)), new AbortController().signal,
+  { pageSize: 1, maxRows: 10, maxBytes: 65_536 })).rejects.toThrow('分页记录数')
+  await expect(collectOpenItemPages(query, selected => Promise.resolve(projectOpenItems({
+    count: 2, list: [{ ...entry, id: 1 }],
+  }, selected, account, 100, 65_536)), new AbortController().signal,
+  { pageSize: 1, maxRows: 10, maxBytes: 65_536 })).rejects.toThrow('重复记录')
 })

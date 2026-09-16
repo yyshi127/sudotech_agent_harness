@@ -197,6 +197,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
             state: status.state === 'connected' ? 'success' as const
               : status.state === 'checking' ? 'pending' as const
                 : status.state === 'failed' ? 'error' as const : 'idle' as const,
+            ...(status.state === 'connected' ? { brandIconSrc: '/youcheng-finance-logo.png' } : {}),
             label: `${label} · ID ${status.accountId}${status.checkedAt === undefined ? '' : ` · ${new Date(status.checkedAt).toLocaleString()}`}`,
           }]
         }),

@@ -21,8 +21,10 @@ class VoucherAdapter extends LlmAdapter {
     this.calls += 1
     if (this.calls === 1) {
       expect(JSON.stringify(options)).toContain('不是自然语言搜索框')
-      const args = JSON.stringify({ month: '2022-01', monthEnd: '2022-03', summary: '销售', pageSize: 2,
-        ...this.beyondLastPage ? { page: 3 } : {}, ...this.exportExcel ? { exportExcel: true } : {} })
+      const args = JSON.stringify(this.exportExcel ? { exportExcel: true, pageSize: 100 } : {
+        month: '2022-01', monthEnd: '2022-03', summary: '销售', pageSize: 2,
+        ...this.beyondLastPage ? { page: 3 } : {},
+      })
       const id = CallId('voucher-query')
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'finance_vouchers', argumentsDelta: args }
@@ -37,7 +39,7 @@ class VoucherAdapter extends LlmAdapter {
       yield { type: 'block-end', index: 0, block: { type: 'tool-call', id, name: 'finance_voucher_detail', arguments: args } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
     } else if (this.networkFailure) {
-      expect(JSON.stringify(options.messages)).toContain('network；阶段：凭证列表请求')
+      expect(JSON.stringify(options.messages)).toContain('财务操作未完成')
       expect(JSON.stringify(options.messages)).not.toContain('private-transport-error')
       const text = '凭证列表请求发生网络错误，本次未取得有效结果，不能判断账套没有凭证。'
       yield { type: 'block-start', index: 0, blockType: 'text' }
@@ -45,11 +47,18 @@ class VoucherAdapter extends LlmAdapter {
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
       yield { type: 'finish', reason: { kind: 'stop' } }
     } else {
-      if (this.withDetail) expect(JSON.stringify(options.messages)).toContain('不包含附件、辅助核算及外币明细')
-      expect(JSON.stringify(options.messages)).toContain(this.beyondLastPage ? '这不能证明筛选总数为零' : '30000.00')
-      expect(JSON.stringify(options.messages)).toContain('期间筛选未逐笔复核')
-      expect(JSON.stringify(options.messages)).toContain('精确或模糊匹配语义未核验')
-      const text = this.beyondLastPage ? '本页没有记录，不代表账套为空；需回到第一页核对总数。' : '已从演示账套查询到凭证，明细见查询结果。'
+      const messages = JSON.stringify(options.messages)
+      if (this.exportExcel) {
+        expect(messages).toContain('"voucherCount":21')
+        expect(messages).toContain('"rowCount":42')
+        expect(messages).not.toMatch(/sha256|pageSize|pagesRead|notice|hashMatchesBytes/)
+      } else {
+        expect(messages).toContain(this.beyondLastPage ? 'page\\":3' : '30000.00')
+        if (this.beyondLastPage) expect(messages).toContain('voucherCount\\":0')
+      }
+      const text = this.exportExcel ? '已将全部 21 张凭证导出为一个 Excel 文件。'
+        : this.beyondLastPage ? '本页没有记录，不代表账套为空；需回到第一页核对总数。'
+          : '已从演示账套查询到凭证，明细见查询结果。'
       yield { type: 'block-start', index: 0, blockType: 'text' }
       yield { type: 'text-delta', index: 0, text }
       yield { type: 'block-end', index: 0, block: { type: 'text', text } }
@@ -59,6 +68,7 @@ class VoucherAdapter extends LlmAdapter {
 }
 
 it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false], [true, false, false, false], [false, true, false, false], [false, false, true, false], [false, false, false, true]])('queries vouchers without leaked credentials; beyondLastPage=%s, detail=%s, networkFailure=%s, export=%s', async (beyondLastPage, withDetail, networkFailure, exportExcel) => {
+  vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
     default: 'standard', roots: [
       { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
@@ -89,9 +99,25 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
     expect(url.pathname).toBe('/finance/certificate/list.rjson')
     if (networkFailure) throw new TypeError('private-transport-error snapshot-secret')
     if (typeof init?.body !== 'string') throw new Error('Expected JSON body')
-    expect(JSON.parse(init.body)).toEqual({ accountName: '演示账套', page: beyondLastPage ? 3 : 1, pageSize: 2,
-      certificateDateMonthStart: '2022-01', certificateDateMonthEnd: '2022-03', abstractName: '销售' })
+    const body = JSON.parse(init.body) as { page: number }
+    expect(body).toEqual(exportExcel ? { accountName: '演示账套', page: body.page, pageSize: 20 }
+      : { accountName: '演示账套', page: beyondLastPage ? 3 : 1, pageSize: 2,
+        certificateDateMonthStart: '2022-01', certificateDateMonthEnd: '2022-03', abstractName: '销售' })
     if (beyondLastPage) return Response.json({ result: 100, data: { success: true, count: 0, list: [] } })
+    if (exportExcel) {
+      const first = (body.page - 1) * 20
+      const length = body.page === 1 ? 20 : 1
+      return Response.json({ result: 100, data: { success: true, count: 21,
+        list: Array.from({ length }, (_, offset) => ({
+          certificateId: `voucher-${first + offset + 1}`, certificateDate: '2022-01-01',
+          certificateWord: '记', certificateCode: first + offset + 1,
+          entryList: [
+            { abstractName: '销售商品', subjectCode: '1122', subjectName: '应收账款', direction: 0, borrorMoneyStr: '30000.00', loanMoneyStr: '' },
+            { abstractName: '销售商品', subjectCode: '5001', subjectName: '主营业务收入', direction: 1, loanMoneyStr: '30000.00', borrorMoneyStr: '' },
+          ],
+        })),
+      } })
+    }
     return Response.json({ result: 100, data: { success: true, count: 1, list: [{
       certificateId: 'voucher-1', certificateDate: '2022-01-01', certificateWord: '记', certificateCode: 1,
       entryList: [
@@ -154,7 +180,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
         payload: { sessionId: handle.agent.session.id, provider: 'voucher-test', model: 'voucher-test', saveDefault: false },
       })
       expect(selectedModel.result.ok).toBe(true)
-      handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: exportExcel ? '查询2022年1月至3月摘要含销售的凭证并导出本页 Excel' : '查询2022年1月至3月摘要含销售的凭证' }], source: { kind: 'user' } }))
+      handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: exportExcel ? '导出全部凭证' : '查询2022年1月至3月摘要含销售的凭证' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(withDetail ? 3 : 2)
       const events = handle.agent.session.events
@@ -162,10 +188,14 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name))
         .toEqual(withDetail ? ['finance_vouchers', 'finance_voucher_detail'] : ['finance_vouchers'])
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
-      expect(JSON.stringify(results)).toContain(networkFailure ? 'network；阶段：凭证列表请求' : beyondLastPage ? '这不能证明筛选总数为零' : '30000.00')
+      if (!exportExcel) {
+        expect(JSON.stringify(results)).toContain(networkFailure ? '财务操作未完成'
+          : beyondLastPage ? 'page\\":3' : '30000.00')
+      }
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token/)
       expect(await readFile(join(scaffold.harnessHome, 'finance/clients-v1.json'), 'utf8')).toBe(catalog)
-      expect(calls).toEqual(['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson', '/finance/certificate/list.rjson',
+      const pageCalls = ['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson', '/finance/certificate/list.rjson']
+      expect(calls).toEqual(exportExcel ? [...pageCalls, ...pageCalls] : [...pageCalls,
         ...withDetail ? ['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson', '/finance/certificate/info.rjson'] : []])
       let resultSnapshot = JSON.stringify(results, null, 2)
       if (exportExcel) {
@@ -179,9 +209,17 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
         const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing exported voucher receipt')
-        const receipt = JSON.parse(text.text) as { exportFile: unknown }
-        expect(receipt.exportFile).toEqual({ path: file.path, name: file.name, sha256: file.sha256, size: file.size })
-        resultSnapshot = JSON.stringify({ ...receipt, exportFile: { publishedXlsx: true, hashMatchesBytes: true } }, null, 2)
+        const receipt = JSON.parse(text.text) as {
+          accountName: string
+          month: string
+          voucherCount: number
+          rowCount: number
+          exportFile: unknown
+        }
+        expect(receipt).toEqual({ accountName: '演示账套', month: '不限月份', voucherCount: 21, rowCount: 42,
+          exportFile: { path: file.path, name: file.name } })
+        expect(text.text).not.toMatch(/sha256|pageSize|pagesRead|notice/)
+        resultSnapshot = JSON.stringify({ ...receipt, exportFile: { publishedXlsx: true } }, null, 2)
       }
       const prefix = exportExcel ? 'export-' : networkFailure ? 'network-error-' : withDetail ? 'detail-' : beyondLastPage ? 'empty-page-' : ''
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-vouchers/${prefix}result.expected.md`, import.meta.url)),

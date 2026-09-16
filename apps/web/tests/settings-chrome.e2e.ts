@@ -67,6 +67,9 @@ describe('web e2e: settings modal and General preferences', () => {
     await dialog.getByRole('button', { name: 'Workspace Write' }).waitFor({ timeout: 10_000 })
     await expect.poll(() => dialog.getByText('语言', { exact: true }).count(), { timeout: 5_000 }).toBe(1)
     await expect.poll(() => dialog.getByText('外观', { exact: true }).count(), { timeout: 5_000 }).toBe(1)
+    if (webClientProfile() === 'xiaojing') {
+      await dialog.getByRole('button', { name: '附件存储' }).waitFor({ timeout: 10_000 })
+    }
     const openDocument = dialog.getByRole('button', { name: '打开配置文件' })
     await openDocument.waitFor({ timeout: 10_000 })
     let openRequests = 0
@@ -106,7 +109,7 @@ describe('web e2e: settings modal and General preferences', () => {
       )
       await compareOrRefreshGolden(DESKTOP_COMPANION_EXPECTED, companionSnapshot, MODE)
       await dialog.getByRole('button', { name: '关于小兢' }).click()
-      await dialog.getByText('当前版本 v0.2.3', { exact: true }).waitFor({ timeout: 10_000 })
+      await dialog.getByText('当前版本 v0.2.4', { exact: true }).waitFor({ timeout: 10_000 })
       const aboutSnapshot = await captureStableAria(
         page,
         '[data-xiaojing-about]',

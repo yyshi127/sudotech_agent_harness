@@ -143,7 +143,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact open-item revisions
           await expect.poll(() => panel.getAttribute('data-approval-key')).not.toBe(previousKey)
           previousKey = await panel.getAttribute('data-approval-key')
           const text = await panel.textContent()
-          for (const value of ['往来演示账套', '"version": 2', '0.06', adapter.direction, '70000', '不是完整账户目录']) expect(text).toContain(value)
+          for (const value of ['往来演示账套', '0.06', payable ? '应付' : '应收',
+            payable ? '供应商：往来测试' : '客户：往来测试', payable ? '应付账款' : '应收账款']) expect(text).toContain(value)
+          expect(text).not.toMatch(/"version"|70000|不是完整账户目录|prepared-id|snapshot-key|snapshot-secret/)
           expect(writes).toBe(0)
           expect(await records.read(adapter.preparedId as PreparedOpenItemId)).toMatchObject({ phase: 'prepared', version: 2 })
           if (approvals === 0) await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-preparation/${scenario}-approval.expected.md`, import.meta.url)),
@@ -171,7 +173,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact open-item revisions
         const card = page.locator(selector)
         await card.waitFor()
         await card.getByRole('button').first().click()
-        await expect.poll(() => card.textContent()).toContain(durable.phase)
+        await expect.poll(() => card.textContent()).toContain(scenario === 'lost' ? '结果待确认' : '已完成并核对')
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-preparation/${scenario}-result-card.expected.md`, import.meta.url)),
           normalize(await captureStableAria(page, selector, scaffold.workspaceCwd)), webSnapshotMode())
         outputs.push({ scenario, writes, results: JSON.parse(normalize(JSON.stringify(results))) as unknown })

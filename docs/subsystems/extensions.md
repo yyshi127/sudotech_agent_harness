@@ -587,11 +587,11 @@ async analyzeOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: Abort
 async exportOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<{ report: OpenItemAnalysisResult file: FinanceManagedFile }>
 
 /**
- * Query and publish one explicitly bounded voucher page without ledger-wide completeness claims.
+ * Query every count-reconciled voucher page and publish the business rows as XLSX.
  * @param agent - Owning bound Finance session.
- * @param query - Page and filters, not caller-authored accounting data.
- * @param signal - Cancellation checked before writing and before publication starts.
- * @returns Exact queried page and committed local file; the work copy is preserved.
+ * @param query - Filters; caller page settings do not limit the export.
+ * @param signal - Cancellation checked during reads, before writing, and before publication starts.
+ * @returns Complete count-reconciled report and committed local file; the work copy is preserved.
  */
 async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<{ report: VoucherPage file: FinanceManagedFile }>
 
@@ -605,20 +605,20 @@ async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Pr
 async exportBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<{ report: BalanceResult file: FinanceManagedFile }>
 
 /**
- * Query and publish one journal page, retaining its missing completeness evidence.
+ * Query journal pages through the first empty page and publish the business rows as XLSX.
  * @param agent - Owning bound Finance session.
- * @param query - Dates, account selector and bounded page.
- * @param signal - Cancellation checked before writing and publication.
- * @returns Exact source report and committed workbook, with summaries separated.
+ * @param query - Dates and account selector; caller page settings do not limit the export.
+ * @param signal - Cancellation checked during reads, before writing, and before publication.
+ * @returns Collected report and committed workbook, with vendor summaries separated.
  */
 async exportJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<{ report: JournalResult file: FinanceManagedFile }>
 
 /**
- * Query and publish one raw receivable/payable page without additional aggregation.
+ * Query every count-reconciled receivable or payable page and publish the business rows as XLSX.
  * @param agent - Owning bound Finance session.
- * @param query - Direction, periods and bounded page.
- * @param signal - Cancellation checked before writing and publication.
- * @returns Exact source report and committed workbook; settlement is not a bank payment claim.
+ * @param query - Direction and periods; caller page settings do not limit the export.
+ * @param signal - Cancellation checked during reads, before writing, and before publication.
+ * @returns Complete count-reconciled report and committed workbook; settlement is not a bank payment claim.
  */
 async exportOpenItemPage(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<{ report: OpenItemResult file: FinanceManagedFile }>
 
