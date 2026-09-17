@@ -6,12 +6,18 @@ import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { currentKeyFingerprint, installUsageObserver } from './compat.ts'
 import type { UsageObservation } from './compat.ts'
-import { EMBEDDED_PRICE_TABLE, priceUsage } from './pricing.ts'
+import { EMBEDDED_PRICE_TABLE, priceUsage, RECOVERABLE_PRICE_TABLES } from './pricing.ts'
 import { ledgerInput, UsageLedgerStore } from './store.ts'
 import type { UsageAccountingSnapshot } from './types.ts'
 
 export type * from './types.ts'
-export { beijingClock, EMBEDDED_PRICE_TABLE, isPeakTime, priceUsage } from './pricing.ts'
+export {
+  beijingClock,
+  EMBEDDED_PRICE_TABLE,
+  isPeakTime,
+  priceUsage,
+  RECOVERABLE_PRICE_TABLES,
+} from './pricing.ts'
 export type { PriceTable, UsageBuckets } from './pricing.ts'
 
 /** Deployment settings for the local usage ledger. */
@@ -79,7 +85,7 @@ export class UsageAccountingService extends TypertRemoteService {
       await currentKeyFingerprint(this.ctx),
       this.committedRevision,
       Date.now(),
-      [EMBEDDED_PRICE_TABLE],
+      RECOVERABLE_PRICE_TABLES,
     )
   }
 

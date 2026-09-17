@@ -46,6 +46,20 @@ it('compares exact cents, retains unknowns and excludes vendor summaries from si
   expect(await readSheet(bytes)).toEqual(await readSheet(bytes, '期间差额'))
   expect(await readSheet(bytes, '来源行')).toHaveLength(6)
 })
+it('reports debit and credit reductions as separate same-baseline differences', async () => {
+  const report = await analyzeBalances(selection, async (query) => {
+    const value = await read(query)
+    value.rows = [{ ...value.rows[0]!,
+      periodThisBorrow: query.month === selection.month ? '12.33' : '12.34',
+      periodThisLoan: query.month === selection.month ? '56.77' : '56.78' }]
+    value.summaries = []
+    return value
+  }, new AbortController().signal, limits)
+  expect(report.differences?.[0]?.amounts).toMatchObject({
+    periodThisBorrow: '-0.01',
+    periodThisLoan: '-0.01',
+  })
+})
 it('preserves baseline-only rows and does not invent zeros for an empty current result', async () => {
   const report = await analyzeBalances(selection, async (query) => {
     const value = await read(query)

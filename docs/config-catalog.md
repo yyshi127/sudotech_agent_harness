@@ -3021,7 +3021,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/llm/usage-accounting/src/index.ts:18`](../packages/llm/usage-accounting/src/index.ts)
+Source: [`packages/llm/usage-accounting/src/index.ts:24`](../packages/llm/usage-accounting/src/index.ts)
 
 <a id="deepseek-aidsh-user-approval"></a>
 
@@ -3442,7 +3442,7 @@ export interface AttachmentStorageConfig {
 }
 ```
 
-Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts:144`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
+Source: [`packages/xiaojing/xiaojing-finance-domain/src/index.ts:145`](../packages/xiaojing/xiaojing-finance-domain/src/index.ts)
 
 <a id="deepseek-aidsh-xiaojing-finance-evidence"></a>
 

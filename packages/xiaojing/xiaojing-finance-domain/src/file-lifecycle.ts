@@ -221,6 +221,14 @@ function archiveDay(timestamp: number): string {
   }).format(timestamp)
 }
 
+function archiveFolderName(value: string): string {
+  const trimmed = value.trim()
+  if (basename(trimmed) !== trimmed) {
+    throw new Error('xiaojing-finance-domain: archive folder must be one directory name')
+  }
+  return safeBasename(trimmed)
+}
+
 /** Finance-owned, append-only file index and controlled copy operations. */
 export class FinanceFileLifecycle {
   private readonly uploadRoot: string
@@ -322,7 +330,7 @@ export class FinanceFileLifecycle {
    * @param binding - Immutable client binding.
    * @param workspace - Validated client workspace.
    * @param sessionId - Session requesting archival.
-   * @param request - Managed source and optional archive name.
+   * @param request - Managed source, optional archive folder, and optional archive name.
    * @returns Committed file record.
    */
   async archive(
@@ -342,7 +350,10 @@ export class FinanceFileLifecycle {
       stage: 'archive',
       source,
       workspace,
-      destinationDirectory: join(workspace.archiveDirectory, archiveDay(timestamp)),
+      destinationDirectory: join(
+        workspace.archiveDirectory,
+        request.archiveFolder === undefined ? archiveDay(timestamp) : archiveFolderName(request.archiveFolder),
+      ),
       preferredName: request.preferredName ?? basename(source.path),
       binding,
       sessionId,

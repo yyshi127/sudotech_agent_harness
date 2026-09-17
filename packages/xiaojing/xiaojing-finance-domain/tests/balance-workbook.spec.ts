@@ -16,6 +16,9 @@ it('preserves all twelve columns, missing values, hierarchy and separate vendor 
   const rows = await readSheet(bytes, '科目余额')
   expect(await readSheet(bytes)).toEqual(rows)
   expect(rows).toHaveLength(3)
+  expect(rows[0]).toContain('本年累计借方')
+  expect(rows[0]).toContain('本年累计贷方')
+  expect(rows[0]).not.toContain('年末累计借方')
   expect(rows[1]).toEqual(['001001', '=SUM(1,2)', '1', '是', '未提供', '0.00', '9007199254740993.01',
     '-25.50', '2.00', '-27.50', '1.00', '2.00', '-1.00', '-27.50', '未提供', '未提供'])
   expect(await readSheet(bytes, '合计')).toHaveLength(2)

@@ -50,22 +50,53 @@ function modelPrice(peak: PriceBand, offPeak: PriceBand): ModelPrice {
 }
 
 const FLASH_PRICE = modelPrice(
+  priceBand(40n, 2_000n, 8_000n),
+  priceBand(20n, 1_000n, 4_000n),
+)
+
+const PRO_PRICE = modelPrice(
+  priceBand(300n, 9_000n, 27_000n),
+  priceBand(150n, 4_500n, 13_500n),
+)
+
+const LEGACY_FLASH_PRICE = modelPrice(
   priceBand(100n, 3_000n, 9_000n),
   priceBand(50n, 1_500n, 4_500n),
 )
 
-/** Sole runtime tariff, matching the published DeepSeek V4 Flash, Vision Exp, and V4 Pro prices. */
-export const EMBEDDED_PRICE_TABLE: PriceTable = Object.freeze({
+const LEGACY_V4_MODELS = Object.freeze({
+  'deepseek-v4-flash': LEGACY_FLASH_PRICE,
+  'deepseek-v4-flash-vision-exp': LEGACY_FLASH_PRICE,
+  'deepseek-v4-pro': PRO_PRICE,
+})
+
+const LEGACY_V4_PRICE_TABLE: PriceTable = Object.freeze({
+  version: 'deepseek-public-v4-2026-08',
+  models: LEGACY_V4_MODELS,
+})
+
+const LEGACY_V4_VISION_PRICE_TABLE: PriceTable = Object.freeze({
   version: 'deepseek-public-v4-vision-2026-08',
+  models: LEGACY_V4_MODELS,
+})
+
+/** Sole runtime tariff, matching the published DeepSeek Flash and V4 Pro prices. */
+export const EMBEDDED_PRICE_TABLE: PriceTable = Object.freeze({
+  version: 'deepseek-public-flash-2026-09-14',
   models: Object.freeze({
+    'deepseek-flash': FLASH_PRICE,
     'deepseek-v4-flash': FLASH_PRICE,
     'deepseek-v4-flash-vision-exp': FLASH_PRICE,
-    'deepseek-v4-pro': modelPrice(
-      priceBand(300n, 9_000n, 27_000n),
-      priceBand(150n, 4_500n, 13_500n),
-    ),
+    'deepseek-v4-pro': PRO_PRICE,
   }),
 })
+
+/** Tariff versions retained only to recover missing category costs in historical ledger rows. */
+export const RECOVERABLE_PRICE_TABLES: readonly PriceTable[] = Object.freeze([
+  LEGACY_V4_PRICE_TABLE,
+  LEGACY_V4_VISION_PRICE_TABLE,
+  EMBEDDED_PRICE_TABLE,
+])
 
 /**
  * Convert one instant to Beijing calendar fields; China Standard Time is fixed at UTC+08:00.

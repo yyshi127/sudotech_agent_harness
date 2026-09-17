@@ -81,7 +81,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('queries five reference kinds witho
     const workspacePath = join(scaffold.workspaceCwd, 'reference-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '基础资料测试企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise', chartMappings: [], externalSystemRefs: [],
+      client: { legalName: '基础资料测试企业', shortName: '基础资料测试', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise', chartMappings: [], externalSystemRefs: [],
         financeSystem: { system: 'youcheng', environment: 'test', accountCode: 'ref-ledger', appKey: 'snapshot-key' } },
       credentialInput: { youchengAppSecret: 'snapshot-secret' },
     })

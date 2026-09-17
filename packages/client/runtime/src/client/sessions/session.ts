@@ -674,10 +674,20 @@ export class Session implements SessionFace {
     if (tailSeq !== null && event.seq <= tailSeq) return 'none' // replay overlap, drop
     this.events.push(event)
     this.views.push(view)
-    if (event.type === 'turn/start') this.firstPromptPendingTurn = false
+    let runningChanged = false
+    if (event.type === 'turn/start') {
+      this.firstPromptPendingTurn = false
+      if (!this.running) {
+        this.running = true
+        runningChanged = true
+      }
+    } else if (event.type === 'turn/end' && this.running) {
+      this.running = false
+      runningChanged = true
+    }
     const queueChanged = this.queueMirror.acceptDurable(event)
     const publication = this.conversation.append({ event, view })
-    return queueChanged ? 'immediate' : publication
+    return queueChanged || runningChanged ? 'immediate' : publication
   }
 
   /** Land a live session/event (open/repair in flight -> buffer; overlapping seq -> drop;

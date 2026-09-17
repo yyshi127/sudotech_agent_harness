@@ -3502,7 +3502,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ArchiveFinanceFileRequest',
-    declaration: 'export interface ArchiveFinanceFileRequest {\n    sourcePath: string;\n    preferredName?: string;\n}',
+    declaration: 'export interface ArchiveFinanceFileRequest {\n    sourcePath: string;\n    archiveFolder?: string;\n    preferredName?: string;\n}',
   },
   {
     name: 'AskUserQuestionAnswer',
@@ -4382,7 +4382,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'FinanceYouchengSystemConfig',
-    declaration: 'export interface FinanceYouchengSystemConfig {\n    system: \'youcheng\';\n    environment: FinanceYouchengEnvironment;\n    appKey: string;\n    accountCode: string;\n}',
+    declaration: 'export interface FinanceYouchengSystemConfig {\n    system: \'youcheng\';\n    environment: FinanceYouchengEnvironment;\n    appKey: string;\n    accountCode: string;\n    accountName?: string;\n}',
   },
   {
     name: 'FinishReason',
@@ -4910,7 +4910,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'OpenItemDifference',
-    declaration: 'export interface OpenItemDifference {\n    currencyCode: string;\n    dimensionId: string;\n    amount: string;\n    balance: string;\n}',
+    declaration: 'export interface OpenItemDifference {\n    currencyCode: string;\n    dimensionId: string;\n    presence: \'both\' | \'current-only\' | \'baseline-only\';\n    amount: string;\n    balance: string;\n}',
   },
   {
     name: 'OpenItemGroup',
@@ -5058,7 +5058,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ReferenceResult',
-    declaration: 'export interface ReferenceResult {\n    accountId: string;\n    accountName: string;\n    kind: ReferenceQuery[\'kind\'];\n    categoryCode?: string;\n    requestedLimit: number;\n    returnedCount: number;\n    coverage: \'unverified\';\n    selection: \'not-requested\' | \'unique-returned\' | \'ambiguous\' | \'not-found-in-returned\';\n    rows: ReferenceRow[];\n    notice: string;\n}',
+    declaration: 'export interface ReferenceResult {\n    accountId: string;\n    accountName: string;\n    kind: ReferenceQuery[\'kind\'];\n    categoryCode?: string;\n    subjectTreeRootCode?: string;\n    requestedLimit: number;\n    returnedCount: number;\n    coverage: \'unverified\';\n    selection: \'not-requested\' | \'unique-returned\' | \'ambiguous\' | \'not-found-in-returned\' | \'tree-returned\';\n    rows: ReferenceRow[];\n    notice: string;\n}',
   },
   {
     name: 'ReferenceRow',

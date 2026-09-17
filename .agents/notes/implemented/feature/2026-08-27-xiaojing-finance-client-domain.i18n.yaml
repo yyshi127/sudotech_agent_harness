@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-27-xiaojing-finance-client-domain.md
-2026-08-27-xiaojing-finance-client-domain.md: 5195208f266482a535f701a36d4832f59127700d
-2026-08-27-xiaojing-finance-client-domain.zh.md: 1b0e097983e2620092faa2ab2cab676aa7eb1f3e
+2026-08-27-xiaojing-finance-client-domain.md: 1a5eff623ffd10571f9b08cafef5150c8d18806e
+2026-08-27-xiaojing-finance-client-domain.zh.md: fce5a4e7521694a6a40f0081acb3929bbe1179de

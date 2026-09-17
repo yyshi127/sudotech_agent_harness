@@ -74,9 +74,14 @@ it.each(['put', 'get', 'delete', 'mismatch', 'network'])('reports %s failure wit
   } finally { await ctx.fiber.dispose() }
 })
 
-it('uploads exact bytes and returns a Host-only link; cancellation performs no request', async () => {
+it('uploads exact bytes with MIME metadata and returns a Youcheng-compatible Host-only link', async () => {
   const { ctx, storage } = await mounted()
-  const fetcher = vi.fn(async () => new Response(null))
+  const fetcher = vi.fn(async (input: string, init: RequestInit) => {
+    const url = new URL(input)
+    expect(url.searchParams.get('x-oss-signature-version')).toBe('OSS4-HMAC-SHA256')
+    expect(new Headers(init.headers).get('Content-Type')).toBe('application/pdf')
+    return new Response(null)
+  })
   vi.stubGlobal('fetch', fetcher)
   try {
     await storage.save(request)
@@ -84,9 +89,37 @@ it('uploads exact bytes and returns a Host-only link; cancellation performs no r
     expect(fetcher).not.toHaveBeenCalled()
     const receipt = await storage.upload('account/session/invoice.pdf', '发票.pdf', Buffer.from('%PDF-1.4'), new AbortController().signal)
     expect(receipt.objectKey).toBe('xiaojing/account/session/invoice.pdf')
-    expect(new URL(receipt.downloadUrl).searchParams.has('x-oss-signature')).toBe(true)
+    const download = new URL(receipt.downloadUrl)
+    expect(download.pathname).toBe('/xiaojing/account/session/invoice.pdf')
+    expect(download.searchParams.has('OSSAccessKeyId')).toBe(true)
+    expect(download.searchParams.has('x-oss-credential')).toBe(false)
+    expect(download.searchParams.has('response-content-type')).toBe(false)
+    expect(download.searchParams.get('response-content-disposition')).toBe('inline; filename=attachment.pdf')
+    const vendorFileName = decodeURIComponent(download.href).slice(decodeURIComponent(download.href).lastIndexOf('/') + 1)
+    expect(vendorFileName).toMatch(/\.pdf$/u)
     expect(fetcher).toHaveBeenCalledTimes(1)
     await expect(storage.upload('other', '发票.pdf', Buffer.from('x'), AbortSignal.abort())).rejects.toThrow()
     expect(fetcher).toHaveBeenCalledTimes(1)
+  } finally { await ctx.fiber.dispose() }
+})
+
+it.each([
+  ['invoice.png', 'image/png', 'attachment.png'],
+  ['invoice.jpg', 'image/jpeg', 'attachment.jpg'],
+  ['invoice.jpeg', 'image/jpeg', 'attachment.jpg'],
+])('preserves the supported image type and a usable extension for %s', async (objectName, contentType, downloadName) => {
+  const { ctx, storage } = await mounted()
+  vi.stubGlobal('fetch', vi.fn(async (_input: string, init: RequestInit) => {
+    expect(new Headers(init.headers).get('Content-Type')).toBe(contentType)
+    return new Response(null)
+  }))
+  try {
+    await storage.save(request)
+    const receipt = await storage.upload(`account/session/${objectName}`, objectName, Buffer.from('image'), new AbortController().signal)
+    const download = new URL(receipt.downloadUrl)
+    expect(download.searchParams.has('response-content-type')).toBe(false)
+    expect(download.searchParams.get('response-content-disposition')).toBe(`inline; filename=${downloadName}`)
+    const decoded = decodeURIComponent(download.href)
+    expect(decoded.slice(decoded.lastIndexOf('/') + 1).endsWith(downloadName)).toBe(true)
   } finally { await ctx.fiber.dispose() }
 })

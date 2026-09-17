@@ -13,6 +13,7 @@ import {
   IconChevronDownOutline14,
   IconChevronRightOutline14,
   MarkdownText,
+  StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
 import css from './MessageItem.module.css'
@@ -38,6 +39,17 @@ export const CompactionItem = memo(function CompactionItem({
   fallbackSummary,
   t,
 }: CompactionItemProps) {
+  if (node.failure === true) {
+    return (
+      <div className={css.turnErrorRow} role="status">
+        <StateDot state="error" className={css.turnErrorDot} />
+        <div className={css.turnErrorCopy}>
+          <span className={css.turnErrorTitle}>{t('message.compaction.failed')}</span>
+          <span className={css.turnErrorMessage}>{t('message.compaction.failedHint')}</span>
+        </div>
+      </div>
+    )
+  }
   const [expanded, setExpanded] = useState(false)
   const expandable = node.summary !== null
   const open = expandable && expanded

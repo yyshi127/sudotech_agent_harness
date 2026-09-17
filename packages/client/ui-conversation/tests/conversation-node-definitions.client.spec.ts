@@ -791,6 +791,18 @@ describe('built-in conversation node Definitions', () => {
     })
   })
 
+  it('publishes an automatic compaction failure when no checkpoint landed', () => {
+    const value = assembler([
+      at(10, 'compaction/start', { compactionId: 'automatic-failed', turn: null }),
+      at(11, 'compaction/end', { compactionId: 'automatic-failed', turn: null, error: 'provider failed' }),
+    ])
+    expect(node(snapshot(value), 'compaction')?.data).toMatchObject({
+      seq: 11,
+      summary: null,
+      failure: true,
+    })
+  })
+
   it('renders a historical compaction when its start remains outside the loaded window', () => {
     const value = assembler([
       at(10, 'compaction/summary', {

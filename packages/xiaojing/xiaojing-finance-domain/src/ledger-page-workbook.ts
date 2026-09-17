@@ -2,11 +2,17 @@
 import writeExcelFile from 'write-excel-file/node'
 import type { JournalResult } from './journals.ts'
 import type { OpenItemResult } from './open-items.ts'
-import { workbookRow as row } from './workbook-row.ts'
+import { workbookColumns as widths, workbookRow as row } from './workbook-row.ts'
 
 function table<T>(items: T[], columns: readonly (readonly [keyof T, string])[]) {
   return [row(...columns.map(([, label]) => label)), ...items.map(item => row(
-    ...columns.map(([key]) => item[key] === null ? '未提供' : String(item[key]))))]
+    ...columns.map(([key]) => item[key] === null ? '未提供'
+      : typeof item[key] === 'boolean' ? item[key] ? '是' : '否' : String(item[key]))))]
+}
+
+function summaryKind(value: string): string {
+  return value === 'opening' ? '初始余额' : value === 'total' ? '接口合计'
+    : value === 'previous-page' ? '上一页总计' : value
 }
 
 const journalFields = [
@@ -22,9 +28,12 @@ const journalFields = [
  * @returns Exact-text XLSX bytes containing journal business rows and totals.
  */
 export async function journalWorkbook(report: JournalResult): Promise<Buffer> {
+  const summaries = report.summaries.map(item => ({ ...item, kind: summaryKind(item.kind) as typeof item.kind }))
   return writeExcelFile([
-    { sheet: '日记账明细', data: table(report.rows, [['date', '日期'], ...journalFields]) },
-    { sheet: '合计', data: table(report.summaries, [['kind', '合计类型'], ...journalFields]) },
+    { sheet: '日记账明细', data: table(report.rows, [['date', '日期'], ...journalFields]),
+      columns: widths(12, 26, 14, 18, 10, 10, ...Array.from({ length: 6 }, () => 16), 18, 14), stickyRowsCount: 1 },
+    { sheet: '合计', data: table(summaries, [['kind', '合计类型'], ...journalFields]),
+      columns: widths(14, 26, 14, 18, 10, 10, ...Array.from({ length: 6 }, () => 16), 18, 14), stickyRowsCount: 1 },
   ]).toBuffer()
 }
 
@@ -41,12 +50,14 @@ const currencies = [['currencyCode', '原币'], ['baseCurrencyCode', '本位币'
  * @returns Exact-text workbook retaining nullable flags and original/base currencies.
  */
 export async function openItemPageWorkbook(report: OpenItemResult): Promise<Buffer> {
+  const summaries = report.summaries.map(item => ({ ...item, kind: summaryKind(item.kind) as typeof item.kind }))
   return writeExcelFile([
     { sheet: report.selection.direction === 'receivable' ? '应收明细' : '应付明细', data: table(report.rows, [
       ['date', '日期'], ['summary', '摘要'], ['subjectCode', '科目编码'], ['subjectName', '科目名称'],
       ['auxiliaryItemName', '往来对象'], ...currencies, ...amountFields,
       ['initialBalance', '期初记录'], ['finished', '已结清'], ['categoryName', '类别'], ['remark', '备注'],
-    ]) },
-    { sheet: '合计', data: table(report.summaries, [['kind', '合计类型'], ...currencies, ...amountFields]) },
+    ]), columns: widths(12, 26, 14, 18, 22, 10, 10, ...Array.from({ length: 8 }, () => 16), 12, 12, 18, 24), stickyRowsCount: 1 },
+    { sheet: '合计', data: table(summaries, [['kind', '合计类型'], ...currencies, ...amountFields]),
+      columns: widths(14, 10, 10, ...Array.from({ length: 8 }, () => 16)), stickyRowsCount: 1 },
   ]).toBuffer()
 }

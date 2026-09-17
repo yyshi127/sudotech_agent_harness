@@ -948,12 +948,17 @@ describe('saved Youcheng binding verification', () => {
     const { ctx, financeRoot, root, dispose } = await mounted()
     try {
       const created = await createClient(ctx, financeRoot, 0, '连接测试', '上海市')
-      const system = { system: 'youcheng' as const, environment: 'test' as const, appKey: 'fake-key', accountCode: '35581' }
+      const system = {
+        system: 'youcheng' as const, environment: 'test' as const, appKey: 'fake-key',
+        accountCode: '35581', accountName: '数豆',
+      }
       const saved = await ctx.xiaojingFinanceDomain.update({
         clientId: created.client.id, expectedRevision: 1,
         client: { ...draft('连接测试', '上海市'), financeSystem: system }, credentialInput: { youchengAppSecret: 'fake-secret' },
       })
       const before = await readFile(join(root, 'finance', 'clients-v1.json'), 'utf8')
+      expect((await ctx.xiaojingFinanceDomain.workspaces()).clients[0]?.connection)
+        .toEqual({ state: 'unverified', accountId: '35581', accountName: '数豆' })
       let release!: (response: Response) => void
       const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ result: 100, data: 'fake-token' }))
         .mockImplementationOnce(() => new Promise<Response>((resolve) => { release = resolve }))
@@ -976,12 +981,15 @@ describe('saved Youcheng binding verification', () => {
       await vi.waitFor(() => { expect(fetcher).toHaveBeenCalledTimes(3) })
       await ctx.xiaojingFinanceDomain.update({
         clientId: created.client.id, expectedRevision: saved.revision,
-        client: { ...draft('连接测试', '上海市'), financeSystem: { ...system, accountCode: 'new-ledger' } },
+        client: {
+          ...draft('连接测试', '上海市'),
+          financeSystem: { ...system, accountCode: 'new-ledger', accountName: '新账套' },
+        },
       })
       release(Response.json({ result: 100, data: [{ id: '35581', sobName: '数豆' }] }))
       expect((await stale).state).toBe('unverified')
       expect((await ctx.xiaojingFinanceDomain.workspaces()).clients[0]?.connection)
-        .toEqual({ state: 'unverified', accountId: 'new-ledger' })
+        .toEqual({ state: 'unverified', accountId: 'new-ledger', accountName: '新账套' })
     } finally { await dispose() }
   })
 })
@@ -1333,12 +1341,12 @@ describe('XiaojingFinanceDomain', () => {
         { action: 'prepare', input }, signal, limits)).rejects.toThrow()
       await expect(ctx.xiaojingFinanceDomain.prepareVoucher(finance, { action: 'submit', id: first.id }, signal, limits))
         .rejects.toThrow('不支持提交')
-      const upload = join(uploadRoot, 'preparation-source.txt')
-      await writeFile(upload, 'original')
-      const imported = await ctx.xiaojingFinanceDomain.importUpload(finance, { path: upload, originalName: '凭证依据.txt' })
+      const upload = join(uploadRoot, 'preparation-source.pdf')
+      await writeFile(upload, '%PDF-1.7\noriginal')
+      const imported = await ctx.xiaojingFinanceDomain.importUpload(finance, { path: upload, originalName: '凭证依据.pdf' })
       const withSource = await ctx.xiaojingFinanceDomain.prepareVoucher(finance,
         { action: 'prepare', input: { ...input, sourcePaths: [imported.name] } }, signal, limits)
-      expect(withSource).toMatchObject({ sources: [{ sha256: imported.sha256, size: 8, contentVerified: true }] })
+      expect(withSource).toMatchObject({ sources: [{ sha256: imported.sha256, size: imported.size, contentVerified: true }] })
       if (!('id' in withSource)) throw new Error('Missing source preview ID')
       await writeFile(imported.path, 'tampered')
       await expect(ctx.xiaojingFinanceDomain.prepareVoucher(finance,
@@ -1412,6 +1420,13 @@ describe('XiaojingFinanceDomain', () => {
       expect(rules[0]?.text).toContain('最终回答、表格和文件先给业务结果与实际数据')
       expect(rules[0]?.text).toContain('不展示工具名、接口路径、参数名、原始 JSON、内部记录 ID、版本号、哈希、指纹、分页字段或英文状态码')
       expect(rules[0]?.text).toContain('展示层精简不得改变金额、范围、执行状态或风险判断')
+      expect(rules[0]?.text).toContain('新的只读查询不得续办、重建或确认历史中断的创建、删除、核销等写操作')
+      expect(rules[0]?.text).toContain('不得搜索本地文件或复述旧金额、旧分录、旧附件作为当前内容')
+      expect(rules[0]?.text).toContain('借方和贷方逐列相减、分别报告')
+      expect(rules[0]?.text).toContain('严格区分准备、上传、提交、接口受理和独立回查')
+      expect(rules[0]?.text).toContain('用户要求全部数据时，成功结果应是一个完整文件')
+      expect(rules[0]?.text).toContain('客户档案名称与外部财务系统账套名称是两个独立业务字段')
+      expect(rules[0]?.text).toContain('官方依据标记为已核验时，保持该政策命题为已核验')
       for (const context of [{}, { agent: agent(ctx, 'read-standard', 'standard', standardRoot) }, { agent: agent(ctx, 'read-consult', 'finance', standardRoot) }]) {
         expect((await ctx.systemPrompt.assemble(context)).sections.some(section => section.name === 'xiaojing:finance-read-evidence')).toBe(false)
       }
@@ -1945,6 +1960,22 @@ describe('XiaojingFinanceDomain', () => {
     expect(archived.path).toContain(join(workspace.archiveDirectory, '20'))
     expect(await readFile(published.path, 'utf8')).toBe('# 月结报告\n')
     expect(await readFile(archived.path, 'utf8')).toBe('# 月结报告\n')
+
+    const customDraftPath = join(workspace.sessionWorkDirectory, '指定归档.md')
+    await writeFile(customDraftPath, '# 指定归档\n', 'utf8')
+    const customPublished = await ctx.xiaojingFinanceDomain.publishFile(finance, { sourcePath: customDraftPath })
+    const customArchived = await ctx.xiaojingFinanceDomain.archiveFile(finance, {
+      sourcePath: customPublished.path,
+      archiveFolder: '月结资料',
+    })
+    expect(customArchived.path).toBe(join(workspace.archiveDirectory, '月结资料', '指定归档.md'))
+    expect(await readFile(customArchived.path, 'utf8')).toBe('# 指定归档\n')
+    expect((await readdir(workspace.archiveDirectory, { recursive: true }))
+      .filter(path => path.endsWith('指定归档.md'))).toEqual([join('月结资料', '指定归档.md')])
+    await expect(ctx.xiaojingFinanceDomain.archiveFile(finance, {
+      sourcePath: customPublished.path,
+      archiveFolder: '..\\越界',
+    })).rejects.toThrow(/one directory name/u)
     expect(finance.session.events.map(event => event.type)).toEqual(expect.arrayContaining([
       'finance/client-bound',
       'finance/file-imported',

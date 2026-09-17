@@ -16,14 +16,17 @@ declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
 interface CompactionState {
   readonly summary?: ConversationMatch
   readonly checkpoint?: ConversationMatch
+  readonly end?: ConversationMatch
 }
 
 function fallbackState(context: ConversationNodeContext<CompactionState>): CompactionState {
   const summary = context.matches.find(match => match.event.type === 'compaction/summary')
   const checkpoint = context.matches.find(match => compactSource(match.event) !== undefined)
+  const end = context.matches.findLast(match => match.event.type === 'compaction/end')
   return {
     ...summary === undefined ? {} : { summary },
     ...checkpoint === undefined ? {} : { checkpoint },
+    ...end === undefined ? {} : { end },
   }
 }
 
@@ -50,7 +53,19 @@ export const compactionDefinition: ConversationNodeDefinition<CompactionState> =
   update: (context, match) => updateCompactionState(context.state, match),
   buildViewNode: (context) => {
     const state = context.state ?? fallbackState(context)
-    if (state.checkpoint === undefined) return null
+    if (state.checkpoint === undefined) {
+      if (state.end?.event.type !== 'compaction/end' || state.end.event.data.error === undefined) return null
+      return chatNode(context, 'compaction', state.end.event.seq, {
+        kind: 'compaction',
+        seq: state.end.event.seq,
+        time: state.end.event.time,
+        summary: null,
+        summaryEventSeq: null,
+        shadowedItemCount: null,
+        shadowedTokenCount: null,
+        failure: true,
+      })
+    }
     const marker = compactSummary(state.summary, state.checkpoint)
     return chatNode(context, 'compaction', marker.seq, marker)
   },

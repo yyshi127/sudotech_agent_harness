@@ -81,7 +81,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
     const workspacePath = join(scaffold.workspaceCwd, 'open-item-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '应收应付测试企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise', chartMappings: [], externalSystemRefs: [],
+      client: { legalName: '应收应付测试企业', shortName: '应收应付测试', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise', chartMappings: [], externalSystemRefs: [],
         financeSystem: { system: 'youcheng', environment: 'test', accountCode: '35601', appKey: 'snapshot-key' } },
       credentialInput: { youchengAppSecret: 'snapshot-secret' },
     })

@@ -24,7 +24,8 @@ import { FinanceClientStore, type PrepareFinanceClientCommit } from './store.ts'
 import { resolveYouchengApiUrls, YouchengConnection } from './youcheng.ts'
 import { collectVoucherPages, validateVoucherId, validateVoucherQuery,
   type VoucherDetail, type VoucherPage, type VoucherQuery } from './vouchers.ts'
-import { validateVoucherPreparation, voucherPreparationRequestSchema, voucherCreateRequestSchema } from './voucher-preparation.ts'
+import { validateVoucherPreparation, voucherPreparationRequestSchema, voucherCreateRequestSchema,
+  VOUCHER_ATTACHMENT_FORMAT_ERROR } from './voucher-preparation.ts'
 import { resolveVoucherReferences } from './voucher-references.ts'
 import { VoucherRecords, type PreparedVoucherId, type PreparedVoucherRecord } from './voucher-records.ts'
 import { VoucherDeletionRecords, type VoucherDeletionId } from './voucher-deletion-records.ts'
@@ -888,7 +889,12 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   private connectionStatus(client: FinanceClientRecord): FinanceConnectionStatus {
     const cached = this.connections.get(client.id)
     if (cached?.version === client.version) return cached.status
-    return { state: 'unverified', accountId: client.financeSystem?.system === 'youcheng' ? client.financeSystem.accountCode : '' }
+    const config = client.financeSystem?.system === 'youcheng' ? client.financeSystem : undefined
+    return {
+      state: 'unverified',
+      accountId: config?.accountCode ?? '',
+      ...config?.accountName === undefined ? {} : { accountName: config.accountName },
+    }
   }
 
   private invalidateConnection(clientId: FinanceClientId): void {
@@ -956,7 +962,11 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       }
       const current = (await this.store.read(clientId)).client
       if (this.stopped.signal.aborted || this.connections.get(clientId) !== entry || current.version !== client.version) {
-        return { state: 'unverified', accountId: config.accountCode }
+        return {
+          state: 'unverified',
+          accountId: config.accountCode,
+          ...config.accountName === undefined ? {} : { accountName: config.accountName },
+        }
       }
       entry.status = status.state === 'failed' && prior.accountName !== undefined
         ? { ...status, accountName: prior.accountName } : status
@@ -1652,7 +1662,12 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   async prepareVoucher(agent: Agent, input: unknown, signal: AbortSignal,
     limits: { maxEntries: number; maxBytes: number }): Promise<object> {
     const parsed = voucherPreparationRequestSchema.safeParse(input)
-    if (!parsed.success) throw new Error('凭证准备参数无效，仅支持准备、修改和查看，不支持提交。')
+    if (!parsed.success) {
+      if (parsed.error.issues.some(issue => issue.message === VOUCHER_ATTACHMENT_FORMAT_ERROR)) {
+        throw new Error(VOUCHER_ATTACHMENT_FORMAT_ERROR)
+      }
+      throw new Error('凭证准备参数无效，仅支持准备、修改和查看，不支持提交。')
+    }
     const request = parsed.data
     const binding = this.requireBoundClient(agent)
     const records = new VoucherRecords(this.voucherRecordsRoot, `${binding.client.id}/${agent.session.id}`, limits)
@@ -1751,14 +1766,15 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       if (firstCode === undefined) throw new Error('凭证缺少分录。')
       const preview = await this.prepareVoucher(agent, { action: 'inspect', id }, stopped, limits)
       const { workspace } = await this.requireBoundClientWorkspace(agent)
-      const originals: { sourcePath: string; file: FinanceManagedFile; extension: string }[] = []
+      const originals: { sourcePath: string; file: FinanceManagedFile }[] = []
       for (const sourcePath of current.input.sourcePaths) {
         const matches = managedFilesOf(agent).filter(file => file.action === 'import' && file.stage === 'source'
           && file.clientId === client.id && file.sessionId === agent.session.id && (file.path === sourcePath || file.name === sourcePath))
         const file = matches[0]
         if (matches.length !== 1 || file === undefined) throw new Error('凭证来源必须是本会话已导入的唯一文件。')
         const content = await readFinanceOriginal(file, workspace.sourceDirectory, this.attachmentMaxFileBytes, stopped)
-        originals.push({ sourcePath, file, extension: financeOriginalExtension(file.name, content) })
+        financeOriginalExtension(file.name, content)
+        originals.push({ sourcePath, file })
       }
       if (new Set(originals.map(item => item.file.path)).size !== originals.length) throw new Error('同一原件不能通过文件名和路径重复选择。')
       const storage = originals.length === 0 ? undefined : await this.attachmentStorage.read()
@@ -1792,7 +1808,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
           const content = await readFinanceOriginal(original.file, workspace.sourceDirectory, this.attachmentMaxFileBytes, stopped)
           if (storage === undefined) throw new Error('原件缺少已确认的存储目标。')
           try {
-            const receipt = await this.attachmentStorage.upload(`${client.id}/finance-vouchers/${id}/${original.file.sha256}${original.extension}`,
+            const receipt = await this.attachmentStorage.upload(`${client.id}/finance-vouchers/${id}/${original.file.name}`,
               original.file.name, content, stopped, storage.revision)
             await records.recordOriginal(id, request.version, current.configurationDigest, { ...receipt,
               sourcePath: original.sourcePath, sha256: original.file.sha256, storageRevision: storage.revision })

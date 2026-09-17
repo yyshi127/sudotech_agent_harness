@@ -47,9 +47,11 @@ it('compares matching currencies and uses zero only for groups absent from a rec
   const result = await analyzeOpenItems({ ...query, baseline: { periodStart: '2026-08', periodEnd: '2026-08' } },
     async selected => page(selected, selected.periodStart === '2026-08' ? [raw(1, '1.00', 'USD')] : [raw(2, '-0.20')], 1), signal(), limits)
   expect(result.differences).toEqual([
-    { currencyCode: 'CNY', dimensionId: '', amount: '-0.20', balance: '-0.20' },
-    { currencyCode: 'USD', dimensionId: '', amount: '-1.00', balance: '-1.00' },
+    { currencyCode: 'CNY', dimensionId: '', presence: 'current-only', amount: '-0.20', balance: '-0.20' },
+    { currencyCode: 'USD', dimensionId: '', presence: 'baseline-only', amount: '-1.00', balance: '-1.00' },
   ])
+  expect(result.notice).toContain('完整读取的某组缺席按零组总额参与比较')
+  expect(result.notice).not.toContain('单笔金额补零')
 })
 
 it.each(['subject', 'auxiliary'] as const)('groups by explicit %s identity, not a name guess', async (groupBy) => {

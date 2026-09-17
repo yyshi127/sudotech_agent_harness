@@ -209,7 +209,7 @@ describe('WorkspaceBrowser', () => {
           sections: [{
             id: 'clients',
             label: '客户工作区',
-            icon: 'person',
+            icon: 'ledger',
             workspaceIds: [wid('finance-archived')],
           }],
         }],
@@ -231,7 +231,7 @@ describe('WorkspaceBrowser', () => {
       expect(screen.getByText('历史客户')).toBeTruthy()
     })
     expect(screen.getByText('客户工作区').closest('[role="treeitem"]')
-      ?.querySelector('[data-workspace-section-icon="person"]')).toBeTruthy()
+      ?.querySelector('[data-workspace-section-icon="ledger"]')).toBeTruthy()
     expect(screen.queryByText('小兢会计_Workspace')).toBeNull()
     expect(screen.getByRole('button', { name: '在“咨询”中新建会话' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '在“历史客户”中新建会话' })).toBeNull()
@@ -287,6 +287,8 @@ describe('WorkspaceBrowser', () => {
     expect(content.indexOf('乙公司')).toBeLessThan(content.indexOf('咨询分组'))
     expect(content.indexOf('咨询分组')).toBeLessThan(content.indexOf('税务咨询'))
     expect(content.indexOf('税务咨询')).toBeLessThan(content.indexOf('审计咨询'))
+    expect(screen.getByText('咨询分组').closest('[role="treeitem"]')
+      ?.querySelector('[data-workspace-section-icon="discussion"]')).toBeTruthy()
   })
 
   it('routes consultation and client Workspace actions through their product category', async () => {

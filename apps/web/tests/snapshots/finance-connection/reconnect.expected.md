@@ -5,7 +5,7 @@
   - text: 数豆科技
   - button "连接账套 · 数豆科技 · ID 35581":
     - img
-  - status "尚未验证；可点击名称旁的连接图标核验账套 · ID 35581"
+  - status "尚未验证；可点击名称旁的连接图标核验账套 · ID 35581": 数豆
 
 ## Checking
 
@@ -27,7 +27,7 @@
   - text: 数豆科技
   - button "连接账套 · 数豆科技 · ID 35581":
     - img
-  - status "未能唯一匹配此账套 ID，请检查 ID 和授权范围 · ID 35581 · <checked-at>"
+  - status "未能唯一匹配此账套 ID，请检查 ID 和授权范围 · ID 35581 · <checked-at>": 数豆
   - button "工作区“数豆科技”的操作":
     - img
   - button "在“数豆科技”中新建会话":

@@ -359,6 +359,19 @@ describe('live event path', () => {
     expect(snapshots[0]?.chat.timeline.turns.get(1)?.status).toBe('open')
   })
 
+  it('settles the running state from a durable turn end without waiting for another status frame', async () => {
+    const { session } = await opened([])
+    session.handleRunning(true)
+    session.handleMuxEnvelope('start' as never, {
+      type: 'session/event', sessionId: SID, event: ev.turnStart(0, 1),
+    })
+    session.handleMuxEnvelope('end' as never, {
+      type: 'session/event', sessionId: SID, event: ev.turnEnd(1, 1),
+    })
+    await Promise.resolve()
+    expect(session.getSnapshot().running).toBe(false)
+  })
+
   it('repairs a seq gap by repulling the tail page instead of appending a hole', async () => {
     const { api, session } = await opened(plainTurn(0, 0, 'a', 'b')) // tail seq = 5
     const repaired = [...plainTurn(0, 0, 'a', 'b'), ...plainTurn(6, 1, 'c', 'd')]

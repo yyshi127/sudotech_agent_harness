@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-09-finance-voucher-creation.md
-2026-09-09-finance-voucher-creation.md: 43af2735df9b0cfcce06b1c65a1d5ae9b4f395c6
-2026-09-09-finance-voucher-creation.zh.md: 96d25227815255af3f06c554718ae1088e07a8d5
+2026-09-09-finance-voucher-creation.md: 0526328f7017e1ef82272eb7caabc047c83379d1
+2026-09-09-finance-voucher-creation.zh.md: 0918c23b84cd87097e9320d42b37bf3c10c9f0b6

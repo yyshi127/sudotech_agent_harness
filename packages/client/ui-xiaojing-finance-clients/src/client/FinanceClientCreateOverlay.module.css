@@ -20,6 +20,11 @@
   line-height: 18px;
 }
 
+.form small {
+  color: var(--dsw-alias-label-tertiary);
+  font-weight: 400;
+}
+
 .form input,
 .form select {
   box-sizing: border-box;

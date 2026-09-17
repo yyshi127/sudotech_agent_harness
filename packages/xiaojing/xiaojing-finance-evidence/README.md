@@ -12,7 +12,7 @@ Fetched pages produce attributable metadata, a bounded excerpt, response SHA-256
 
 `verified` means at least one fetched official page exposes both a recognizable legal effect and current status. `partial` means the pass found official material but could not establish all required attributes. `pending` means no citable official text was obtained. `out-of-scope` covers Hong Kong, Macao, Taiwan, and foreign jurisdictions. These values describe evidence availability, not legal advice or a finding that a rule applies to a client.
 
-The request may supply an evaluation date and Mainland locality. The date defaults to the current Beijing date. A client-bound Finance session defaults locality from its immutable registered-region snapshot, but that value is only a discovery assumption and never proves applicability. General Finance sessions search national sources unless the request supplies a locality.
+The request may supply an evaluation date and Mainland locality. The date defaults to the current Beijing date. A client-bound Finance session defaults locality from its immutable registered-region snapshot, but that value is only a discovery assumption and never proves applicability. Mainland cities such as Suzhou remain in scope and route to national and applicable provincial sources. General Finance sessions search national sources unless the request supplies a locality. Once official evidence is `verified`, later client-applicability uncertainty remains a separate limitation and does not downgrade that evidence status.
 
 ## Persistence, privacy, and failure behavior
 

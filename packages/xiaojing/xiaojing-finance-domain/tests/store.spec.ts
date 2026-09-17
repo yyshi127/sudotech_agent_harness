@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { FinanceClientStore } from '../src/store.ts'
+import type { FinanceClientDraft } from '../src/types.ts'
 
 const roots: string[] = []
 
@@ -20,6 +21,7 @@ async function store(): Promise<FinanceClientStore> {
 
 const client = (name: string, code?: string) => ({
   legalName: name,
+  shortName: name,
   ...(code === undefined ? {} : { unifiedSocialCreditCode: code }),
   taxpayerType: 'general-vat' as const,
   registeredRegion: '上海市',
@@ -28,13 +30,25 @@ const client = (name: string, code?: string) => ({
   externalSystemRefs: [],
 })
 
-const createRequest = (expectedRevision: number, value: ReturnType<typeof client>) => ({
+const createRequest = (expectedRevision: number, value: FinanceClientDraft) => ({
   expectedRevision,
   client: value,
   workspacePath: join(tmpdir(), `finance-workspace-${value.legalName}`),
 })
 
 describe('FinanceClientStore', () => {
+  it('requires a short display name for new and updated records', async () => {
+    const records = await store()
+    const { shortName: _shortName, ...withoutShortName } = client('甲公司')
+    await expect(records.create(createRequest(0, withoutShortName))).rejects.toThrow(/shortName is required/)
+    const created = await records.create(createRequest(0, client('甲公司')))
+    await expect(records.update({
+      clientId: created.client.id,
+      expectedRevision: created.revision,
+      client: withoutShortName,
+    })).rejects.toThrow(/shortName is required/)
+  })
+
   it('creates, replaces, and archives records with catalog compare-and-swap', async () => {
     const records = await store()
     const created = await records.create(createRequest(0, client('甲公司')))

@@ -51,7 +51,11 @@ function createVoucher(value: RecordValue, attachmentsWillUpload: boolean): stri
   entries.forEach((entry, index) => {
     const subject = record(references[index]?.subject)
     const side = entry?.side === 'debit' ? '借' : '贷'
-    lines.push(`${index + 1}. ${side} ${text(entry?.subjectCode) ?? ''} ${text(subject?.name) ?? ''} ${text(entry?.amount) ?? '未提供'}；摘要：${text(entry?.summary) ?? '未提供'}`)
+    const baseAmount = text(entry?.amount) ?? '未提供'
+    const foreign = record(entry?.foreignCurrency)
+    const currency = foreign === undefined ? ''
+      : `；原币：${text(foreign.code) ?? '未提供'}；原币金额：${text(foreign.amount) ?? '未提供'}；汇率：${text(foreign.exchangeRate) ?? '未提供'}；本位币金额：${baseAmount}`
+    lines.push(`${index + 1}. ${side} ${text(entry?.subjectCode) ?? ''} ${text(subject?.name) ?? ''} ${baseAmount}；摘要：${text(entry?.summary) ?? '未提供'}${currency}`)
   })
   const sourceCount = array(input.sourcePaths).length
   lines.push(sourceCount === 0 ? '附件：无' : attachmentsWillUpload

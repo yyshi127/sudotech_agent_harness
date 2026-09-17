@@ -51,6 +51,19 @@ it('retains hierarchy, stopped subjects and every same-name candidate without se
   ] })
 })
 
+it('returns a requested subject tree from the complete returned parent graph without name sampling', () => {
+  const result = projectReferences([
+    { ...subject, subjectCode: '1001', subjectName: '库存现金', parentSubjectCode: '' },
+    { ...subject, subjectCode: '1002', subjectName: '银行存款', parentSubjectCode: '', hasChild: true },
+    { ...subject, subjectCode: '100201', subjectName: '工商银行', parentSubjectCode: '1002', hasChild: true },
+    { ...subject, subjectCode: '10020101', subjectName: '基本户', parentSubjectCode: '100201' },
+    { ...subject, subjectCode: '100202', subjectName: '招商银行', parentSubjectCode: '1002' },
+  ], { kind: 'subjects', subjectTreeRootCode: '1002' }, account, 1000, 10000)
+  expect(result).toMatchObject({ subjectTreeRootCode: '1002', returnedCount: 5, selection: 'tree-returned' })
+  expect(result.rows.map(row => row.code)).toEqual(['1002', '100201', '10020101', '100202'])
+  expect(result.notice).toContain('包含树根及其全部已返回后代，不按名称抽样')
+})
+
 it.each([
   ['auxiliary-categories', [{ id: 'cat', categoryCode: '01', categoryName: '客户' }], { code: '01', status: 'unknown' }],
   ['auxiliary-items', [{ id: 'item', itemCode: '01', itemName: '客户甲', categoryId: 'cat' }], { name: '客户甲', status: 'unknown' }],
@@ -86,6 +99,8 @@ it('rejects invalid, duplicate, oversized and cross-category data before filteri
 it.each([
   {}, { kind: 'reimbursement' }, { kind: 'subjects', accountId: 'other' },
   { kind: 'auxiliary-items' }, { kind: 'subjects', categoryCode: '01' },
+  { kind: 'cash-accounts', subjectTreeRootCode: '1002' },
+  { kind: 'subjects', subjectTreeRootCode: '1002', name: '银行存款' },
 ])('rejects unsupported query fields %#', (query) => {
   expect(referenceQuerySchema.safeParse(query).success).toBe(false)
 })

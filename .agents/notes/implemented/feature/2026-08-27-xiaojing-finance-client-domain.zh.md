@@ -12,7 +12,7 @@ Finance 模式已经可以研究官方财税来源，但没有持久化机制区
 
 ## 决策
 
-`@deepseek-ai/dsh-xiaojing-finance-domain` 是小兢产品专属 Host 能力。它在 `$DSH_HOME/finance/clients-v1.json` 中为每个纳税主体保存一条记录。文档使用 schema 版本 `1`、文件级 revision 和档案自身版本。修改通过 compare-and-swap revision、进程安全文件锁和原子替换完成。数据损坏时插件初始化失败，并保留原文件不变。档案只能归档，不能删除，因此历史会话引用保持有效。每条档案可以选择一个财务系统：有成把环境、AppKey 和账套编码作为非秘密客户数据保存，SDOO、用友和金蝶保留明确占位。有成 AppSecret 按客户保存为 `ctx.credentials` 记录；读取只返回已配置和可写状态。凭据准备在客户档案文件锁内执行，若档案文件替换失败则回滚。
+`@deepseek-ai/dsh-xiaojing-finance-domain` 是小兢产品专属 Host 能力。它在 `$DSH_HOME/finance/clients-v1.json` 中为每个纳税主体保存一条记录。文档使用 schema 版本 `1`、文件级 revision 和档案自身版本。修改通过 compare-and-swap revision、进程安全文件锁和原子替换完成。数据损坏时插件初始化失败，并保留原文件不变。档案只能归档，不能删除，因此历史会话引用保持有效。新增和更新必须提供显示简称；缺少简称的历史记录可继续读取，直到下次编辑。每条档案可以选择一个财务系统：有成把环境、AppKey、账套编码和所选账套名称作为非秘密客户数据保存，SDOO、用友和金蝶保留明确占位。有成 AppSecret 按客户保存为 `ctx.credentials` 记录；读取只返回已配置和可写状态。凭据准备在客户档案文件锁内执行，若档案文件替换失败则回滚。
 
 空白 Finance 会话从通用咨询状态开始。客户只在第一轮之前暂存于 Host 内存。第一次模型请求会解析暂存档案，追加并落盘一条 `finance/client-bound` 事件，然后再向请求贡献上下文。事件只包含不可变业务快照和档案版本；财务系统连接配置与凭据不会进入事件或模型提示词。会计年月、季度或年度属于具体任务，由对应财务 Skill 从用户指令读取或在缺失时询问，不能固定在客户或会话上。通用请求不记录绑定事件，并获得禁止推测客户事实的明确无客户上下文。`requireBoundClient()` 是未来所有客户专属财务服务的统一前置条件。
 
@@ -20,7 +20,7 @@ Finance 模式已经可以研究官方财税来源，但没有持久化机制区
 
 `financeClient` 会话投影折叠持久化事件，但只向浏览器公开客户显示名称和状态。完整税号、政策备注、映射、外部系统标识和财务系统连接配置仍保留在 Host。生成的 `financeClients` Remote 普通返回只包含摘要和安全会话状态；完整读取、修改和暂存仅允许 loopback。完整客户读取包含凭据状态，但绝不包含 AppSecret；修改请求可以携带只写替换值。
 
-`@deepseek-ai/dsh-client-ui-xiaojing-finance-clients` 从每个客户 Workspace 的操作菜单提供“帐套信息”，设置页不提供客户管理；独立的[附件与报销配置](2026-09-04-reimbursement-draft-attachments.zh.md) 保留这一档案与会话设计。“客户帐套”是展示文案；客户记录、Remote 标识和 Workspace 路径保持原有含义。浮层把客户基本资料与财务系统配置分开，按选择显示有成字段，把尚未支持的系统保留为具名选项，并移除手工科目映射。它只为 Finance 空白会话填充产品中立 `conversation.hero.context` slot，并在活动会话标题区注册只读上下文标签。“咨询／客户帐套”选择器只在客户模式尚未选择客户时增加带 owner 的输入阻塞。`ComposerBlockRegistry.setOwned()` 让 Finance 只移除自己的阻塞，不会清除模型、上传、Goal 或 Plan 的独立限制。
+`@deepseek-ai/dsh-client-ui-xiaojing-finance-clients` 从每个客户 Workspace 的操作菜单提供“帐套信息”，设置页不提供客户管理；独立的[附件与报销配置](2026-09-04-reimbursement-draft-attachments.zh.md) 保留这一档案与会话设计。“账套”是展示文案；客户记录、Remote 标识和 Workspace 路径保持原有含义。浮层把客户基本资料与财务系统配置分开，要求填写简称并说明其紧凑展示用途，按选择显示有成字段，把尚未支持的系统保留为具名选项，并移除手工科目映射。它只为 Finance 空白会话填充产品中立 `conversation.hero.context` slot，并在活动会话标题区注册只读上下文标签。“咨询／账套”选择器按“客户简称-账套名称-ID 值”列出选项，历史记录缺少简称时回退主体全称，只在账套模式尚未选择账套时增加带 owner 的输入阻塞。`ComposerBlockRegistry.setOwned()` 让 Finance 只移除自己的阻塞，不会清除模型、上传、Goal 或 Plan 的独立限制。
 
 Finance 还拥有独立于普通用户工作区的文件与会话类别。产品配置把根目录固定在“小兢会计工作区/Finance工作区”，其中一个固定显示为“咨询”的 Workspace 服务无客户会话，`clients/<稳定客户 ID>` 为每个纳税主体提供一个 Workspace。客户根目录是该客户所有会话的不可变 `cwd`，包含客户档案、政策、原始资料、按会话隔离的作业、成果和归档；期间子目录由具体 Skill 按任务创建。Host 在暂存和模型请求前校验实际 `cwd`，从结构上拒绝跨客户绑定。客户创建先配置目录并注册 Workspace，再提交客户目录；失败时回滚新资源。启动恢复会移除未完成创建留下的 Workspace 注册，但保留其文件供恢复。
 
@@ -30,7 +30,7 @@ Finance 还拥有独立于普通用户工作区的文件与会话类别。产品
 
 `$DSH_HOME/finance/workspace-presentation-v1.json` 独立于客户档案和 Workspace 注册，保存可编辑的 Workspace 标题与财务列表成员关系。该文件使用 schema 版本 `1`、revision、进程安全文件锁和原子替换。移除 Workspace 是非破坏性的列表操作：注册、目录、客户档案和会话保持不变，隐藏的 Finance 注册继续从普通工作区保留，再次选择同一目录即可恢复。领域服务拒绝移除最后一个仍在列表中的咨询 Workspace。
 
-通用 `ui-workspace` 只增加 `WorkspaceCategoryRegistry` 扩展点，不包含 Finance 文案或识别规则。该扩展点支持产品类别、嵌套节点、产品中立的分类语义图标、保留与可见成员、一个由提供方持有的非破坏性详情操作、重命名和移除操作，以及当前预设的 Workspace 选择范围。即使全局 Workspace registry 把不同分类的成员交错排列，嵌套分类仍按照提供方声明顺序连续成组渲染，并保留各分类内部的 registry 顺序。Finance Client 插件注册“普通工作区／财务工作区”文案与类别成员：“客户帐套”使用用户图标并排在“咨询”之前，“咨询”使用讨论图标。客户行菜单依次显示“帐套信息”“重命名”“移除工作区”，咨询行不显示产品详情操作。空白普通会话切换到 Finance 预设时自动进入仍在列表中的咨询 Workspace；空白 Finance 会话切换到其他预设时返回先前的普通工作区。选择客户会先进入其 Workspace，再在新会话中暂存客户。归档当前 Finance Session 时会保留财务类别，并重新激活该 Session 所在且仍可新建会话的 Workspace，避免空选择回退到普通工作区。移除 Finance 产品插件后，通用工作区浏览器不保留 Finance 条件。Windows 原生目录选择器把当前前台窗口绑定为模态 owner，因此点击任一分类的添加按钮后，目录选择框会立即显示在应用前面，不再隐藏到任务栏或窗口后方。
+通用 `ui-workspace` 只增加 `WorkspaceCategoryRegistry` 扩展点，不包含 Finance 文案或识别规则。该扩展点支持产品类别、嵌套节点、产品中立的分类语义图标、保留与可见成员、一个由提供方持有的非破坏性详情操作、重命名和移除操作，以及当前预设的 Workspace 选择范围。即使全局 Workspace registry 把不同分类的成员交错排列，嵌套分类仍按照提供方声明顺序连续成组渲染，并保留各分类内部的 registry 顺序。Finance Client 插件注册“办公搭子／财务助手”文案与类别成员：“账套”使用账套图标并排在“咨询”之前，“咨询”使用讨论图标；两个图标无论是否处于当前分类都保留业务强调色。客户行菜单依次显示“帐套信息”“重命名”“移除工作区”，咨询行不显示产品详情操作。空白普通会话切换到 Finance 预设时自动进入仍在列表中的咨询 Workspace；空白 Finance 会话切换到其他预设时返回先前的普通工作区。选择客户会先进入其 Workspace，再在新会话中暂存客户。归档当前 Finance Session 时会保留财务类别，并重新激活该 Session 所在且仍可新建会话的 Workspace，避免空选择回退到普通工作区。移除 Finance 产品插件后，通用工作区浏览器不保留 Finance 条件。Windows 原生目录选择器把当前前台窗口绑定为模态 owner，因此点击任一分类的添加按钮后，目录选择框会立即显示在应用前面，不再隐藏到任务栏或窗口后方。
 
 Finance 预设增加一个 `finance-client-context` 配置行，加载 Host 包独立导出的上下文入口。监听器先读取实时组合预设，并为恢复会话回退到持久化预设，从而支持会话 header 尚未记录预设的空白 live agent，同时保持 Standard 等其他预设不受影响。两个新包和配置行都登记在 `product.json.financeExtension` 中；删除这些行即可移除能力，不需要修改 Agent Loop 或官方产品行为。
 

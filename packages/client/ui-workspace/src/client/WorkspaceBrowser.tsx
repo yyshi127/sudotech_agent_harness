@@ -12,9 +12,9 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import clsx from 'clsx'
 import {
-  Button, IconCloseFill14, IconFolderClose16, IconFolderOpen16, IconPersonalizationOutline16,
-  IconProjectAddOutline16, IconSearchOutline16, IconThinkOutline16, IconTriangleRightFill14,
-  IconUserOutline16, Menu, Modal, Tooltip,
+  Button, IconCloseFill14, IconDataOutline16, IconFolderClose16, IconFolderOpen16,
+  IconPersonalizationOutline16, IconProjectAddOutline16, IconSearchOutline16, IconThinkOutline16,
+  IconTriangleRightFill14, IconUserOutline16, Menu, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   SessionId, SessionListState, SessionSearchResultItem, WorkspaceId, WorkspaceView,
@@ -47,6 +47,7 @@ function sectionIcon(section: WorkspaceCategorySection, expanded: boolean): Reac
   }
   switch (section.icon) {
     case 'discussion': return <IconThinkOutline16 />
+    case 'ledger': return <IconDataOutline16 />
     case 'person': return <IconUserOutline16 />
     default: return assertNever(section.icon)
   }

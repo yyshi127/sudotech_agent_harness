@@ -85,7 +85,7 @@ export function apply(ctx: Context): void {
       'Supported calculations are vat, vat-surcharges, enterprise-income-tax, and salary-iit for dates from 2026-01-01 through 2027-12-31.',
       'Use decimal-string yuan amounts. Omitted optional monetary fields mean zero; fields required by the selected calculation are returned as missing instead of guessed.',
       'For VAT, a bound client supplies taxpayer_type; otherwise provide it. General VAT requires tax_exclusive_sales and vat_rate_percent. Small-scale VAT also requires filing_frequency and explicit apply_small_scale_one_percent; mandatory_taxable_sales is the user-confirmed portion that remains taxable inside the threshold.',
-      'VAT surcharges require paid_vat, the statutory urban rate, and explicit six-tax-and-two-fee eligibility. Enterprise income tax requires cumulative taxable income and explicit small-low-profit status. Salary IIT uses cumulative withholding inputs.',
+      'VAT surcharges require paid_vat, the statutory urban rate, and explicit six-tax-and-two-fee eligibility. Enterprise income tax requires cumulative taxable income, prior prepaid enterprise income tax (including an explicit zero), and explicit small-low-profit status. Salary IIT uses cumulative withholding inputs.',
       'Every result is a trial calculation, not a filing result. Use finance_evidence when the date, locality, eligibility, or special business facts fall outside the embedded rule pack.',
     ].join(' '),
     parameters: {
@@ -117,7 +117,7 @@ export function apply(ctx: Context): void {
       urban_maintenance_tax_rate_percent: { type: 'string', enum: ['7', '5', '1'], description: 'Statutory urban maintenance and construction tax tier established by the user.' },
       apply_six_tax_two_fee_half_reduction: { type: 'boolean', description: 'Explicitly state whether the entity is eligible for the 50% six-tax-and-two-fee reduction.' },
       cumulative_taxable_income: { type: 'string', description: 'User-established cumulative enterprise taxable income in yuan.' },
-      prior_prepaid_enterprise_income_tax: { type: 'string', description: 'Enterprise income tax already prepaid in yuan; omission means zero.' },
+      prior_prepaid_enterprise_income_tax: { type: 'string', description: 'Enterprise income tax already prepaid in yuan. Provide an explicit zero when none was prepaid; omission stops the calculation.' },
       small_low_profit_enterprise: { type: 'boolean', description: 'Explicitly choose whether to apply the small-low-profit enterprise trial treatment.' },
       restricted_or_prohibited_industry: { type: 'boolean', description: 'Required when applying small-low-profit treatment.' },
       employee_count: { type: 'number', description: 'Non-negative employee count, required when applying small-low-profit treatment.' },

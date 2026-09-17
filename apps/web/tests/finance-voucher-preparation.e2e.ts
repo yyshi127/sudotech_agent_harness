@@ -114,6 +114,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
       expect(init?.redirect).toBe('error')
       expect(url.searchParams.get('x-oss-signature-version')).toBe('OSS4-HMAC-SHA256')
       if (!(init?.body instanceof Uint8Array)) throw new Error('Expected original bytes')
+      expect(new Headers(init.headers).get('Content-Type')).toBe(uploaded.length === 0 ? 'application/pdf' : 'image/png')
       uploaded.push(init.body)
       return new Response(null, { status: createMode === 'upload-failed' && uploaded.length === 2 ? 403 : 200 })
     }
@@ -136,7 +137,16 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
       if (createMode === 'originals') {
         const payload = JSON.parse(init!.body as string) as { attachmentUrlList: string[] }
         expect(payload.attachmentUrlList).toHaveLength(2)
-        for (const link of payload.attachmentUrlList) expect(new URL(link).searchParams.has('x-oss-signature')).toBe(true)
+        for (const [index, link] of payload.attachmentUrlList.entries()) {
+          const url = new URL(link)
+          const extension = index === 0 ? 'pdf' : 'png'
+          expect(decodeURIComponent(url.pathname)).toMatch(new RegExp(`/invoice\\.${extension}$`, 'u'))
+          expect(url.searchParams.has('OSSAccessKeyId')).toBe(true)
+          expect(url.searchParams.has('x-oss-credential')).toBe(false)
+          expect(url.searchParams.has('response-content-type')).toBe(false)
+          const decoded = decodeURIComponent(url.href)
+          expect(decoded.slice(decoded.lastIndexOf('/') + 1)).toMatch(new RegExp(`\\.${extension}$`, 'u'))
+        }
       }
       createdNumber = 36
       if (createMode === 'response-loss') throw new TypeError('Lost response', { cause: { code: 'ECONNRESET' } })
@@ -175,7 +185,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
     const workspacePath = join(scaffold.workspaceCwd, 'preparation-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '凭证准备测试企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
+      client: { legalName: '凭证准备测试企业', shortName: '凭证准备测试', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
         chartMappings: [], externalSystemRefs: [],
         financeSystem: { system: 'youcheng', environment: 'test', accountCode: 'prepare-ledger', appKey: 'snapshot-key' } },
       credentialInput: { youchengAppSecret: 'snapshot-secret' },
@@ -279,6 +289,14 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
         const imported = await ctx.xiaojingFinanceDomain.importUpload(handle.agent, { path, originalName: name })
         fixturePaths.set(imported.path, `<workspace>/preparation-client/02-原始资料/${name}`)
       }
+      const unsupportedSource = join(ctx.xiaojingFinanceDomain.localUploadRoot(), 'contract.docx')
+      await writeFile(unsupportedSource, Buffer.from('unsupported fixture'))
+      const unsupportedImported = await ctx.xiaojingFinanceDomain.importUpload(handle.agent,
+        { path: unsupportedSource, originalName: 'contract.docx' })
+      await expect(ctx.xiaojingFinanceDomain.prepareVoucher(handle.agent, { action: 'prepare', input: {
+        ...proposal, sourcePaths: [unsupportedImported.path],
+      } }, new AbortController().signal, { maxEntries: 100, maxBytes: 131072 }))
+        .rejects.toThrow('来源文件仅支持 PDF、PNG、JPG 或 JPEG')
       for (const mode of ['accepted', 'response-loss', 'changed-preview', 'read-failed', 'originals', 'upload-failed', 'foreign', 'cancel-after-send'] as const) {
         createMode = mode
         failReadback = mode === 'read-failed'
@@ -293,6 +311,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
           expect(req.toolName).toBe('finance_create_voucher')
           for (const value of ['凭证准备演示', '凭证号：36', '借方合计：0.30', '贷方合计：0.30']) {
             expect(req.reason).toContain(value)
+          }
+          if (mode === 'foreign') {
+            expect(req.reason).toContain('原币：USD；原币金额：0.20；汇率：1.5；本位币金额：0.30')
           }
           expect(req.reason).not.toMatch(/"version"|"certificateCode"|snapshot-key|snapshot-secret/)
           expect(paths.filter(path => path.includes('createCertificate'))).toHaveLength(writesBefore)

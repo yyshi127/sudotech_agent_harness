@@ -1,7 +1,7 @@
 /** XLSX preserves the queried balance columns and keeps vendor summaries separate. */
 import writeExcelFile from 'write-excel-file/node'
 import type { BalanceResult, BalanceRow } from './balances.ts'
-import { workbookRow as row } from './workbook-row.ts'
+import { workbookColumns as widths, workbookRow as row } from './workbook-row.ts'
 
 const columns = [
   ['periodInitialBorrow', '期初借方'], ['periodInitialLoan', '期初贷方'], ['periodInitialBalance', '期初余额'],
@@ -22,6 +22,7 @@ function data(rows: BalanceRow[]) {
  * @returns Workbook bytes; nullable amounts are explicitly marked 未提供 and numeric text is preserved.
  */
 export async function balanceWorkbook(report: BalanceResult): Promise<Buffer> {
-  return writeExcelFile([{ sheet: '科目余额', data: data(report.rows) },
-    { sheet: '合计', data: data(report.summaries) }]).toBuffer()
+  const sheetColumns = widths(14, 22, 10, 10, ...Array.from({ length: 12 }, () => 16))
+  return writeExcelFile([{ sheet: '科目余额', data: data(report.rows), columns: sheetColumns, stickyRowsCount: 1 },
+    { sheet: '合计', data: data(report.summaries), columns: sheetColumns, stickyRowsCount: 1 }]).toBuffer()
 }

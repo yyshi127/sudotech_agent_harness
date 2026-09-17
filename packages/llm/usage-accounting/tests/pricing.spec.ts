@@ -32,24 +32,29 @@ describe('DeepSeek request-time pricing', () => {
     expect(isPeakTime(beijingTimestamp(18))).toBe(false)
   })
 
-  it('prices Flash, Vision Exp, and Pro with exact integer nanoyuan rates', () => {
+  it('prices current and legacy Flash ids plus Pro with exact integer nanoyuan rates', () => {
     expect(priceUsage(
-      EMBEDDED_PRICE_TABLE, 'deepseek-v4-flash', usage, beijingTimestamp(9), true,
+      EMBEDDED_PRICE_TABLE, 'deepseek-flash', usage, beijingTimestamp(9), true,
     )).toEqual({
-      cacheHitInputCostNanoyuan: 100_000_000n,
-      cacheMissInputCostNanoyuan: 3_000_000_000n,
-      outputCostNanoyuan: 9_000_000_000n,
-      costNanoyuan: 12_100_000_000n,
+      cacheHitInputCostNanoyuan: 40_000_000n,
+      cacheMissInputCostNanoyuan: 2_000_000_000n,
+      outputCostNanoyuan: 8_000_000_000n,
+      costNanoyuan: 10_040_000_000n,
       unpricedTokens: 0,
-      priceVersion: 'deepseek-public-v4-vision-2026-08',
+      priceVersion: 'deepseek-public-flash-2026-09-14',
     })
     expect(priceUsage(
-      EMBEDDED_PRICE_TABLE, 'deepseek-v4-flash', usage, beijingTimestamp(12), true,
-    ).costNanoyuan).toBe(6_050_000_000n)
+      EMBEDDED_PRICE_TABLE, 'deepseek-flash', usage, beijingTimestamp(12), true,
+    ).costNanoyuan).toBe(5_020_000_000n)
+    expect(priceUsage(
+      EMBEDDED_PRICE_TABLE, 'deepseek-v4-flash', usage, beijingTimestamp(9), true,
+    )).toEqual(priceUsage(
+      EMBEDDED_PRICE_TABLE, 'deepseek-flash', usage, beijingTimestamp(9), true,
+    ))
     expect(priceUsage(
       EMBEDDED_PRICE_TABLE, 'deepseek-v4-flash-vision-exp', usage, beijingTimestamp(9), true,
     )).toEqual(priceUsage(
-      EMBEDDED_PRICE_TABLE, 'deepseek-v4-flash', usage, beijingTimestamp(9), true,
+      EMBEDDED_PRICE_TABLE, 'deepseek-flash', usage, beijingTimestamp(9), true,
     ))
     expect(priceUsage(
       EMBEDDED_PRICE_TABLE, 'deepseek-v4-pro', usage, beijingTimestamp(14), true,

@@ -11,7 +11,7 @@ import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import { discoverPresets } from '@deepseek-ai/dsh-agent-presets'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { EMBEDDED_PRICE_TABLE, priceUsage } from '@deepseek-ai/dsh-usage-accounting'
+import { priceUsage, RECOVERABLE_PRICE_TABLES } from '@deepseek-ai/dsh-usage-accounting'
 import { loadProfile } from '@deepseek-ai/dsh-app-boot'
 import { FinanceClientStore } from '@deepseek-ai/dsh-xiaojing-finance-domain/store'
 import { FinanceClientId } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
@@ -218,13 +218,16 @@ async function verifyUsageData(appData, currentKeyFingerprint) {
       outputTokens: record.outputTokens,
       cacheWriteTokens: record.cacheWriteTokens,
     }
-    const priced = priceUsage(EMBEDDED_PRICE_TABLE, record.model, usage, Date.parse(record.occurredAt), true)
+    const priceTable = RECOVERABLE_PRICE_TABLES.find(table => table.version === record.priceVersion)
+    assert(priceTable !== undefined,
+      `0.1.9 usage settlement ${record.requestId} has no retained historical tariff`)
+    const priced = priceUsage(priceTable, record.model, usage, Date.parse(record.occurredAt), true)
     assert(String(priced.cacheHitInputCostNanoyuan) === record.cacheHitInputCostNanoyuan
       && String(priced.cacheMissInputCostNanoyuan) === record.cacheMissInputCostNanoyuan
       && String(priced.outputCostNanoyuan) === record.outputCostNanoyuan
       && String(priced.costNanoyuan) === record.costNanoyuan
       && priced.unpricedTokens === record.unpricedTokens,
-    `0.1.9 usage settlement ${record.requestId} no longer matches the embedded tariff`)
+    `0.1.9 usage settlement ${record.requestId} no longer matches its retained tariff`)
   }
 
   const current = ledger.records.filter(record => record.keyFingerprint === currentKeyFingerprint)

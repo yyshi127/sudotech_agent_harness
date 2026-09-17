@@ -229,6 +229,8 @@ export interface CompactionSummaryNode {
   shadowedItemCount: number | null
   /** Estimated token price of the replaced items, or null when the summary event is unavailable or malformed. */
   shadowedTokenCount: number | null
+  /** Failure marker when compaction ended without landing a checkpoint. */
+  failure?: true
 }
 
 /**

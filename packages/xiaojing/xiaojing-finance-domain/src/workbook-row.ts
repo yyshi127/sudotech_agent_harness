@@ -12,3 +12,12 @@ export function workbookRow(...values: string[]): Row {
     return { type: String, value }
   })
 }
+
+/**
+ * Build explicit readable column widths for a business worksheet.
+ * @param widths - Character widths in sheet order.
+ * @returns Writer column options.
+ */
+export function workbookColumns(...widths: number[]): { width: number }[] {
+  return widths.map(width => ({ width }))
+}

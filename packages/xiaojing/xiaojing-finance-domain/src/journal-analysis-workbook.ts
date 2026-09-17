@@ -1,7 +1,7 @@
 /** Exact-text export of reconciled journal totals and their nullable source rows. */
 import writeExcelFile from 'write-excel-file/node'
 import type { JournalAnalysisResult } from './journal-analysis.ts'
-import { workbookRow as row } from './workbook-row.ts'
+import { workbookColumns as widths, workbookRow as row } from './workbook-row.ts'
 
 /**
  * Preserve comparison conditions, source rows, missing amounts and exact arithmetic.
@@ -18,9 +18,11 @@ export async function journalAnalysisWorkbook(report: JournalAnalysisResult): Pr
     for (const source of group.rows) sources.push(row(label, source.date, source.summary, source.accountCode, source.accountName,
       source.currencyCode, source.baseCurrencyCode, ...[source.income, source.expense, source.balance, source.baseIncome, source.baseExpense, source.baseBalance].map(value => value ?? '未提供'), source.categoryName, source.keeperName))
   }
-  return writeExcelFile([{ sheet: '收支汇总', data: aggregates },
+  return writeExcelFile([{ sheet: '收支汇总', data: aggregates, columns: widths(12, 12, 12, 12, 10, 16, 16), stickyRowsCount: 1 },
     ...report.differences ? [{ sheet: '期间差额', data: [row('原币', '收入差额', '支出差额'),
-      row(report.differences.currencyCode ?? '未提供', report.differences.income, report.differences.expense)] }] : [],
-    { sheet: '流水明细', data: sources },
+      row(report.differences.currencyCode ?? '未提供', report.differences.income, report.differences.expense)],
+    columns: widths(10, 16, 16), stickyRowsCount: 1 }] : [],
+    { sheet: '流水明细', data: sources,
+      columns: widths(12, 12, 26, 14, 18, 10, 10, ...Array.from({ length: 6 }, () => 16), 18, 14), stickyRowsCount: 1 },
   ]).toBuffer()
 }

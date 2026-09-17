@@ -1457,4 +1457,13 @@ describe('ChatView', () => {
     expect(failedView.getByText('Compaction cancelled.')).toBeTruthy()
     expect(failedView.container.querySelector('[data-state="error"]')).not.toBeNull()
   })
+
+  it('shows automatic compaction failure with a safe recovery instruction', () => {
+    const h = makeHarness({ nodes: [compaction({ summary: null, summaryEventSeq: null,
+      shadowedItemCount: null, shadowedTokenCount: null, failure: true })] })
+    const view = render(<h.ChatView {...h.props} />)
+    expect(view.getByRole('status').textContent).toContain('上下文压缩未完成')
+    expect(view.getByRole('status').textContent).toContain('/compact')
+    expect(view.container.querySelector('[data-state="error"]')).not.toBeNull()
+  })
 })

@@ -108,6 +108,18 @@ describe('Xiaojing Finance deterministic trial calculations', () => {
     expect(output(general, 'current_enterprise_income_tax_payable')).toBe('230000.00')
   })
 
+  it('requires an explicit prior prepaid amount for enterprise income tax', () => {
+    const result = calculateFinanceTrial({
+      calculation: 'enterprise-income-tax',
+      asOfDate: '2026-08-29',
+      cumulativeTaxableIncome: '1000000',
+      smallLowProfitEnterprise: false,
+    })
+    expect(result.status).toBe('needs-input')
+    expect(result.missingInputs).toContain('prior_prepaid_enterprise_income_tax')
+    expect(result.outputs).toEqual([])
+  })
+
   it('calculates cumulative resident salary withholding with the statutory table', () => {
     const result = calculateFinanceTrial({
       calculation: 'salary-iit',

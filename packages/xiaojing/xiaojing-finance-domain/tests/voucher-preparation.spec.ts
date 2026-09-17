@@ -62,6 +62,13 @@ it('rejects duplicate auxiliary categories and duplicate source files', () => {
   })) }, limits)).toThrow()
 })
 
+it('rejects unsupported voucher attachments before creating a preview', () => {
+  expect(() => validateVoucherPreparation({ ...input(), sourcePaths: ['发票.pdf', '合同.docx'] }, limits))
+    .toThrow('来源文件仅支持 PDF、PNG、JPG 或 JPEG')
+  expect(validateVoucherPreparation({ ...input(), sourcePaths: ['发票.PDF', '截图.png', '照片.jpg', '照片2.JPEG'] }, limits)
+    .input.sourcePaths).toHaveLength(4)
+})
+
 it('enforces entry and full input byte limits', () => {
   expect(() => validateVoucherPreparation(input(), { ...limits, maxEntries: 2 })).toThrow('数量限制')
   expect(() => validateVoucherPreparation(input(), { ...limits, maxBytes: 1 })).toThrow('大小限制')

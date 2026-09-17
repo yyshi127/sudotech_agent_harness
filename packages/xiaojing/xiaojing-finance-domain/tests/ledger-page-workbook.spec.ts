@@ -18,7 +18,7 @@ it('exports journal currencies, all amount sides and markers without merging the
     '9007199254740993.01', '-0.01', '0.00', '未提供', '未提供', '0.00', null, null])
   const summaries = await readSheet(bytes, '合计')
   expect(summaries).toHaveLength(2)
-  expect(summaries[1]?.[0]).toBe('opening')
+  expect(summaries[1]?.[0]).toBe('初始余额')
 })
 
 it.each(['receivable', 'payable'] as const)('exports %s with nullable flags, eight amounts and separate page totals', async (direction) => {
@@ -34,8 +34,8 @@ it.each(['receivable', 'payable'] as const)('exports %s with nullable flags, eig
   const detailSheet = direction === 'receivable' ? '应收明细' : '应付明细'
   expect(await readSheet(bytes)).toEqual(await readSheet(bytes, detailSheet))
   expect((await readSheet(bytes, detailSheet))[1]).toEqual(['2026-09-07', '+SUM(1,2)', '1122', '应收', '辅助',
-    'USD', 'CNY', '300.00', '-0.01', '0.00', '0.00', '100.00', '1.00', '2.00', '3.00', '未提供', 'false', null, '@备注'])
-  expect((await readSheet(bytes, '合计')).slice(1).map(r => r[0])).toEqual(['total', 'previous-page'])
+    'USD', 'CNY', '300.00', '-0.01', '0.00', '0.00', '100.00', '1.00', '2.00', '3.00', '未提供', '否', null, '@备注'])
+  expect((await readSheet(bytes, '合计')).slice(1).map(r => r[0])).toEqual(['接口合计', '上一页总计'])
   report.rows = []
   expect(await readSheet(await openItemPageWorkbook(report), detailSheet)).toHaveLength(1)
 })

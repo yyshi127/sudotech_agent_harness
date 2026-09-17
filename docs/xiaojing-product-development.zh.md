@@ -167,7 +167,7 @@ Finance skill 根目录包含 `finance-tax-research-cn`、`finance-invoice-revie
 
 每个请求只在首个提供方 `usage` 分片结算一次。对话、压缩、标题和重试请求互相独立。账本只保存 SHA-256 Key 指纹、请求元数据、互不重叠的 token bucket、请求时价格版本、整数纳元分类费用、总费用和未计价 token。浏览器只能获得 `usageAccounting.snapshot()` 和 `usage-accounting/updated` 刷新信号，不能获得 Key 或指纹。
 
-[`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) 内置的 Flash、Flash Vision Exp 和 Pro 价格表是唯一价格来源，其中 Flash Vision Exp 使用公开的 Flash 价格；启动时不会请求价格。界面把精确纳元值四舍五入到分并始终显示两位小数，账本仍保留纳元精度。视觉图片消耗只采用提供方 usage，不在本机估算。未知模型、自定义 endpoint 和缓存写入 token 保留统计但不计价。该费用是依据提供方 usage 的本机计算，不是 DeepSeek 开放平台账单或余额。
+[`pricing.ts`](../packages/llm/usage-accounting/src/pricing.ts) 内置的当前 Flash 与 Pro 价格表是新请求的唯一计价来源；当前 Flash 模型名及其仍可调用的旧模型名均使用 Flash 价格。保留的旧价格表只用于恢复历史记录缺少的分类明细。启动时不会请求价格。界面把精确纳元值四舍五入到分并始终显示两位小数，账本仍保留纳元精度。视觉图片消耗只采用提供方 usage，不在本机估算。未知模型、自定义 endpoint 和缓存写入 token 保留统计但不计价。该费用是依据提供方 usage 的本机计算，不是 DeepSeek 开放平台账单或余额。
 
 ### 内置浏览器与 Windows 自动化
 

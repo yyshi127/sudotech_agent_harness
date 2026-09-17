@@ -76,7 +76,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
     const workspacePath = join(scaffold.workspaceCwd, 'write-off-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '核销检查企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
+      client: { legalName: '核销检查企业', shortName: '核销检查', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
         chartMappings: [], externalSystemRefs: [], financeSystem: { system: 'youcheng', environment: 'test',
           accountCode: '35616', appKey: 'snapshot-key' } }, credentialInput: { youchengAppSecret: 'snapshot-secret' } })
     for (const scenario of ['receivable', 'payable', 'receivable-accepted', 'payable-accepted',

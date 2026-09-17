@@ -32,6 +32,20 @@ const saveSchema = z.object({
 }).strict()
 type Stored = z.infer<typeof storedSchema>
 
+function attachmentContentType(objectKey: string): string {
+  const normalized = objectKey.toLowerCase()
+  if (normalized.endsWith('.pdf')) return 'application/pdf'
+  if (normalized.endsWith('.png')) return 'image/png'
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg'
+  throw new Error('附件类型不受支持。')
+}
+
+function attachmentDownloadName(contentType: string): string {
+  if (contentType === 'application/pdf') return 'attachment.pdf'
+  if (contentType === 'image/png') return 'attachment.png'
+  return 'attachment.jpg'
+}
+
 function decode(record: CredentialRecord | undefined): Stored | undefined {
   if (record === undefined) return undefined
   try {
@@ -105,12 +119,16 @@ export class AttachmentStorage {
       cname: true, secure: true, authorizationV4: true, timeout: this.options.timeoutMs })
   }
 
-  private async transfer(client: OSS, method: 'PUT' | 'GET' | 'DELETE', objectKey: string, signal: AbortSignal, bytes?: Uint8Array): Promise<Response> {
+  private async transfer(client: OSS, method: 'PUT' | 'GET' | 'DELETE', objectKey: string, signal: AbortSignal,
+    bytes?: Uint8Array, contentType?: string): Promise<Response> {
     signal.throwIfAborted()
     try {
-      const url = await client.signatureUrlV4(method, this.options.urlExpiresSeconds, {}, objectKey)
+      const headers = contentType === undefined ? undefined : { 'Content-Type': contentType }
+      const url = await client.signatureUrlV4(method, this.options.urlExpiresSeconds,
+        headers === undefined ? {} : { headers }, objectKey)
       const response = await fetch(url, {
         method, redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(this.options.timeoutMs)]),
+        ...(headers === undefined ? {} : { headers }),
         ...(bytes === undefined ? {} : { body: bytes as Uint8Array<ArrayBuffer> }),
       })
       if (!response.ok) {
@@ -188,10 +206,19 @@ export class AttachmentStorage {
     if (expectedRevision !== undefined && saved.revision !== expectedRevision) throw new Error('附件配置已变化，请重新确认上传目标。')
     const client = this.client(saved)
     const objectKey = `${saved.config.prefix}${objectSuffix}`
-    await (await this.transfer(client, 'PUT', objectKey, signal, bytes)).body?.cancel()
+    const contentType = attachmentContentType(objectKey)
+    await (await this.transfer(client, 'PUT', objectKey, signal, bytes, contentType)).body?.cancel()
     signal.throwIfAborted()
     let downloadUrl: string
-    try { downloadUrl = await client.signatureUrlV4('GET', this.options.urlExpiresSeconds, {}, objectKey) }
+    try {
+      downloadUrl = client.signatureUrl(objectKey, {
+        expires: this.options.urlExpiresSeconds,
+        method: 'GET',
+        response: {
+          'content-disposition': `inline; filename=${attachmentDownloadName(contentType)}`,
+        },
+      })
+    }
     catch { throw new Error('附件已上传，但生成临时下载链接失败，请检查 OSS 配置。') }
     return { objectKey, name, size: bytes.length, expiresAt: Date.now() + this.options.urlExpiresSeconds * 1000, downloadUrl }
   }

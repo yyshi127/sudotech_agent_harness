@@ -6,6 +6,10 @@ const decimal = z.string().regex(/^(0|[1-9]\d*)\.\d{2}$/)
 const positiveAmount = decimal.refine(value => /[1-9]/.test(value), '金额必须大于零。')
 const positiveRate = z.string().regex(/^(0|[1-9]\d*)(\.\d+)?$/)
   .refine(value => /[1-9]/.test(value), '汇率必须大于零。')
+/** User-facing format rejection shared by command and business-input validation. */
+export const VOUCHER_ATTACHMENT_FORMAT_ERROR = '来源文件仅支持 PDF、PNG、JPG 或 JPEG。'
+const sourcePath = text.refine(value => /\.(pdf|png|jpe?g)$/iu.test(value),
+  VOUCHER_ATTACHMENT_FORMAT_ERROR)
 const auxiliary = z.strictObject({ categoryCode: text, itemCode: text })
 const entry = z.strictObject({
   summary: text, subjectCode: text, side: z.enum(['debit', 'credit']), amount: positiveAmount,
@@ -16,7 +20,7 @@ const entry = z.strictObject({
 const inputSchema = z.strictObject({
   date: z.iso.date(), documentMaker: text, certificateCode: z.number().int().min(1).max(2147483647).optional(),
   entries: z.array(entry).min(2),
-  sourcePaths: z.array(text),
+  sourcePaths: z.array(sourcePath),
 }).refine(value => new Set(value.sourcePaths).size === value.sourcePaths.length, '来源文件不能重复。')
 
 /** Preparation-only commands; an existing version is mandatory for changes, and no submit command is admitted. */
@@ -53,7 +57,9 @@ export function validateVoucherPreparation(input: unknown, limits: { maxEntries:
     throw new Error('凭证输入超过大小限制或不是有效 JSON。')
   }
   const parsed = inputSchema.safeParse(input)
-  if (!parsed.success) throw new Error('凭证输入无效，请检查日期、制单人、分录、两位小数正金额和辅助项目。')
+  if (!parsed.success) {
+    throw new Error(`凭证输入无效，请检查日期、制单人、分录、两位小数正金额、辅助项目；${VOUCHER_ATTACHMENT_FORMAT_ERROR}`)
+  }
   const value = parsed.data
   if (value.entries.length > limits.maxEntries) throw new Error('凭证分录超过数量限制。')
   let debit = 0n

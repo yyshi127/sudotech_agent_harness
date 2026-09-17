@@ -47,6 +47,7 @@ describe('official source registry', () => {
 
   it('supports Mainland localities but not Hong Kong, Macao, Taiwan, or unknown jurisdictions', () => {
     expect(isMainlandLocality('上海市浦东新区')).toBe(true)
+    expect(isMainlandLocality('苏州市')).toBe(true)
     expect(isMainlandLocality('新疆维吾尔自治区')).toBe(true)
     expect(isMainlandLocality('香港特别行政区')).toBe(false)
     expect(isMainlandLocality('United States')).toBe(false)

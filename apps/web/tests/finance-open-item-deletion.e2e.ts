@@ -69,7 +69,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
     const workspacePath = join(scaffold.workspaceCwd, 'open-item-deletion-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '往来删除检查企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
+      client: { legalName: '往来删除检查企业', shortName: '往来删除检查', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
         chartMappings: [], externalSystemRefs: [], financeSystem: { system: 'youcheng', environment: 'test',
           accountCode: '35616', appKey: 'snapshot-key' } }, credentialInput: { youchengAppSecret: 'snapshot-secret' } })
     for (const scenario of ['receivable', 'payable', 'receivable-execute', 'payable-execute',

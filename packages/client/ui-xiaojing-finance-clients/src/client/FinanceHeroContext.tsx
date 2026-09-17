@@ -74,7 +74,7 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
     const name = client.shortName ?? client.legalName
     const connection = catalog.workspaces?.clients.find(entry => entry.clientId === client.id)?.connection
     if (connection === undefined) return name
-    return `${name} · ${connection.accountName ?? t('savedAccount')} · ID ${connection.accountId}`
+    return `${name}-${connection.accountName ?? t('savedAccount')}-ID ${connection.accountId}`
   }
   const selectedLabel = selectedClient === undefined ? undefined : clientLabel(selectedClient)
   const boundClientName = context?.state === 'bound' ? context.clientName : undefined

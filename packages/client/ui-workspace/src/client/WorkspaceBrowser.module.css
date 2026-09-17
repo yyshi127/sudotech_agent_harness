@@ -481,6 +481,11 @@
   color: var(--dsw-alias-state-business-primary);
 }
 
+.workspaceSectionFolder[data-workspace-section-icon='discussion'],
+.workspaceSectionFolder[data-workspace-section-icon='ledger'] {
+  color: var(--dsw-alias-state-business-primary);
+}
+
 .workspaceSectionArrow {
   color: var(--dsw-alias-label-tertiary);
   flex: none;

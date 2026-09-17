@@ -20,18 +20,16 @@ Each record contains cached input, uncached input, output, cache-write tokens, m
 
 ## Pricing
 
-The embedded table follows the [DeepSeek public pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) shown for V4 Flash and V4 Pro. V4 Flash Vision Exp uses the published V4 Flash rates. Peak time is Beijing time 09:00–12:00 and 14:00–18:00; both ranges are half-open. Every other time is off-peak.
+The embedded table follows the [DeepSeek public pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) effective on 14 September 2026 for Flash and V4 Pro. `deepseek-flash` and the callable legacy ids `deepseek-v4-flash` and `deepseek-v4-flash-vision-exp` use the Flash rates. Peak time is Beijing time 09:00–12:00 and 14:00–18:00; both ranges are half-open. Every other time is off-peak.
 
 | Model and band | Cache hit input / million | Cache miss input / million | Output / million |
 |---|---:|---:|---:|
-| V4 Flash peak | ¥0.10 | ¥3.00 | ¥9.00 |
-| V4 Flash off-peak | ¥0.05 | ¥1.50 | ¥4.50 |
-| V4 Flash Vision Exp peak | ¥0.10 | ¥3.00 | ¥9.00 |
-| V4 Flash Vision Exp off-peak | ¥0.05 | ¥1.50 | ¥4.50 |
+| Flash peak | ¥0.04 | ¥2.00 | ¥8.00 |
+| Flash off-peak | ¥0.02 | ¥1.00 | ¥4.00 |
 | V4 Pro peak | ¥0.30 | ¥9.00 | ¥27.00 |
 | V4 Pro off-peak | ¥0.15 | ¥4.50 | ¥13.50 |
 
-Costs use integer nanoyuan per token. A request keeps the tariff version and exact cost active at its start time, so later tariff changes do not reprice history. Vision image consumption comes only from the provider-reported usage; the plugin does not estimate image tokens. Unknown models, cache-write tokens, and non-official endpoints remain in token totals but are marked unpriced.
+Costs use integer nanoyuan per token. A request keeps the tariff version and exact cost active at its start time, so later tariff changes do not reprice history. Prior built-in tables are retained only to recover category details omitted by early schema-v1 rows; they are never used for new settlement. Vision image consumption comes only from the provider-reported usage; the plugin does not estimate image tokens. Unknown models, cache-write tokens, and non-official endpoints remain in token totals but are marked unpriced.
 
 ## Persistence and Remote API
 

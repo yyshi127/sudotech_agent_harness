@@ -318,7 +318,7 @@ function calculateEnterpriseIncomeTax(
 ): FinanceCalculationResult {
   const issues: Issues = { missing: result.missingInputs, invalid: result.invalidInputs }
   const taxableIncome = monetary(request.cumulativeTaxableIncome, 'cumulative_taxable_income', issues, true)
-  const prepaid = optionalMoney(request.priorPrepaidEnterpriseIncomeTax, 'prior_prepaid_enterprise_income_tax', issues)
+  const prepaid = monetary(request.priorPrepaidEnterpriseIncomeTax, 'prior_prepaid_enterprise_income_tax', issues, true)
   if (request.smallLowProfitEnterprise === undefined) result.missingInputs.push('small_low_profit_enterprise')
   let assets: Decimal | undefined
   if (request.smallLowProfitEnterprise === true) {

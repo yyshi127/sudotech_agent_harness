@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md
-2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md: 9bbd1f7baebe6166aff7ad8aaf27156381ba8507
-2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md: c35b7ae3b612b8522a4886898f08856cdd8f0a29
+2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md: 0c8e519699c3735fd11a4699f6431a2b52a3596b
+2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md: c50cacb491f4dab6014436146d1539891de38a2f

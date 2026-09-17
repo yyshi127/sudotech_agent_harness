@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { EMBEDDED_PRICE_TABLE, priceUsage } from '../src/pricing.ts'
+import { EMBEDDED_PRICE_TABLE, priceUsage, RECOVERABLE_PRICE_TABLES } from '../src/pricing.ts'
 import { ledgerInput, UsageLedgerStore } from '../src/store.ts'
 
 const KEY_A = 'a'.repeat(64)
@@ -156,6 +156,39 @@ describe('UsageLedgerStore', () => {
     await writeFile(store.ledgerPath, `${JSON.stringify(legacy, null, 2)}\n`, 'utf8')
 
     expect((await store.snapshot(KEY_A, 1, AUGUST_20, [EMBEDDED_PRICE_TABLE])).days[0]).toMatchObject({
+      cacheHitInputCostNanoyuan: '200',
+      cacheMissInputCostNanoyuan: '20000',
+      outputCostNanoyuan: '120000',
+      costNanoyuan: '140200',
+    })
+  })
+
+  it('retains the prior tariff only for exact legacy category recovery', async () => {
+    const store = new UsageLedgerStore(home)
+    await store.init(AUGUST_20)
+    const legacyTable = RECOVERABLE_PRICE_TABLES[0]!
+    const usage = {
+      cacheHitInputTokens: 10,
+      cacheMissInputTokens: 20,
+      outputTokens: 30,
+      cacheWriteTokens: 0,
+    }
+    await store.append(ledgerInput({
+      keyFingerprint: KEY_A,
+      model: 'deepseek-v4-flash',
+      occurredAt: AUGUST_20,
+      purpose: 'conversation',
+      usage,
+    }, priceUsage(legacyTable, 'deepseek-v4-flash', usage, AUGUST_20, true)))
+    const ledger = JSON.parse(await readFile(store.ledgerPath, 'utf8')) as {
+      records: Array<Record<string, unknown>>
+    }
+    delete ledger.records[0]!.cacheHitInputCostNanoyuan
+    delete ledger.records[0]!.cacheMissInputCostNanoyuan
+    delete ledger.records[0]!.outputCostNanoyuan
+    await writeFile(store.ledgerPath, `${JSON.stringify(ledger, null, 2)}\n`, 'utf8')
+
+    expect((await store.snapshot(KEY_A, 1, AUGUST_20, RECOVERABLE_PRICE_TABLES)).days[0]).toMatchObject({
       cacheHitInputCostNanoyuan: '500',
       cacheMissInputCostNanoyuan: '30000',
       outputCostNanoyuan: '135000',

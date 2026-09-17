@@ -63,6 +63,7 @@ export function apply(ctx: Context): void {
       'Verify current or date-specific Chinese mainland finance, tax, invoice, and accounting-policy claims against configured official sources.',
       'Call this before giving a definitive rule-dependent answer. Search snippets are discovery only; use only items marked 已取得官方正文 as evidence.',
       'If the result is 部分核验 or 待核验, label the affected proposition 待核验 instead of inventing a rule, date, rate, threshold, document number, or citation.',
+      'If the result is 已核验, keep the verified proposition and its client-specific applicability as separate conclusions; do not relabel that same proposition 待核验 merely because client facts still need confirmation.',
       'The service does not cover Hong Kong, Macao, Taiwan, or foreign jurisdictions and does not prove that a conditional rule applies to every client fact.',
     ].join(' '),
     parameters: {

@@ -394,12 +394,12 @@ describe('Finance hero client context', () => {
     const bench = renderHero()
     const mode = await screen.findByRole('button', { name: '选择咨询模式' })
     expect(mode.textContent).toContain('咨询')
-    expect(screen.queryByRole('button', { name: '选择客户帐套' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '选择账套' })).toBeNull()
     await waitFor(() => { expect(bench.setBlocked).toHaveBeenLastCalledWith(sessionId, undefined) })
 
     fireEvent.click(mode)
-    fireEvent.click(await screen.findByRole('menuitem', { name: '客户帐套' }))
-    const client = await screen.findByRole('button', { name: '选择客户帐套' })
+    fireEvent.click(await screen.findByRole('menuitem', { name: '账套' }))
+    const client = await screen.findByRole('button', { name: '选择账套' })
     await waitFor(() => { expect(bench.setBlocked).toHaveBeenLastCalledWith(sessionId, zh.clientRequired) })
 
     fireEvent.click(client)
@@ -416,7 +416,7 @@ describe('Finance hero client context', () => {
     fireEvent.click(screen.getByRole('button', { name: '选择咨询模式' }))
     fireEvent.click(await screen.findByRole('menuitem', { name: '咨询' }))
     await waitFor(() => { expect(bench.stage).toHaveBeenLastCalledWith(sessionId, { mode: 'general' }) })
-    expect(screen.queryByRole('button', { name: '选择客户帐套' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '选择账套' })).toBeNull()
   })
 
   it('distinguishes same-name customers by ledger and retains the selected ledger label', async () => {
@@ -432,19 +432,19 @@ describe('Finance hero client context', () => {
       })
     })
     fireEvent.click(await screen.findByRole('button', { name: '选择咨询模式' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: '客户帐套' }))
-    fireEvent.click(await screen.findByRole('button', { name: '选择客户帐套' }))
-    expect(await screen.findByRole('menuitem', { name: '数豆科技 · 荷花演示账套 · ID 21563' })).toBeTruthy()
-    fireEvent.click(await screen.findByRole('menuitem', { name: '数豆科技 · 数豆测试帐套勿删 · ID 35601' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: '账套' }))
+    fireEvent.click(await screen.findByRole('button', { name: '选择账套' }))
+    expect(await screen.findByRole('menuitem', { name: '数豆科技-荷花演示账套-ID 21563' })).toBeTruthy()
+    fireEvent.click(await screen.findByRole('menuitem', { name: '数豆科技-数豆测试帐套勿删-ID 35601' }))
     await waitFor(() => { expect(bench.stage).toHaveBeenCalledWith(sessionId, { mode: 'client', clientId: archivedId }) })
-    await waitFor(() => { expect(screen.getByRole('button', { name: '选择客户帐套' }).title).toContain('ID 35601') })
+    await waitFor(() => { expect(screen.getByRole('button', { name: '选择账套' }).title).toContain('ID 35601') })
     await act(async () => {
       bench.clients.update((state) => {
         state.workspaces.clients[1]!.connection = { state: 'unverified', accountId: '35601' }
       })
     })
-    expect(screen.getByRole('button', { name: '选择客户帐套' }).textContent).toContain('ID 35601')
-    expect(screen.getByRole('button', { name: '选择客户帐套' }).textContent).not.toContain('数豆测试帐套勿删')
+    expect(screen.getByRole('button', { name: '选择账套' }).textContent).toContain('ID 35601')
+    expect(screen.getByRole('button', { name: '选择账套' }).textContent).not.toContain('数豆测试帐套勿删')
   })
 
   it('shows an immutable client binding on a blank session without blocking input', async () => {
@@ -455,7 +455,7 @@ describe('Finance hero client context', () => {
     })
 
     const mode = await screen.findByRole('button', { name: '选择咨询模式' })
-    const client = await screen.findByRole('button', { name: '选择客户帐套' })
+    const client = await screen.findByRole('button', { name: '选择账套' })
     expect((mode as HTMLButtonElement).disabled).toBe(true)
     expect((client as HTMLButtonElement).disabled).toBe(true)
     expect(client.textContent).toContain('瑞华云')
@@ -467,10 +467,10 @@ describe('Finance hero client context', () => {
   it('keeps customer creation out of the hero selector', async () => {
     renderHero({ catalog: { revision: 0, clients: [] } })
     fireEvent.click(await screen.findByRole('button', { name: '选择咨询模式' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: '客户帐套' }))
-    fireEvent.click(await screen.findByRole('button', { name: '选择客户帐套' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: '账套' }))
+    fireEvent.click(await screen.findByRole('button', { name: '选择账套' }))
     expect(screen.queryAllByRole('menuitem')).toHaveLength(0)
-    expect(screen.queryByText('新增客户帐套')).toBeNull()
+    expect(screen.queryByText('新建账套')).toBeNull()
   })
 
   it('fails closed when the staged context cannot be read', async () => {
@@ -486,17 +486,17 @@ describe('Finance hero client context', () => {
       .mockResolvedValueOnce({ state: 'ready', locked: false, clientId, clientName: '数豆科技' })
       .mockResolvedValueOnce({ state: 'general', locked: false })
     const bench = renderHero({ sessionContext })
-    expect((await screen.findByRole('button', { name: '选择客户帐套' })).textContent).toContain('数豆科技')
+    expect((await screen.findByRole('button', { name: '选择账套' })).textContent).toContain('数豆科技')
     await act(async () => {
       bench.clients.update((state) => { state.contextEpoch += 1 })
     })
     await waitFor(() => { expect(sessionContext).toHaveBeenCalledTimes(2) })
-    expect(screen.queryByRole('button', { name: '选择客户帐套' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '选择账套' })).toBeNull()
 
     await act(async () => {
       bench.sessions.update((state) => { state.byId[sessionId]!.agentPreset = 'standard' })
     })
-    expect(screen.queryByLabelText('客户帐套上下文')).toBeNull()
+    expect(screen.queryByLabelText('账套上下文')).toBeNull()
   })
 })
 
@@ -564,6 +564,17 @@ describe('Finance client management', () => {
     })
   })
 
+  it('requires a short name and explains its compact-menu purpose', async () => {
+    const bench = renderSection()
+    fireEvent.click(screen.getByRole('button', { name: '编辑' }))
+    const shortName = await screen.findByLabelText<HTMLInputElement>('简称')
+    expect(screen.getByText(zh.shortNameHint)).toBeTruthy()
+    fireEvent.change(shortName, { target: { value: '   ' } })
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: '保存' }).disabled).toBe(true)
+    fireEvent.submit(shortName.closest('form')!)
+    expect(bench.update).not.toHaveBeenCalled()
+  })
+
   it('keeps optional policy notes collapsed and preserves them when saving other fields', async () => {
     const bench = renderSection('费用按部门归集。')
     fireEvent.click(screen.getByRole('button', { name: '编辑' }))
@@ -622,6 +633,7 @@ describe('Finance client management', () => {
           environment: 'test',
           appKey: 'app-key-001',
           accountCode: 'ACCT-001',
+          accountName: '数豆测试账套',
         },
       },
     })
@@ -666,7 +678,7 @@ describe('Finance client management', () => {
     expect((await screen.findByRole('status')).textContent).toBe(zh.noAccounts)
     expect(screen.getByRole<HTMLSelectElement>('combobox', { name: '绑定账套' }).disabled).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: '验证并获取账套' }))
-    expect((await screen.findByRole('alert')).textContent).toBe('帐套信息已变更')
+    expect((await screen.findByRole('alert')).textContent).toBe('获取账套失败，请重试。')
     expect(screen.getByRole<HTMLButtonElement>('button', { name: '保存' }).disabled).toBe(true)
     expect(bench.update).not.toHaveBeenCalled()
   })
@@ -771,8 +783,8 @@ describe('Finance client plugin composition', () => {
     await waitFor(() => {
       expect(workspaceCategories.store.getSnapshot().categories).toEqual([{
         id: 'finance',
-        label: '财务工作区',
-        ordinaryLabel: '普通工作区',
+        label: '财务助手',
+        ordinaryLabel: '办公搭子',
         workspaceIds: ['finance-standard', 'finance-client', 'finance-archived'],
         reservedWorkspaceIds: ['finance-standard', 'finance-client', 'finance-archived'],
         manageableWorkspaceIds: ['finance-standard', 'finance-client', 'finance-archived'],
@@ -783,10 +795,10 @@ describe('Finance client plugin composition', () => {
         sections: [
           {
             id: 'clients',
-            label: '客户帐套',
-            icon: 'person',
+            label: '账套',
+            icon: 'ledger',
             workspaceIds: ['finance-client', 'finance-archived'],
-            addLabel: '添加客户帐套工作区',
+            addLabel: '添加账套工作区',
           },
           {
             id: 'consultations',

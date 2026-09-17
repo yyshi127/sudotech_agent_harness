@@ -21,6 +21,7 @@ export function apply(ctx: Context): void {
       'The source must already exist in this session\'s 03-会话作业 directory.',
       'Keep drafts, previews, trial calculations, and ambiguous work in 03-会话作业 without calling this tool.',
       'Use action=archive only when the user explicitly asks to archive a file already in this client\'s managed directories.',
+      'When the user names an archive folder, pass archiveFolder so the file is copied there once instead of first creating a dated archive copy.',
       'Both actions preserve the source file.',
     ].join(' '),
     parameters: {
@@ -38,6 +39,10 @@ export function apply(ctx: Context): void {
       preferredName: {
         type: 'string',
         description: 'Optional final filename, preserving the source name when omitted.',
+      },
+      archiveFolder: {
+        type: 'string',
+        description: 'Optional single folder name directly under 05-归档; valid only for action=archive.',
       },
     },
     output: {
@@ -63,6 +68,10 @@ export function apply(ctx: Context): void {
       const request = {
         sourcePath: args.sourcePath,
         ...args.preferredName === undefined ? {} : { preferredName: args.preferredName },
+        ...args.archiveFolder === undefined ? {} : { archiveFolder: args.archiveFolder },
+      }
+      if (args.action === 'publish' && args.archiveFolder !== undefined) {
+        throw new Error('保存财务成果时不能指定归档文件夹。')
       }
       const file = await financeModelCall(() => args.action === 'publish'
         ? ctx.xiaojingFinanceDomain.publishFile(agent, request)

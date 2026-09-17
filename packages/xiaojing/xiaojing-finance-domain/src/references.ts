@@ -26,8 +26,18 @@ const categories = z.object({ id: identity, code: text.min(1), name: text.min(1)
 export const referenceQuerySchema = z.object({
   kind: z.enum(['subjects', 'auxiliary-categories', 'auxiliary-items', 'cash-accounts', 'cash-categories']),
   categoryCode: text.min(1).optional(), code: text.min(1).optional(), name: text.min(1).optional(),
-}).strict().refine(query => (query.kind === 'auxiliary-items') === (query.categoryCode !== undefined),
-  '仅辅助项目查询必须指定辅助类别编码。')
+  subjectTreeRootCode: text.min(1).optional(),
+}).strict().superRefine((query, context) => {
+  if ((query.kind === 'auxiliary-items') !== (query.categoryCode !== undefined)) {
+    context.addIssue({ code: 'custom', message: '仅辅助项目查询必须指定辅助类别编码。' })
+  }
+  if (query.subjectTreeRootCode !== undefined && query.kind !== 'subjects') {
+    context.addIssue({ code: 'custom', message: '只有科目查询可以指定树根编码。' })
+  }
+  if (query.subjectTreeRootCode !== undefined && (query.code !== undefined || query.name !== undefined)) {
+    context.addIssue({ code: 'custom', message: '科目树查询不能同时使用名称或编码筛选。' })
+  }
+})
 
 /** Validated reference query. */
 export type ReferenceQuery = z.infer<typeof referenceQuerySchema>
@@ -55,10 +65,11 @@ export interface ReferenceResult {
   accountName: string
   kind: ReferenceQuery['kind']
   categoryCode?: string
+  subjectTreeRootCode?: string
   requestedLimit: number
   returnedCount: number
   coverage: 'unverified'
-  selection: 'not-requested' | 'unique-returned' | 'ambiguous' | 'not-found-in-returned'
+  selection: 'not-requested' | 'unique-returned' | 'ambiguous' | 'not-found-in-returned' | 'tree-returned'
   rows: ReferenceRow[]
   notice: string
 }
@@ -120,7 +131,24 @@ export function projectReferences(data: unknown, query: ReferenceQuery, account:
     }
   }).map(row => ({ ...row, id: row.id as Branded<'FinanceReferenceId'> }))
   if (new Set(rows.map(row => row.id)).size !== rows.length) throw new Error('基础资料返回重复标识，请核查。')
-  const matched = rows.filter(row => (query.code === undefined || row.code === query.code)
+  let treeRows: ReferenceRow[] | undefined
+  if (query.subjectTreeRootCode !== undefined) {
+    const included = new Set<string>()
+    if (rows.some(row => row.code === query.subjectTreeRootCode)) included.add(query.subjectTreeRootCode)
+    let changed = true
+    while (changed) {
+      changed = false
+      for (const row of rows) {
+        if (row.parentCode !== undefined && included.has(row.parentCode) && !included.has(row.code)) {
+          included.add(row.code)
+          changed = true
+        }
+      }
+    }
+    treeRows = rows.filter(row => included.has(row.code))
+  }
+  const candidates = treeRows ?? rows
+  const matched = candidates.filter(row => (query.code === undefined || row.code === query.code)
     && (query.name === undefined || row.name === query.name))
   const filtered = query.code !== undefined || query.name !== undefined
   const directionNotice = query.kind === 'subjects'
@@ -130,10 +158,13 @@ export function projectReferences(data: unknown, query: ReferenceQuery, account:
   const result: ReferenceResult = {
     accountId: account.id, accountName: account.name, kind: query.kind,
     ...query.categoryCode === undefined ? {} : { categoryCode: query.categoryCode },
+    ...query.subjectTreeRootCode === undefined ? {} : { subjectTreeRootCode: query.subjectTreeRootCode },
     requestedLimit: limit, returnedCount: rows.length, coverage: 'unverified',
-    selection: !filtered ? 'not-requested' : matched.length === 0 ? 'not-found-in-returned' : matched.length === 1 ? 'unique-returned' : 'ambiguous',
+    selection: query.subjectTreeRootCode !== undefined
+      ? matched.length === 0 ? 'not-found-in-returned' : 'tree-returned'
+      : !filtered ? 'not-requested' : matched.length === 0 ? 'not-found-in-returned' : matched.length === 1 ? 'unique-returned' : 'ambiguous',
     rows: matched,
-    notice: `接口未提供总数或翻页游标，完整性未验证；筛选仅针对本次返回。同名不猜选，未找到不自动新增；unknown 不代表启用。${directionNotice}`,
+    notice: `接口未提供总数或翻页游标，完整性未验证；筛选仅针对本次返回。${query.subjectTreeRootCode === undefined ? '' : '科目树结果由本次返回的父子关系确定，包含树根及其全部已返回后代，不按名称抽样。'}同名不猜选，未找到不自动新增；unknown 不代表启用。${directionNotice}`,
   }
   if (Buffer.byteLength(JSON.stringify(result), 'utf8') > maxBytes) throw new Error('基础资料结果超出大小限制。')
   return result

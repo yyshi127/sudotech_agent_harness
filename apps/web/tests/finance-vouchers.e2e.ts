@@ -131,7 +131,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
     const workspacePath = join(scaffold.workspaceCwd, 'voucher-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '凭证测试企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise', chartMappings: [], externalSystemRefs: [],
+      client: { legalName: '凭证测试企业', shortName: '凭证测试', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise', chartMappings: [], externalSystemRefs: [],
         financeSystem: { system: 'youcheng', environment: 'test', accountCode: 'ledger-2', appKey: 'snapshot-key' } },
       credentialInput: { youchengAppSecret: 'snapshot-secret' },
     })
@@ -158,19 +158,19 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       await expect.poll(() => ctx.xiaojingFinanceDomain.sessionContext(handle.agent)).toMatchObject({
         state: 'ready', clientId: created.client.id,
       })
-      await expect.poll(() => mode.textContent(), { timeout: 10_000 }).toBe('客户帐套')
+      await expect.poll(() => mode.textContent(), { timeout: 10_000 }).toBe('账套')
       await page.getByRole('button', { name: 'Finance模式', exact: true }).click()
       await page.getByRole('menuitem', { name: /^标准模式/ }).click()
       await page.getByRole('button', { name: '标准模式', exact: true }).waitFor()
       await mode.waitFor({ state: 'hidden' })
-      await page.getByRole('button', { name: '财务工作区', exact: true }).click()
+      await page.getByRole('button', { name: '财务助手', exact: true }).click()
       await page.getByRole('button', { name: 'Finance模式', exact: true }).waitFor()
       await expect.poll(() => mode.textContent()).toBe('咨询')
-      await page.getByRole('treeitem', { name: /^凭证测试企业/ }).hover()
-      await page.getByRole('button', { name: '在“凭证测试企业”中新建会话', exact: true }).click()
-      await expect.poll(() => mode.textContent()).toBe('客户帐套')
-      const client = page.getByRole('button', { name: '选择客户帐套', exact: true })
-      await expect.poll(() => client.textContent()).toBe('凭证测试企业 · 已保存账套 · ID ledger-2')
+      await page.getByRole('treeitem', { name: /^凭证测试/ }).hover()
+      await page.getByRole('button', { name: '在“凭证测试”中新建会话', exact: true }).click()
+      await expect.poll(() => mode.textContent()).toBe('账套')
+      const client = page.getByRole('button', { name: '选择账套', exact: true })
+      await expect.poll(() => client.textContent()).toBe('凭证测试-已保存账套-ID ledger-2')
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-vouchers/selection.expected.md', import.meta.url)),
         JSON.stringify({ preset: await page.getByRole('button', { name: 'Finance模式', exact: true }).textContent(),
           context: await mode.textContent(), client: await client.textContent() }, null, 2), webSnapshotMode())

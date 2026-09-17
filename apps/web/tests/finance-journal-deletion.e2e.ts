@@ -68,7 +68,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms journal deletion versions
     const workspacePath = join(scaffold.workspaceCwd, 'journal-deletion-client')
     await mkdir(workspacePath)
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '流水删除测试企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
+      client: { legalName: '流水删除测试企业', shortName: '流水删除测试', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
         chartMappings: [], externalSystemRefs: [], financeSystem: { system: 'youcheng', environment: 'test',
           accountCode: '35616', appKey: 'snapshot-key' } }, credentialInput: { youchengAppSecret: 'snapshot-secret' } })
     for (const scenario of ['accepted', 'lost', 'changed-confirmation'] as const) {

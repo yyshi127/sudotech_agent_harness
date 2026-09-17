@@ -82,6 +82,19 @@ function updateYoucheng<Field extends Exclude<keyof FinanceYouchengSystemConfig,
   return { ...draft, financeSystem: { ...current, [field]: value } }
 }
 
+function selectYouchengAccount(
+  draft: FinanceClientDraft,
+  account: FinanceYouchengAccount | undefined,
+): FinanceClientDraft {
+  const current: FinanceYouchengSystemConfig = draft.financeSystem?.system === 'youcheng'
+    ? draft.financeSystem
+    : { system: 'youcheng', environment: 'test', appKey: '', accountCode: '' }
+  const next: FinanceYouchengSystemConfig = { ...current, accountCode: account?.id ?? '' }
+  delete next.accountName
+  if (account !== undefined) next.accountName = account.name
+  return { ...draft, financeSystem: next }
+}
+
 function titleOf(client: FinanceClientListView['clients'][number]): string {
   return client.shortName ?? client.legalName
 }
@@ -276,12 +289,12 @@ export function ClientEditor({
     const next = key === 'environment'
       ? updateYoucheng(draft, key, value as FinanceYouchengEnvironment)
       : updateYoucheng(draft, key, value)
-    setDraft(updateYoucheng(next, 'accountCode', ''))
+    setDraft(selectYouchengAccount(next, undefined))
   }
   const field = (key: keyof FinanceClientDraft, value: string): void => {
     setDraft({ ...draft, [key]: optional(value) })
   }
-  const required = (key: 'legalName' | 'registeredRegion', value: string): void => {
+  const required = (key: 'legalName' | 'shortName' | 'registeredRegion', value: string): void => {
     setDraft({ ...draft, [key]: value })
   }
   const youcheng = draft.financeSystem?.system === 'youcheng' ? draft.financeSystem : undefined
@@ -292,7 +305,7 @@ export function ClientEditor({
     if (youcheng === undefined || fetching || saving) return
     const generation = ++lookupGeneration.current
     setLookup({ state: 'loading' })
-    setDraft(updateYoucheng(draft, 'accountCode', ''))
+    setDraft(selectYouchengAccount(draft, undefined))
     try {
       const secret = editor.youchengAppSecret.trim()
       const result = await listYouchengAccounts({
@@ -302,12 +315,13 @@ export function ClientEditor({
       })
       if (generation !== lookupGeneration.current) return
       setLookup(result.state === 'ready' ? result : { state: 'failed', message: t(`connection.${result.failure}`) })
-    } catch (error) {
+    } catch (_error) {
       if (generation !== lookupGeneration.current) return
-      setLookup({ state: 'failed', message: error instanceof Error ? error.message : t('accountLookupFailed') })
+      setLookup({ state: 'failed', message: t('accountLookupFailed') })
     }
   }
   const canSave = draft.legalName.trim() !== ''
+    && (draft.shortName?.trim() ?? '') !== ''
     && draft.registeredRegion.trim() !== ''
     && (youcheng === undefined || (
       youcheng.appKey.trim() !== ''
@@ -317,14 +331,17 @@ export function ClientEditor({
     && !saving && !fetching
 
   return (
-    <form className={clsx(css.editor, contained && css.containedEditor)} onSubmit={(event) => { event.preventDefault(); onSave() }}>
+    <form className={clsx(css.editor, contained && css.containedEditor)} onSubmit={(event) => {
+      event.preventDefault()
+      if (canSave) onSave()
+    }}>
       <div className={css.fields} role={contained ? 'region' : undefined} aria-label={contained ? t('editorFields') : undefined} tabIndex={contained ? 0 : undefined}>
         {showHeading ? <h3>{t('editTitle')}</h3> : null}
         <fieldset disabled={saving}>
           <legend>{t('basicDetails')}</legend>
           <div className={css.grid}>
             <label className={css.wide}><span>{t('legalName')}</span><input required value={draft.legalName} onChange={(event) => { required('legalName', event.target.value) }} /></label>
-            <label><span>{t('shortName')} <small>{t('optional')}</small></span><input value={draft.shortName ?? ''} onChange={(event) => { field('shortName', event.target.value) }} /></label>
+            <label><span>{t('shortName')} <small>{t('shortNameHint')}</small></span><input required aria-label={t('shortName')} value={draft.shortName ?? ''} onChange={(event) => { required('shortName', event.target.value) }} /></label>
             <label><span>{t('creditCode')} <small>{t('optional')}</small></span><input maxLength={18} value={draft.unifiedSocialCreditCode ?? ''} onChange={(event) => { field('unifiedSocialCreditCode', event.target.value.toUpperCase()) }} /></label>
             <label><span>{t('taxpayerType')}</span><select value={draft.taxpayerType} onChange={(event) => { setDraft({ ...draft, taxpayerType: event.target.value as FinanceClientDraft['taxpayerType'] }) }}><option value="general-vat">{t('taxpayerGeneral')}</option><option value="small-scale-vat">{t('taxpayerSmall')}</option><option value="other">{t('taxpayerOther')}</option></select></label>
             <label><span>{t('region')}</span><input required value={draft.registeredRegion} onChange={(event) => { required('registeredRegion', event.target.value) }} /></label>
@@ -393,7 +410,7 @@ export function ClientEditor({
                     value={editor.youchengAppSecret}
                     onChange={(event) => {
                       resetLookup()
-                      onChange({ ...editor, draft: updateYoucheng(draft, 'accountCode', ''), youchengAppSecret: event.target.value })
+                      onChange({ ...editor, draft: selectYouchengAccount(draft, undefined), youchengAppSecret: event.target.value })
                     }}
                   />
                   <small className={css.credentialHint}>
@@ -416,12 +433,17 @@ export function ClientEditor({
                 <label className={css.wide}>
                   <span>{t('accountSelection')}</span>
                   <select value={youcheng.accountCode} disabled={lookup.state !== 'ready' || lookup.accounts.length === 0}
-                    onChange={(event) => { setDraft(updateYoucheng(draft, 'accountCode', event.target.value)) }}>
+                    onChange={(event) => {
+                      const account = lookup.state === 'ready'
+                        ? lookup.accounts.find(candidate => candidate.id === event.target.value)
+                        : undefined
+                      setDraft(selectYouchengAccount(draft, account))
+                    }}>
                     <option value="">{t(lookup.state === 'ready' ? 'chooseAccount' : 'fetchAccountsFirst')}</option>
                     {lookup.state === 'ready' ? lookup.accounts.map(account => (
                       <option key={account.id} value={account.id}>{`${account.name} · ID ${account.id}`}</option>
                     )) : youcheng.accountCode === '' ? null : (
-                      <option value={youcheng.accountCode}>{`${savedAccountName ?? t('savedAccount')} · ID ${youcheng.accountCode}`}</option>
+                      <option value={youcheng.accountCode}>{`${youcheng.accountName ?? savedAccountName ?? t('savedAccount')} · ID ${youcheng.accountCode}`}</option>
                     )}
                   </select>
                 </label>

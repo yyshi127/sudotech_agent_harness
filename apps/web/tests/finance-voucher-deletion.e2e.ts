@@ -69,7 +69,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
     await mkdir(workspacePath)
     const config = { system: 'youcheng' as const, environment: 'test' as const, accountCode: '35616', appKey: 'snapshot-key' }
     const created = await ctx.xiaojingFinanceDomain.create({ expectedRevision: 0, workspacePath,
-      client: { legalName: '删除测试企业', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
+      client: { legalName: '删除测试企业', shortName: '删除测试', taxpayerType: 'general-vat', registeredRegion: '上海', accountingStandard: 'enterprise',
         chartMappings: [], externalSystemRefs: [], financeSystem: config }, credentialInput: { youchengAppSecret: 'snapshot-secret' } })
     for (const scenario of ['accepted', 'lost', 'changed-confirmation', 'attached'] as const) {
       const changedConfirmation = scenario === 'changed-confirmation'

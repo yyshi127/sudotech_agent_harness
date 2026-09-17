@@ -248,10 +248,10 @@ describe('UsageAccountingService', () => {
       cacheMissInputTokens: 20,
       outputTokens: 30,
       totalTokens: 60,
-      cacheHitInputCostNanoyuan: '1000',
-      cacheMissInputCostNanoyuan: '60000',
-      outputCostNanoyuan: '270000',
-      costNanoyuan: '331000',
+      cacheHitInputCostNanoyuan: '400',
+      cacheMissInputCostNanoyuan: '40000',
+      outputCostNanoyuan: '240000',
+      costNanoyuan: '280400',
       unpricedTokens: 0,
     }])
     expect(snapshot.revision).toBe(1)

@@ -29,6 +29,7 @@ const financeSystemSchema = z.discriminatedUnion('system', [
     environment: z.enum(['test', 'production']),
     appKey: z.string().trim().min(1).max(200),
     accountCode: z.string().trim().min(1).max(200),
+    accountName: optionalText(200),
   }).strict(),
   z.object({ system: z.literal('sdoo') }).strict(),
   z.object({ system: z.literal('yonyou') }).strict(),
@@ -127,7 +128,11 @@ function render(document: FinanceClientDocument): string {
 }
 
 function normalizeDraft(value: FinanceClientDraft): FinanceClientDraft {
-  return draftSchema.parse(value) as FinanceClientDraft
+  const draft = draftSchema.parse(value) as FinanceClientDraft
+  if (draft.shortName === undefined) {
+    throw new Error('xiaojing-finance-domain: shortName is required for client mutations')
+  }
+  return draft
 }
 
 function displaySummary(client: FinanceClientRecord): FinanceClientSummary {

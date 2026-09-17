@@ -20,18 +20,16 @@ rc.2 兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek �
 
 ## 价格
 
-内置价格表遵循 V4 Flash 与 V4 Pro 的 [DeepSeek 公开价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)，V4 Flash Vision Exp 使用公开的 V4 Flash 价格。高峰为北京时间 09:00–12:00、14:00–18:00，两个区间均为左闭右开；其余时间为空闲时段。
+内置价格表遵循 2026 年 9 月 14 日生效的 Flash 与 V4 Pro [DeepSeek 公开价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)。`deepseek-flash` 以及仍可调用的旧模型名 `deepseek-v4-flash`、`deepseek-v4-flash-vision-exp` 均使用 Flash 价格。高峰为北京时间 09:00–12:00、14:00–18:00，两个区间均为左闭右开；其余时间为空闲时段。
 
 | 模型与时段 | 缓存命中输入 / 百万 | 缓存未命中输入 / 百万 | 输出 / 百万 |
 |---|---:|---:|---:|
-| V4 Flash 高峰 | ¥0.10 | ¥3.00 | ¥9.00 |
-| V4 Flash 空闲 | ¥0.05 | ¥1.50 | ¥4.50 |
-| V4 Flash Vision Exp 高峰 | ¥0.10 | ¥3.00 | ¥9.00 |
-| V4 Flash Vision Exp 空闲 | ¥0.05 | ¥1.50 | ¥4.50 |
+| Flash 高峰 | ¥0.04 | ¥2.00 | ¥8.00 |
+| Flash 空闲 | ¥0.02 | ¥1.00 | ¥4.00 |
 | V4 Pro 高峰 | ¥0.30 | ¥9.00 | ¥27.00 |
 | V4 Pro 空闲 | ¥0.15 | ¥4.50 | ¥13.50 |
 
-费用使用整数纳元逐 token 计算。每个请求保存其开始时生效的价格版本和准确费用，因此后续调价不会重算历史。视觉图片消耗只采用提供方返回的 usage，插件不会自行估算图片 token。未知模型、缓存写入 token 和非官方地址仍计入 token 总数，但标记为未计价。
+费用使用整数纳元逐 token 计算。每个请求保存其开始时生效的价格版本和准确费用，因此后续调价不会重算历史。早期 schema-v1 记录未保存分类费用时，系统只使用保留的旧内置价格表恢复分类明细，绝不使用旧表结算新请求。视觉图片消耗只采用提供方返回的 usage，插件不会自行估算图片 token。未知模型、缓存写入 token 和非官方地址仍计入 token 总数，但标记为未计价。
 
 ## 持久化与 Remote API
 

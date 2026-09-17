@@ -18,6 +18,8 @@ it('registers reversibly, refuses unbound calls and preserves exact selectors', 
     const description = ctx.tools.schemas().find(tool => tool.name === 'finance_references')?.description
     expect(description).toContain('科目与出纳账户 directionRaw：0借1贷；收支类别：0收1支')
     expect(description).toContain('subjectType')
+    expect(description).toContain('subjectTreeRootCode')
+    expect(description).toContain('不能按记忆中的名称逐个抽样')
     expect(description).not.toContain('禁止映射为借/贷')
     const agent = { ctx } as Agent
     const signal = new AbortController().signal

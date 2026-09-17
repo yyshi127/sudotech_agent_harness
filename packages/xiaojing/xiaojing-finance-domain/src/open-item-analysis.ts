@@ -42,6 +42,7 @@ export interface OpenItemAggregate {
 export interface OpenItemDifference {
   currencyCode: string
   dimensionId: string
+  presence: 'both' | 'current-only' | 'baseline-only'
   amount: string
   balance: string
 }
@@ -144,6 +145,7 @@ export async function analyzeOpenItems(input: OpenItemAnalysisQuery,
       const previous = before.get(key)
       const next = after.get(key)
       differences.push({ currencyCode: label.currencyCode, dimensionId: label.dimensionId,
+        presence: previous === undefined ? 'current-only' : next === undefined ? 'baseline-only' : 'both',
         amount: money(cents(next?.amount ?? '0.00') - cents(previous?.amount ?? '0.00')),
         balance: money(cents(next?.balance ?? '0.00') - cents(previous?.balance ?? '0.00')) })
     }

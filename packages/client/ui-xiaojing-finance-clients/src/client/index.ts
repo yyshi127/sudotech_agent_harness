@@ -207,7 +207,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
           {
             id: 'clients',
             label: t('clientWorkspaces'),
-            icon: 'person',
+            icon: 'ledger',
             workspaceIds: workspaces?.clients
               .filter(entry => listedWorkspaceIds.has(entry.workspaceId))
               .map(entry => entry.workspaceId) ?? [],

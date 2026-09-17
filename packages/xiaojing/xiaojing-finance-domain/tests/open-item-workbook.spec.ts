@@ -34,9 +34,12 @@ describe('open-item workbook', () => {
     const input = report()
     input.baseline = { periodStart: '2026-08', periodEnd: '2026-08', recordCount: 0, pagesRead: 1, groups: [] }
     input.selection.baseline = { periodStart: '2026-08', periodEnd: '2026-08' }
-    input.differences = [{ currencyCode: 'CNY', dimensionId: '001122', amount: '9007199254740993.01', balance: '-0.01' }]
+    input.differences = [{ currencyCode: 'CNY', dimensionId: '001122', presence: 'baseline-only',
+      amount: '9007199254740993.01', balance: '-0.01' }]
     const buffer = await openItemWorkbook(input)
     expect(await readExcelFile(buffer, '分组结果')).toHaveLength(2)
-    expect((await readExcelFile(buffer, '期间差额'))[1]).toEqual(['CNY', '+SUM(1,2)', '9007199254740993.01', '-0.01'])
+    expect((await readExcelFile(buffer, '期间差额'))[1]).toEqual([
+      'CNY', '+SUM(1,2)', '仅基准期间', '9007199254740993.01', '-0.01',
+    ])
   })
 })

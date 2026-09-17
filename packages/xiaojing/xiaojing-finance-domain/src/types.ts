@@ -165,6 +165,8 @@ export interface FinanceYouchengSystemConfig {
   appKey: string
   /** Youcheng ledger ID sent as setOfBooksId; the stored field name is retained. */
   accountCode: string
+  /** Ledger name returned for the selected account ID. */
+  accountName?: string
 }
 
 /** Placeholder selection for a finance system whose connector is not implemented. */
@@ -180,7 +182,7 @@ export type FinanceSystemConfig = FinanceYouchengSystemConfig | FinanceDeferredS
 export interface FinanceClientDraft {
   /** Registered legal entity name. */
   legalName: string
-  /** Optional short display name. */
+  /** Short display name required for mutations; optional only in historical records. */
   shortName?: string
   /** Optional unified social credit code. */
   unifiedSocialCreditCode?: string
@@ -495,6 +497,8 @@ export interface PublishFinanceFileRequest {
 export interface ArchiveFinanceFileRequest {
   /** Absolute source path in `02-原始资料`, this session's work directory, or `04-成果输出`. */
   sourcePath: string
+  /** Optional direct child folder under `05-归档`; the date folder is used when omitted. */
+  archiveFolder?: string
   /** Optional basename for the archived copy. */
   preferredName?: string
 }

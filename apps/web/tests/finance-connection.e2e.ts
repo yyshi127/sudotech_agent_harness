@@ -119,10 +119,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
   let vendorCalls = 0
   let accountAvailable = true
   let accessDenied = false
+  let networkFailure = false
   let waitForVendor: Promise<void> | undefined
   vi.stubGlobal('fetch', vi.fn(async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input.toString())
     if (url.origin !== 'https://cwdata.yiqiyun.com') return originalFetch(input, init)
+    if (networkFailure) throw new TypeError('Failed to fetch (internal)')
     await waitForVendor
     vendorCalls += 1
     if (accessDenied) return new Response('private vendor details', { status: 403 })
@@ -143,12 +145,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
     await mkdir(clientDirectory)
     const created = await scaffold.ctx.xiaojingFinanceDomain.create({
       expectedRevision: 0, workspacePath: clientDirectory,
-      client: { legalName: '数豆科技', taxpayerType: 'general-vat', registeredRegion: '苏州', accountingStandard: 'small-enterprise', financePolicyNotes: '费用按部门归集。', chartMappings: [], externalSystemRefs: [] },
+      client: { legalName: '数豆科技', shortName: '数豆科技', taxpayerType: 'general-vat', registeredRegion: '苏州', accountingStandard: 'small-enterprise', financePolicyNotes: '费用按部门归集。', chartMappings: [], externalSystemRefs: [] },
     })
     const page = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1440, height: 1100 } })
     await page.goto(scaffold.baseUrl)
-    await page.getByRole('button', { name: '财务工作区', exact: true }).click()
-    await page.getByText('客户帐套', { exact: true }).first().waitFor()
+    await page.getByRole('button', { name: '财务助手', exact: true }).click()
+    await page.getByText('账套', { exact: true }).first().waitFor()
     expect(await page.getByText('客户', { exact: true }).count()).toBe(0)
     await page.getByText('数豆科技', { exact: true }).first().waitFor()
     const openDetails = async (): Promise<void> => {
@@ -199,6 +201,13 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
     expect((await scaffold.ctx.xiaojingFinanceDomain.read(created.client.id)).client.financeSystem)
       .toMatchObject({ accountCode: '35581' })
     await openDetails()
+    networkFailure = true
+    await dialog.getByRole('button', { name: '验证并获取账套', exact: true }).click()
+    const friendlyFailure = dialog.getByText('网络请求失败，请检查网络后重新验证', { exact: true })
+    await friendlyFailure.waitFor()
+    expect(await friendlyFailure.isVisible()).toBe(true)
+    expect(await dialog.getByText(/Failed to fetch|internal/u).count()).toBe(0)
+    networkFailure = false
     await dialog.getByRole('button', { name: '验证并获取账套', exact: true }).click()
     await dialog.getByRole('option', { name: '数豆 · ID 35581', exact: true }).waitFor({ state: 'attached' })
     await dialog.getByRole('combobox', { name: '绑定账套', exact: true }).selectOption('35581')
@@ -221,10 +230,10 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
     const restarted = await launchWebScaffold({ harnessHome: scaffold.harnessHome, agentPresets })
     try {
       await page.goto(restarted.baseUrl)
-      await page.getByRole('button', { name: '财务工作区', exact: true }).click()
+      await page.getByRole('button', { name: '财务助手', exact: true }).click()
       const idle = page.getByRole('status', { name: /尚未验证；可点击名称旁的连接图标核验账套/ })
       await idle.waitFor()
-      expect(await idle.textContent()).toBe('')
+      expect(await idle.textContent()).toBe('数豆')
       expect(vendorCalls).toBe(10)
       const saved = await readFile(join(restarted.harnessHome, 'finance', 'clients-v1.json'), 'utf8')
       const row = page.getByRole('treeitem').filter({ has: page.getByRole('button', { name: /^连接账套 · 数豆科技 · ID 35581$/ }) }).first()

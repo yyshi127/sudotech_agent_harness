@@ -9,7 +9,7 @@ import {
 } from '@deepseek-ai/dsh-client-runtime/client'
 
 /** Product-neutral semantic icons available to a nested workspace section. */
-export type WorkspaceCategorySectionIcon = 'discussion' | 'person'
+export type WorkspaceCategorySectionIcon = 'discussion' | 'ledger' | 'person'
 
 /** One optional nested collection inside a product workspace category. */
 export interface WorkspaceCategorySection {

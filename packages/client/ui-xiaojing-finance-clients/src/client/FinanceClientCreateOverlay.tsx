@@ -16,6 +16,7 @@ import css from './FinanceClientCreateOverlay.module.css'
 
 interface ClientDraft {
   legalName: string
+  shortName: string
   taxpayerType: '' | FinanceTaxpayerType
   registeredRegion: string
   accountingStandard: '' | FinanceAccountingStandard
@@ -23,6 +24,7 @@ interface ClientDraft {
 
 const EMPTY_CLIENT: ClientDraft = {
   legalName: '',
+  shortName: '',
   taxpayerType: '',
   registeredRegion: '',
   accountingStandard: '',
@@ -67,9 +69,11 @@ export function FinanceClientCreateOverlay(props: FinanceClientCreateOverlayProp
     event.preventDefault()
     if (creation === null) return
     const legalName = draft.legalName.trim()
+    const shortName = draft.shortName.trim()
     const registeredRegion = draft.registeredRegion.trim()
     if (
       legalName === ''
+      || shortName === ''
       || registeredRegion === ''
       || draft.taxpayerType === ''
       || draft.accountingStandard === ''
@@ -85,6 +89,7 @@ export function FinanceClientCreateOverlay(props: FinanceClientCreateOverlayProp
         workspacePath: creation.workspacePath,
         client: {
           legalName,
+          shortName,
           taxpayerType: draft.taxpayerType,
           registeredRegion,
           accountingStandard: draft.accountingStandard,
@@ -127,6 +132,16 @@ export function FinanceClientCreateOverlay(props: FinanceClientCreateOverlayProp
             required
             value={draft.legalName}
             onChange={(event) => { setDraft(value => ({ ...value, legalName: event.target.value })) }}
+          />
+        </label>
+        <label className={css.wide}>
+          <span>{props.t('shortName')} <small id={`${formId}-short-name-hint`}>{props.t('shortNameHint')}</small></span>
+          <input
+            required
+            aria-label={props.t('shortName')}
+            aria-describedby={`${formId}-short-name-hint`}
+            value={draft.shortName}
+            onChange={(event) => { setDraft(value => ({ ...value, shortName: event.target.value })) }}
           />
         </label>
         <label>

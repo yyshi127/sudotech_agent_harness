@@ -111,6 +111,21 @@ describe('finance approval presentation', () => {
     expect(reason).not.toContain('{')
   })
 
+  it('shows original currency, original amount, rate and base amount for each foreign-currency entry', () => {
+    const reason = financeApprovalReason('create-voucher', {
+      account: { id: '35616', name: '演示账套' },
+      input: { date: '2026-09-15', certificateCode: 7, documentMaker: '施', sourcePaths: [], entries: [
+        { side: 'debit', subjectCode: '100299', amount: '7.00', summary: '外币测试',
+          foreignCurrency: { code: 'USD', amount: '1.00', exchangeRate: '7' } },
+        { side: 'credit', subjectCode: '1001', amount: '7.00', summary: '外币测试' },
+      ] },
+      totalDebit: '7.00', totalCredit: '7.00', references: [
+        { subject: { name: '美元存款' } }, { subject: { name: '库存现金' } },
+      ],
+    })
+    expect(reason).toContain('原币：USD；原币金额：1.00；汇率：7；本位币金额：7.00')
+  })
+
   it('states deletion and write-off effects without fingerprints or source queries', () => {
     const deletion = financeApprovalReason('delete-open-item', { accountName: '演示账套', direction: 'payable', row: {
       date: '2026-09-15', auxiliaryItemName: '供应商甲', amount: '80.00', balance: '80.00', summary: '采购款',
