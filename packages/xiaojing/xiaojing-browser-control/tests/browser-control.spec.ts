@@ -8,8 +8,8 @@ import { promisify } from 'node:util'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { Session, SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
@@ -221,6 +221,7 @@ describe('Playwright browser provider', () => {
     ctx.provide('connection', {
       rpc: { handle: () => () => Promise.resolve() },
     } as never)
+    ctx.provide('webServer', {} as never)
     await ctx.plugin(SystemPrompt)
     await ctx.plugin(ToolRuntime)
     await ctx.plugin(ApprovalService, { policy: 'never' })
@@ -344,7 +345,7 @@ describe('Playwright browser provider', () => {
     ctx.on('approval/request', answered)
     const submitResult = await ctx.tools.execute({
       signal,
-      callId: CallId('browser-submit'),
+      callId: ToolCallId('browser-submit'),
       name: 'browser_control',
       arguments: {
         action: 'act',
@@ -366,7 +367,7 @@ describe('Playwright browser provider', () => {
     }
     const deleted = await ctx.tools.execute({
       signal,
-      callId: CallId('browser-delete-under-never'),
+      callId: ToolCallId('browser-delete-under-never'),
       name: 'browser_control',
       arguments: {
         action: 'click',
@@ -443,7 +444,7 @@ describe('Playwright browser provider', () => {
     await writeFile(receiptPath, 'fixture receipt')
     const uploaded = await ctx.tools.execute({
       signal,
-      callId: CallId('browser-upload'),
+      callId: ToolCallId('browser-upload'),
       name: 'browser_control',
       arguments: {
         action: 'upload',
@@ -503,11 +504,11 @@ describe('Playwright browser provider', () => {
 
     const ownerSession = Session.create(owner)
     const otherSession = Session.create(otherOwner)
-    ctx.emit('session/event', ownerSession, { type: 'turn/start', seq: 0, time: Date.now(), data: { turn: 2 } })
+    ctx.emit('session/event', ownerSession, { type: 'turn/start', seq: SessionSeq(0), time: Date.now(), data: { turn: 2 } })
     const leased = await ctx.xiaojingBrowserControl.run(owner, {
       action: 'open', url: `http://127.0.0.1:${String(address.port)}/review`,
     }, signal)
-    ctx.emit('session/event', otherSession, { type: 'turn/start', seq: 0, time: Date.now(), data: { turn: 1 } })
+    ctx.emit('session/event', otherSession, { type: 'turn/start', seq: SessionSeq(0), time: Date.now(), data: { turn: 1 } })
     const isolated = await ctx.xiaojingBrowserControl.run(otherOwner, {
       action: 'open', url: `http://127.0.0.1:${String(address.port)}/review`,
     }, signal)
@@ -515,10 +516,10 @@ describe('Playwright browser provider', () => {
     expect(openedContext.pages()).toHaveLength(2)
     await ctx.xiaojingBrowserControl.run(otherOwner, { action: 'close_tab' }, signal)
     ctx.emit('session/event', otherSession, {
-      type: 'turn/end', seq: 1, time: Date.now(), data: { turn: 1, reason: { kind: 'completed' } },
+      type: 'turn/end', seq: SessionSeq(1), time: Date.now(), data: { turn: 1, reason: { kind: 'completed' } },
     })
     ctx.emit('session/event', ownerSession, {
-      type: 'turn/end', seq: 1, time: Date.now(), data: { turn: 2, reason: { kind: 'completed' } },
+      type: 'turn/end', seq: SessionSeq(1), time: Date.now(), data: { turn: 2, reason: { kind: 'completed' } },
     })
     expect(openedContext.pages()).toHaveLength(1)
 

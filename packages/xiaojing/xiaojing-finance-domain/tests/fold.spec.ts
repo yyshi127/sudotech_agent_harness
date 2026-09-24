@@ -22,14 +22,14 @@ describe('Finance client binding fold', () => {
   it('reconstructs a bound session after restart from its event log', () => {
     const original = Session.create(SessionId('finance-history'))
     original.append('finance/client-bound', binding)
-    const restored = Session.create(SessionId('finance-history-restored'), original.events)
-    expect(foldFinanceClientEvents(restored.events)).toEqual({ state: 'bound', binding })
+    const restored = Session.create(SessionId('finance-history-restored'), original.snapshotEvents())
+    expect(foldFinanceClientEvents(restored.snapshotEvents())).toEqual({ state: 'bound', binding })
   })
 
   it('rejects a second client binding', () => {
     const session = Session.create(SessionId('finance-double'))
     session.append('finance/client-bound', binding)
     session.append('finance/client-bound', binding)
-    expect(() => foldFinanceClientEvents(session.events)).toThrow(/only once/)
+    expect(() => foldFinanceClientEvents(session.snapshotEvents())).toThrow(/only once/)
   })
 })

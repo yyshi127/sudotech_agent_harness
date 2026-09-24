@@ -241,8 +241,8 @@ describe('Xiaojing Weixin assembled channel', () => {
       currentPermission = line.endsWith('danger-full-access') ? 'danger-full-access' : 'workspace-write'
       return { commandId: 'permission-command', result: { kind: 'success' as const, text: `preset ${currentPermission}` } }
     })
-    const rename = vi.fn(async () => ({ result: { ok: true, value: { title: '微信助手', seq: 0 } } }))
-    const prompt = vi.fn(async (request: { rpcId: string; payload: { content: Array<{ text: string }> } }) => {
+    const rename = vi.fn(async () => ({ title: '微信助手', seq: 0 }))
+    const prompt = vi.fn(async (request: { requestId: string; content: Array<{ text: string }> }) => {
       turn += 1
       const currentTurn = turn
       if (currentTurn === 1) {
@@ -250,10 +250,10 @@ describe('Xiaojing Weixin assembled channel', () => {
       }
       emit('agent/inbox/claimed', {
         agent,
-        message: { role: 'user', content: request.payload.content, source: { rpcId: request.rpcId } },
+        message: { role: 'user', content: request.content, source: { rpcId: request.requestId } },
         turn: currentTurn,
       })
-      const instruction = request.payload.content[0]?.text ?? ''
+      const instruction = request.content[0]?.text ?? ''
       if (instruction.includes('删除')) {
         await heartbeatAvailable.promise
         const outcome = await approval({ agent, toolName: 'computer_control', reason: '将删除测试文件' })
@@ -270,7 +270,7 @@ describe('Xiaojing Weixin assembled channel', () => {
         type: 'turn/end', seq: currentTurn * 2 + 1, time: Date.now(),
         data: { turn: currentTurn, reason: { kind: 'completed' } },
       })
-      return { result: { ok: true, value: { accepted: true } } }
+      return { accepted: true }
     })
     const rpcHandle = vi.fn(() => () => undefined)
     const ctx = {
@@ -281,13 +281,13 @@ describe('Xiaojing Weixin assembled channel', () => {
         set: vi.fn(async (_ref: unknown, value: string) => { token = value }),
         unset: vi.fn(async () => { token = undefined }),
       },
-      apiProxy: { sessions: {
-        create: vi.fn(async () => ({ result: { ok: true, value: { sessionId } } })),
+      sessionController: {
+        create: vi.fn(async () => ({ sessionId })),
         rename,
         prompt,
-        history: vi.fn(),
-        cancel: vi.fn(async () => ({ result: { ok: true, value: { accepted: true } } })),
-      } },
+        inspect: vi.fn(async () => ({ events: [] })),
+        cancel: vi.fn(() => ({ accepted: true })),
+      },
       agents: { get: () => agent },
       commands: { execute: executeCommand },
       permissionPresets: { current: vi.fn(() => currentPermission) },
@@ -321,7 +321,7 @@ describe('Xiaojing Weixin assembled channel', () => {
     } catch {
       throw new Error(`channel stalled after ${updateBatch} update batches; outbound=${JSON.stringify(outbound)}`)
     }
-    expect(prompt.mock.calls.map(call => call[0].payload.content[0]?.text)).toEqual([
+    expect(prompt.mock.calls.map(call => call[0].content[0]?.text)).toEqual([
       '删除测试文件前先确认',
       '汇总今天的结果',
     ])
@@ -421,15 +421,15 @@ describe('Xiaojing Weixin assembled channel', () => {
       },
       whenIdle: vi.fn(() => idle.promise),
     }
-    const prompt = vi.fn(async (request: { rpcId: string; payload: { content: Array<{ text: string }> } }) => {
+    const prompt = vi.fn(async (request: { requestId: string; content: Array<{ text: string }> }) => {
       emit('agent/inbox/claimed', {
         agent,
-        message: { role: 'user', content: request.payload.content, source: { rpcId: request.rpcId } },
+        message: { role: 'user', content: request.content, source: { rpcId: request.requestId } },
         turn: 1,
       })
-      return { result: { ok: true, value: { accepted: true } } }
+      return { accepted: true }
     })
-    const cancel = vi.fn(async () => ({ result: { ok: true, value: { accepted: true } } }))
+    const cancel = vi.fn(() => ({ accepted: true }))
     const ctx = {
       attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: () => () => undefined } },
@@ -437,13 +437,13 @@ describe('Xiaojing Weixin assembled channel', () => {
         resolve: vi.fn(async () => ({ value: 'private-token' })),
         unset: vi.fn(),
       },
-      apiProxy: { sessions: {
-        create: vi.fn(async () => ({ result: { ok: true, value: { sessionId } } })),
+      sessionController: {
+        create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
-        history: vi.fn(),
+        inspect: vi.fn(async () => ({ events: [] })),
         cancel,
-      } },
+      },
       agents: { get: () => agent },
       logger: { warn: vi.fn() },
       on,

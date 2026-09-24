@@ -5,6 +5,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-voucher-deletion-tool'
@@ -25,7 +26,7 @@ export const Config: s<Config> = s.object({
  * @param config - Validated bounds passed to the Host.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_prepare_voucher_deletion',
     description: '准备、修改或只读检查指定财务凭证的删除记录，不发送删除。先理解用户自然语言意图，用 finance_vouchers 定位并澄清歧义；凭证号、摘要不代替唯一 voucherId。prepare/revise 使用当前绑定账套和实时凭证详情，不要求凭证由小兢创建，也不接收 appId、flowId 或账套参数。完整展示目标账套、日期、凭证号、分录、附件数量和风险；不联动删除其他业务。inspect 只读取已有删除记录并回查，结果未知时用原 id 复查，不另建同目标删除尝试。',
     parameters: {
@@ -45,8 +46,8 @@ export function apply(ctx: Context, config: Config): void {
       kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '删除准备或检查未完成' : '凭证删除预览与检查',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
-  ctx.tools.register(defineTool({
+  })))
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_delete_voucher',
     description: '仅在用户明确要求删除时，提交 finance_prepare_voucher_deletion 已展示的准确 id/version。系统强制请求本次确认，聊天里说“已确认”不能绕过。目标或状态变化需重新预览；取消、拒绝或过期版本不得发送。共享目标记录防止换会话重复发送。删除只移除指定凭证，不联动删除日记账、应收应付，不审核、结账或实际支付，不提供自动撤销。接口接收后仍须依据两次独立列表回查判断是否完成。结果未知、超时或回查失败用原 id inspect，不重发、不重新准备同目标。',
     parameters: { id: { type: 'string', required: true, description: '本地删除预览 ID。' },
@@ -61,5 +62,5 @@ export function apply(ctx: Context, config: Config): void {
     presentCall: () => ({ card: 'generic', title: '确认并删除指定凭证', kind: 'delete' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '凭证删除未完成' : '凭证删除结果',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
+  })))
 }

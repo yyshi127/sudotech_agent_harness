@@ -4,8 +4,8 @@
  * cache frozen blocks as React elements; the rendered DOM is pinned
  * byte-for-byte by `tests/fixtures/markdown-dom` and must not drift.
  *
- * Untrusted-output policy (unchanged from the replaced pipeline): link and
- * image destinations pass a protocol allowlist, images additionally require
+ * External link and image destinations pass a protocol allowlist; settled
+ * local file links use an explicit owner callback. Images additionally require
  * absolute HTTP(S), raw HTML renders as literal text (no HTML enters the
  * DOM), and KaTeX runs without trusted commands. Fragment-anchor URLs fail
  * the allowlist, so footnote references and back-references render as plain
@@ -16,23 +16,44 @@
  * may add node types this renderer has no mapping for.
  */
 
-import { Fragment, createElement } from 'react'
+import { Fragment, createElement, useState } from 'react'
 import type { Key, ReactNode } from 'react'
 import clsx from 'clsx'
 import type * as Md from 'mdast'
 import type {} from 'mdast-util-math'
 import { normalizeUri } from 'micromark-util-sanitize-uri'
 import { CodeBlock } from './CodeBlock.tsx'
+import { parseFileLink } from './file-link.ts'
 import { renderTexToReact } from './katex.tsx'
+import { LinkIcon, classifyLinkPath } from '../LinkIcon.tsx'
+import { writeClipboard } from '../clipboard.ts'
+import { IconCheckOutline16, IconCopyOutline16 } from '../icons/index.tsx'
+import { useMarkdownDelegate } from './MarkdownDelegate.tsx'
 import type { PositionedBlock } from './incremental.ts'
 import css from './MarkdownText.module.css'
 
 /** Copy-button labels forwarded to fence CodeBlocks (this package is cordis-free, so copy arrives via props). */
 export interface MarkdownCodeLabels {
   /** Copy-button idle label. */
-  copyLabel?: string | undefined
+  copyLabel: string
   /** Copy-button label during the post-copy confirmation window. */
-  copiedLabel?: string | undefined
+  copiedLabel: string
+}
+
+/** Optional localized chrome for copying HTTP(S) link destinations. */
+export interface MarkdownLinkLabels {
+  /** Copy-button idle label. */
+  copyLabel: string
+  /** Copy-button label during the post-copy confirmation window. */
+  copiedLabel: string
+}
+
+/** Localized chrome for a Markdown document. */
+export interface MarkdownLabels {
+  code: MarkdownCodeLabels
+  footnotes: string
+  /** Enables a copy control beside HTTP(S) text links when supplied. */
+  link?: MarkdownLinkLabels | undefined
 }
 
 function sanitizeUrl(url: string): string {
@@ -60,6 +81,35 @@ function remoteImageUrl(url: string): string | undefined {
     // Same single failure mode as above: not an absolute URL.
     return undefined
   }
+}
+
+/** Protocols a vocabulary-rewritten image destination may carry. */
+function vocabularyImageUrl(url: string): string | undefined {
+  try {
+    const protocol = new URL(url).protocol
+    return protocol === 'http:' || protocol === 'https:' || protocol === 'blob:' || protocol === 'data:'
+      ? url
+      : undefined
+  } catch {
+    // A vocabulary result must be an absolute URL; anything else stays a miss.
+    return undefined
+  }
+}
+
+/**
+ * The displayable source for one image destination: absolute HTTP(S) as
+ * authored, otherwise the context's local-path vocabulary when it vouches for
+ * the destination. Either miss leaves the authored fallback (alt text) to the
+ * caller.
+ * @param url - The authored markdown destination.
+ * @param pathImages - Rewriting vocabulary, when the render pass has one.
+ * @returns The displayable image URL, or undefined.
+ */
+function imageSource(url: string, pathImages: MarkdownPathImages | undefined): string | undefined {
+  const remote = remoteImageUrl(sanitizeUrl(normalizeUri(url)))
+  if (remote !== undefined) return remote
+  const rewritten = pathImages?.resolve(url)
+  return rewritten === undefined ? undefined : vocabularyImageUrl(rewritten)
 }
 
 /** Link/image reference targets collected from a document (first definition per identifier wins, as in CommonMark). */
@@ -101,6 +151,24 @@ export function collectReferenceTargets(
 }
 
 /**
+ * Local-path image vocabulary for image destinations: the owner maps an
+ * authored destination that fails the remote-URL allowlist (an absolute local
+ * file path, for example) to a displayable URL it can vouch for. Absent
+ * wherever no such vocabulary exists, authored local destinations keep their
+ * documented fallback (the image's alt text). Rewritten destinations must be
+ * absolute; the renderer re-checks their protocol before emitting them.
+ */
+export interface MarkdownPathImages {
+  /**
+   * Resolve one authored image destination.
+   * @param value - The destination exactly as the markdown author wrote it.
+   * @returns A displayable absolute URL, or undefined when the destination
+   * names no displayable image — it then stays inert alt text.
+   */
+  resolve(value: string): string | undefined
+}
+
+/**
  * File-mention affordance for inline code: the owner resolves an authored
  * token to the file it names, using its own vocabulary of real files — the
  * renderer never guesses at what looks like a path.
@@ -120,14 +188,16 @@ export interface MarkdownFileMentions {
  * numbering accumulated in document order while references render.
  */
 export interface MarkdownRenderContext {
-  /** Streaming arm: fences render plain and TeX stays literal. */
+  /** Streaming arm: fences highlight incrementally as they grow; TeX (including ```math fences) stays literal until the settled pass. */
   readonly streaming: boolean
   /** Localized fence copy-button labels. */
-  readonly codeLabels: MarkdownCodeLabels | undefined
+  readonly labels: MarkdownLabels
   /** Inside a blockquote's children: tables there always fill the quote's width. */
   readonly inBlockquote?: boolean
   /** Inline-code file mentions; absent wherever no opener vocabulary exists. */
   readonly fileMentions: MarkdownFileMentions | undefined
+  /** Local-path image vocabulary; absent wherever no rewriting owner exists. */
+  readonly pathImages: MarkdownPathImages | undefined
   /** Inside an anchor's children: interactive mentions must not nest there. */
   readonly inLink?: boolean
   /** Reference targets visible to this pass. */
@@ -242,7 +312,9 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
       // authored text, not a parsed destination, so no normalizeUri: port,
       // path, and query render unchanged.
       const href = inlineCodeHttpUrl(value)
-      if (href !== undefined) return <code key={key}>{renderSafeLink(href, [value], 'link')}</code>
+      if (href !== undefined) {
+        return <code key={key}>{renderSafeLink(href, [value], 'link', true, context.labels.link)}</code>
+      }
       // A token the owner's file-mention vocabulary recognizes opens that
       // file; the resolver, not this renderer, decides what names a file.
       // Inside an anchor the token stays inert — a button cannot nest there.
@@ -257,6 +329,7 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
               aria-label={mention.label}
               onClick={mention.open}
             >
+              <LinkIcon kind={classifyLinkPath(value)} className={css.linkIcon} />
               {value}
             </button>
           </code>
@@ -281,11 +354,14 @@ function renderNode(node: Md.RootContent, key: Key, context: MarkdownRenderConte
     case 'table':
       return renderTable(node, key, context)
     case 'link':
-      return renderAnchor(node.url, renderChildren(node.children, { ...context, inLink: true }), key)
+      return renderAnchor(
+        node.url, renderChildren(node.children, { ...context, inLink: true }), key,
+        !anchorWrapsOnlyImages(node.children), context.streaming, context.labels.link,
+      )
     case 'linkReference':
       return renderLinkReference(node, key, context)
     case 'image':
-      return renderImage(node.url, node.alt ?? '', key)
+      return renderImage(node.url, node.alt ?? '', key, context)
     case 'imageReference':
       return renderImageReference(node, key, context)
     case 'footnoteReference':
@@ -328,9 +404,15 @@ function renderCode(node: Md.Code, key: Key, context: MarkdownRenderContext): Re
       // CodeBlock's display trim removes; feeding the bare value would make
       // that trim eat a REAL trailing blank line inside the fence instead.
       code={`${node.value}\n`}
-      lang={context.streaming ? undefined : lang}
-      copyLabel={context.codeLabels?.copyLabel}
-      copiedLabel={context.codeLabels?.copiedLabel}
+      lang={lang}
+      // Streaming keys are source offsets, stable while the fence grows, so
+      // the CodeBlock instance (and its incremental highlight session)
+      // survives every chunk. A fence whose info string is still mid-chunk
+      // has no content yet and took the empty-fence arm above, so `lang`
+      // here is final: it can never re-resolve to a different grammar.
+      streaming={context.streaming}
+      copyLabel={context.labels.code.copyLabel}
+      copiedLabel={context.labels.code.copiedLabel}
     />
   )
 }
@@ -453,25 +535,113 @@ function renderTableRow(
   return <tr key={key}>{cells}</tr>
 }
 
-/** Anchor over an already-authored href: allowlisted or unwrapped, external links get the safe attributes. */
-function renderSafeLink(href: string, children: ReactNode[], key: Key): ReactNode {
+/**
+ * True when an anchor's markdown children are all images, so the anchor is a
+ * clickable picture (badge, thumbnail): the leading URL glyph would dangle
+ * beside the image instead of leading link text, so those anchors skip it.
+ */
+function anchorWrapsOnlyImages(children: Md.PhrasingContent[]): boolean {
+  return children.length > 0 && children.every(child => child.type === 'image' || child.type === 'imageReference')
+}
+
+/** Anchor over an already-authored href: allowlisted or unwrapped, with optional owner navigation for HTTP(S). */
+function renderSafeLink(
+  href: string,
+  children: ReactNode[],
+  key: Key,
+  glyph = true,
+  labels?: MarkdownLinkLabels,
+): ReactNode {
   const safeHref = sanitizeUrl(href)
   if (safeHref === '') return <Fragment key={key}>{children}</Fragment>
-  const external = ['http:', 'https:'].includes(new URL(safeHref).protocol)
+  return <MarkdownAnchor key={key} href={safeHref} glyph={glyph} labels={labels}>{children}</MarkdownAnchor>
+}
+
+function MarkdownAnchor({ href, glyph, labels, children }: {
+  readonly href: string
+  readonly glyph: boolean
+  readonly labels?: MarkdownLinkLabels | undefined
+  readonly children: ReactNode[]
+}): ReactNode {
+  const { openExternalLink } = useMarkdownDelegate()
+  const external = ['http:', 'https:'].includes(new URL(href).protocol)
+  const open = external ? openExternalLink : undefined
+  const [copiedHref, setCopiedHref] = useState<string>()
+  const copied = copiedHref === href
+  const copyLabel = copied ? labels?.copiedLabel : labels?.copyLabel
   return (
-    <a
-      key={key}
-      href={safeHref}
-      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-    >
-      {children}
-    </a>
+    <>
+      <a
+        href={href}
+        {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        onClick={open === undefined ? undefined : (event) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+          event.preventDefault()
+          open(href)
+        }}
+      >
+        {glyph && <LinkIcon kind="url" href={href} className={css.linkIcon} />}
+        {children}
+      </a>
+      {external && glyph && labels !== undefined && copyLabel !== undefined && (
+        <button
+          type="button"
+          className={css.linkCopy}
+          aria-label={copyLabel}
+          title={copyLabel}
+          data-copied={copied || undefined}
+          onClick={() => {
+            if (copied) return
+            void writeClipboard(href).then((ok) => {
+              if (!ok) return
+              setCopiedHref(href)
+              window.setTimeout(() => {
+                setCopiedHref(current => current === href ? undefined : current)
+              }, 1000)
+            })
+          }}
+        >
+          {copied ? <IconCheckOutline16 size={14} /> : <IconCopyOutline16 size={14} />}
+        </button>
+      )}
+    </>
   )
 }
 
-/** Anchor over a parsed markdown destination, which hast normalized before the allowlist saw it. */
-function renderAnchor(url: string, children: ReactNode[], key: Key): ReactNode {
-  return renderSafeLink(normalizeUri(url), children, key)
+/** Local destinations use the scoped file delegate after settlement. */
+function renderAnchor(
+  url: string,
+  children: ReactNode[],
+  key: Key,
+  glyph = true,
+  streaming = false,
+  labels?: MarkdownLinkLabels,
+): ReactNode {
+  const file = streaming ? undefined : parseFileLink(url)
+  if (file !== undefined) {
+    return <MarkdownFileLink key={key} file={file} glyph={glyph}>{children}</MarkdownFileLink>
+  }
+  return renderSafeLink(normalizeUri(url), children, key, glyph, labels)
+}
+
+function MarkdownFileLink({ file, glyph, children }: {
+  readonly file: { path: string; line?: number }
+  readonly glyph: boolean
+  readonly children: ReactNode[]
+}): ReactNode {
+  const { openFile } = useMarkdownDelegate()
+  if (openFile === undefined) return <>{children}</>
+  return (
+    <button
+      type="button"
+      className={clsx(css.fileMention, css.fileLink)}
+      title={file.path}
+      onClick={() => { openFile(file.path, file.line === undefined ? undefined : { line: file.line }) }}
+    >
+      {glyph && <LinkIcon kind={classifyLinkPath(file.path)} className={css.linkIcon} />}
+      {children}
+    </button>
+  )
 }
 
 /**
@@ -489,17 +659,24 @@ function inlineCodeHttpUrl(value: string): string | undefined {
   }
 }
 
-function renderImage(url: string, alt: string, key: Key): ReactNode {
-  const imageSrc = remoteImageUrl(sanitizeUrl(normalizeUri(url)))
+function renderImage(url: string, alt: string, key: Key, context: MarkdownRenderContext): ReactNode {
+  const imageSrc = imageSource(url, context.pathImages)
   if (imageSrc === undefined) {
     return <span key={key} className={css.imageAlt}>{alt}</span>
   }
+  return <MarkdownImage key={`${key}:${imageSrc}`} src={imageSrc} alt={alt} destination={url} />
+}
+
+/** Failed loads retain the authored alt or destination; a new source remounts the image. */
+function MarkdownImage({ src, alt, destination }: { src: string; alt: string; destination: string }): ReactNode {
+  const [failed, setFailed] = useState(false)
+  if (failed) return <span className={css.imageAlt}>{alt || destination}</span>
   return (
     <img
-      key={key}
       className={css.image}
-      src={imageSrc}
+      src={src}
       alt={alt}
+      onError={() => { setFailed(true) }}
       loading="lazy"
       decoding="async"
       referrerPolicy="no-referrer"
@@ -527,7 +704,15 @@ function renderLinkReference(
     // not an anchor, so mentions inside it stay live.
     return <Fragment key={key}>{'['}{renderChildren(node.children, context)}{referenceSuffix(node)}</Fragment>
   }
-  return renderAnchor(definition.url, renderChildren(node.children, { ...context, inLink: true }), key)
+  const rendered = renderChildren(node.children, { ...context, inLink: true })
+  return renderAnchor(
+    definition.url,
+    rendered,
+    key,
+    !anchorWrapsOnlyImages(node.children),
+    context.streaming,
+    context.labels.link,
+  )
 }
 
 function renderImageReference(
@@ -537,7 +722,7 @@ function renderImageReference(
 ): ReactNode {
   const definition = context.targets.definitions.get(node.identifier.toUpperCase())
   if (definition === undefined) return `![${node.alt ?? ''}${referenceSuffix(node)}`
-  return renderImage(definition.url, node.alt ?? '', key)
+  return renderImage(definition.url, node.alt ?? '', key, context)
 }
 
 function renderFootnoteReference(
@@ -597,7 +782,7 @@ export function renderFootnoteSection(context: MarkdownRenderContext): ReactNode
   if (items.length === 0) return null
   return (
     <section key="footnotes" data-footnotes className="footnotes">
-      <h2 id="footnote-label" className="sr-only">Footnotes</h2>
+      <h2 id="footnote-label" className="sr-only">{context.labels.footnotes}</h2>
       <ol>{items}</ol>
     </section>
   )

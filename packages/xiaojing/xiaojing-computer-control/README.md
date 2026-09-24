@@ -18,7 +18,7 @@ The configuration exposes the PowerShell executable, helper/request deadlines, a
 
 #### What the model sees
 
-The [`computer_control` schema](../../../docs/tool-catalog.md#deepseek-aidsh-xiaojing-computer-control) tells the model to use this tool only for a required visible native application. A closed application is resolved through `list_apps` and an opaque `appId`, then opened through `launch_app`. An open application starts at `list_windows`; the model selects a returned `windowId` and calls `observe`. The model may invoke only operations included in a target's `actions`, and every operation returns a fresh observation.
+The `computer_control` schema tells the model to use this tool only for a required visible native application. A closed application is resolved through `list_apps` and an opaque `appId`, then opened through `launch_app`. An open application starts at `list_windows`; the model selects a returned `windowId` and calls `observe`. The model may invoke only operations included in a target's `actions`, and every operation returns a fresh observation.
 
 #### Token effect
 

@@ -2,7 +2,9 @@
 
 English | [中文](README.zh.md)
 
-D01–D06 native ledgers and statements are unavailable because Youcheng has not supplied supported AppKey server APIs for them. The rejected [browser proposal](../../../.agents/notes/rejected/feature/2026-09-14-native-finance-reports.md) is not part of this package. Future work requires the [supplier API proposal](../../../.agents/notes/proposed/feature/2026-09-15-native-finance-report-apis.md), without browser or phone-based SSO dependencies.
+D01–D06 native ledgers and statements are unavailable because Youcheng has not supplied supported AppKey server APIs for them. The rejected [browser proposal](../../../.agents/notes/rejected/architecture/2026-09-14-native-finance-reports.md) is not part of this package. Future work requires the [supplier API proposal](../../../.agents/notes/proposed/feature/2026-09-15-native-finance-report-apis.md), without browser or phone-based SSO dependencies.
+
+Successful Finance tools persist a compact business card in `tool/result.meta` through `withFinanceCard`. It reuses each tool's existing Host presenter, keeps the full result available to the model, and gives the Web Client a replayable summary without displaying raw arguments or internal JSON. Failed calls do not claim a success card.
 
 Write-off not-sent outcomes retain the bounded last `preflightStage` through durable recovery and tool results. It identifies a local check, not a vendor root cause or retry permission; `final-confirmation` denotes the final Host callback after consent. Older outcomes without a stage remain readable and unmodified. No raw exception or credential is returned. See the [diagnostic decision](../../../.agents/notes/implemented/bug-fix/2026-09-14-write-off-preflight-diagnostics.md).
 
@@ -116,6 +118,8 @@ Private revision-bound receipts live under `$DSH_HOME/finance/reimbursement-oper
 
 Finance owns a user-visible workspace root separate from ordinary Harness workspaces. The desktop product sets it to `Documents/小兢会计工作区/Finance工作区`; the deployment may provide another absolute `workspaceRoot`. The root contains one fixed Workspace displayed as `Consultation` and one `clients/<client-id>` Workspace per catalog record. Stable ids, rather than editable display names, keep customer paths unchanged when a record is renamed.
 
+Finance add actions expose the canonical `workspaceRoot` to the local Client only as the directory picker's initial location. Deployments may declare `ordinaryWorkspaceRoots`; Finance startup rejects a configured ordinary root that overlaps the Finance root, and Finance creation rejects a selected directory that overlaps either a configured ordinary root or an ordinary Workspace already registered with Workspace Registry.
+
 Creating a client provisions `00-客户档案`, `01-财务政策`, `02-原始资料`, `03-会话作业`, `04-成果输出`, and `05-归档` before committing the catalog record, then registers that client root with the Harness Workspace registry. A failed mutation removes the new registration and directory. Startup removes an incomplete registration left by an interrupted create but preserves its directory and files for recovery. Archiving keeps the Workspace and its history while disabling new sessions.
 
 Workspace display titles and Finance-list membership are stored separately at `$DSH_HOME/finance/workspace-presentation-v1.json` with schema version `1`, a revision, process-safe locking, and atomic replacement. Renaming changes the Harness registration title and this presentation record without changing the directory. Removing a consultation or client Workspace hides it from Finance lists but keeps its registration, directory, customer record, and sessions; selecting the same directory through the add action restores it. At least one consultation Workspace must remain listed.
@@ -142,7 +146,7 @@ Every Finance prompt assembly contributes `xiaojing:finance-capabilities`, gener
 
 ## Remote and privacy
 
-The `financeClients` Remote provides client-record operations, Workspace list/add/rename/remove/restore operations, `stage`, and `sessionContext`. Full-detail reads, all mutations, and staged selection are restricted to loopback connections. List rows, Workspace identities, session context, and credential status use sanitized response types. A credential mutation may accept a write-only AppSecret, but no read returns it. The Client never receives Workspace filesystem paths, passwords, tokens, or another session's full immutable snapshot.
+The `financeClients` Remote provides client-record operations, Workspace list/add/rename/remove/restore operations, `stage`, and `sessionContext`. Full-detail reads, all mutations, and staged selection are restricted to loopback connections. List rows, Workspace identities, session context, and credential status use sanitized response types. A credential mutation may accept a write-only AppSecret, but no read returns it. The local Client receives the configured Finance root only to seed add-directory pickers; it does not receive individual customer Workspace paths, passwords, tokens, or another session's full immutable snapshot.
 
 ## Balance queries
 

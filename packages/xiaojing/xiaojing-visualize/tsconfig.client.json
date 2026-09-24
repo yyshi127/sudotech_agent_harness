@@ -8,7 +8,8 @@
   "files": [
     "src/client/StreamingPreview.tsx",
     "src/client/VisualizeCard.tsx",
-    "src/client/index.tsx",
+    "src/client/VisualizeTurnTail.tsx",
+    "src/client/index.ts",
     "src/client/theme.ts",
     "src/fragment.ts",
     "src/frame-css.ts",
@@ -16,8 +17,9 @@
   ],
   "references": [
     { "path": "../../../vendor/cordis" },
-    { "path": "../../client/runtime" },
+    { "path": "../../client/ui-chat" },
     { "path": "../../client/ui-conversation" },
+    { "path": "../../client/ui-renderer" },
     { "path": "../../client/ui-slots" },
     { "path": "../../client/ui-tool" }
   ]

@@ -30,6 +30,8 @@ The ledger information editor exposes financial connection settings only. It doe
 
 ## Conversation context
 
+Finance tool names registered by this product use a dedicated Chat card. Successful calls show the persisted business summary from `tool/result.meta`; running and older calls without that metadata display a localized status instead of raw arguments or model-facing JSON. Failed calls display a localized status and a short, screened plain-text reason when one is available; structured or technical errors remain hidden. The model still receives the complete tool result. This card applies only to the Xiaojing Finance tools and does not change the generic Harness renderer.
+
 Committed `finance/file-published` events display an explicit file-opening button in Chat, including after history reload. The action uses the recorded destination with the existing Host opener; it does not depend on the model writing a link and does not open automatically. Non-loopback browsers cannot activate it. This is local-file opening, not download hosting or proof that the file still exists. Imports, archives and failed exports do not create a publication button.
 
 The package fills the generic `conversation.hero.context` slot only for blank Finance sessions. A compact `Consultation / Ledger` selector beside the Finance preset defaults to `Consultation`. `Ledger` adds one ledger selector. The selection may change until the first turn; after binding, the session header shows the read-only client name. A consultation cannot be silently converted after work starts. An accounting month, quarter, or year is not session state; the relevant Finance Skill reads or requests it for each task.
@@ -47,6 +49,10 @@ Known non-Finance sessions return no claim from the local session summary before
 The plugin registers a Finance Workspace provider through the generic `WorkspaceCategoryRegistry` and labels the two top-level categories `Office Companion` and `Finance Assistant`. The Finance category places customer Workspaces under `Ledgers` with the green ledger icon and consultation Workspaces under `Consultation` with the green discussion icon; archived customers keep history without a new-session action. Customer row menus order `Ledger information`, `Rename`, then `Remove workspace`; consultation rows keep only the generic rename and remove actions. Remove hides the Workspace from Finance while retaining its directory, registration, customer record, and session history; adding the same directory restores it, and the final listed consultation cannot be removed.
 
 Selecting the Finance preset in a blank ordinary session opens a blank session in the Finance consultation Workspace. Selecting Standard, Plan, Goal, or another non-Finance preset while a blank Finance session is active returns to the remembered ordinary Workspace. The composer Workspace picker follows the preset: Finance shows only Finance Workspaces and all other presets show only regular Workspaces. Selecting a customer opens that customer's Workspace before staging its context. The generic sidebar owns rendering and search; this product plugin owns membership and navigation, so removing the plugin restores the ordinary Workspace UI without Finance conditions.
+
+Workspace activation selects the Finance preset through `remote.agentPresets`; the Client surface injects that Remote before exposing Finance navigation.
+
+Finance activation and return-to-ordinary navigation open their result only if no later navigation or plugin disposal has superseded them. An obsolete request may finish creating and preparing its blank Session but cannot replace the user's newer selection.
 
 ## Model Experience
 

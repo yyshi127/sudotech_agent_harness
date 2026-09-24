@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 DOM-first Microsoft Edge automation for Xiaojing. One removable Cordis plugin owns the `browser_control` tool, a global page registry, per-turn page leases, a dedicated Playwright Edge adapter, and an optional personal Edge extension adapter. It does not modify `agent-loop`, official UI packages, or a person's Edge profile.
 
+The personal Edge settings RPC registers a Web route through Connection, so the Host plugin requires both `connection` and `webServer` at startup.
+
 ## Edge routes
 
 The dedicated route is the default and works without setup. It starts installed Microsoft Edge visibly with a persistent profile at the configured `profileDir`. Users may sign in, minimize the window, and let Playwright continue ordinary DOM operations without moving the physical mouse or typing through the physical keyboard. Only `disposition: "new_window"` creates another top-level window.
@@ -56,7 +58,7 @@ The Host validates the fixed extension ID and protocol version, then both sides 
 
 #### What the model sees
 
-The [`browser_control` schema](../../../docs/tool-catalog.md#deepseek-aidsh-xiaojing-browser-control) tells the model to reuse matching pages before creating one, batch forms and menus with `act`, and keep webpage work on DOM semantics. Results identify `managed` or `personal` surface, opaque session-local page and window IDs, and bounded semantic observations. The model cannot install the extension or bypass its pairing state.
+The `browser_control` schema tells the model to reuse matching pages before creating one, batch forms and menus with `act`, and keep webpage work on DOM semantics. Results identify `managed` or `personal` surface, opaque session-local page and window IDs, and bounded semantic observations. The model cannot install the extension or bypass its pairing state.
 
 #### Token effect
 
@@ -68,7 +70,7 @@ The schema remains stable for the plugin lifetime. Page observations appear afte
 
 ## Known Limitations and Deferred Work
 
-- Finance reports are not a browser-control capability. D01–D06 require supported supplier APIs; the rejected browser route is recorded in the [browser-report decision](../../../.agents/notes/rejected/feature/2026-09-14-native-finance-reports.md).
+- Finance reports are not a browser-control capability. D01–D06 require supported supplier APIs; the rejected browser route is recorded in the [browser-report decision](../../../.agents/notes/rejected/architecture/2026-09-14-native-finance-reports.md).
 
 - Microsoft Edge must be installed and allowed by device policy; the application does not bundle a browser runtime.
 - Personal Edge takeover requires one manual unpacked-extension installation and pairing. Silent installation on an unmanaged Windows device is not supported.

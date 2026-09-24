@@ -24,6 +24,7 @@
     { "path": "../../util/brand" },
     { "path": "../../credentials/credentials" },
     { "path": "../../util/home-paths" },
+    { "path": "../../util/values" },
     { "path": "../../workspace/workspace" }
   ]
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { ConversationNodeContext, ConversationMatch } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConversationNodeContext, ConversationMatch, ConversationStartMatch } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { PublishedFile, type PublishedFileProps } from '../src/client/PublishedFile.tsx'
 import { publishedFileDefinition as definition } from '../src/client/published-file.ts'
 import { zh } from '../src/client/locales.ts'
@@ -9,7 +9,7 @@ import { zh } from '../src/client/locales.ts'
 afterEach(cleanup)
 const path = 'E:/客户/成果/应收.xlsx'
 const event = { seq: 12, time: 100, type: 'finance/file-published', data: { file: { id: 'file-1', path, name: '应收.xlsx' } } } as ConversationMatch['event']
-const start = { event, view: undefined, role: 'start', location: { kind: 'unresolved' } } as ConversationMatch
+const start = { event, view: undefined, role: 'start', location: { kind: 'unresolved' } } as ConversationStartMatch
 
 it('projects only durable publications with their exact identity and path', () => {
   expect(definition.match(event)).toEqual({ id: 'file-1', role: 'start' })

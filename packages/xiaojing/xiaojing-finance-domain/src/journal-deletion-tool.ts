@@ -5,6 +5,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-journal-deletion-tool'
@@ -23,7 +24,7 @@ export const Config: s<Config> = s.object({ maxBytes: s.number().min(1).step(1).
  * @param config - Validated bounds passed unchanged to the Host.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_prepare_journal_deletion',
     description: '准备、修改或只读检查指定资金日记账的删除，不发送删除。理解用户日常说法后先用 finance_journals 和 finance_references 定位；歧义先澄清，名称、摘要、行号不能代替唯一 journalId。prepare/revise 必须给出查到的准确 journalId、cashAccountId 和 month，完整展示目标、金额、日期、账户及影响。仅支持已核实的未审核、无已识别关联和无附件记录，其他状态不能绕过。inspect 使用原删除记录 id，仅在原月份和账户回查；not-observed 不表示全账套不存在，结果未知不能重新准备同一目标。',
     parameters: {
@@ -45,8 +46,8 @@ export function apply(ctx: Context, config: Config): void {
       kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账删除检查未完成' : '日记账删除预览与检查',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
-  ctx.tools.register(defineTool({
+  })))
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_delete_journal',
     description: '仅在用户明确要求删除时，执行 finance_prepare_journal_deletion 已展示的准确 id/version。Host 强制请求本次确认，聊天中的同意不绕过确认。状态、版本或配置变化需重新预览；拒绝、取消不发送。不联动删除凭证或应收应付，不审核、结账、核销或实际收付款，不提供自动撤销。接口接收后仍须依据独立回查判断是否完成；原月份及账户未再发现目标，不等于全账套不存在。超时、响应丢失或回查失败保留原 id 只读 inspect，不重发，不重新准备同目标。',
     parameters: { id: { type: 'string', required: true, description: '已展示的本地删除预览 ID。' },
@@ -61,5 +62,5 @@ export function apply(ctx: Context, config: Config): void {
     presentCall: () => ({ card: 'generic', title: '确认并删除指定日记账', kind: 'delete' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账删除未完成' : '日记账删除结果',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
+  })))
 }

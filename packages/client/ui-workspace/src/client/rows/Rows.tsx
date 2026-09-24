@@ -1,23 +1,24 @@
 /**
  * Workspace browser tree row components (figma Cell set 14:3080): pure presentational —
  * all data and callbacks arrive via props. Hover swaps (folder->chevron,
- * time->ellipsis, action buttons) are CSS-only. Row ... menus are visual-only
- * except workspace Rename/Delete and session Rename/Fork/Archive; the session
- * and workspace hover cards are suppressed while a menu is open.
+ * time->ellipsis, action buttons) are CSS-only, and a session row's clipped
+ * title is scrolled programmatically while the row is hovered. Row ... menus are
+ * visual-only except workspace Rename/Delete and session Rename/Fork/Archive; the
+ * session and workspace hover cards are suppressed while a menu is open.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  HoverCard, IconArchiveOutline20, IconBranchOutline16, IconEditOutline16,
-  IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16, IconPlusOutline16,
-  IconLinkOutline16, IconTrashOutline16, IconTriangleRightFill14, Menu, StateDot,
+  HoverCard, IconAlarmClockOutline16, IconArchiveOutline20, IconBranchOutline16,
+  IconEditOutline16, IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16,
+  IconLinkOutline16, IconPlusOutline16, IconTrashOutline16, IconTriangleRightFill14, Menu, relativeTime,
+  StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
-import { abbreviateHomePath } from '@deepseek-ai/dsh-client-runtime/client'
+import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { WorkspaceCategoryBadge } from '../category-registry.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
-import { relativeTime } from '../tree.ts'
 import css from './Rows.module.css'
 
 /** The standard locale seat, prop-passed from the browser root. */
@@ -26,6 +27,30 @@ type RowTranslate = WorkspaceBrowserProps['t']
 /** Row display title: blank rows show the localized New Session label. */
 function displayTitle(node: SessionNode, t: RowTranslate): string {
   return node.blank ? t('session.new') : node.title
+}
+
+/**
+ * Reveal a title wider than its one-line cell while its row is hovered: the
+ * title clips its own text, so the far edge (a fork's incremented title, for
+ * example) is reachable by scrolling the element to its end. Leaving returns it
+ * to the start in one step, because the resting ellipsis and the narrowed cell
+ * would otherwise meet the text while it travelled back. A title that fits has
+ * no scroll range to move, and the stylesheet decides whether either move
+ * glides or jumps.
+ * @param title - the row's clipping title element.
+ * @param revealed - whether the pointer is on the row.
+ */
+function revealClippedTitle(title: HTMLSpanElement | null, revealed: boolean): void {
+  /* v8 ignore next -- defensive: the title span renders unconditionally. */
+  if (title === null) return
+  if (revealed) {
+    title.scrollLeft = title.scrollWidth - title.clientWidth
+    return
+  }
+  // jsdom implements no scrollTo; the lane's direct assignment is instant there
+  // anyway, so both paths land on the same resting position.
+  if (typeof title.scrollTo === 'function') title.scrollTo({ left: 0, behavior: 'instant' })
+  else title.scrollLeft = 0
 }
 
 /** Localized compact relative time ("刚刚"/"5分钟" in zh, "now"/"5min" in en). */
@@ -103,6 +128,7 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * Workspace shows its hover card (the ungrouped bucket has none).
  * `containsCurrent` arrives on the node (derivation fact, no renderer scan).
  * @param props.group - derived group node.
+ * @param props.containsCurrentDescendant - highlight an ancestor even when its subtree is collapsed.
  * @param props.onToggle - expand/collapse the group.
  * @param props.onCreate - start a frontend Session inside this Workspace.
  * @param props.drag - optional workspace-row drag wiring.
@@ -110,8 +136,11 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBadgeAction, drag, home, t }: {
+export function ProjectRowItem({
+  group, containsCurrentDescendant = false, onToggle, onCreate, actions, badge, onBadgeAction, drag, home, t,
+}: {
   group: GroupNode
+  containsCurrentDescendant?: boolean
   onToggle: () => void
   onCreate?: (() => void) | undefined
   /** Optional supplemental status supplied by the workspace category owner. */
@@ -119,7 +148,13 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBa
   /** Run the badge action without expanding the row or creating a session. */
   onBadgeAction?: (() => void) | undefined
   /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
-  actions?: { rename: () => void; delete: () => void; deleteLabel?: string; details?: () => void; detailsLabel?: string } | undefined
+  actions?: {
+    rename: () => void
+    delete: () => void
+    deleteLabel?: string
+    details?: () => void
+    detailsLabel?: string
+  } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
   /** Host account home; POSIX home-rooted hover paths display as `~`. */
@@ -129,10 +164,12 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBa
   const row = group
   // The ungrouped bucket has no workspace title: its label is dictionary copy.
   const label = row.workspaceId === undefined ? t('group.ungrouped') : row.label
-  const active = group.expanded && group.containsCurrent
+  const active = containsCurrentDescendant || (group.expanded && group.containsCurrent)
   const [menuOpen, setMenuOpen] = useState(false)
   const workspaceMenuItems = [
-    ...(actions?.details === undefined ? [] : [{ id: 'details', label: actions.detailsLabel ?? 'Details', icon: <IconEditOutline16 /> }]),
+    ...(actions?.details === undefined
+      ? []
+      : [{ id: 'details', label: actions.detailsLabel ?? 'Details', icon: <IconEditOutline16 /> }]),
     { id: 'rename', label: t('rename'), icon: <IconEditOutline16 /> },
     {
       id: 'delete',
@@ -172,11 +209,16 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBa
           title={badge.actionLabel}
           disabled={badge.state === 'pending'}
           aria-busy={badge.state === 'pending'}
-          onClick={(e) => { e.stopPropagation(); onBadgeAction() }}
+          onClick={(event) => { event.stopPropagation(); onBadgeAction() }}
         >
           <IconLinkOutline16 />
         </button>}
-        {badge === undefined ? null : <span className={css.workspaceBadge} role="status" aria-label={badge.label} title={badge.label}>
+        {badge === undefined ? null : <span
+          className={css.workspaceBadge}
+          role="status"
+          aria-label={badge.label}
+          title={badge.label}
+        >
           {badge.text === undefined ? null : <span className={css.badgeText}>
             {badge.actionLabel === undefined || onBadgeAction === undefined ? ' - ' : ''}{badge.text}
           </span>}
@@ -196,7 +238,6 @@ export function ProjectRowItem({ group, onToggle, onCreate, actions, badge, onBa
               setMenuOpen(false)
               // Unknown ids leave before the dispatch: a future menu row must
               // not inherit the destructive branch as an else fallback.
-              /* v8 ignore next -- workspaceMenuItems carries exactly these two rows today. */
               if (id === 'details' && actions.details !== undefined) actions.details()
               else if (id === 'rename') actions.rename()
               else if (id === 'delete') actions.delete()
@@ -313,6 +354,21 @@ function SessionStatusDots({ statuses }: { statuses: readonly [SessionStatus, ..
   )
 }
 
+/** Non-interactive active-Schedule marker; the enclosing row remains the only action. */
+function ActiveScheduleIndicator({ t, search = false }: { t: RowTranslate; search?: boolean }) {
+  const label = t('schedule.active')
+  return (
+    <span
+      className={clsx(css.scheduleIndicator, search && css.searchScheduleIndicator)}
+      role="img"
+      aria-label={label}
+      title={label}
+    >
+      <IconAlarmClockOutline16 />
+    </span>
+  )
+}
+
 /** Hover-card body: full title, relative time, and every relevant live status. */
 function SessionHoverContent({ node, now, t }: { node: SessionNode; now: number; t: RowTranslate }) {
   const statuses = sessionStatuses(node, t)
@@ -366,9 +422,10 @@ export function SearchResultItem({ result, currentId, onOpen, t }: {
           )}
         </span>
         <span className={css.searchResultTitle}>{result.title}</span>
+        {result.hasActiveSchedule && <ActiveScheduleIndicator t={t} search />}
       </span>
       <span className={css.searchResultMeta}>
-        <span className={css.searchResultWorkspace}>{result.workspace}</span>
+        <span className={css.searchResultWorkspace}>{result.workspace || t('group.ungrouped')}</span>
         {result.snippet !== undefined && (
           <span className={css.searchResultSnippet}>{result.snippet}</span>
         )}
@@ -387,12 +444,15 @@ export function SearchResultItem({ result, currentId, onOpen, t }: {
  * @param props.onRename - open the session rename dialog (id + current title).
  * @param props.onFork - fork a session at its last completed turn.
  * @param props.onArchive - archive a session by id.
- * @param props.drag - optional draggable-row wiring.
+ * @param props.onReveal - scroll this row into view after search navigation, then acknowledge it.
+ * @param props.drag - optional row-drag target wiring; blank rows cannot start a drag.
  * @param props.flat - omit the empty status slot in the hierarchy-free flat list.
  * @param props.t - the browser root's locale seat.
  * @returns the session row.
  */
-export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork, onArchive, drag, flat = false, t }: {
+export function SessionNodeItem({
+  node, currentId, now, onOpen, onRename, onFork, onArchive, onReveal, drag, flat = false, t,
+}: {
   node: SessionNode
   currentId: string | undefined
   now: number
@@ -403,7 +463,9 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
   onFork: (id: SessionNode['id']) => void
   /** Archive this session (row menu action; commits without a dialog). */
   onArchive: (id: SessionNode['id']) => void
-  /** Present only on draggable rows (workspace-group sessions outside search). */
+  /** Scroll this row into view after search navigation, then acknowledge it. */
+  onReveal?: (() => void) | undefined
+  /** Present on reorderable-list rows so every row can remain a drop target. */
   drag?: RowDragProps | undefined
   /** The row is rendered without a parent Workspace header. */
   flat?: boolean | undefined
@@ -415,7 +477,15 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
   const statuses = sessionStatuses(node, t)
   const primaryStatus = statuses[0]
   const showStatus = primaryStatus.state !== 'done' || row.completed
+  const draggable = drag !== undefined && !row.blank
   const [menuOpen, setMenuOpen] = useState(false)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (onReveal === undefined) return
+    rowRef.current?.scrollIntoView({ block: 'nearest' })
+    onReveal()
+  }, [onReveal])
   // Archive hides the row through the registry-global archive set and never
   // touches the session log, so it is not styled as destructive and needs no
   // confirmation dialog.
@@ -428,6 +498,7 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
   // Figma session cell: pad 8, status slot 16, then a 4px title gap.
   const ownRow = (
     <div
+      ref={rowRef}
       className={clsx(
         css.sessionRow, selected && css.selected, menuOpen && css.menuOpen,
         flat && !showStatus && css.flatSessionRowWithoutStatus,
@@ -436,15 +507,17 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
       role="treeitem"
       aria-selected={selected}
       onClick={() => { onOpen(node.id) }}
-      draggable={drag !== undefined}
-      onDragStart={drag === undefined
+      onPointerEnter={() => { revealClippedTitle(titleRef.current, true) }}
+      onPointerLeave={() => { revealClippedTitle(titleRef.current, false) }}
+      draggable={draggable}
+      onDragStart={drag === undefined || row.blank
         ? undefined
         : (e) => {
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', node.id)
           drag.start()
         }}
-      onDragEnd={drag?.end}
+      onDragEnd={drag === undefined || row.blank ? undefined : drag.end}
       onDragOver={drag === undefined
         ? undefined
         : (e) => {
@@ -469,7 +542,8 @@ export function SessionNodeItem({ node, currentId, now, onOpen, onRename, onFork
           {showStatus && <SessionStatusDots statuses={statuses} />}
         </span>
       )}
-      <span className={css.title}>{title}</span>
+      <span ref={titleRef} className={css.title}>{title}</span>
+      {row.hasActiveSchedule && <ActiveScheduleIndicator t={t} />}
       {/* A blank New Session row is a provisional placeholder: nothing has
           happened in it yet, so a "now" timestamp and the row verbs
           (rename/fork/archive) would all act on content that does not

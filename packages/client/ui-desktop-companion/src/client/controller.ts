@@ -1,6 +1,6 @@
 /** Browser-local controller for the restricted Xiaojing desktop bridge. */
 
-import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { CompanionSnapshot, CompanionState } from '@deepseek-ai/dsh-xiaojing-desktop-companion/types'
 import type { DesktopCompanionBridge, DesktopCompanionDesktopState } from './bridge.ts'
 

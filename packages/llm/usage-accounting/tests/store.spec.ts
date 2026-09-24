@@ -8,6 +8,7 @@ import { ledgerInput, UsageLedgerStore } from '../src/store.ts'
 const KEY_A = 'a'.repeat(64)
 const KEY_B = 'b'.repeat(64)
 const AUGUST_20 = Date.UTC(2026, 7, 20, 4)
+const SEPTEMBER_15 = Date.UTC(2026, 8, 15, 1)
 let home: string
 
 beforeEach(async () => {
@@ -345,5 +346,49 @@ describe('UsageLedgerStore', () => {
     await store.init(AUGUST_20)
     await store.append(unpriced)
     expect((await store.snapshot(KEY_A, 1, AUGUST_20)).total.unpricedTokens).toBe(10)
+  })
+
+  it('recovers only the affected default-Messages rows without rewriting the ledger', async () => {
+    const usage = {
+      cacheHitInputTokens: 10,
+      cacheMissInputTokens: 20,
+      outputTokens: 30,
+      cacheWriteTokens: 4,
+    }
+    const affected = (keyFingerprint: string, model: string, occurredAt: number) => ledgerInput({
+      keyFingerprint,
+      model,
+      occurredAt,
+      purpose: 'conversation',
+      usage,
+    }, priceUsage(EMBEDDED_PRICE_TABLE, model, usage, occurredAt, false))
+    const store = new UsageLedgerStore(home)
+    await store.init(SEPTEMBER_15)
+    await store.append(affected(KEY_A, 'deepseek-flash', SEPTEMBER_15))
+    await store.append(affected(KEY_B, 'deepseek-flash', SEPTEMBER_15))
+    await store.append(affected(KEY_A, 'custom-model', SEPTEMBER_15))
+    await store.append(affected(KEY_A, 'deepseek-flash', AUGUST_20))
+
+    const before = await readFile(store.ledgerPath, 'utf8')
+    const wrongVersion = { ...EMBEDDED_PRICE_TABLE, version: 'future-price-version' }
+
+    expect((await store.snapshot(KEY_A, 1, SEPTEMBER_15, [wrongVersion], true)).total).toMatchObject({
+      costNanoyuan: '0',
+      unpricedTokens: 128,
+    })
+
+    expect((await store.snapshot(KEY_A, 1, SEPTEMBER_15, [EMBEDDED_PRICE_TABLE], true)).total).toMatchObject({
+      totalTokens: 128,
+      cacheHitInputCostNanoyuan: null,
+      cacheMissInputCostNanoyuan: null,
+      outputCostNanoyuan: null,
+      costNanoyuan: '280400',
+      unpricedTokens: 68,
+    })
+    expect((await store.snapshot(KEY_B, 1, SEPTEMBER_15)).total).toMatchObject({
+      costNanoyuan: '0',
+      unpricedTokens: 64,
+    })
+    expect(await readFile(store.ledgerPath, 'utf8')).toBe(before)
   })
 })

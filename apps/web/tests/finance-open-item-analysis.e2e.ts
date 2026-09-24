@@ -5,11 +5,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 const marker = { id: -123, date: '', abstractStr: '合计', subjectCode: '', subjectName: '', auxiliaryItemIds: '', auxiliaryItemName: '',
   currencyCode: '', baseCurrencyCode: '', money: 0, balance: 0, baseMoney: 0, baseBalance: 0, categoryName: '', remark: '' }
@@ -24,7 +24,7 @@ class AnalysisAdapter extends LlmAdapter {
       expect(JSON.stringify(options)).toContain('后端自行完整取数')
       expect(JSON.stringify(options)).toContain('本次查询记录的未结余额')
       expect(JSON.stringify(options)).toContain('有成接口提供业务明细，小兢会计在本地计算分组与差额')
-      const id = CallId('analysis-query')
+      const id = ToolCallId('analysis-query')
       const args = JSON.stringify({ direction: this.scenario === 'payable' ? 'payable' : 'receivable', groupBy: this.scenario === 'missing-dimension' ? 'subject' : 'currency', periodStart: '2026-09', periodEnd: '2026-09', baselineStart: '2026-08', baselineEnd: '2026-08', ...this.scenario === 'export' || this.scenario === 'missing-dimension' ? { exportExcel: true } : {} })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'finance_open_item_analysis', argumentsDelta: args }
@@ -100,7 +100,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: scenario === 'missing-dimension' ? '按科目比较2026年9月和8月应收记录，并导出 Excel。' : scenario === 'export' ? '按币种比较2026年9月和8月应收记录，并导出 Excel。' : scenario === 'payable' ? '按币种比较2026年9月和8月我们欠别人的记录金额，只查询。' : '按币种比较2026年9月和8月别人欠我们的记录金额，只查询。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(2)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name)).toEqual(['finance_open_item_analysis'])
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token/)
@@ -137,11 +137,9 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-analysis/${scenario}-result.expected.md`, import.meta.url)), snapshotResult, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       const selector = '[data-chat-call-id="analysis-query"]'
-      const card = page.locator(selector)
-      await card.waitFor()
-      if (scenario !== 'export') await card.getByRole('button').first().click()
+      await revealToolCallCard(page, selector)
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-analysis/${scenario}-card.expected.md`, import.meta.url)), await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('open-item-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })
       try { expect(ctx.tools.schemas(standard.agent).some(tool => tool.name === 'finance_open_item_analysis')).toBe(false) }

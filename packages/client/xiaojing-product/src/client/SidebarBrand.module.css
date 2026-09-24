@@ -1,7 +1,7 @@
 .avatar {
   display: block;
-  border-radius: 50%;
-  object-fit: cover;
+  flex: none;
+  overflow: hidden;
 }
 
 .name {

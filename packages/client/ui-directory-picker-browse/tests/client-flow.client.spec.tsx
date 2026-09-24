@@ -2,8 +2,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
-import type { DirectoryListing } from '@deepseek-ai/dsh-client-runtime/client'
+import type { DirectoryListing } from '@deepseek-ai/dsh-api-remotes/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import type { DirectoryFlowOwnerProps } from '@deepseek-ai/dsh-client-ui-workspace/client'
@@ -34,7 +34,7 @@ async function bench() {
   ctx.provide('locale', new LocaleRuntime(ctx))
   const listDirectory = vi.fn(async (): Promise<DirectoryListing> => homeListing)
   const createDirectory = vi.fn(async (path: string, name: string) => `${path}/${name}`)
-  ctx.provide('workspaces', { listDirectory, createDirectory } as never)
+  ctx.provide('uiWorkspace', { listDirectory, createDirectory } as never)
   const slots = ctx.get('slots') as SlotRegistry
   const declare = () => slots.register({
     name: 'root',
@@ -53,7 +53,7 @@ function owner(overrides: Partial<DirectoryFlowOwnerProps> = {}): DirectoryFlowO
 
 describe('directory-picker-browse client half', () => {
   it('declares the services it drives', () => {
-    expect(inject).toEqual(['slots', 'workspaces', 'locale'])
+    expect(inject).toEqual(['slots', 'uiWorkspace', 'locale'])
   })
 
   it('fills both directory-flow holes for declarations before or after apply, and leaves with its fiber', async () => {
@@ -189,7 +189,7 @@ describe('directory-picker-browse client half', () => {
   })
 
   it('adapts the owner conversation onto the dialog: confirm picks, dismissal cancels', async () => {
-    const props = owner()
+    const props = owner({ initialPath: '/finance' })
     const listDirectory = vi.fn(async (): Promise<DirectoryListing> => homeListing)
     const t = (key: string): string => key
     render(
@@ -203,6 +203,7 @@ describe('directory-picker-browse client half', () => {
     // The dialog opened at home; its confirm (browser.open) adopts the listed level.
     const openButton = screen.getByRole<HTMLButtonElement>('button', { name: 'browser.open' })
     await waitFor(() => { expect(openButton.disabled).toBe(false) })
+    expect(listDirectory).toHaveBeenCalledWith('/finance', expect.any(AbortSignal))
     fireEvent.click(openButton)
     expect(props.onPicked).toHaveBeenCalledWith(HOME)
     fireEvent.click(screen.getByRole('button', { name: 'browser.cancel' }))
@@ -224,8 +225,6 @@ describe('directory-picker-browse client half', () => {
 })
 
 describe('directory-picker-browse node half', () => {
-  // The invariant companion is mounted by the vitest-wide invariant host on
-  // every Context this suite creates; its registration is covered there.
   it('the node apply is an inert loader seat', () => {
     expect(() => { nodeApply() }).not.toThrow()
   })

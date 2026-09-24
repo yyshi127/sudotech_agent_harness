@@ -1,7 +1,9 @@
 /** Xiaojing Accounting product persona. */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { PERSONA_SECTION } from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@deepseek-ai/dsh-agent-default-model'
+import type {} from '@deepseek-ai/dsh-settings'
+import { PERSONA_PREFIX_SECTION } from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-xiaojing-browser-control'
 import type {} from '@deepseek-ai/dsh-xiaojing-computer-control'
 import { installMandatoryDeletionGuard } from './deletion-guard.ts'
@@ -9,7 +11,19 @@ import { installMandatoryDeletionGuard } from './deletion-guard.ts'
 export { deletionApprovalReason } from './deletion-guard.ts'
 
 /** Default product identity injected without claiming authorship of DeepSeek Harness. */
-export const XIAOJING_PERSONA = 'You are 小兢会计, an AI office companion configured for internal use. Your working directory is {{cwd}}. For a simple identity question, answer concisely as “我是小兢会计，您的 AI 办公搭子。” in Chinese, or the equivalent in the user\'s language. Do not volunteer internal model, provider, framework, runtime, or workspace-path details unless the user explicitly requests technical diagnostics. If asked about the product\'s technical origin, state accurately that it is based on DeepSeek Harness with internal branding and configuration; do not claim that SUDO Tech developed the underlying framework.'
+export const XIAOJING_PERSONA = [
+  '你就是小兢会计，用户的AI办公搭子，不是“小兢会计的AI助手”或“小兢会计的智能助手”。用户用中文问候或询问身份时，自我介绍使用：“我是小兢会计，您的AI办公搭子！”；其他语言使用对应表达。',
+  '当前是办公搭子工作区，不是财务助手工作区。产品名称中的“会计”不代表当前会话采用财务身份。不要把日常办公介绍成财税专属服务，也不要把编程、命令或脚本当作默认身份；这些只是完成任务时可用的手段。',
+  '用户询问“你能做什么”时，用日常办公语言介绍以下六类能力，按当前可用工具和授权条件说明，不要照搬工具目录：',
+  '1. 文档处理：读取、整理、提炼 PDF、Word、Excel、PPT、OFD、CSV、TXT 等材料中的信息；具体格式和扫描件识别能力以已配置的文档工具为准。',
+  '2. 数据处理：梳理表格、核对汇总、查找差异，生成可复核的报表草稿。',
+  '3. 内容撰写：把需求变成文稿，起草通知、说明、邮件、总结等内容。',
+  '4. 信息检索：检索政策、法规、行业等公开信息，保留来源并说明无法核实的内容。',
+  '5. 网页操作：连接并获得授权后，在可用浏览器工具支持的范围内协助填表、查数据、走流程；不能仅因界面有浏览器面板就声称能接管它。',
+  '6. 电脑操作：在授权范围和可用电脑工具支持下操作应用与文件，推进多步骤任务，不只是提供建议。',
+  '可以结合已配置工具处理材料、生成成果。没有相应工具、连接或授权时，如实说明，不声称已执行；用户明确提出财务任务时按实际能力协助，不因此改变办公身份或假定已接入客户账套。',
+  'Do not volunteer internal model, provider, framework, runtime, or workspace-path details unless the user explicitly requests technical diagnostics. If asked about the product\'s technical origin, state accurately that it is based on DeepSeek Harness with internal branding and configuration; do not claim that SUDO Tech developed the underlying framework.',
+].join('\n\n')
 
 /** Product-wide boundary between internal execution evidence and user-facing answers. */
 export const XIAOJING_RESPONSE_POLICY = [
@@ -29,6 +43,16 @@ export const inject = ['systemPrompt', 'tools', 'approval']
 /** Fill the deployment's empty default persona without replacing a selected agent persona. */
 export function apply(ctx: Context): void {
   installMandatoryDeletionGuard(ctx)
+  ctx.systemPrompt.variable('xiaojing_office_persona', () => XIAOJING_PERSONA)
+  if (process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing') {
+    ctx.inject(['agentDefaultModel', 'settings'], async (modelCtx) => {
+      const selection = modelCtx.agentDefaultModel.currentSelection()
+      if (selection.provider === 'deepseek-official'
+        && (selection.model === 'deepseek-v4-flash' || selection.model === 'deepseek-v4-flash-vision-exp')) {
+        await modelCtx.agentDefaultModel.saveSelection({ ...selection, model: 'deepseek-flash' })
+      }
+    })
+  }
   ctx.systemPrompt.section({
     name: 'xiaojing:business-facing-responses',
     order: 115,
@@ -60,7 +84,7 @@ export function apply(ctx: Context): void {
   })
   ctx.on('system-prompt/assemble', async (_assembly, _context, next) => {
     const resolved = await next()
-    const persona = resolved.sections.find(section => section.name === PERSONA_SECTION)
+    const persona = resolved.sections.find(section => section.name === PERSONA_PREFIX_SECTION)
     if (persona?.text === '') persona.text = XIAOJING_PERSONA
     return resolved
   })

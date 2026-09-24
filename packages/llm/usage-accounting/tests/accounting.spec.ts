@@ -20,11 +20,15 @@ import type {
   ResolvedCredential,
 } from '@deepseek-ai/dsh-credentials'
 import UsageAccountingService from '../src/index.ts'
-import { currentKeyFingerprint, installUsageObserver } from '../src/compat.ts'
+import { currentKeyFingerprint, currentUsageIdentity, installUsageObserver } from '../src/compat.ts'
 import type { UsageObservation } from '../src/compat.ts'
+import { priceUsage } from '../src/pricing.ts'
+import { EMBEDDED_PRICE_TABLE } from '../src/pricing.ts'
+import { ledgerInput, UsageLedgerStore } from '../src/store.ts'
 
 const API_KEY = 'test-secret-api-key'
 const REQUEST_TIME = Date.UTC(2026, 7, 20, 1)
+const AFFECTED_REQUEST_TIME = Date.UTC(2026, 8, 15, 1)
 const contexts: Context[] = []
 const homes: string[] = []
 
@@ -116,6 +120,10 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     await ctx.plugin(MemoryCredentials, API_KEY).await()
 
     await expect(currentKeyFingerprint(ctx)).resolves.toBe(createHash('sha256').update(API_KEY).digest('hex'))
+    await expect(currentUsageIdentity(ctx)).resolves.toMatchObject({
+      officialEndpoint: true,
+      recoverDefaultMessagesHistory: true,
+    })
   })
 
   it('settles the first usage chunk once with a key fingerprint and request purpose', async () => {
@@ -188,7 +196,24 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     }))
   })
 
-  it('contains credential-resolution failures and malformed endpoint configuration', async () => {
+  it('recognizes the explicit official Messages root without enabling implicit-history repair', async () => {
+    const ctx = await harness({ baseURL: 'https://api.deepseek.com/anthropic/' })
+    const settle = vi.fn(() => Promise.resolve())
+    installUsageObserver(ctx, { settle, fail: vi.fn() })
+    ctx.on('llm/stream', usageStream(
+      { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
+    ))
+
+    await consume(ctx)
+
+    expect(settle).toHaveBeenCalledWith(expect.objectContaining({ officialEndpoint: true }))
+    await expect(currentUsageIdentity(ctx)).resolves.toMatchObject({
+      officialEndpoint: true,
+      recoverDefaultMessagesHistory: false,
+    })
+  })
+
+  it('contains credential-resolution failures', async () => {
     const credentialFailure = await harness({ key: new Error('credential unavailable') })
     const fail = vi.fn()
     installUsageObserver(credentialFailure, { settle: vi.fn(() => Promise.resolve()), fail })
@@ -198,16 +223,6 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
 
     await consume(credentialFailure)
     expect(fail).toHaveBeenCalledWith(expect.objectContaining({ message: 'credential unavailable' }))
-
-    const malformedEndpoint = await harness({ baseURL: 'not a URL' })
-    const settle = vi.fn(() => Promise.resolve())
-    installUsageObserver(malformedEndpoint, { settle, fail: vi.fn() })
-    malformedEndpoint.on('llm/stream', usageStream(
-      { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
-    ))
-
-    await consume(malformedEndpoint)
-    expect(settle).toHaveBeenCalledWith(expect.objectContaining({ officialEndpoint: false }))
   })
 
   it('ignores unconfigured keys and non-DeepSeek routes', async () => {
@@ -257,6 +272,44 @@ describe('UsageAccountingService', () => {
     expect(snapshot.revision).toBe(1)
     expect(revisions).toEqual([1])
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('recovers affected default-Messages rows before returning their first snapshot', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(AFFECTED_REQUEST_TIME)
+    const home = await mkdtemp(join(tmpdir(), 'dsh-usage-service-repair-'))
+    homes.push(home)
+    const fingerprint = createHash('sha256').update(API_KEY).digest('hex')
+    const usage = {
+      cacheHitInputTokens: 10,
+      cacheMissInputTokens: 20,
+      outputTokens: 30,
+      cacheWriteTokens: 4,
+    }
+    const store = new UsageLedgerStore(home)
+    await store.init(AFFECTED_REQUEST_TIME)
+    await store.append(ledgerInput({
+      keyFingerprint: fingerprint,
+      model: 'deepseek-flash',
+      occurredAt: AFFECTED_REQUEST_TIME,
+      purpose: 'conversation',
+      usage,
+    }, priceUsage(EMBEDDED_PRICE_TABLE, 'deepseek-flash', usage, AFFECTED_REQUEST_TIME, false)))
+    const ctx = await harness()
+    await ctx.plugin(UsageAccountingService, { dshHome: home }).await()
+    const revisions: number[] = []
+    ctx.on('usage-accounting/updated', revision => revisions.push(revision))
+
+    const snapshot = await ctx.usageAccounting.snapshot()
+
+    expect(snapshot.revision).toBe(0)
+    expect(snapshot.total).toMatchObject({
+      cacheHitInputCostNanoyuan: '400',
+      cacheMissInputCostNanoyuan: '40000',
+      outputCostNanoyuan: '240000',
+      costNanoyuan: '280400',
+      unpricedTokens: 4,
+    })
+    expect(revisions).toEqual([])
   })
 
   it('contains synchronous, asynchronous, and invariant listener failures after persistence', async () => {

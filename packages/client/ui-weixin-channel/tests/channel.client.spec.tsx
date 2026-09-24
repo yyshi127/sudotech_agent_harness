@@ -11,7 +11,10 @@ afterEach(cleanup)
 
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by the channel section') }) as never
-const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
+const kit = {
+  useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
+  useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
+}
 
 function rpc(result: unknown): { caller: ClientConnectionRpc; call: ReturnType<typeof vi.fn> } {
   const call = vi.fn().mockResolvedValue({ ok: true, value: result })

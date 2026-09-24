@@ -5,11 +5,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 const marker = { date: '', abstractStr: '初始余额', accountCode: '', accountName: '', currencyCode: '', baseCurrencyCode: '',
   balance: 0, baseBalance: 0, categoryName: '', keeperName: '' }
@@ -22,7 +22,7 @@ class JournalAdapter extends LlmAdapter {
     this.calls += 1
     if (this.calls === 1) {
       expect(JSON.stringify(options)).toContain('不要求严格关键词')
-      const id = CallId('journal-query')
+      const id = ToolCallId('journal-query')
       expect(JSON.stringify(options)).toContain('空页不等于当天没有流水')
       expect(JSON.stringify(options)).toContain('标题也必须保留接口标签')
       expect(JSON.stringify(options)).toContain('检查全部标题、表格、总结和过渡句')
@@ -142,7 +142,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
             : scenario.startsWith('bank-') ? '只查已确认的银行账户174554，2026年9月第一页。' : '查查2026年9月现金进出流水，只查询。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(2)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name)).toEqual(['finance_journals'])
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token/)
@@ -188,17 +188,14 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journals/${scenario}-result.expected.md`, import.meta.url)), resultSnapshot, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       const selector = '[data-chat-call-id="journal-query"]'
-      const card = page.locator(selector)
-      await card.waitFor()
+      const card = await revealToolCallCard(page, selector)
       if (scenario === 'boundary-export') {
-        await card.getByRole('button').first().click()
         expect(await card.textContent()).toContain('流水：0 笔')
         expect(await card.textContent()).toContain('导出文件：')
         expect(await card.textContent()).not.toMatch(/首个空业务页|币种未提供|coverage|pageSize|接口/)
-        await card.getByRole('button').first().click()
-      } else if (!scenario.endsWith('export')) await card.getByRole('button').first().click()
+      }
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-journals/${scenario}-card.expected.md`, import.meta.url)), await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('journal-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })
       try { expect(ctx.tools.schemas(standard.agent).some(tool => tool.name === 'finance_journals')).toBe(false) }

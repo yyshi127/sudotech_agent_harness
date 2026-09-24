@@ -1,26 +1,48 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { Browser, Page } from 'playwright'
+import { chromium } from 'playwright'
+import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import type { AgentHandle } from '@deepseek-ai/dsh-agent'
-import { CallId, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent-presets'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import { assertFixtureInventory, launchWebScaffold, type WebScaffold } from './scaffold.ts'
+import {
+  assertFixtureInventory,
+  captureStableAria,
+  compareOrRefreshGolden,
+  launchWebScaffold,
+  watchConsole,
+  webSnapshotMode,
+  type WebScaffold,
+} from './scaffold.ts'
+import { newEnglishPage, saveFailureShot } from './support.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/minimal-preset', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.jsonl')
-const PROMPT = 'Reply exactly MINIMAL_PRESET_REQUEST_OK and stop.'
-const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
+const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/minimal-preset', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
+const MODE = webSnapshotMode()
+const PROMPT = "Use the bash tool to run exactly: printf 'MINIMAL_BASH_CARD_OK\\n'. Then reply exactly MINIMAL_PRESET_REQUEST_OK and stop."
+
+/** Rendered text of the system prompt surface node, or undefined when the surface carries none. */
+function systemPromptText(session: Session): string | undefined {
+  const message = session.deriveMessages().find(candidate => candidate.role === 'system')
+  return message?.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
+}
 
 describe('minimal agent preset', () => {
   let scaffold: WebScaffold
   let agentHandle: AgentHandle
   let disposeInjectedPrompt: () => void
+  let browser: Browser | undefined
+  let page: Page | undefined
+  let tripwire: ReturnType<typeof watchConsole> | undefined
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE })
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10 })
     disposeInjectedPrompt = scaffold.ctx.systemPrompt.section({
       name: 'test:injected-prompt',
       order: 999,
@@ -32,10 +54,17 @@ describe('minimal agent preset', () => {
       agentOptions: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
       setup: agentCtx => scaffold.ctx.agentPresets.mount(agentCtx, 'minimal').then(() => undefined),
     })
+    agentHandle.agent.followup(createUserMessage({
+      content: [{ type: 'text', text: PROMPT }],
+      source: { kind: 'user' },
+    }))
+    await agentHandle.agent.whenIdle()
   })
 
   afterAll(async () => {
     const failures: unknown[] = []
+    await page?.close().catch((error: unknown) => failures.push(error))
+    await browser?.close().catch((error: unknown) => failures.push(error))
     await agentHandle?.dispose().catch((error: unknown) => failures.push(error))
     try {
       disposeInjectedPrompt?.()
@@ -47,21 +76,15 @@ describe('minimal agent preset', () => {
     if (failures.length > 1) throw new AggregateError(failures, 'minimal preset smoke teardown failed')
   })
 
-  it('sends the exact RL prompt and schemas, then executes the persistent shell and editor', async () => {
-    agentHandle.agent.followup(createUserMessage({
-      content: [{ type: 'text', text: PROMPT }],
-      source: { kind: 'user' },
-    }))
-    await agentHandle.agent.whenIdle()
-
+  it('sends the exact RL prompt and shell schema, then executes the persistent shell', async () => {
     const requestHeader = agentHandle.agent.session.requestHeader()
     if (requestHeader === undefined) throw new Error('the minimal agent issued no model request')
-    expect(agentHandle.agent.session.events.some(event => event.type === 'user/message'
+    const systemPrompt = systemPromptText(agentHandle.agent.session)
+    if (systemPrompt === undefined) throw new Error('the minimal agent issued no system prompt')
+    expect(agentHandle.agent.session.snapshotEvents().some(event => event.type === 'user/message'
       && event.data.source.kind === 'plugin'
       && event.data.source.plugin === '@deepseek-ai/dsh-system-prompt')).toBe(false)
-    const presetFileSystem = scaffold.ctx.agentPresets.serviceFor(agentHandle.agent, 'fs')
-    expect(presetFileSystem).toBeDefined()
-    expect(presetFileSystem?.sandboxMode).toBeUndefined()
+    expect(scaffold.ctx.agentPresets.serviceFor(agentHandle.agent, 'fs')).toBeUndefined()
     expect(scaffold.ctx.agentPresets.serviceFor(agentHandle.agent, 'compaction')).toBeUndefined()
 
     const stateDir = join(scaffold.workspaceCwd, 'persistent-state')
@@ -69,70 +92,91 @@ describe('minimal agent preset', () => {
     const signal = new AbortController().signal
     await scaffold.ctx.tools.execute({
       signal,
-      callId: CallId('minimal-shell-state-setup'),
-      name: SHELL_TOOL,
-      arguments: {
-        command: process.platform === 'win32'
-          ? `Set-Location -LiteralPath ${JSON.stringify(stateDir)}; $env:DSH_MINIMAL_STATE = 'PERSISTED'`
-          : `cd ${JSON.stringify(stateDir)} && export DSH_MINIMAL_STATE=PERSISTED`,
-      },
+      callId: ToolCallId('minimal-bash-state-setup'),
+      name: 'bash',
+      arguments: { command: `cd ${JSON.stringify(stateDir)} && export DSH_MINIMAL_STATE=PERSISTED` },
       agent: agentHandle.agent,
     })
-    const shell = await scaffold.ctx.tools.execute({
+    const bash = await scaffold.ctx.tools.execute({
       signal,
-      callId: CallId('minimal-shell-state-read'),
-      name: SHELL_TOOL,
-      arguments: {
-        command: process.platform === 'win32'
-          ? "Write-Output ($env:DSH_MINIMAL_STATE + ':' + (Get-Location).Path)"
-          : 'printf \'%s:%s\n\' "$DSH_MINIMAL_STATE" "$PWD"',
-      },
+      callId: ToolCallId('minimal-bash-state-read'),
+      name: 'bash',
+      arguments: { command: 'printf \'%s:%s\n\' "$DSH_MINIMAL_STATE" "$PWD"' },
       agent: agentHandle.agent,
     })
-    const seedPath = join(scaffold.workspaceCwd, 'preset-smoke.txt')
-    await writeFile(seedPath, 'MINIMAL_EDITOR_OK\n')
-    const editor = await scaffold.ctx.tools.execute({
-      signal,
-      callId: CallId('minimal-editor-smoke'),
-      name: 'str_replace_editor',
-      arguments: { command: 'view', path: seedPath },
-      agent: agentHandle.agent,
-    })
-
-    const text = (result: typeof shell): string => result.content
+    const text = (result: typeof bash): string => result.content
       .filter(block => block.type === 'text')
       .map(block => block.text)
       .join('')
       .replaceAll(scaffold.workspaceCwd, '{{cwd}}')
-      .replaceAll('\\', '/')
       .trimEnd()
 
     expect({
-      prompt: requestHeader.system,
-      tools: requestHeader.tools?.map(tool => tool.name === SHELL_TOOL ? 'platform_shell' : tool.name),
-      browserDescription: requestHeader.tools?.find(tool => tool.name === 'browser_control')?.description,
-      computerDescription: requestHeader.tools?.find(tool => tool.name === 'computer_control')?.description,
-      shell: text(shell),
-      editor: text(editor),
+      prompt: systemPrompt,
+      tools: requestHeader.tools?.map(tool => tool.name),
+      goalCommand: scaffold.ctx.commands.find(agentHandle.agent, 'goal') !== undefined,
+      bash: text(bash),
     }).toMatchInlineSnapshot(`
       {
-        "browserDescription": "Control Microsoft Edge through DOM semantics. Use open once: it first reuses a matching existing page across the managed and paired personal Edge routes, and starts the dedicated Edge only when no match exists. Use act for a form or menu sequence so the browser completes several validated steps in one call. Use opaque target IDs from observe, or exact role/name/context semantics for controls revealed by an earlier act step. Never guess IDs, repeatedly reopen the same site, use screenshot coordinates, or fall back to computer_control for webpage operations. surface=personal is valid only when the user explicitly asks for personal Edge.",
-        "computerDescription": "Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Use browser_control for websites. If the required application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.",
-        "editor": "Here's the content of {{cwd}}/preset-smoke.txt with line numbers (which has a total of 2 lines):
-           1  MINIMAL_EDITOR_OK
-           2",
+        "bash": "PERSISTED:{{cwd}}/persistent-state
+      [Command finished with exit code 0]",
+        "goalCommand": false,
         "prompt": "You are a helpful software engineer assistant.",
-        "shell": "PERSISTED:{{cwd}}/persistent-state",
         "tools": [
-          "browser_control",
-          "computer_control",
-          "platform_shell",
-          "str_replace_editor",
+          "bash",
         ],
       }
     `)
     expect(requestHeader.tools?.toSorted((left, right) => left.name.localeCompare(right.name)))
       .toEqual(scaffold.ctx.tools.schemas(agentHandle.agent).toSorted((left, right) => left.name.localeCompare(right.name)))
-    await assertFixtureInventory(SNAPSHOT_DIR, ['session.jsonl'])
+  })
+
+  it.skipIf(MODE === 'record')('expands the completed persistent Bash call in the Web conversation', async () => {
+    onTestFailed(() => { if (page !== undefined) void saveFailureShot(page, 'web-minimal-persistent-bash-card') })
+    browser = await chromium.launch()
+    page = await newEnglishPage(browser)
+    tripwire = watchConsole(page)
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+    await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+
+    const groupRow = page.locator('[role="treeitem"]').first()
+    await groupRow.waitFor({ timeout: 15_000 })
+    await groupRow.click()
+    const sessionRow = page.locator('[role="treeitem"]').nth(1)
+    await sessionRow.waitFor({ timeout: 10_000 })
+    await sessionRow.click()
+    await page.getByText('MINIMAL_PRESET_REQUEST_OK', { exact: true }).waitFor({ timeout: 15_000 })
+
+    const process = page.locator('[data-turn-process]')
+    await process.waitFor({ timeout: 15_000 })
+    await expect.poll(() => process.getAttribute('aria-expanded')).toBe('false')
+    await process.click()
+    await expect.poll(() => process.getAttribute('aria-expanded')).toBe('true')
+
+    const row = page.locator('[data-sample="bash"]').first()
+    await row.waitFor({ timeout: 15_000 })
+    await expect.poll(() => row.getAttribute('aria-expanded')).toBe('false')
+    await row.click()
+
+    await expect.poll(() => row.getAttribute('aria-expanded')).toBe('true')
+    const call = row.locator('xpath=..')
+    await call.getByText('IN', { exact: true }).waitFor()
+    await call.getByText('OUT', { exact: true }).waitFor()
+    await call.getByText('MINIMAL_BASH_CARD_OK\n[Command finished with exit code 0]', { exact: true }).waitFor()
+    await call.getByText(/"command": "printf 'MINIMAL_BASH_CARD_OK/).waitFor()
+
+    const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
+    await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
+    expect(tripwire.pageErrors).toEqual([])
+    expect(tripwire.warnings).toEqual([])
+  }, 60_000)
+
+  it('keeps its snapshot inventory closed', async () => {
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'session.v3.jsonl',
+      'system-prompt.expected.md',
+      'tool-schemas.expected.json',
+      'ui.expected.md',
+    ])
   })
 })

@@ -8,7 +8,7 @@ const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url))
 
 it('ships install metadata with the built web application', async () => {
   const index = await readFile(join(DIST_ROOT, 'index.html'), 'utf8')
-  expect(index).toContain('<link rel="manifest" href="/manifest.webmanifest" />')
+  expect(index).toContain('<link rel="manifest" href="./manifest.webmanifest" />')
 
   const record = JSON.parse(await readFile(
     join(REPO_ROOT, '.dsh-build/client-build-environment.json'),

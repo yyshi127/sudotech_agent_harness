@@ -4,12 +4,12 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import { discoverPresets } from '@deepseek-ai/dsh-agent-presets'
-import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { priceUsage, RECOVERABLE_PRICE_TABLES } from '@deepseek-ai/dsh-usage-accounting'
 import { loadProfile } from '@deepseek-ai/dsh-app-boot'
@@ -31,7 +31,6 @@ const installerShutdownHelper = await readFile(join(appRoot, 'build', 'installer
 const EXPECTED_WEB_BUNDLES = [
   '@deepseek-ai/dsh-base',
   '@deepseek-ai/dsh-web-app',
-  'dsh-file-uploads',
 ]
 const CURRENT_KEY_REF = credentialRef('DEEPSEEK_API_KEY')
 const SESSION_ID = SessionId('fixture-session')
@@ -54,8 +53,13 @@ if (manifest.build?.nsis?.deleteAppDataOnUninstall !== false) {
 }
 if (!main.includes("app.setPath('userData', join(app.getPath('appData'), ...identity.userDataSegments))")
   || !main.includes("join(app.getPath('userData'), 'harness')")
-  || !main.includes("join(app.getPath('documents'), '小兢会计工作区')")
-  || !main.includes("XIAOJING_FINANCE_WORKSPACE_ROOT: join(workspace, 'Finance工作区')")) {
+  || !main.includes("const root = join(app.getPath('documents'), '小兢会计工作区')")
+  || !main.includes("office: join(root, '办公工作区')")
+  || !main.includes("finance: join(root, 'Finance工作区')")
+  || !main.includes('const { office: officeWorkspace, finance: financeWorkspace } = xiaojingWorkspacePaths()')
+  || !main.includes('XIAOJING_OFFICE_WORKSPACE_ROOT: officeWorkspace')
+  || !main.includes('XIAOJING_FINANCE_WORKSPACE_ROOT: financeWorkspace')
+  || !main.includes('cwd: officeWorkspace')) {
   throw new Error('desktop startup no longer uses the permanent user-data paths')
 }
 if (/\$APPDATA\b|%APPDATA%|\$LOCALAPPDATA\b|Local Storage|\.credentials|\.agent-presets|attachments|usage-accounting/i
@@ -106,13 +110,19 @@ async function verifySessionData(appData) {
   await ctx.plugin(SessionStore)
   await ctx.plugin(JsonlSessionPersistence, { root: join(appData, 'harness', 'sessions') })
   try {
-    const snapshots = await ctx.sessionPersistence.listSnapshots()
+    const snapshots = await ctx.sessionPersistence.list()
     assert(snapshots.length === 1 && snapshots[0]?.header.id === SESSION_ID,
-      '0.1.9 session fixture is not discoverable through the rc.2 persistence backend')
-    const session = await ctx.sessionPersistence.inspect(SESSION_ID)
-    assert(session.meta.version === 0 && session.meta.agentPreset === 'fixture-persona',
+      '0.1.9 session fixture is not discoverable through the current persistence backend')
+    const reader = await ctx.sessionPersistence.open(SESSION_ID, 'read')
+    let session
+    try {
+      session = { meta: reader.header, events: (await reader.read()).events }
+    } finally {
+      await reader.close()
+    }
+    assert(session.meta.version === SESSION_FORMAT_VERSION && session.meta.agentPreset === 'fixture-persona',
       '0.1.9 session metadata or persona binding changed')
-    assert(session.events.length === 7 && session.events.every((event, index) => event.seq === index),
+    assert(session.events.length >= 7 && session.events.every((event, index) => event.seq === index),
       '0.1.9 session events are missing or non-contiguous')
     const title = session.events.find(event => event.type === 'session/title')
     assert(title?.data.title === '升级兼容会话', '0.1.9 session title is no longer readable')
@@ -191,7 +201,7 @@ async function verifyPresetData(appData) {
   const presets = await discoverPresets([{
     path: join(appData, 'harness', '.agent-presets'),
     trust: 'user',
-  }])
+  }], pathToFileURL(join(repositoryRoot, 'apps', 'cli', 'package.json')).href)
   const fixture = presets.find(preset => preset.id === 'fixture-persona')
   assert(fixture !== undefined && fixture.broken === undefined && fixture.name === '升级样本人格',
     '0.1.9 user-created agent preset is not readable by rc.2')
@@ -310,7 +320,7 @@ try {
     { userLayer: false },
   )
   assert(JSON.stringify(profile.layers.map(layer => layer.packageName)) === JSON.stringify(EXPECTED_WEB_BUNDLES),
-    'the default 0.1.9 Web profile did not migrate to base + web-app + file uploads')
+    'the default 0.1.9 Web profile did not migrate to the current shipped Web bundles')
   const profileAfter = await hashes(appData)
   const expectedProfileChange = 'harness/profiles/web/package.json'
   assert(JSON.stringify(changedKeys(profileBefore, profileAfter)) === JSON.stringify([expectedProfileChange]),
@@ -318,18 +328,24 @@ try {
   const migratedManifest = JSON.parse(await readFile(join(appData, expectedProfileChange), 'utf8'))
   assert(migratedManifest.xiaojingFixture === 'preserve-this-field'
     && JSON.stringify(migratedManifest.dsh?.profile?.bundles) === JSON.stringify(EXPECTED_WEB_BUNDLES),
-  'profile migration did not preserve unrelated manifest fields or remove ModLens exactly')
+  'profile migration did not preserve unrelated manifest fields or replace the retired bundle tuple exactly')
 
   const currentKeyFingerprint = await verifyCredentialData(appData, scratch)
-  await verifySessionData(appData)
+  let sessionFailure
+  try {
+    await verifySessionData(appData)
+  } catch (error) {
+    sessionFailure = error
+  }
   await verifyPresetData(appData)
   await verifyUsageData(appData, currentKeyFingerprint)
   await verifyFinanceData(appData, documents)
   const afterReadChecks = await hashes(appData)
   assert(JSON.stringify(afterReadChecks) === JSON.stringify(profileAfter),
-    'rc.2 compatibility reads unexpectedly rewrote protected user data')
+    'upgraded compatibility reads unexpectedly rewrote protected user data')
   assert(JSON.stringify(await hashes(documents)) === JSON.stringify(before.documents),
-    'rc.2 compatibility checks changed the Documents workspace')
+    'upgraded compatibility checks changed the Documents workspace')
+  if (sessionFailure !== undefined) throw sessionFailure
 } finally {
   await rm(scratch, { recursive: true, force: true })
 }

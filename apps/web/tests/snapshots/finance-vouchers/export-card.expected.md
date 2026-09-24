@@ -1,4 +1,1 @@
-- button "凭证导出完成":
-  - img
-  - img
-  - text: 凭证导出完成
+- region "凭证导出完成": 凭证导出完成 账套：演示账套 查询期间：不限月份 凭证：21 张；分录：42 行 导出文件：凭证导出-{{uuid}}.xlsx 保存位置：{{cwd}}\voucher-client\04-成果输出\凭证导出-{{uuid}}.xlsx 导出文件：凭证导出-{{uuid}}.xlsx 保存位置：{{cwd}}\voucher-client\04-成果输出\凭证导出-{{uuid}}.xlsx

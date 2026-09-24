@@ -3,11 +3,13 @@
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { HEIGHT_MESSAGE_TYPE, STREAM_MESSAGE_TYPE } from '../src/shell.ts'
 import { StreamingPreview } from '../src/client/StreamingPreview.tsx'
 import { VisualizeCard } from '../src/client/VisualizeCard.tsx'
-import { apply, inject, name } from '../src/client/index.tsx'
+import { VisualizeTurnTail } from '../src/client/VisualizeTurnTail.tsx'
+import { EMPTY_CHAT_SNAPSHOT, type ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
+import { apply, inject, name } from '../src/client/index.ts'
 import { resolveTheme } from '../src/client/theme.ts'
 
 afterEach(() => {
@@ -15,9 +17,14 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-function streamingProps(blocks: unknown) {
+function streamingProps(blocks: unknown, status = 'running') {
+  const assistant = { status, blocks }
+  const step = { data: { source: () => ({ getSnapshot: () => assistant, subscribe: () => () => {} }) } }
   return {
-    session: { partial: blocks === undefined ? undefined : { blocks } },
+    useChat: (selector: (snapshot: unknown) => unknown) => selector({
+      ...EMPTY_CHAT_SNAPSHOT,
+      timeline: { turnOrder: blocks === undefined ? [] : [1], turns: new Map([[1, { steps: [step] }]]) },
+    }),
   } as unknown as Parameters<typeof StreamingPreview>[0]
 }
 
@@ -26,7 +33,7 @@ function cardProps(block: unknown, callId = 'call-1') {
 }
 
 describe('visualize client registration and theme', () => {
-  it('registers both UI occupants and keeps independent native theme copies', () => {
+  it('registers tool, streaming, and completed-turn occupants with independent native theme copies', () => {
     const registrations: unknown[] = []
     const injectSlot = vi.fn((_name: string, callback: () => unknown) => callback())
     const register = vi.fn((slot: unknown, component: unknown) => {
@@ -38,8 +45,11 @@ describe('visualize client registration and theme', () => {
     expect(name).toBe('xiaojing-visualize')
     expect(inject).toEqual(['slots'])
     apply(ctx)
-    expect(injectSlot).toHaveBeenCalledTimes(2)
-    expect(registrations).toHaveLength(2)
+    expect(injectSlot).toHaveBeenCalledTimes(3)
+    expect(registrations).toHaveLength(3)
+    expect(register).toHaveBeenCalledWith({
+      name: 'conversation.chat.turnTail', id: 'visualize-results', order: 30,
+    }, VisualizeTurnTail)
 
     const first = resolveTheme()
     const second = resolveTheme()
@@ -56,6 +66,39 @@ describe('visualize client registration and theme', () => {
     })
     first.themeVars.primary = 'changed'
     expect(second.themeVars.primary).toBe('rgb(65 118 230)')
+  })
+})
+
+describe('VisualizeTurnTail', () => {
+  it('restores only this turn\'s successful cards without requiring an expanded process or source file', () => {
+    const meta = { kind: 'visualize', fragment: '<button>Saved interaction</button>', title: 'Saved chart', mode: 'inline', path: 'viz/missing.html' }
+    const nodes = new Map<string, unknown>([
+      ['good', { kind: 'tool-call', data: { root: { kind: 'tool-result', callId: 'saved', isError: false, meta } } }],
+      ['failed', { kind: 'tool-call', data: { root: { kind: 'tool-result', callId: 'failed', isError: true, meta } } }],
+      ['foreign', { kind: 'tool-call', data: { root: { kind: 'tool-result', callId: 'foreign', isError: false } } }],
+      ['running', { kind: 'tool-call', data: { root: { callId: 'running' } } }],
+      ['assistant', { kind: 'assistant', data: {} }],
+      ['other-turn', { kind: 'tool-call', data: { root: { kind: 'tool-result', callId: 'other', isError: false, meta: { ...meta, title: 'Other turn' } } } }],
+    ])
+    const snapshot = {
+      ...EMPTY_CHAT_SNAPSHOT,
+      locations: { ...EMPTY_CHAT_SNAPSHOT.locations, getTurn: (turn: number) => turn === 1 ? ['good', 'failed', 'foreign', 'running', 'assistant', 'missing'] : ['other-turn'] },
+      nodes: { ...EMPTY_CHAT_SNAPSHOT.nodes, get: (key: string) => nodes.get(key) },
+    } as ChatSnapshot
+    const props = (turn: number) => ({
+      turn: { turn }, useChat: (selector: (value: ChatSnapshot) => unknown) => selector(snapshot),
+    }) as unknown as Parameters<typeof VisualizeTurnTail>[0]
+    const view = render(<VisualizeTurnTail {...props(1)} />)
+    expect(view.container.querySelectorAll('iframe')).toHaveLength(1)
+    const frame = screen.getByTitle('Saved chart') as HTMLIFrameElement
+    expect(frame.srcdoc).toContain('<button>Saved interaction</button>')
+    expect(frame.getAttribute('sandbox')).toBe('allow-scripts')
+    view.rerender(<VisualizeTurnTail {...props(2)} />)
+    expect(screen.queryByTitle('Saved chart')).toBeNull()
+    expect(screen.getByTitle('Other turn')).toBeDefined()
+    view.unmount()
+    render(<VisualizeTurnTail {...props(1)} />)
+    expect(screen.getByTitle('Saved chart')).toBeDefined()
   })
 })
 
@@ -143,6 +186,10 @@ describe('StreamingPreview', () => {
       { kind: 'tool-call', name: 'visualize', argsRaw: '{"fragment":"<div>new</div>"}' },
     ])} />)
     expect(absent.container.textContent).toContain('streaming preview')
+    absent.rerender(<StreamingPreview {...streamingProps([
+      { kind: 'tool-call', name: 'visualize', argsRaw: '{"fragment":"<div>done</div>"}' },
+    ], 'settled')} />)
+    expect(absent.container.innerHTML).toBe('')
   })
 
   it('loads one shell, posts throttled content, and follows valid height reports', () => {

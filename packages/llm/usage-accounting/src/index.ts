@@ -4,7 +4,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { currentKeyFingerprint, installUsageObserver } from './compat.ts'
+import { currentUsageIdentity, installUsageObserver } from './compat.ts'
 import type { UsageObservation } from './compat.ts'
 import { EMBEDDED_PRICE_TABLE, priceUsage, RECOVERABLE_PRICE_TABLES } from './pricing.ts'
 import { ledgerInput, UsageLedgerStore } from './store.ts'
@@ -81,11 +81,13 @@ export class UsageAccountingService extends TypertRemoteService {
    */
   @Remote('snapshot')
   async snapshot(): Promise<UsageAccountingSnapshot> {
+    const identity = await currentUsageIdentity(this.ctx)
     return this.store.snapshot(
-      await currentKeyFingerprint(this.ctx),
+      identity?.keyFingerprint,
       this.committedRevision,
       Date.now(),
       RECOVERABLE_PRICE_TABLES,
+      identity?.recoverDefaultMessagesHistory === true,
     )
   }
 

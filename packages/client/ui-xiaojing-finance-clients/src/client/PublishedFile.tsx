@@ -1,5 +1,6 @@
 /** Explicit local file opener for a committed Finance deliverable. */
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from './published-file.ts'
 
 /** Existing slot actions and the local-host availability flag. */

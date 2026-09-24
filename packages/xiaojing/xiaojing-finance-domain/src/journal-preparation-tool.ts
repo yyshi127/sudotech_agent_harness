@@ -6,6 +6,7 @@ import type {} from './index.ts'
 import { journalCreateRequestSchema } from './journal-preparation.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-journal-preparation-tool'
@@ -22,7 +23,7 @@ export const Config: s<Config> = s.object({ maxBytes: s.number().min(1).step(1).
  * @param config - Deployment operation limits.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_prepare_journal',
     description: '准备、修改或查看当前客户财务日记账。按用户自然语言理解收入或支出，不要求精确关键词；先用finance_references查询cash-accounts和cash-categories，选择真实账户ID与收支方向匹配的类别ID，不猜标识。同名不猜选，日期、金额、记账人缺失时澄清。prepare仅保存本地预览；revise传最新id/version和完整新内容；inspect查看原记录并只读回查，不创建。不要把日记账记载当成实际收付款，不自动生成凭证、关联附件或新增基础资料。',
     parameters: {
@@ -49,8 +50,8 @@ export function apply(ctx: Context, config: Config): void {
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '日记账记录操作失败'
       : args.action === 'inspect' ? '日记账记录与回查' : '日记账预览（未创建）',
     content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
-  ctx.tools.register(defineTool({
+  })))
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_create_journal',
     description: '仅在用户要求创建日记账时，提交finance_prepare_journal展示的准确id/version。系统必须请求本次强制确认，聊天中的“已确认”不能绕过。只记载收入或支出，不执行实际收付款，不生成凭证、审核、核销或删除。接口返回记录标识后，仍须依据独立回查判断本记录是否完成一致性核对。结果未知或回查失败时inspect原记录，不重发、不另建相同内容规避防重复。',
     parameters: { id: { type: 'string', required: true }, version: { type: 'integer', required: true } },
@@ -64,5 +65,5 @@ export function apply(ctx: Context, config: Config): void {
     presentCall: () => ({ card: 'generic', title: '确认并创建日记账', kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '日记账创建未完成' : '日记账创建结果',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
+  })))
 }

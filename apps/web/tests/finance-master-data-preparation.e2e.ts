@@ -4,12 +4,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { MasterDataRecords, type PreparedMasterDataId, type MasterDataProposal } from '../../../packages/xiaojing/xiaojing-finance-domain/src/master-data-records.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 class MasterDataAdapter extends LlmAdapter {
   calls = 0
@@ -50,7 +50,7 @@ class MasterDataAdapter extends LlmAdapter {
     ]
     const request = requests[this.calls++]
     if (request !== undefined) {
-      const id = CallId(`${this.kind}-${this.calls}`)
+      const id = ToolCallId(`${this.kind}-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -144,7 +144,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data preview
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: kind === 'subject'
           ? adapter.root ? '新建一个普通一级科目，先给我看看，改名后再确认，不改旧科目。'
             : adapter.accounting === 'auxiliary' ? '在银行存款下建供应商辅助核算科目，先预览，改名后确认。'
@@ -183,12 +183,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data preview
             normalize(await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd)), webSnapshotMode())
           approvals++
           await panel.getByRole('button', { name: label }).click()
-          await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+          await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
         }
         await handle.agent.whenIdle()
         expect(adapter.calls).toBe(8)
         expect(writes).toBe(1)
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         expect(results).toHaveLength(7)
         expect(JSON.stringify(results[2])).toContain('版本')
         expect(JSON.stringify(results[3])).toContain('未获得')
@@ -201,8 +201,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data preview
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)
         const selector = `[data-chat-call-id="${kind}-5"]`
         const card = page.locator(selector)
-        await card.waitFor()
-        await card.getByRole('button').first().click()
+        await revealToolCallCard(page, selector)
         await expect.poll(() => card.textContent()).toContain(kind === 'subject' ? '已完成并核对' : '结果待确认')
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-master-data-preparation/${scenario}-result-card.expected.md`, import.meta.url)),
           normalize(await captureStableAria(page, selector, scaffold.workspaceCwd)), webSnapshotMode())

@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import * as plugin from '../src/open-item-deletion-tool.ts'
@@ -19,7 +19,7 @@ it('delegates direction-bound preparation and exact-version deletion and removes
   try {
     const agent = { ctx } as Agent
     const signal = new AbortController().signal
-    const run = (args: object, bound = true) => ctx.tools.execute({ callId: CallId('open-item-deletion'),
+    const run = (args: object, bound = true) => ctx.tools.execute({ callId: ToolCallId('open-item-deletion'),
       name: 'finance_prepare_open_item_deletion', arguments: args, signal, ...(bound ? { agent } : {}) })
     for (const direction of ['receivable', 'payable']) {
       const args = { action: 'prepare', openItemId: '72604', direction, periodStart: '2022-01', periodEnd: '2022-01' }
@@ -30,7 +30,7 @@ it('delegates direction-bound preparation and exact-version deletion and removes
     expect((await run({ action: 'execute', id: 'preview' })).isError).toBe(true)
     expect((await run({ action: 'prepare', direction: 'both' })).isError).toBe(true)
     expect(prepareOpenItemDeletion).toHaveBeenCalledTimes(2)
-    const execute = (args: object, bound = true) => ctx.tools.execute({ callId: CallId('open-item-delete'),
+    const execute = (args: object, bound = true) => ctx.tools.execute({ callId: ToolCallId('open-item-delete'),
       name: 'finance_delete_open_item', arguments: args, signal, ...(bound ? { agent } : {}) })
     const exact = { id: 'prepared-operation', version: 2 }
     expect((await execute(exact)).isError).toBe(false)

@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -212,7 +212,7 @@ describe('Windows UI Automation provider', () => {
     ctx.on('approval/request', answered)
     const deleted = await ctx.tools.execute({
       signal,
-      callId: CallId('computer-delete-under-never'),
+      callId: ToolCallId('computer-delete-under-never'),
       name: 'computer_control',
       arguments: {
         action: 'invoke',

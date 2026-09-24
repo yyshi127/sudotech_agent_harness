@@ -7,6 +7,7 @@ import type {} from './index.ts'
 import { masterDataPreparationRequestSchema, masterDataCreateRequestSchema, validateMasterDataProposal } from './master-data-preparation.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-master-data-preparation-tool'
@@ -27,7 +28,7 @@ const preparationCommand = z.strictObject({ action: z.enum(['prepare', 'revise',
  * @param config - Complete operation size limit.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_prepare_master_data',
     description: '准备、修改或查看当前客户的会计科目(subject)或辅助核算项目(auxiliary-item)。理解自然语言需求，先用finance_references查真实科目类型、父科目或辅助类别/项目，不猜编号、类别或提交人。新增资料必须是用户明确要求，不能因凭证缺资料就自动新增。prepare仅本地预览，传kind和input；revise使用最新id/version及完整kind/input；inspect只传action和id。科目支持一级科目（四位编码，parentCode为null）或普通已有分支下的下级，可用accounting明确选择辅助类别及已观察币种；不支持末级提升或数量核算，不修改已有资料、不注册币种或设置汇率。',
     parameters: {
@@ -65,8 +66,8 @@ export function apply(ctx: Context, config: Config): void {
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '基础资料操作未完成'
       : args.action === 'inspect' ? '基础资料记录与回查' : '基础资料预览（未创建）',
     content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
-  ctx.tools.register(defineTool({
+  })))
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_create_master_data',
     description: '仅在用户要求新增科目或辅助项目时提交finance_prepare_master_data返回的准确id/version。系统强制确认完整版本，聊天中的同意不能绕过。接口接收不等于新增内容已完成核验，须依据独立回查给出业务结论；辅助启用状态未提供，不能宣称全面核验。未知结果只inspect原记录，不重发，不换编码或会话规避防重复；不修改历史资料或凭证。',
     parameters: { id: { type: 'string', required: true }, version: { type: 'integer', required: true } },
@@ -80,5 +81,5 @@ export function apply(ctx: Context, config: Config): void {
     presentCall: () => ({ card: 'generic', title: '确认并创建基础资料', kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '基础资料创建未完成' : '基础资料创建结果',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
+  })))
 }

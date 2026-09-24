@@ -1,7 +1,8 @@
 /** Desktop-companion settings contribution for the Xiaojing product profile. */
 
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { DesktopCompanionController } from './controller.ts'
 import { DesktopCompanionSection, type DesktopCompanionSectionInjected } from './DesktopCompanionSection.tsx'

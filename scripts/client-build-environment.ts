@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import {
   existsSync,
   globSync,
@@ -19,37 +19,23 @@ export const CLIENT_BUILD_PROFILE_SELECTOR = 'DSH_BUILD_CLIENT_PROFILE'
 /** Public client environment required by official DSH artifacts. */
 const OFFICIAL_CLIENT_BUILD_ENVIRONMENT = {
   DSH_CLIENT_BUILD_PROFILE: 'official',
-  DSH_CLIENT_BOOT_LOGO: '',
-  DSH_CLIENT_BOOT_LOGO_ALT: '',
-  DSH_CLIENT_FAVICON_HREF: '/favicon.svg',
-  DSH_CLIENT_FAVICON_TYPE: 'image/svg+xml',
-  DSH_CLIENT_HTML_LANG: 'en',
-  DSH_CLIENT_PWA_ICON_HREF: '/favicon.svg',
-  DSH_CLIENT_PWA_ICON_SIZES: 'any',
-  DSH_CLIENT_PWA_ICON_TYPE: 'image/svg+xml',
-  DSH_CLIENT_PWA_NAME: 'DeepSeek Harness',
-  DSH_CLIENT_PWA_SHORT_NAME: 'DSH',
   DSH_CLIENT_TITLE: 'DeepSeek Harness',
 } as const
 
 /** Public client environment required by Xiaojing Accounting artifacts. */
 const XIAOJING_CLIENT_BUILD_ENVIRONMENT = {
   DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
+  DSH_CLIENT_TITLE: '小兢会计-您的AI办公搭子',
   DSH_CLIENT_BOOT_LOGO: '/sudo-logo-gray.png',
   DSH_CLIENT_BOOT_LOGO_ALT: '数豆科技',
-  DSH_CLIENT_FAVICON_HREF: '/sdoobot-avatar.png',
-  DSH_CLIENT_FAVICON_TYPE: 'image/png',
-  DSH_CLIENT_HTML_LANG: 'zh-CN',
-  DSH_CLIENT_PWA_ICON_HREF: '/sudo-logo-gray.png',
-  DSH_CLIENT_PWA_ICON_SIZES: '767x216',
-  DSH_CLIENT_PWA_ICON_TYPE: 'image/png',
-  DSH_CLIENT_PWA_NAME: 'SUDO 数豆 AI Agent',
-  DSH_CLIENT_PWA_SHORT_NAME: '数豆 AI',
-  DSH_CLIENT_TITLE: '小兢会计-您的AI办公搭子',
+  DSH_CLIENT_FAVICON: '/xiaojing-character-logo.png',
 } as const
 
 /** Public variable carrying the source commit embedded in client artifacts. */
 const CLIENT_COMMIT_HASH_VARIABLE = 'DSH_CLIENT_COMMIT_HASH'
+
+/** Public variable carrying the repository package version embedded in client artifacts. */
+const CLIENT_VERSION_VARIABLE = 'DSH_CLIENT_VERSION'
 
 /** Repository-relative path of the complete client build record. */
 export const CLIENT_BUILD_RECORD_PATH = '.dsh-build/client-build-environment.json'
@@ -59,6 +45,8 @@ const CLIENT_ARTIFACT_PATTERNS = [
   'apps/web/dist/**/*',
   'packages/*/*/lib/client.js',
   'packages/*/*/lib/client.js.map',
+  'packages/*/*/lib/client.*.js',
+  'packages/*/*/lib/client.*.js.map',
 ] as const
 
 /** Public values embedded in one set of client artifacts. */
@@ -84,6 +72,76 @@ export function repositoryCommitHash(root: string, environment: NodeJS.ProcessEn
 }
 
 /**
+ * Resolve the repository package version used by browser build metadata.
+ * @param root - repository root containing the authoritative package.json.
+ * @returns the repository's semver-compatible package version.
+ */
+export function repositoryVersion(root: string): string {
+  const path = resolve(root, 'package.json')
+  let manifest: unknown
+  try {
+    manifest = JSON.parse(readFileSync(path, 'utf8'))
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw new Error(`cannot read repository version from ${path}: ${detail}`)
+  }
+  if (!isObject(manifest) || typeof manifest.version !== 'string'
+    || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(manifest.version)) {
+    throw new Error(`repository package.json has an invalid version ${JSON.stringify(isObject(manifest) ? manifest.version : undefined)}`)
+  }
+  return manifest.version
+}
+
+/**
+ * Read whether Git reports any staged, unstaged, untracked, or submodule change.
+ * @param root - repository root whose worktree is inspected.
+ * @returns true or false inside a Git worktree; undefined without Git metadata.
+ */
+export function repositoryGitDirty(root: string): boolean | undefined {
+  const probe = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })
+  if (probe.error !== undefined || probe.status !== 0 || probe.stdout.trim() !== 'true') return undefined
+
+  const status = spawnSync('git', ['status', '--porcelain=v1', '--untracked-files=normal'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (status.error !== undefined) throw status.error
+  if (status.status !== 0) {
+    throw new Error(`git status failed in ${root}: ${status.stderr.trim() || String(status.status)}`)
+  }
+  return status.stdout !== ''
+}
+
+/**
+ * Resolve the public environment for a complete default build from one checkout.
+ * Repository-owned metadata replaces inherited values; other public values pass through.
+ * @param root - repository root supplying version and Git metadata.
+ * @param environment - caller environment supplying optional commit and public extensions.
+ * @returns complete public client environment for the default build.
+ */
+export function repositoryClientBuildEnvironment(
+  root: string,
+  environment: NodeJS.ProcessEnv = process.env,
+): ClientBuildEnvironment {
+  const inherited = { ...clientBuildEnvironment(environment) }
+  delete inherited.DSH_CLIENT_COMMIT_HASH
+  delete inherited.DSH_CLIENT_GIT_DIRTY
+  delete inherited.DSH_CLIENT_VERSION
+  const dirty = repositoryGitDirty(root)
+  return {
+    ...inherited,
+    DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
+    ...(dirty === true ? { DSH_CLIENT_GIT_DIRTY: 'true' } : {}),
+    DSH_CLIENT_VERSION: repositoryVersion(root),
+  }
+}
+
+/**
  * Resolve the exact public values required by an official build at one commit.
  * @param root - repository root whose HEAD must match the built source.
  * @param environment - optional explicit commit source for non-Git build environments.
@@ -95,6 +153,7 @@ export function officialClientBuildEnvironment(
 ): Readonly<Record<`DSH_CLIENT_${string}`, string>> {
   return {
     DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
+    DSH_CLIENT_VERSION: repositoryVersion(root),
     ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
   }
 }
@@ -141,13 +200,18 @@ export function resolveClientBuildEnvironment(
   if (profile === undefined) return clientBuildEnvironment(environment)
   if (profile === 'official' || profile === 'xiaojing') {
     const commitHash = environment[CLIENT_COMMIT_HASH_VARIABLE]
+    const version = environment[CLIENT_VERSION_VARIABLE]
     if (commitHash === undefined) {
       throw new Error(`${CLIENT_COMMIT_HASH_VARIABLE} is required for the ${profile} client build profile`)
     }
-    const selected = profile === 'official'
-      ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT
-      : XIAOJING_CLIENT_BUILD_ENVIRONMENT
-    return { DSH_CLIENT_COMMIT_HASH: commitHash, ...selected }
+    if (version === undefined) {
+      throw new Error(`${CLIENT_VERSION_VARIABLE} is required for the ${profile} client build profile`)
+    }
+    return {
+      DSH_CLIENT_COMMIT_HASH: commitHash,
+      DSH_CLIENT_VERSION: version,
+      ...(profile === 'official' ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT : XIAOJING_CLIENT_BUILD_ENVIRONMENT),
+    }
   }
   throw new Error(`unknown client build profile ${JSON.stringify(profile)}; expected "official" or "xiaojing"`)
 }
@@ -270,38 +334,6 @@ export function readClientBuildRecord(
     )
   }
   return record
-}
-
-/**
- * Refuse a partial Client rebuild that would mix profiles with the current complete build.
- *
- * A complete build removes its old record before invoking the Client compiler. A
- * direct partial rebuild therefore reaches this guard only when it is about to
- * mutate an already-recorded artifact set. The caller must reproduce every
- * recorded public value exactly or use the complete profile build instead.
- *
- * @param root - repository root containing the current complete build record.
- * @param environment - environment that would be embedded in the partial rebuild.
- */
-export function assertClientBuildMutationAllowed(
-  root: string,
-  environment: NodeJS.ProcessEnv = process.env,
-): void {
-  if (!existsSync(resolve(root, CLIENT_BUILD_RECORD_PATH))) return
-
-  const record = readClientBuildRecord(root)
-  try {
-    assertClientBuildEnvironment(environment, record.environment)
-  } catch (error) {
-    const profile = record.environment.DSH_CLIENT_BUILD_PROFILE
-    const command = profile === 'official' || profile === 'xiaojing'
-      ? `pnpm run build:${profile}`
-      : 'pnpm run build'
-    const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(
-      `partial Client rebuild would mix artifacts from different build environments; run ${command} instead (${detail})`,
-    )
-  }
 }
 
 /** Return the deterministic digest of every artifact affected by the public client environment. */

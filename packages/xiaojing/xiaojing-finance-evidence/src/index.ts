@@ -36,8 +36,6 @@ export interface Config {
   fetchTimeoutMs?: number
   /** Maximum official response bytes read. */
   maxResponseBytes?: number
-  /** Maximum official URL length accepted by the direct fetcher. */
-  maxUrlLength?: number
   /** Maximum decoded official response characters. */
   maxBodyChars?: number
   /** Same-origin redirect ceiling. */
@@ -54,7 +52,6 @@ export const Config: s<Config> = s.object({
   cacheTtlMs: s.number().default(86_400_000),
   fetchTimeoutMs: s.number().default(15_000),
   maxResponseBytes: s.number().default(2_000_000),
-  maxUrlLength: s.number().default(2_048),
   maxBodyChars: s.number().default(120_000),
   maxRedirects: s.number().default(3),
 })
@@ -101,12 +98,10 @@ export class XiaojingFinanceEvidence extends Service {
     const cacheTtlMs = positiveInteger('cacheTtlMs', resolved.cacheTtlMs)
     const fetchTimeoutMs = positiveInteger('fetchTimeoutMs', resolved.fetchTimeoutMs)
     const maxResponseBytes = positiveInteger('maxResponseBytes', resolved.maxResponseBytes)
-    const maxUrlLength = positiveInteger('maxUrlLength', resolved.maxUrlLength)
     const maxBodyChars = positiveInteger('maxBodyChars', resolved.maxBodyChars)
     const maxRedirects = nonNegativeInteger('maxRedirects', resolved.maxRedirects)
     this.cache = new FinanceEvidenceCache(resolveDshHome(resolved.dshHome), maxCacheEntries, cacheTtlMs)
     const fetcher = new HttpFetchProvider({
-      maxUrlLength,
       maxResponseBytes,
       maxBodyChars,
       timeoutMs: fetchTimeoutMs,

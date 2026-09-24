@@ -20,6 +20,15 @@ interface ProductRelease {
  */
 export const XIAOJING_RELEASE_HISTORY = [
   {
+    version: '0.3.1',
+    features: [
+      { label: '底座', copyKey: 'featureHarnessPlugins' },
+      { label: '文件', copyKey: 'featureHarnessChanges' },
+      { label: '预览', copyKey: 'featureHarnessOfficePreview' },
+      { label: '模型', copyKey: 'featureFlash41' },
+    ],
+  },
+  {
     version: '0.2.4',
     features: [
       { label: 'F2', copyKey: 'featureFinanceYouchengCore' },

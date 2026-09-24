@@ -1,30 +1,42 @@
 // @vitest-environment jsdom
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { Context } from '@deepseek-ai/cordis'
 import { SettingsSchemaService } from '@deepseek-ai/dsh-client-ui-settings/src/client/schema.ts'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
 import { SettingsScopeController } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-scope.ts'
 
+// Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
+
 /** Stateless schema service for scope construction in this jsdom fixture. */
 const schemaService = new SettingsSchemaService(new Context())
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
-import type { WelcomeNoticeProps } from '../src/client/WelcomeNotice.tsx'
+import type { OnboardingContentOwnerProps, WelcomeNoticeProps } from '../src/client/WelcomeNotice.tsx'
 import { decodeWelcomeSection, WelcomeNoticeStore } from '../src/client/welcome-store.ts'
 import type { WelcomeSection } from '../src/client/welcome-store.ts'
 import { en, zh } from '../src/client/locales.ts'
 import {
-  WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_COPY, WELCOME_NOTICE_SETTINGS_NAMESPACE, WELCOME_NOTICE_VERSION,
+  WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE,
+  WELCOME_NOTICE_VERSION,
 } from '../src/onboarding-copy.ts'
+
+const WELCOME_NOTICE_COPY = {
+  en: { title: en.welcomeTitle, body: en.welcomeBody, continueLabel: en.welcomeContinue },
+  zh: { title: zh.welcomeTitle, body: zh.welcomeBody, continueLabel: zh.welcomeContinue },
+}
 
 afterEach(() => {
   cleanup()
   document.getElementById('root')?.remove()
 })
 
-function response<T>(value: T) {
-  return { rpcId: 'welcome-rpc' as never, result: { ok: true as const, value } }
+/** The settings namespace answers over the Remote carrier, which has no envelope. */
+function remoteAnswer<T>(value: T) {
+  return { ok: true as const, value }
 }
 
 function welcomeView(value: unknown, revision = 0) {
@@ -40,10 +52,15 @@ function welcomeView(value: unknown, revision = 0) {
   }
 }
 
+type AttentionSnapshot = Parameters<Parameters<WelcomeNoticeProps['useSessionStatus']>[0]>[0]
+const noAttention: AttentionSnapshot = new Map()
+const useSessionStatus: WelcomeNoticeProps['useSessionStatus'] = selector => selector(noAttention)
+
 function mount(
   version?: string,
   mutateImpl: () => Promise<unknown> = () =>
-    Promise.resolve(response(welcomeView({ [WELCOME_NOTICE_ACK_FIELD]: WELCOME_NOTICE_VERSION }, 1))),
+    Promise.resolve(remoteAnswer(welcomeView({ [WELCOME_NOTICE_ACK_FIELD]: WELCOME_NOTICE_VERSION }, 1))),
+  renderSlot: WelcomeNoticeProps['renderSlot'] = (_name, _owner, options) => options?.fallback ?? null,
 ) {
   const appRoot = document.createElement('div')
   appRoot.id = 'root'
@@ -51,7 +68,7 @@ function mount(
   const mutate = vi.fn(mutateImpl)
   const api = {
     settings: {
-      describe: () => Promise.resolve(response({
+      describe: () => Promise.resolve(remoteAnswer({
         writable: true,
         hasDocument: false,
         namespaces: [welcomeView(version === undefined ? {} : { [WELCOME_NOTICE_ACK_FIELD]: version })],
@@ -59,9 +76,10 @@ function mount(
       mutate,
     },
   }
-  const mirror = new SettingsDescribeMirror(api as never)
+  const ctx = { remote: api } as never
+  const mirror = new SettingsDescribeMirror(ctx)
   const scope = new SettingsScopeController<WelcomeSection>(
-    api as never,
+    ctx,
     { namespace: WELCOME_NOTICE_SETTINGS_NAMESPACE, decode: decodeWelcomeSection },
     mirror,
     'host',
@@ -76,11 +94,13 @@ function mount(
     complete,
     openSection: vi.fn(),
     useSessions: unusedHook,
+    useSessionStatus,
+    usePanelInfo, useSessionRetainInfo: () => undefined, useResource,
     useWorkspaces: unusedHook,
     controller,
+    renderSlot,
     useWelcome: bindSnapshotSelector(controller.store),
     t: key => zh[key],
-    renderSlot: ((_key, _owner, options) => options?.fallback ?? null) as WelcomeNoticeProps['renderSlot'],
   }
   return { ...render(<WelcomeNotice {...props} />), complete, controller, mirror, mutate, appRoot }
 }
@@ -123,6 +143,20 @@ describe('WelcomeNotice', () => {
     expect(h.complete).toHaveBeenCalledOnce()
   })
 
+  it('gives a product dialog the shared acknowledgement lifecycle instead of the default notice', async () => {
+    const h = mount(undefined, undefined, ((_name: 'onboarding.content', owner: OnboardingContentOwnerProps) => (
+      <button disabled={owner.saving} onClick={() => { void owner.acknowledge() }}>
+        Product welcome
+      </button>
+    )) as WelcomeNoticeProps['renderSlot'])
+    const action = await screen.findByRole('button', { name: 'Product welcome' })
+    expect(screen.queryByText(zh.welcomeBody)).toBeNull()
+    fireEvent.click(action)
+    await act(async () => { await Promise.resolve() })
+    expect(h.mutate).toHaveBeenCalledOnce()
+    expect(h.complete).toHaveBeenCalledOnce()
+  })
+
   it('skips itself when this exact version was already acknowledged', async () => {
     const h = mount(WELCOME_NOTICE_VERSION)
     await act(async () => {
@@ -142,15 +176,8 @@ describe('WelcomeNotice', () => {
     fireEvent.click(action)
     expect(action.disabled).toBe(true)
     resolveWrite({
-      rpcId: 'welcome-refused' as never,
-      result: {
-        ok: false,
-        error: {
-          code: 'settings-rejected',
-          message: 'read only',
-          details: { ns: WELCOME_NOTICE_SETTINGS_NAMESPACE },
-        },
-      },
+      ok: false,
+      error: new RemoteError('settings/rejected', 'read only', { ns: WELCOME_NOTICE_SETTINGS_NAMESPACE }),
     })
     expect((await screen.findByRole('alert')).textContent).toBe(zh.welcomeError)
     expect(h.complete).not.toHaveBeenCalled()

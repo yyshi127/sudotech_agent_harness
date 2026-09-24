@@ -7,6 +7,7 @@ const identity = JSON.parse(await readFile(join(appRoot, 'identity.json'), 'utf8
 const integration = JSON.parse(await readFile(join(appRoot, 'integration-patches.json'), 'utf8'))
 const manifest = JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8'))
 const installer = await readFile(join(appRoot, 'build', 'installer.nsh'), 'utf8')
+const shortcutInstaller = await readFile(join(appRoot, 'build', 'installer-shortcuts.nsh'), 'utf8')
 const installerProductLogo = await readFile(join(appRoot, 'build', 'installer-product-logo.bmp'))
 const installerProductLogoSmall = await readFile(join(appRoot, 'build', 'installer-product-logo-small.bmp'))
 const installerCompanyLogo = await readFile(join(appRoot, 'build', 'installer-company-logo.bmp'))
@@ -81,6 +82,7 @@ const checks = [
   ['package name', manifest.name, identity.packageName],
   ['app id', manifest.build?.appId, identity.appId],
   ['NSIS GUID', manifest.build?.nsis?.guid, identity.nsisGuid],
+  ['installer icon', manifest.build?.nsis?.installerIcon, 'build/installer-runtime-icon.ico'],
   ['product name', manifest.build?.productName, identity.productName],
   ['executable name', manifest.build?.win?.executableName, identity.executableName],
   ['shortcut name', manifest.build?.nsis?.shortcutName, identity.shortcutName],
@@ -114,6 +116,18 @@ if (!installer.includes(`!define APP_FILENAME "${identity.installDirectoryName}"
 if (!installer.includes('${isUpdated}')) {
   throw new Error('installer must skip directory selection during an in-place update')
 }
+if (!installer.includes('!include "${BUILD_RESOURCES_DIR}\\installer-shortcuts.nsh"')
+  || !/!macro customInstall\s+[\s\S]*!insertmacro xiaojingRefreshShortcutIcons[\s\S]*Call xiaojingFinalizeInstallSection/.test(installer)
+  || !shortcutInstaller.includes('${StdUtils.HashFile} $R0 "SHA2-256"')
+  || !shortcutInstaller.includes('!insertmacro xiaojingRefreshShortcut "$newDesktopLink" "$R1"')
+  || !shortcutInstaller.includes('!insertmacro xiaojingRefreshShortcut "$newStartMenuLink" "$R1"')
+  || !shortcutInstaller.includes('WinShell::SetLnkAUMI')
+  || !shortcutInstaller.includes('SHChangeNotify(i 0x2000, i 0x1005')) {
+  throw new Error('installer must refresh both shortcut icons and notify Windows before reporting success')
+}
+if (!(await readFile(join(appRoot, 'build', 'app-icon.png'))).equals(await readFile(join(appRoot, 'assets', 'windows-icon.png')))) {
+  throw new Error('Windows executable and window icons differ; run prepare:icons')
+}
 if (!installer.includes('!macro customWelcomePage')
   || !installer.includes('StrCpy $isForceCurrentInstall "1"')
   || !installer.includes('!macro customFinishPage')
@@ -136,36 +150,44 @@ if (!manifest.build?.extraResources?.some(resource => resource.from === 'build/i
   throw new Error('installer internal-use notice must remain available under resources/legal')
 }
 if (!installer.includes('installer-product-logo.bmp')
-  || !installer.includes('installer-product-logo-small.bmp')
-  || !installer.includes('installer-company-logo.bmp')
   || installerProductLogo.subarray(0, 2).toString('ascii') !== 'BM'
   || installerProductLogoSmall.subarray(0, 2).toString('ascii') !== 'BM'
   || installerCompanyLogo.subarray(0, 2).toString('ascii') !== 'BM') {
   throw new Error('installer brand bitmaps are missing or invalid')
 }
-if (installerProductLogoSmall.readUInt32LE(18) !== 72
+if (installerProductLogo.readUInt32LE(18) !== 480
+  || installerProductLogo.readUInt32LE(22) !== 400
+  || installerProductLogoSmall.readUInt32LE(18) !== 72
   || installerProductLogoSmall.readUInt32LE(22) !== 72
   || installerCompanyLogo.readUInt32LE(18) !== 110
   || installerCompanyLogo.readUInt32LE(22) !== 28) {
-  throw new Error('installer dialog and company logos must retain their compact presentation sizes')
+  throw new Error('installer artwork, cancellation, and company bitmaps must match their presentation sizes')
 }
 assertWhiteBmpBorder(installerCompanyLogo, 'installer company logo')
 if (!installer.includes('!define MUI_CUSTOMFUNCTION_ABORT xiaojingInstallerAbortRequested')
   || !installer.includes('!macro customInstall')
   || !installer.includes('确定取消安装？')
-  || !installer.includes('取消安装')
-  || !installer.includes('继续安装')
   || !installer.includes('更新开始后无法取消')
   || !installer.includes('为保护原版本，请等待本次更新完成。')
   || !installer.includes('${ifNot} ${isUpdated}')
   || !installer.includes('IfFileExists "$INSTDIR" xiaojingPrepareCancellationDone')
   || !installer.includes('xiaojingStartFreshCancel')
   || !installer.includes('installer-cancel-helper.ps1')
-  || !installer.includes('xiaojingWaitForCancelDecision')
   || !installer.includes('SetErrorLevel 1602')
+  || !installer.includes('Call muiPageLoadFullWindow')
+  || !installer.includes('ShowWindow $mui.InstFilesPage.Log ${SW_HIDE}')
+  || !installer.includes('正在安装小兢会计，请稍候…')
+  || !installer.includes('xiaojing-company-logo.bmp')
+  || !installer.includes('${NSD_SetStretchedImage} $xiaojingProgressProductControl')
+  || !/CreateWindowExW\([^\n]+p \$mui\.InstFilesPage[^\n]+\) p \.r0'[\s\S]+StrCpy \$xiaojingProgressProductControl \$0/.test(installer)
+  || !installer.includes('StrCpy $R4 820')
+  || !installer.includes('StrCpy $R5 680')
+  || installer.includes('Function xiaojingRestoreNativeInstallerWindow')
+  || installer.includes('USER32::GetMessageW')
+  || installer.includes('xiaojingCancelMessageLoop')
   || !installerCancelHelper.includes("-cne 'xiaojing-agent-desktop'")
   || !installerCancelHelper.includes('Wait-Process -Timeout 30')) {
-  throw new Error('installer must cancel fresh installs externally and prevent cancellation after an update starts')
+  throw new Error('installer must retain the branded progress layout, use native cancellation prompts, and prevent cancellation after an update starts')
 }
 if (installer.includes('xiaojingScheduleRollback')
   || installer.includes('APP_INSTALLER_STORE_FILE')

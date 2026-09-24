@@ -1,9 +1,12 @@
 /**
  * Child-process entry for the Win32 folder dialog: blocks THIS process
  * inside the modal `Show` so the host event loop stays live, reporting over
- * the IPC channel. Spawned as a child process (not a worker thread); the
- * dialog binds the current foreground window as its modal owner. Protocol:
- * `{kind:'showing',threadId}` right
+ * the IPC channel. Spawned as a child process (not a worker thread) so a
+ * native fault stays contained and the modal call never wedges the host.
+ * A background host (the web GUI server) leaves this process without
+ * foreground rights, so `runFolderDialog` synthesizes an Alt press
+ * immediately before `Show` and the dialog then activates as foreground.
+ * Protocol: `{kind:'showing',threadId}` right
  * before the blocking call (the driver's abort lever needs the native
  * thread id), then exactly one of `{kind:'done',path}` or
  * `{kind:'error',message}`.
@@ -12,8 +15,13 @@
 import { loadWin32DialogBindings } from './win32-dialog-bindings.ts'
 import { runFolderDialog } from './win32-dialog-logic.ts'
 
-/** The driver-to-child payload: the dialog title (passed via env). */
-export interface Win32DialogWorkerData { title: string }
+/** The driver-to-child payload passed through the worker environment. */
+export interface Win32DialogWorkerData {
+  /** Dialog title text. */
+  title: string
+  /** Optional absolute directory shown when the picker opens. */
+  initialPath?: string
+}
 
 /** One notice or outcome posted back to the driver. */
 export type Win32DialogWorkerMessage =
@@ -22,6 +30,7 @@ export type Win32DialogWorkerMessage =
   | { kind: 'error'; message: string }
 
 const title = process.env.DSH_DIALOG_TITLE ?? ''
+const initialPath = process.env.DSH_DIALOG_INITIAL_PATH || undefined
 if (title === '') throw new Error('win32-dialog-worker: DSH_DIALOG_TITLE is required')
 if (process.send === undefined) throw new Error('win32-dialog-worker must run as a child process with an IPC channel')
 // node's internal `send` reads `this.connected`, so bind the receiver.
@@ -43,7 +52,7 @@ void (async () => {
     const bindings = await loadWin32DialogBindings()
     const path = runFolderDialog(bindings, title, (threadId) => {
       post({ kind: 'showing', threadId } satisfies Win32DialogWorkerMessage)
-    })
+    }, initialPath)
     post({ kind: 'done', path } satisfies Win32DialogWorkerMessage)
   } catch (error: unknown) {
     const message = error instanceof Error ? (error.stack ?? error.message) : String(error)

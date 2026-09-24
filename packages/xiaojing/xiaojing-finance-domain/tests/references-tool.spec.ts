@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import * as plugin from '../src/references-tool.ts'
@@ -24,11 +24,11 @@ it('registers reversibly, refuses unbound calls and preserves exact selectors', 
     const agent = { ctx } as Agent
     const signal = new AbortController().signal
     const args = { kind: 'auxiliary-items', categoryCode: '01', name: '同名候选' }
-    const result = await ctx.tools.execute({ callId: CallId('reference'), name: 'finance_references', arguments: args, agent, signal })
+    const result = await ctx.tools.execute({ callId: ToolCallId('reference'), name: 'finance_references', arguments: args, agent, signal })
     expect(result.isError).toBe(false)
     expect(queryReferences).toHaveBeenCalledWith(agent, args, signal)
     for (const request of [{ arguments: { kind: 'subjects' } }, { agent, arguments: { kind: 'auxiliary-items' } }]) {
-      expect((await ctx.tools.execute({ callId: CallId('invalid'), name: 'finance_references', signal, ...request })).isError).toBe(true)
+      expect((await ctx.tools.execute({ callId: ToolCallId('invalid'), name: 'finance_references', signal, ...request })).isError).toBe(true)
     }
     expect(queryReferences).toHaveBeenCalledTimes(1)
     await fiber.dispose()

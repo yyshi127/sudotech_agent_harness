@@ -1,13 +1,17 @@
 /** Xiaojing Finance client-management settings, workspace category, hero context, and session label. */
 
-import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import type { ClientContext, SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { WorkspaceCategoryProvider } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import financeClientsRemote from '@deepseek-ai/dsh-xiaojing-finance-domain/remote'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain/remote'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
+import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -23,6 +27,7 @@ import { FinanceClientDetailsOverlay, type FinanceClientDetailsOverlayInjected }
 import { FinanceContextLabel } from './FinanceContextLabel.tsx'
 import { FinanceHeroContext, type FinanceHeroContextInjected } from './FinanceHeroContext.tsx'
 import { PublishedFile } from './PublishedFile.tsx'
+import { FinanceToolCard } from './FinanceToolCard.tsx'
 import { publishedFileDefinition } from './published-file.ts'
 import type {
   FinanceSessionContextView,
@@ -50,6 +55,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 const NS = 'finance.clients'
 const BLOCK_OWNER = '@deepseek-ai/dsh-client-ui-xiaojing-finance-clients'
+const FINANCE_TOOL_NAMES = [
+  'finance_balances', 'finance_files', 'finance_references', 'finance_journals',
+  'finance_open_items', 'finance_open_item_analysis', 'finance_open_item_accounts',
+  'finance_vouchers', 'finance_voucher_detail', 'finance_prepare_voucher',
+  'finance_create_voucher', 'finance_prepare_voucher_deletion', 'finance_delete_voucher',
+  'finance_prepare_journal', 'finance_create_journal',
+  'finance_prepare_journal_deletion', 'finance_delete_journal',
+  'finance_prepare_master_data', 'finance_create_master_data',
+  'finance_prepare_open_item', 'finance_create_open_item',
+  'finance_prepare_open_item_deletion', 'finance_delete_open_item',
+  'finance_prepare_open_item_write_off', 'finance_write_off_open_item',
+] as const
 
 /** Required service used to mount the product-only Finance Remote contribution. */
 export const inject = ['remote']
@@ -60,22 +77,36 @@ export async function apply(ctx: ClientContext): Promise<void> {
   await ctx.remote.$mount(financeClientsRemote)
   ctx.inject(
     [
-      'slots', 'remote.financeClients', 'locale', 'sessions', 'conversation',
-      'connection', 'workspaces', 'workspaceCategories', 'conversationEvents',
+      'slots', 'remote.financeClients', 'remote.agentPresets', 'locale', 'sessions', 'conversation',
+      'workspaces', 'uiWorkspace', 'workspaceCategories', 'uiConversation', 'layout',
     ],
     registerFinanceClientSurfaces,
   )
 }
 
 function registerFinanceClientSurfaces(ctx: ClientContext): void {
+  const lifetime = new AbortController()
+  ctx.effect(() => () => { lifetime.abort() }, 'ui-xiaojing-finance-clients: navigation lifetime')
+  const beginNavigation = (): AbortSignal => AbortSignal.any([ctx.layout.beginNavigation(), lifetime.signal])
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-xiaojing-finance-clients: dictionaries')
+  for (const toolName of FINANCE_TOOL_NAMES) {
+    ctx.slots.inject('tool.call.toolview', () => ctx.slots.register(
+      { name: 'tool.call.toolview', key: toolName, locale: NS }, FinanceToolCard,
+    ))
+  }
 
   const controller = new FinanceClientsController(ctx.remote.financeClients)
-  const connection = ctx.get('connection') as ConnectionHandle
-  ctx.conversationEvents.register(publishedFileDefinition)
+  const isLoopback = ctx.remote.$host.isLoopback
+  const mainSession = () => Object.values(ctx.sessions.list.getSnapshot().byId)
+    .find(summary => (summary.retainedBy.mainView ?? 0) > 0)
+  const presetOf = (summary: ReturnType<typeof mainSession>): string | undefined => {
+    const value = summary?.projectionValues?.agentPreset
+    return typeof value === 'string' ? value : undefined
+  }
+  ctx.effect(() => ctx.uiConversation.events.register(publishedFileDefinition), 'ui-xiaojing-finance-clients: publication node')
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node', key: 'finance-published-file', locale: NS,
-    inject: () => ({ canOpen: connection.isLoopback }),
+    inject: () => ({ canOpen: isLoopback }),
   }, PublishedFile))
   const t = ctx.locale.bind(NS)
   const unwrap = async <T>(pending: Promise<RemoteResult<T>>): Promise<T> => {
@@ -83,7 +114,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     if (!result.ok) throw new Error(result.error.message)
     return result.value
   }
-  if (connection.isLoopback) {
+  if (isLoopback) {
     const attachmentActions: AttachmentStorageSectionInjected = {
       load: () => unwrap(ctx.remote.financeClients.readAttachmentStorage()),
       save: request => unwrap(ctx.remote.financeClients.saveAttachmentStorage(request)),
@@ -99,7 +130,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
   const sessionContext = controller.sessionContext.bind(controller)
   ctx.effect(() => ctx.on('xiaojing-finance/local-file-prepare', async (request) => {
     const summary = ctx.sessions.list.getSnapshot().byId[request.sessionId]
-    if (summary !== undefined && summary.agentPreset !== 'finance') return undefined
+    if (summary !== undefined && summary.projectionValues?.agentPreset !== 'finance') return undefined
     const context = await controller.sessionContext(request.sessionId)
     if (context.state === 'not-finance') return undefined
     const uploaded = await request.upload()
@@ -123,26 +154,27 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
   }
   const selectPreset = async (sessionId: SessionId, agentPreset: string): Promise<void> => {
     const summary = ctx.sessions.list.getSnapshot().byId[sessionId]
-    if (summary?.agentPreset === agentPreset) return
-    const response = await connection.api.agentPresets.select({ sessionId, agentPreset })
-    if (!response.result.ok) throw new Error(response.result.error.message)
-    ctx.sessions.noteAgentPreset(sessionId, response.result.value.agentPreset)
+    if (summary?.projectionValues?.agentPreset === agentPreset) return
+    const response = await ctx.remote.agentPresets.select(sessionId, agentPreset)
+    if (!response.ok) throw new Error(response.error.message)
   }
   const enterFinanceWorkspace = async (
     entry: FinanceWorkspaceEntry,
     request: StageFinanceClientRequest,
+    navigation: AbortSignal,
   ): Promise<FinanceSessionContextView> => {
     if (!entry.startable) throw new Error('Archived customer workspaces cannot start new sessions')
-    const sessionId = await ctx.workspaces.connectWorkspace(entry.workspaceId)
+    const sessionId = await ctx.uiWorkspace.connectWorkspace(entry.workspaceId)
     await selectPreset(sessionId, 'finance')
     const context = await controller.stage(sessionId, request)
-    ctx.sessions.open(sessionId)
+    if (!navigation.aborted) ctx.uiWorkspace.openSession(sessionId)
     return context
   }
   const stage = async (
     sessionId: SessionId,
     request: StageFinanceClientRequest,
   ): Promise<FinanceSessionContextView> => {
+    const navigation = beginNavigation()
     const workspaces = await workspaceState()
     if (request.mode === 'general') {
       const listedWorkspaceIds = new Set(workspaces.listedWorkspaceIds)
@@ -153,11 +185,11 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
         ?? [workspaces.standard, ...workspaces.consultations]
           .find(candidate => listedWorkspaceIds.has(candidate.workspaceId))
       if (entry === undefined) throw new Error('Finance requires at least one consultation workspace')
-      return await enterFinanceWorkspace(entry, request)
+      return await enterFinanceWorkspace(entry, request, navigation)
     }
     const entry = workspaces.clients.find(candidate => candidate.clientId === request.clientId)
     if (entry === undefined) throw new Error('The selected customer workspace is unavailable')
-    return await enterFinanceWorkspace(entry, request)
+    return await enterFinanceWorkspace(entry, request, navigation)
   }
   const setBlocked = (sessionId: SessionId, reason: string | undefined): void => {
     ctx.conversation.blocks.setOwned(BLOCK_OWNER, sessionId, reason === undefined ? undefined : { reason })
@@ -189,7 +221,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
             : t(`connection.${status.failure}`)
           return [{
             workspaceId: entry.workspaceId,
-            ...(!connection.isLoopback || !entry.startable ? {} : {
+            ...(!isLoopback || !entry.startable ? {} : {
               actionLabel: `${t(status.state === 'checking' ? 'connectionChecking'
                 : status.state === 'connected' ? 'connectionReconnect' : 'connectionConnect')} · ${entry.title} · ID ${status.accountId}`,
             }),
@@ -212,6 +244,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
               .filter(entry => listedWorkspaceIds.has(entry.workspaceId))
               .map(entry => entry.workspaceId) ?? [],
             addLabel: t('addClientWorkspace'),
+            ...(workspaces === null ? {} : { initialPath: workspaces.workspaceRoot }),
           },
           {
             id: 'consultations',
@@ -223,6 +256,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
                 .filter(entry => listedWorkspaceIds.has(entry.workspaceId))
                 .map(entry => entry.workspaceId),
             addLabel: t('addConsultationWorkspace'),
+            ...(workspaces === null ? {} : { initialPath: workspaces.workspaceRoot }),
           },
         ],
       }
@@ -230,7 +264,9 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     subscribe: listener => controller.store.subscribe(listener),
   }
   const activateCategory = async (workspaceId?: WorkspaceId): Promise<void> => {
+    const navigation = beginNavigation()
     const workspaces = await workspaceState()
+    if (navigation.aborted) return
     const listedWorkspaceIds = new Set(workspaces.listedWorkspaceIds)
     const entry = workspaceId === undefined
       ? [workspaces.standard, ...workspaces.consultations]
@@ -241,7 +277,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     const request: StageFinanceClientRequest = entry.kind === 'client'
       ? { mode: 'client', clientId: entry.clientId }
       : { mode: 'general' }
-    await enterFinanceWorkspace(entry, request)
+    await enterFinanceWorkspace(entry, request, navigation)
   }
   ctx.effect(() => ctx.workspaceCategories.register({
     id: 'finance',
@@ -271,12 +307,12 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     },
     activateWorkspaceBadge: async (workspaceId) => {
       const entry = controller.store.getSnapshot().workspaces?.clients.find(item => item.workspaceId === workspaceId)
-      if (connection.isLoopback && entry?.startable && entry.connection !== undefined) {
+      if (isLoopback && entry?.startable && entry.connection !== undefined) {
         await controller.checkConnection(entry.clientId)
       }
     },
     removeWorkspace: async (workspaceId) => {
-      const currentSessionId = ctx.sessions.list.getSnapshot().current
+      const currentSessionId = mainSession()?.id
       const currentWorkspaceId = currentSessionId === undefined
         ? undefined
         : ctx.workspaces.list.getSnapshot().items
@@ -293,12 +329,12 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     let previousOrdinaryWorkspaceId: WorkspaceId | undefined
 
     const reconcile = async (): Promise<void> => {
-      const sessionState = ctx.sessions.list.getSnapshot()
-      const sessionId = sessionState.current
+      const summary = mainSession()
+      const sessionId = summary?.id
       if (sessionId === undefined) return
-      const summary = sessionState.byId[sessionId]
       if (summary === undefined) return
-      ctx.workspaceCategories.setPickerCategory(summary.agentPreset === 'finance' ? 'finance' : undefined)
+      const agentPreset = presetOf(summary)
+      ctx.workspaceCategories.setPickerCategory(agentPreset === 'finance' ? 'finance' : undefined)
       if (!summary.blank) return
       const workspaces = controller.store.getSnapshot().workspaces
       if (workspaces === null) return
@@ -309,24 +345,25 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
       const currentWorkspaceId = workspaceItems
         .find(workspace => workspace.sessionIds.includes(sessionId))?.workspaceId
 
-      if (summary.agentPreset === 'finance'
+      if (agentPreset === 'finance'
         && (currentWorkspaceId === undefined || !listedFinanceIds.has(currentWorkspaceId))) {
         if (currentWorkspaceId !== undefined) previousOrdinaryWorkspaceId = currentWorkspaceId
         await activateCategory()
         return
       }
-      if (summary.agentPreset === 'finance' || currentWorkspaceId === undefined || !financeIds.has(currentWorkspaceId)) return
+      if (agentPreset === 'finance' || currentWorkspaceId === undefined || !financeIds.has(currentWorkspaceId)) return
 
       const ordinaryWorkspace = workspaceItems.find(workspace =>
         workspace.workspaceId === previousOrdinaryWorkspaceId && !financeIds.has(workspace.workspaceId))
         ?? workspaceItems.find(workspace => !financeIds.has(workspace.workspaceId))
       if (ordinaryWorkspace === undefined) {
-        ctx.sessions.clear()
+        ctx.uiWorkspace.clearSession()
         return
       }
-      const targetSessionId = await ctx.workspaces.connectWorkspace(ordinaryWorkspace.workspaceId)
-      if (summary.agentPreset !== undefined) await selectPreset(targetSessionId, summary.agentPreset)
-      ctx.sessions.open(targetSessionId)
+      const navigation = beginNavigation()
+      const targetSessionId = await ctx.uiWorkspace.connectWorkspace(ordinaryWorkspace.workspaceId)
+      if (agentPreset !== undefined) await selectPreset(targetSessionId, agentPreset)
+      if (!navigation.aborted) ctx.uiWorkspace.openSession(targetSessionId)
     }
 
     const schedule = (): void => {
@@ -352,7 +389,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     const disposeFinance = controller.store.subscribe(schedule)
     const disposePresetStage = ctx.on('agent-preset/staged', (agentPreset) => {
       ctx.workspaceCategories.setPickerCategory(agentPreset === 'finance' ? 'finance' : undefined)
-      if (agentPreset !== 'finance' || ctx.sessions.list.getSnapshot().current !== undefined) return
+      if (agentPreset !== 'finance' || mainSession() !== undefined) return
       void activateCategory().catch((reason: unknown) => {
         console.warn('Finance workspace activation failed:', reason)
       })

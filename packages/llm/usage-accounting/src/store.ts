@@ -11,6 +11,9 @@ import type { UsageAccountingDay, UsageAccountingSnapshot } from './types.ts'
 const SCHEMA_VERSION = 1
 const FILE_MODE = 0o600
 const DIR_MODE = 0o700
+const DEFAULT_MESSAGES_RECOVERY_MODEL = 'deepseek-flash'
+const DEFAULT_MESSAGES_RECOVERY_START = Date.parse('2026-09-14T00:00:00+08:00')
+const DEFAULT_MESSAGES_RECOVERY_PRICE_VERSION = 'deepseek-public-flash-2026-09-14'
 
 /** One immutable settlement persisted at the price version active for the request. */
 export interface UsageLedgerRecord extends UsageBuckets {
@@ -160,6 +163,36 @@ function render(ledger: UsageLedger): string {
   return `${JSON.stringify(ledger, null, 2)}\n`
 }
 
+function recoverDefaultMessagesRecord(
+  record: UsageLedgerRecord,
+  keyFingerprint: string,
+  priceTable: PriceTable,
+): UsageLedgerRecord | undefined {
+  if (record.keyFingerprint !== keyFingerprint
+    || record.model !== DEFAULT_MESSAGES_RECOVERY_MODEL
+    || Date.parse(record.occurredAt) < DEFAULT_MESSAGES_RECOVERY_START
+    || record.priceVersion !== null
+    || record.costNanoyuan !== '0'
+    || !COST_DETAIL_FIELDS.every(field => Object.hasOwn(record, field) && record[field] === null)) return undefined
+  const totalTokens = record.cacheHitInputTokens + record.cacheMissInputTokens
+    + record.outputTokens + record.cacheWriteTokens
+  if (!Number.isSafeInteger(totalTokens) || totalTokens === 0 || record.unpricedTokens !== totalTokens) return undefined
+  const priced = priceUsage(priceTable, record.model, record, Date.parse(record.occurredAt), true)
+  if (priced.priceVersion === null
+    || priced.cacheHitInputCostNanoyuan === null
+    || priced.cacheMissInputCostNanoyuan === null
+    || priced.outputCostNanoyuan === null) return undefined
+  return {
+    ...record,
+    priceVersion: priced.priceVersion,
+    cacheHitInputCostNanoyuan: String(priced.cacheHitInputCostNanoyuan),
+    cacheMissInputCostNanoyuan: String(priced.cacheMissInputCostNanoyuan),
+    outputCostNanoyuan: String(priced.outputCostNanoyuan),
+    costNanoyuan: String(priced.costNanoyuan),
+    unpricedTokens: priced.unpricedTokens,
+  }
+}
+
 /** Durable ledger rooted below the fixed Harness home. */
 export class UsageLedgerStore {
   /** Accounting storage directory. */
@@ -220,6 +253,7 @@ export class UsageLedgerStore {
    * @param revision - process-local committed revision exposed to the client.
    * @param now - timestamp selecting the current Beijing month and day.
    * @param priceTables - exact tariff versions allowed to recover legacy category costs.
+   * @param recoverDefaultMessagesHistory - whether to project rows affected by the default Messages classification defect.
    * @returns current-key monthly usage snapshot.
    */
   async snapshot(
@@ -227,37 +261,44 @@ export class UsageLedgerStore {
     revision: number,
     now = Date.now(),
     priceTables: readonly PriceTable[] = [],
+    recoverDefaultMessagesHistory = false,
   ): Promise<UsageAccountingSnapshot> {
     const ledger = parseLedger(await readFile(this.ledgerPath, 'utf8'), this.ledgerPath)
     const clock = beijingClock(now)
     const byDate = new Map<string, UsageAccountingDay>()
+    const defaultMessagesRecoveryTable = recoverDefaultMessagesHistory
+      ? priceTables.find(table => table.version === DEFAULT_MESSAGES_RECOVERY_PRICE_VERSION)
+      : undefined
     if (keyFingerprint !== undefined) {
       for (const record of ledger.records) {
         if (record.keyFingerprint !== keyFingerprint || !record.date.startsWith(`${clock.month}-`)) continue
+        const settled = defaultMessagesRecoveryTable === undefined
+          ? record
+          : recoverDefaultMessagesRecord(record, keyFingerprint, defaultMessagesRecoveryTable) ?? record
         const row = byDate.get(record.date) ?? emptyDay(record.date)
-        row.cacheHitInputTokens += record.cacheHitInputTokens
-        row.cacheMissInputTokens += record.cacheMissInputTokens
-        row.outputTokens += record.outputTokens
-        row.totalTokens += record.cacheHitInputTokens + record.cacheMissInputTokens
-          + record.outputTokens + record.cacheWriteTokens
-        const detail = resolvedCostDetail(record, priceTables)
+        row.cacheHitInputTokens += settled.cacheHitInputTokens
+        row.cacheMissInputTokens += settled.cacheMissInputTokens
+        row.outputTokens += settled.outputTokens
+        row.totalTokens += settled.cacheHitInputTokens + settled.cacheMissInputTokens
+          + settled.outputTokens + settled.cacheWriteTokens
+        const detail = resolvedCostDetail(settled, priceTables)
         row.cacheHitInputCostNanoyuan = addCostDetail(
           row.cacheHitInputCostNanoyuan,
           detail.cacheHitInputCostNanoyuan,
-          record.cacheHitInputTokens,
+          settled.cacheHitInputTokens,
         )
         row.cacheMissInputCostNanoyuan = addCostDetail(
           row.cacheMissInputCostNanoyuan,
           detail.cacheMissInputCostNanoyuan,
-          record.cacheMissInputTokens,
+          settled.cacheMissInputTokens,
         )
         row.outputCostNanoyuan = addCostDetail(
           row.outputCostNanoyuan,
           detail.outputCostNanoyuan,
-          record.outputTokens,
+          settled.outputTokens,
         )
-        row.costNanoyuan = String(BigInt(row.costNanoyuan) + BigInt(record.costNanoyuan))
-        row.unpricedTokens += record.unpricedTokens
+        row.costNanoyuan = String(BigInt(row.costNanoyuan) + BigInt(settled.costNanoyuan))
+        row.unpricedTokens += settled.unpricedTokens
         byDate.set(record.date, row)
       }
     }

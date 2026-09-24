@@ -32,6 +32,7 @@ ctx.provide('credentials', {
 ctx.provide('connection', {
   rpc: { handle: () => () => Promise.resolve() },
 } as never)
+ctx.provide('webServer', {} as never)
 let fiber: Awaited<ReturnType<typeof ctx.plugin>> | undefined
 try {
   await ctx.plugin(SystemPrompt)

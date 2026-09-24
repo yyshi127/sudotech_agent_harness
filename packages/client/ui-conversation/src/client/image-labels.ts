@@ -3,7 +3,6 @@
 import type { ImageAttachmentLimits } from '@deepseek-ai/dsh-attachment'
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationKey } from './locales.ts'
-import type { ImageIntakeFailure } from './service.ts'
 
 /**
  * Byte count as user-facing megabytes (`10MB`, `2.5MB`).
@@ -16,27 +15,9 @@ export function imageSizeText(bytes: number): string {
 }
 
 /**
- * Product copy for a browser-side image intake rejection.
- * @param t - the conversation-namespace translate.
- * @param error - stable shared-intake reason.
- * @returns localized banner text.
- */
-export function imageIntakeErrorText(
-  t: Translate<ConversationKey>,
-  error: ImageIntakeFailure,
-): string {
-  switch (error.reason) {
-    case 'unsupported-type': return t('image.unsupportedType')
-    case 'too-many': return t('image.tooMany', { count: error.limit })
-    case 'file-too-large': return t('image.fileTooLarge', { size: imageSizeText(error.limit) })
-    case 'total-too-large': return t('image.totalTooLarge', { size: imageSizeText(error.limit) })
-    case 'input-busy': return t('image.inputBusy')
-  }
-}
-
-/**
- * Product copy for a host attachment rejection (the `attachment-error`
- * `details.reason`). User-solvable reasons name the limit and the way out;
+ * Product copy for a host attachment rejection (the `details.reason` of
+ * `session/attachment-invalid` or `subagent/attachment-invalid`).
+ * User-solvable reasons name the limit and the way out;
  * reasons the user cannot act on fold into one send-failed line carrying the
  * reason code for a bug report.
  * @param t - the conversation-namespace translate.
@@ -51,7 +32,9 @@ export function attachmentErrorText(
 ): string {
   switch (reason) {
     case 'MODEL_DOES_NOT_SUPPORT_IMAGES': return t('image.modelUnsupported')
-    case 'SUBAGENT_IMAGE_UNSUPPORTED': return t('image.subagentUnsupported')
+    // A prompt cited a file the Host has no staged upload for (expired
+    // process, foreign id): solvable by re-adding the file.
+    case 'FILE_NOT_STAGED': return t('file.notStaged')
     case 'IMAGE_TOO_MANY_PIXELS': return t('image.tooManyPixels')
     case 'IMAGE_DIMENSION_TOO_LARGE':
       if (limits !== undefined) return t('image.dimensionTooLarge', { size: limits.maxImageDimension })

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { makeTranslate, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type {
-  SessionId, SessionListState, SessionSummary, SubagentCatalogSnapshot,
-} from '@deepseek-ai/dsh-client-runtime/client'
+  SessionListState, SessionSummary, SubagentCatalogSnapshot,
+} from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import {
   SubagentHeaderLineage, type SubagentHeaderLineageProps,
 } from '../src/client/SubagentHeaderLineage.tsx'
@@ -55,14 +56,14 @@ function props(
         title: '正在扫描项目文件',
         displayTitle: 'worker',
         running: true,
+        retainedBy: {},
         blank: false,
         updatedAt: Date.now(),
       },
     },
-    current: PARENT, phase: 'ready',
+    phase: 'ready',
     subagentsByParent: value === undefined ? nested : { [PARENT]: value, ...nested },
     jobsBySession: {},
-    currentAddress: undefined,
   } satisfies SessionListState
   function useSessions<T>(select: (snapshot: SessionListState) => T): T {
     return select(state)
@@ -71,6 +72,7 @@ function props(
     sessionId: PARENT,
     useSessions,
     openChild: vi.fn(),
+    openChildAside: vi.fn(),
     refresh: vi.fn(),
     setCatalogOpen: vi.fn(),
     lineageSessionId: PARENT,
@@ -84,6 +86,7 @@ function summary(id: SessionId, updatedAt: number): SessionSummary {
     id,
     displayTitle: id,
     running: false,
+    retainedBy: {},
     blank: false,
     updatedAt,
   }
@@ -162,6 +165,14 @@ describe('SubagentHeaderLineage', () => {
     expect(screen.queryByRole('button', { name: '展开 reviewer 的下级子代理' })).toBeNull()
     expect(screen.getByRole('treeitem', { name: /reviewer/ }).children).toHaveLength(2)
 
+    const sidebarButton = screen.getByRole('button', { name: '在侧边栏打开 worker' })
+    fireEvent.keyDown(sidebarButton, { key: 'Enter' })
+    fireEvent.click(sidebarButton)
+    expect(input.openChildAside).toHaveBeenCalledWith({
+      parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable',
+    })
+
+    hoverCatalog(trigger)
     fireEvent.click(screen.getByRole('treeitem', { name: /worker/ }))
     expect(input.openChild).toHaveBeenCalledWith({
       parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable',
@@ -228,33 +239,65 @@ describe('SubagentHeaderLineage', () => {
 
   it('opens only on hover and preserves the portaled-menu crossing grace', async () => {
     vi.useFakeTimers()
+    const advance = async (duration: number): Promise<void> => {
+      await act(async () => { await vi.advanceTimersByTimeAsync(duration) })
+    }
     const view = render(<SubagentHeaderLineage {...props(catalog())} />)
     const trigger = screen.getByRole('button', { name: /2 个子代理/ })
+    const triggerRect = vi.spyOn(trigger, 'getBoundingClientRect')
+      .mockReturnValue({ bottom: 40, left: 50 } as DOMRect)
 
     fireEvent.click(trigger)
     expect(screen.queryByRole('tree')).toBeNull()
 
     fireEvent.mouseEnter(trigger.parentElement!)
-    await vi.advanceTimersByTimeAsync(149)
+    await advance(149)
     expect(screen.queryByRole('tree')).toBeNull()
-    await vi.advanceTimersByTimeAsync(1)
+    await advance(1)
     const tree = screen.getByRole('tree')
+    expect(tree.style.top).toBe('45px')
+    expect(tree.style.left).toBe('50px')
+    triggerRect.mockReturnValue({ bottom: 60, left: 70 } as DOMRect)
     fireEvent.resize(window)
+    expect(tree.style.top).toBe('65px')
+    expect(tree.style.left).toBe('70px')
     fireEvent.mouseLeave(trigger.parentElement!)
     fireEvent.mouseEnter(tree)
-    await vi.advanceTimersByTimeAsync(120)
+    await advance(120)
     expect(screen.getByRole('tree')).toBeTruthy()
 
     fireEvent.mouseLeave(tree)
-    await vi.advanceTimersByTimeAsync(119)
+    await advance(119)
     expect(screen.getByRole('tree')).toBeTruthy()
-    await vi.advanceTimersByTimeAsync(1)
+    await advance(1)
     expect(screen.queryByRole('tree')).toBeNull()
 
     hoverCatalog(trigger)
     fireEvent.mouseLeave(trigger.parentElement!)
     view.unmount()
-    await vi.advanceTimersByTimeAsync(120)
+    await advance(120)
+  })
+
+  it('repositions an open catalog after viewport resize and document scroll', () => {
+    const view = render(<SubagentHeaderLineage {...props(catalog())} />)
+    const trigger = screen.getByRole('button', { name: /2 个子代理/ })
+    const bounds = vi.spyOn(trigger, 'getBoundingClientRect')
+    bounds.mockReturnValue({ bottom: 20, left: 30 } as DOMRect)
+    hoverCatalog(trigger)
+    const tree = screen.getByRole('tree')
+    expect(tree.style.top).toBe('25px')
+    expect(tree.style.left).toBe('30px')
+
+    bounds.mockReturnValue({ bottom: 70, left: 80 } as DOMRect)
+    act(() => { window.dispatchEvent(new Event('resize')) })
+    expect(tree.style.top).toBe('75px')
+    expect(tree.style.left).toBe('80px')
+
+    bounds.mockReturnValue({ bottom: 90, left: 100 } as DOMRect)
+    act(() => { document.dispatchEvent(new Event('scroll')) })
+    expect(tree.style.top).toBe('95px')
+    expect(tree.style.left).toBe('100px')
+    view.unmount()
   })
 
   it('cancels a pending hover when the trigger becomes hidden', async () => {
@@ -543,7 +586,7 @@ describe('SubagentHeaderLineage', () => {
     const failed = props(catalog({
       entries: [],
       state: 'error',
-      error: { code: 'internal', message: 'index down', details: {} },
+      error: new RemoteError('gateway/internal', 'index down', {}),
     }))
     render(<SubagentHeaderLineage {...failed} />)
     hoverCatalog(screen.getByRole('button', { name: /0 个子代理/ }))
@@ -737,7 +780,7 @@ describe('SubagentHeaderLineage', () => {
   it.each([
     ['ancestor', vi.fn()],
     ['current', undefined],
-  ] as const)('refreshes an absent %s switcher catalog without waiting for hover', (_kind, openTitle) => {
+  ] as const)('keeps an absent %s switcher catalog lazy until interaction', (_kind, openTitle) => {
     const input = {
       ...props(undefined, {}, {
         [CHILD]: {
@@ -751,7 +794,7 @@ describe('SubagentHeaderLineage', () => {
     }
     render(<SubagentHeaderLineage {...input} />)
 
-    expect(input.refresh).toHaveBeenCalledWith(PARENT)
+    expect(input.refresh).not.toHaveBeenCalled()
   })
 
   it('keeps a nested title switcher scoped to its direct-parent catalog', () => {

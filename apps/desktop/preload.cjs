@@ -1,7 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+// Match the native 40px overlay; the Web layout owns drag regions and panel insets.
+if (process.platform === 'win32' && !process.argv.includes('--xiaojing-companion')) {
+  const markTitlebar = () => {
+    document.documentElement.dataset.windowsTitlebar = ''
+    document.documentElement.style.setProperty('--dsh-windows-titlebar-height', '40px')
+  }
+  if (document.documentElement !== null) markTitlebar()
+  else window.addEventListener('DOMContentLoaded', markTitlebar, { once: true })
+}
+
 const channels = {
   applicationInfo: 'xiaojing-desktop:application-info',
+  directoryPick: 'dsh-desktop:directory-pick',
+  openPath: 'dsh-desktop:open-path',
   state: 'xiaojing-desktop:companion-state',
   wake: 'xiaojing-desktop:wake-companion',
   tuck: 'xiaojing-desktop:tuck-companion',
@@ -30,6 +42,15 @@ contextBridge.exposeInMainWorld('xiaojingDesktop', {
     return () => { ipcRenderer.removeListener(channels.changed, receive) }
   },
 })
+
+if (!process.argv.includes('--xiaojing-companion')) {
+  contextBridge.exposeInMainWorld('__DSH_DIRECTORY_PICKER__', {
+    pick: initialPath => ipcRenderer.invoke(channels.directoryPick, initialPath),
+  })
+  contextBridge.exposeInMainWorld('__DSH_OPEN_IN_APP__', {
+    openPath: path => ipcRenderer.invoke(channels.openPath, path),
+  })
+}
 
 if (process.argv.includes('--xiaojing-companion')) {
   let interactive = false

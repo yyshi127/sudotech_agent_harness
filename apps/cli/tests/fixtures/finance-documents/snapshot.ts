@@ -6,9 +6,9 @@ import { strToU8, zipSync } from 'fflate'
 import type { Context } from '@deepseek-ai/cordis'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { assembleContextFor, type Agent } from '@deepseek-ai/dsh-agent'
-import { boot, loadOverlayPatches, registerProfileModuleFallback } from '@deepseek-ai/dsh-app-boot'
+import { boot, healProfilesModuleFallback, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import {
   FinanceClientId,
@@ -111,7 +111,7 @@ async function executeChecked(
   args: Record<string, unknown>,
 ): Promise<string> {
   const result = await ctx.tools.execute({
-    callId: CallId(callId),
+    callId: ToolCallId(callId),
     name,
     arguments: args,
     signal: new AbortController().signal,
@@ -236,14 +236,14 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
     ])
     const [crossA, crossB] = await Promise.all([
       ctx.tools.execute({
-        callId: CallId('finance-stage1-cross-a'),
+        callId: ToolCallId('finance-stage1-cross-a'),
         name: 'finance_document',
         arguments: { action: 'read', document_id: clients[1].documentId, cursor: 0 },
         signal: new AbortController().signal,
         agent: clientA.agent,
       }),
       ctx.tools.execute({
-        callId: CallId('finance-stage1-cross-b'),
+        callId: ToolCallId('finance-stage1-cross-b'),
         name: 'finance_document',
         arguments: { action: 'read', document_id: clients[0].documentId, cursor: 0 },
         signal: new AbortController().signal,
@@ -341,13 +341,12 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
 
 await mkdir(dshHome, { recursive: true })
 await writeFile(join(dshHome, 'settings.yaml'), '{}\n')
-const unregisterModuleFallback = registerProfileModuleFallback(installAnchor, dshHome)
+await healProfilesModuleFallback({ installAnchor, home: dshHome })
 const ctx = await boot('finance-document-snapshot', rootConfig, [
   ...loadOverlayPatches('finance-document-snapshot', basePatch),
   ...loadOverlayPatches('finance-document-snapshot', webPatch),
   ...overrides,
 ], (bootCtx) => {
-  bootCtx.effect(() => unregisterModuleFallback)
   provideCmdline(bootCtx, { args: [], exit: () => {} })
 })
 
@@ -400,7 +399,7 @@ try {
         const schema = schemas.find(candidate => candidate.name === 'finance_calculation')
         if (schema === undefined) throw new Error('Finance calculation snapshot did not assemble finance_calculation')
         const result = await ctx.tools.execute({
-          callId: CallId('finance-calculation-snapshot'),
+          callId: ToolCallId('finance-calculation-snapshot'),
           name: 'finance_calculation',
           arguments: {
             calculation: 'vat',
@@ -471,14 +470,14 @@ try {
         const schema = schemas.find(candidate => candidate.name === 'finance_document')
         if (schema === undefined) throw new Error('Finance document snapshot did not assemble finance_document')
         const list = await ctx.tools.execute({
-          callId: CallId('finance-document-snapshot-list'),
+          callId: ToolCallId('finance-document-snapshot-list'),
           name: 'finance_document',
           arguments: { action: 'list' },
           signal: new AbortController().signal,
           agent: handle.agent,
         })
         const read = await ctx.tools.execute({
-          callId: CallId('finance-document-snapshot-read'),
+          callId: ToolCallId('finance-document-snapshot-read'),
           name: 'finance_document',
           arguments: { action: 'read', document_id: documentId, cursor: 0 },
           signal: new AbortController().signal,

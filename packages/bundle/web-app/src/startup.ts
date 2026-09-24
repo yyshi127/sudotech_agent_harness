@@ -6,6 +6,8 @@
  * @module @deepseek-ai/dsh-web-app/startup
  */
 
+import { mkdirSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
 import { Command } from 'commander'
 import type { Context } from '@deepseek-ai/cordis'
 import { parseCmdline } from '@deepseek-ai/dsh-cmdline'
@@ -21,6 +23,8 @@ export const WEB_STARTUP_SERVICE = 'webStartup'
 
 /** What the web rows read from {@link WEB_STARTUP_SERVICE}. */
 export interface WebStartupValues {
+  /** Existing Xiaojing Finance root prepared before Workspace policy activates. */
+  financeWorkspaceRoot?: string
   /** Whether this invocation opens the default browser after startup. */
   openBrowser: boolean
   /** `--host`, absent when the invocation did not name one. */
@@ -37,6 +41,20 @@ interface WebOptions {
   open: boolean
   port?: string
   trustedHost?: string[]
+}
+
+/**
+ * Create the product-owned Finance root before Workspace policy canonicalizes it.
+ * @returns the absolute root for Xiaojing, or undefined for other Client profiles.
+ */
+function prepareFinanceWorkspaceRoot(): string | undefined {
+  if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing') return undefined
+  const root = process.env.XIAOJING_FINANCE_WORKSPACE_ROOT ?? join(process.cwd(), 'Finance工作区')
+  if (!isAbsolute(root)) {
+    throw new Error(`web-startup: XIAOJING_FINANCE_WORKSPACE_ROOT must be absolute: ${root}`)
+  }
+  mkdirSync(root, { recursive: true })
+  return root
 }
 
 /**
@@ -77,7 +95,9 @@ export function apply(ctx: Context): void {
     if (options.port !== undefined && !/^\d+$/.test(options.port)) {
       program.error(`error: --port must be a number, got ${JSON.stringify(options.port)}`)
     }
+    const financeWorkspaceRoot = prepareFinanceWorkspaceRoot()
     ctx.provide(WEB_STARTUP_SERVICE, {
+      ...financeWorkspaceRoot !== undefined && { financeWorkspaceRoot },
       openBrowser: options.open,
       ...options.host !== undefined && { host: options.host },
       ...options.port !== undefined && { port: Number(options.port) },

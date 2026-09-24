@@ -18,7 +18,7 @@
 
 #### 模型看到的内容
 
-模型会看到 [`computer_control` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-xiaojing-computer-control)，其中要求仅在任务必须操作原生应用可见界面时使用本工具。应用尚未打开时，先通过 `list_apps` 获取不透明 `appId`，再用 `launch_app` 启动；应用已打开时，从 `list_windows` 开始，选择返回的 `windowId` 后调用 `observe`。模型只能执行目标 `actions` 中列出的操作，每次操作都会返回新的观察。
+模型会看到 `computer_control` schema，其中要求仅在任务必须操作原生应用可见界面时使用本工具。应用尚未打开时，先通过 `list_apps` 获取不透明 `appId`，再用 `launch_app` 启动；应用已打开时，从 `list_windows` 开始，选择返回的 `windowId` 后调用 `observe`。模型只能执行目标 `actions` 中列出的操作，每次操作都会返回新的观察。
 
 #### Token 影响
 

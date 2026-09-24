@@ -12,6 +12,8 @@
   ],
   "references": [
     { "path": "../../../vendor/cordis" },
+    { "path": "../../core/agent-default-model" },
+    { "path": "../../settings/settings" },
     { "path": "../../core/tools" },
     { "path": "../../interaction/user-approval" },
     { "path": "../../core/system-prompt" },

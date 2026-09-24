@@ -5,7 +5,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { apply, inject } from '../src/client/index.ts'
 import { BrowserControlController } from '../src/client/controller.ts'
@@ -21,7 +21,10 @@ afterEach(async () => {
 })
 
 const unusedHook = (() => { throw new Error('unused by browser-control settings') }) as never
-const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
+const kit = {
+  useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
+  useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
+}
 const t = (key: keyof typeof zh): string => zh[key]
 const DISCONNECTED = {
   managed: { enabled: true as const, running: false },

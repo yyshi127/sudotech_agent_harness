@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import * as plugin from '../src/open-item-write-off-tool.ts'
@@ -19,7 +19,7 @@ it('delegates separate write-off preparation and exact-version execution and unr
   try {
     const agent = { ctx } as Agent
     const signal = new AbortController().signal
-    const run = (args: object, bound = true) => ctx.tools.execute({ callId: CallId('write-off-preview'),
+    const run = (args: object, bound = true) => ctx.tools.execute({ callId: ToolCallId('write-off-preview'),
       name: 'finance_prepare_open_item_write_off', arguments: args, signal, ...(bound ? { agent } : {}) })
     for (const direction of ['receivable', 'payable']) {
       const args = { action: 'prepare', input: { direction, openItemId: '72606', cashAccountId: '174622',
@@ -32,7 +32,7 @@ it('delegates separate write-off preparation and exact-version execution and unr
     expect((await run({ action: 'execute', id: 'preview' })).isError).toBe(true)
     expect((await run({ action: 'prepare', input: { direction: 'both' } })).isError).toBe(true)
     expect(prepareOpenItemWriteOff).toHaveBeenCalledTimes(2)
-    const execute = (args: object, bound = true) => ctx.tools.execute({ callId: CallId('write-off-execute'),
+    const execute = (args: object, bound = true) => ctx.tools.execute({ callId: ToolCallId('write-off-execute'),
       name: 'finance_write_off_open_item', arguments: args, signal, ...(bound ? { agent } : {}) })
     const args = { id: 'prepared-operation', version: 2 }
     expect((await execute(args)).isError).toBe(false)

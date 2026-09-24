@@ -1,6 +1,6 @@
 /** Optional handoff from the shared local-file picker to Finance client storage. */
 
-import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 /** File metadata returned by the local upload service. */
 export interface LocalUploadedFile {

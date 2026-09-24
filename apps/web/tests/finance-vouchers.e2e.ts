@@ -5,13 +5,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-session-title'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 class VoucherAdapter extends LlmAdapter {
   constructor(readonly beyondLastPage = false, readonly withDetail = false,
@@ -25,14 +24,14 @@ class VoucherAdapter extends LlmAdapter {
         month: '2022-01', monthEnd: '2022-03', summary: '销售', pageSize: 2,
         ...this.beyondLastPage ? { page: 3 } : {},
       })
-      const id = CallId('voucher-query')
+      const id = ToolCallId('voucher-query')
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'finance_vouchers', argumentsDelta: args }
       yield { type: 'block-end', index: 0, block: { type: 'tool-call', id, name: 'finance_vouchers', arguments: args } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
     } else if (this.withDetail && this.calls === 2) {
       expect(JSON.stringify(options.messages)).toContain('voucher-1')
-      const id = CallId('voucher-detail')
+      const id = ToolCallId('voucher-detail')
       const args = JSON.stringify({ voucherId: 'voucher-1' })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'finance_voucher_detail', argumentsDelta: args }
@@ -150,7 +149,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       await page.addInitScript((sessionId) => {
         localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId }))
       }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       const mode = page.getByRole('button', { name: '选择咨询模式', exact: true })
       await mode.waitFor()
       expect(await mode.textContent()).toBe('咨询')
@@ -164,26 +163,27 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       await page.getByRole('button', { name: '标准模式', exact: true }).waitFor()
       await mode.waitFor({ state: 'hidden' })
       await page.getByRole('button', { name: '财务助手', exact: true }).click()
-      await page.getByRole('button', { name: 'Finance模式', exact: true }).waitFor()
-      await expect.poll(() => mode.textContent()).toBe('咨询')
       await page.getByRole('treeitem', { name: /^凭证测试/ }).hover()
       await page.getByRole('button', { name: '在“凭证测试”中新建会话', exact: true }).click()
+      await page.getByRole('button', { name: 'Finance模式', exact: true }).waitFor()
       await expect.poll(() => mode.textContent()).toBe('账套')
       const client = page.getByRole('button', { name: '选择账套', exact: true })
       await expect.poll(() => client.textContent()).toBe('凭证测试-已保存账套-ID ledger-2')
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-vouchers/selection.expected.md', import.meta.url)),
         JSON.stringify({ preset: await page.getByRole('button', { name: 'Finance模式', exact: true }).textContent(),
           context: await mode.textContent(), client: await client.textContent() }, null, 2), webSnapshotMode())
+      await page.reload({ waitUntil: 'load' })
       const catalog = await readFile(join(scaffold.harnessHome, 'finance/clients-v1.json'), 'utf8')
-      const selectedModel = await ctx.apiProxy.sessions.selectModel({
-        rpcId: RpcId('voucher-test-model'),
-        payload: { sessionId: handle.agent.session.id, provider: 'voucher-test', model: 'voucher-test', saveDefault: false },
+      const selectedModel = await ctx.sessionController.selectModel({
+        sessionId: handle.agent.session.id,
+        provider: 'voucher-test',
+        model: 'voucher-test',
       })
-      expect(selectedModel.result.ok).toBe(true)
+      expect(selectedModel.selected).toEqual({ provider: 'voucher-test', model: 'voucher-test' })
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: exportExcel ? '导出全部凭证' : '查询2022年1月至3月摘要含销售的凭证' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(withDetail ? 3 : 2)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       expect(events.find(event => event.type === 'finance/client-bound')?.data).toMatchObject({ client: { id: created.client.id } })
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name))
         .toEqual(withDetail ? ['finance_vouchers', 'finance_voucher_detail'] : ['finance_vouchers'])
@@ -226,8 +226,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
         resultSnapshot, webSnapshotMode())
       ctx.sessionTitle.rename(handle.agent.session, '凭证查询测试')
       const selector = `[data-chat-call-id="${withDetail ? 'voucher-detail' : 'voucher-query'}"]`
-      const card = page.locator(selector)
-      await card.waitFor()
+      await revealToolCallCard(page, selector)
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-vouchers/${prefix}card.expected.md`, import.meta.url)),
         await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('voucher-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })

@@ -4,12 +4,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { OpenItemRecords, type PreparedOpenItemId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/open-item-records.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 class OpenItemAdapter extends LlmAdapter {
   calls = 0
@@ -47,7 +47,7 @@ class OpenItemAdapter extends LlmAdapter {
     ]
     const request = requests[this.calls++]
     if (request !== undefined) {
-      const id = CallId(`open-item-${this.calls}`)
+      const id = ToolCallId(`open-item-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -132,7 +132,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact open-item revisions
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: payable
           ? '记一笔欠供应商五分钱，改为六分再确认，不要付款。' : '记一笔客户欠款五分钱，改为六分再确认，不要收款。' }], source: { kind: 'user' } }))
         const panel = page.locator('[data-approval-key]')
@@ -152,12 +152,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact open-item revisions
             normalize(await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd)), webSnapshotMode())
           approvals++
           await panel.getByRole('button', { name: label }).click()
-          await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+          await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
         }
         await handle.agent.whenIdle()
         expect(adapter.calls).toBe(9)
         expect(writes).toBe(1)
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         expect(results).toHaveLength(8)
         expect(JSON.stringify(results[3])).toContain('版本')
         expect(JSON.stringify(results[4])).toContain('未获得')
@@ -171,8 +171,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact open-item revisions
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)
         const selector = '[data-chat-call-id="open-item-6"]'
         const card = page.locator(selector)
-        await card.waitFor()
-        await card.getByRole('button').first().click()
+        await revealToolCallCard(page, selector)
         await expect.poll(() => card.textContent()).toContain(scenario === 'lost' ? '结果待确认' : '已完成并核对')
         await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-item-preparation/${scenario}-result-card.expected.md`, import.meta.url)),
           normalize(await captureStableAria(page, selector, scaffold.workspaceCwd)), webSnapshotMode())

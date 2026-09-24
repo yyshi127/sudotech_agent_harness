@@ -12,7 +12,7 @@ export type FinanceContextLabelProps =
 
 /** Render the safe bound label, or the explicit general-context label. */
 export function FinanceContextLabel({ sessionId, useSessions, useProjection, t }: FinanceContextLabelProps): ReactNode {
-  const preset = useSessions(state => state.byId[sessionId]?.agentPreset)
+  const preset = useSessions(state => state.byId[sessionId]?.projectionValues?.agentPreset)
   const projection = useProjection('financeClient')
   if (preset !== 'finance') return null
   return (

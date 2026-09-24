@@ -6,6 +6,7 @@ import type {} from './index.ts'
 import { voucherCreateRequestSchema } from './voucher-preparation.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-voucher-preparation-tool'
@@ -25,7 +26,7 @@ export const Config: s<Config> = s.object({
  * @param config - Preview bounds.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_prepare_voucher',
     description: '准备、修改或查看当前客户账套的财务凭证预览，不创建有成凭证，也不代表用户已确认。根据日常语言和已读取材料理解业务，使用 finance_references 查询真实科目及辅助编码；不把用户原话当精确关键词，不猜编码、制单人、日期或缺失事实。prepare 新建本地预览；revise 必须使用最新 id/version 并传完整新内容；inspect 查看 id。来源路径只能引用本会话已导入文件，没有原件用空数组并如实说明。展示账套、全部分录、借贷合计、来源及待核验项，区分用户事实和你的会计建议，不宣称已上传原件或写入成功。',
     parameters: {
@@ -66,8 +67,8 @@ export function apply(ctx: Context, config: Config): void {
     presentResult: (args, result) => ({ card: 'generic',
       title: result.isError ? '凭证记录操作失败' : args.action === 'inspect' ? '财务凭证记录与回查' : '本地凭证预览（未创建）',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
-  ctx.tools.register(defineTool({
+  })))
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_create_voucher',
     description: '将 finance_prepare_voucher 已展示的准确 id/version 提交创建。仅在用户要求创建时调用；系统会展示完整内容请求本次强制确认，聊天中的“已确认”不能绕过确认。不得重新生成分录或猜凭证号。已选择的PDF/PNG/JPG原件确认后先上传OSS、保存回执，再将全部临时链接交给有成；任一上传失败就不创建，不能省略。上传回执不等于有成转存证明，签名链接不返回模型。外币保留原币金额和已确认汇率，按预览中的逐条十进制舍入校验，不得删除外币信息绕过检查。仅创建，不审核、过账、结账、付款。结果未知或回查失败时用 finance_prepare_voucher inspect 查看原记录，不重发、不新建同内容记录。接口返回凭证标识不等于完整核验通过。',
     parameters: {
@@ -84,5 +85,5 @@ export function apply(ctx: Context, config: Config): void {
     presentCall: () => ({ card: 'generic', title: '确认并创建财务凭证', kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '凭证创建未完成' : '凭证创建结果',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
+  })))
 }

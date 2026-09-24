@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import * as plugin from '../src/voucher-deletion-tool.ts'
@@ -21,7 +21,7 @@ it('delegates exact deletion requests to the Host and removes both registrations
     const signal = new AbortController().signal
     const args = { action: 'prepare', voucherId: '123' }
     const run = (name: string, arguments_: object, withAgent = true) => ctx.tools.execute({
-      callId: CallId('deletion'), name, arguments: arguments_, signal, ...(withAgent ? { agent } : {}) })
+      callId: ToolCallId('deletion'), name, arguments: arguments_, signal, ...(withAgent ? { agent } : {}) })
     expect((await run('finance_prepare_voucher_deletion', args)).isError).toBe(false)
     expect(prepareVoucherDeletion).toHaveBeenCalledWith(agent, args, signal, limits)
     const exact = { id: 'preview', version: 2 }

@@ -3,6 +3,7 @@
 
 !include FileFunc.nsh
 !include nsDialogs.nsh
+!include "${BUILD_RESOURCES_DIR}\installer-shortcuts.nsh"
 
 !ifndef BUILD_UNINSTALLER
   !define MUI_CUSTOMFUNCTION_GUIINIT xiaojingInstallerSetIcon
@@ -47,6 +48,13 @@ xiaojingAppCheckDone:
 !macroend
 
 !macro customInstall
+xiaojingRefreshShortcutsRetry:
+  !insertmacro xiaojingRefreshShortcutIcons
+  ${If} ${Errors}
+    MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "程序文件已安装，但快捷方式图标更新失败。请关闭快捷方式属性窗口后重试。" /SD IDCANCEL IDRETRY xiaojingRefreshShortcutsRetry
+    SetErrorLevel 2
+    Quit
+  ${EndIf}
   Call xiaojingFinalizeInstallSection
 !macroend
 
@@ -77,20 +85,11 @@ xiaojingAppCheckDone:
     Var /GLOBAL xiaojingProgressTitleControl
     Var /GLOBAL xiaojingInstallerPageWidth
     Var /GLOBAL xiaojingInstallerPageHeight
+    Var /GLOBAL xiaojingInstallerArtworkWidth
+    Var /GLOBAL xiaojingInstallerArtworkHeight
     Var /GLOBAL xiaojingInstallInProgress
     Var /GLOBAL xiaojingFreshCancelAvailable
     Var /GLOBAL xiaojingCancelLaunchSucceeded
-    Var /GLOBAL xiaojingCancelChoice
-    Var /GLOBAL xiaojingCancelDialogActive
-    Var /GLOBAL xiaojingCancelCardBorder
-    Var /GLOBAL xiaojingCancelCard
-    Var /GLOBAL xiaojingCancelProductControl
-    Var /GLOBAL xiaojingCancelProductBitmap
-    Var /GLOBAL xiaojingCancelTitleControl
-    Var /GLOBAL xiaojingCancelBodyControl
-    Var /GLOBAL xiaojingCancelStopBorder
-    Var /GLOBAL xiaojingCancelStopButton
-    Var /GLOBAL xiaojingCancelContinueButton
 
     Function xiaojingFillInstallerPage
       Exch $0
@@ -110,6 +109,20 @@ xiaojingAppCheckDone:
       StrCpy $xiaojingInstallerPageWidth $4
       StrCpy $xiaojingInstallerPageHeight $5
       System::Call 'USER32::SetWindowPos(p r0, p 0, i 0, i 0, i r4, i r5, i 0x0004)'
+
+      ; Reserve space for the title, actions, and bottom consent on short screens.
+      IntOp $xiaojingInstallerArtworkHeight $5 - 230
+      ${if} $xiaojingInstallerArtworkHeight > 400
+        StrCpy $xiaojingInstallerArtworkHeight 400
+      ${endif}
+      IntOp $1 $4 - 40
+      IntOp $1 $1 * 5
+      IntOp $1 $1 / 6
+      ${if} $xiaojingInstallerArtworkHeight > $1
+        StrCpy $xiaojingInstallerArtworkHeight $1
+      ${endif}
+      IntOp $xiaojingInstallerArtworkWidth $xiaojingInstallerArtworkHeight * 6
+      IntOp $xiaojingInstallerArtworkWidth $xiaojingInstallerArtworkWidth / 5
 
       Pop $5
       Pop $4
@@ -205,7 +218,6 @@ xiaojingAppCheckDone:
     Function xiaojingBeginInstall
       Pop $0
       EnableWindow $xiaojingWelcomeInstallButton 0
-      StrCpy $xiaojingCancelDialogActive "0"
       ${NSD_SetText} $xiaojingWelcomeInstallButton "正在准备..."
       Call xiaojingPrepareCancellation
       GetDlgItem $0 $HWNDPARENT 1
@@ -236,10 +248,10 @@ xiaojingAppCheckDone:
 
       ${NSD_CreateBitmap} 0u 0u 1u 1u ""
       Pop $xiaojingWelcomeProductControl
-      IntOp $R0 $xiaojingInstallerPageWidth - 140
+      IntOp $R0 $xiaojingInstallerPageWidth - $xiaojingInstallerArtworkWidth
       IntOp $R0 $R0 / 2
-      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeProductControl, p 0, i R0, i 52, i 140, i 140, i 0x0004)'
-      ${NSD_SetImage} $xiaojingWelcomeProductControl "$PLUGINSDIR\xiaojing-product-logo.bmp" $xiaojingWelcomeProductBitmap
+      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeProductControl, p 0, i R0, i 8, i $xiaojingInstallerArtworkWidth, i $xiaojingInstallerArtworkHeight, i 0x0004)'
+      ${NSD_SetStretchedImage} $xiaojingWelcomeProductControl "$PLUGINSDIR\xiaojing-product-logo.bmp" $xiaojingWelcomeProductBitmap
 
       ${NSD_CreateLabel} 0u 0u 1u 1u "小兢会计"
       Pop $xiaojingWelcomeTitleControl
@@ -249,7 +261,8 @@ xiaojingAppCheckDone:
       SendMessage $xiaojingWelcomeTitleControl ${WM_SETFONT} $1 0
       IntOp $R0 $xiaojingInstallerPageWidth - 360
       IntOp $R0 $R0 / 2
-      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeTitleControl, p 0, i R0, i 204, i 360, i 42, i 0x0004)'
+      IntOp $R1 $xiaojingInstallerArtworkHeight + 20
+      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeTitleControl, p 0, i R0, i R1, i 360, i 42, i 0x0004)'
 
       ${if} ${isUpdated}
         StrCpy $1 "立即更新"
@@ -264,7 +277,8 @@ xiaojingAppCheckDone:
       SendMessage $xiaojingWelcomeInstallButton ${WM_SETFONT} $1 0
       IntOp $R0 $xiaojingInstallerPageWidth - 220
       IntOp $R0 $R0 / 2
-      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeInstallButton, p 0, i R0, i 270, i 220, i 50, i 0x0004)'
+      IntOp $R1 $xiaojingInstallerArtworkHeight + 72
+      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeInstallButton, p 0, i R0, i R1, i 220, i 50, i 0x0004)'
       ${NSD_OnClick} $xiaojingWelcomeInstallButton xiaojingBeginInstall
 
       ${NSD_CreateLabel} 0u 0u 1u 1u "⌄  自定义安装地址"
@@ -273,19 +287,20 @@ xiaojingAppCheckDone:
       SetCtlColors $xiaojingWelcomePathLink "12A489" "FFFFFF"
       IntOp $R0 $xiaojingInstallerPageWidth - 240
       IntOp $R0 $R0 / 2
-      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomePathLink, p 0, i R0, i 350, i 240, i 30, i 0x0004)'
+      IntOp $R1 $xiaojingInstallerArtworkHeight + 142
+      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomePathLink, p 0, i R0, i R1, i 240, i 30, i 0x0004)'
       ${NSD_OnClick} $xiaojingWelcomePathLink xiaojingRevealInstallDirectory
 
       ${NSD_CreateText} 0u 0u 1u 1u "$INSTDIR"
       Pop $xiaojingWelcomePathInput
       IntOp $R0 $xiaojingInstallerPageWidth - 190
-      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomePathInput, p 0, i 70, i 346, i R0, i 30, i 0x0004)'
+      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomePathInput, p 0, i 70, i R1, i R0, i 30, i 0x0004)'
       ShowWindow $xiaojingWelcomePathInput ${SW_HIDE}
 
       ${NSD_CreateButton} 0u 0u 1u 1u "浏览..."
       Pop $xiaojingWelcomeBrowseButton
       IntOp $R0 $xiaojingInstallerPageWidth - 105
-      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeBrowseButton, p 0, i R0, i 346, i 75, i 30, i 0x0004)'
+      System::Call 'USER32::SetWindowPos(p $xiaojingWelcomeBrowseButton, p 0, i R0, i R1, i 75, i 30, i 0x0004)'
       ShowWindow $xiaojingWelcomeBrowseButton ${SW_HIDE}
       ${NSD_OnClick} $xiaojingWelcomeBrowseButton xiaojingChooseInstallDirectory
 
@@ -318,186 +333,6 @@ xiaojingAppCheckDone:
       ${NSD_FreeImage} $xiaojingWelcomeProductBitmap
     FunctionEnd
 
-    Function xiaojingSetInstallCloseEnabled
-      GetDlgItem $0 $HWNDPARENT 2
-      EnableWindow $0 1
-      System::Call 'USER32::GetSystemMenu(p $HWNDPARENT, i 0) p .r0'
-      System::Call 'USER32::EnableMenuItem(p r0, i 0xF060, i 0x0000)'
-      System::Call 'USER32::DrawMenuBar(p $HWNDPARENT)'
-    FunctionEnd
-
-    Function xiaojingSetInstallCloseDisabled
-      GetDlgItem $0 $HWNDPARENT 2
-      EnableWindow $0 0
-      System::Call 'USER32::GetSystemMenu(p $HWNDPARENT, i 0) p .r0'
-      System::Call 'USER32::EnableMenuItem(p r0, i 0xF060, i 0x0001)'
-      System::Call 'USER32::DrawMenuBar(p $HWNDPARENT)'
-    FunctionEnd
-
-    Function xiaojingHideInstallProgress
-      ShowWindow $xiaojingProgressProductControl ${SW_HIDE}
-      ShowWindow $xiaojingProgressTitleControl ${SW_HIDE}
-      ShowWindow $mui.InstFilesPage.ProgressBar ${SW_HIDE}
-      ShowWindow $mui.InstFilesPage.Text ${SW_HIDE}
-      ShowWindow $xiaojingProgressCompanyControl ${SW_HIDE}
-    FunctionEnd
-
-    Function xiaojingShowInstallProgress
-      SetCtlColors $mui.InstFilesPage "" "FFFFFF"
-      ShowWindow $xiaojingProgressProductControl ${SW_SHOW}
-      ShowWindow $xiaojingProgressTitleControl ${SW_SHOW}
-      ShowWindow $mui.InstFilesPage.ProgressBar ${SW_SHOW}
-      ShowWindow $mui.InstFilesPage.Text ${SW_SHOW}
-      ShowWindow $xiaojingProgressCompanyControl ${SW_SHOW}
-      Call xiaojingSetInstallCloseEnabled
-      System::Call 'USER32::RedrawWindow(p $mui.InstFilesPage, p 0, p 0, i 0x0185)'
-    FunctionEnd
-
-    Function xiaojingDestroyCancelDialog
-      ${NSD_FreeImage} $xiaojingCancelProductBitmap
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelContinueButton)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelStopButton)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelStopBorder)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelBodyControl)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelTitleControl)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelProductControl)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelCard)'
-      System::Call 'USER32::DestroyWindow(p $xiaojingCancelCardBorder)'
-      Call xiaojingShowInstallProgress
-    FunctionEnd
-
-    Function xiaojingShowCancelDialog
-      StrCpy $xiaojingCancelChoice "continue"
-      StrCpy $xiaojingCancelDialogActive "1"
-      Call xiaojingSetInstallCloseDisabled
-      Call xiaojingHideInstallProgress
-      SetCtlColors $mui.InstFilesPage "" "F5F8F7"
-
-      IntOp $R0 $xiaojingInstallerPageWidth - 460
-      IntOp $R0 $R0 / 2
-      IntOp $R1 $xiaojingInstallerPageHeight - 360
-      IntOp $R1 $R1 / 2
-
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x50000000, i R0, i R1, i 460, i 360, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-      StrCpy $xiaojingCancelCardBorder $0
-      SetCtlColors $xiaojingCancelCardBorder "DCE7E4" "DCE7E4"
-
-      IntOp $R0 $R0 + 1
-      IntOp $R1 $R1 + 1
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x50000000, i R0, i R1, i 458, i 358, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-      StrCpy $xiaojingCancelCard $0
-      SetCtlColors $xiaojingCancelCard "FFFFFF" "FFFFFF"
-
-      IntOp $R2 $xiaojingInstallerPageWidth - 72
-      IntOp $R2 $R2 / 2
-      IntOp $R3 $R1 + 36
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x5000020E, i R2, i R3, i 72, i 72, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-      StrCpy $xiaojingCancelProductControl $0
-      SetCtlColors $xiaojingCancelProductControl "FFFFFF" "FFFFFF"
-      ${NSD_SetImage} $xiaojingCancelProductControl "$PLUGINSDIR\xiaojing-product-logo-small.bmp" $xiaojingCancelProductBitmap
-
-      IntOp $R2 $xiaojingInstallerPageWidth - 360
-      IntOp $R2 $R2 / 2
-      IntOp $R3 $R1 + 126
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "确定取消安装？", i 0x50000201, i R2, i R3, i 360, i 38, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-      StrCpy $xiaojingCancelTitleControl $0
-      SetCtlColors $xiaojingCancelTitleControl "102A36" "FFFFFF"
-      CreateFont $9 "Microsoft YaHei UI" "16" "700"
-      SendMessage $xiaojingCancelTitleControl ${WM_SETFONT} $9 0
-
-      IntOp $R3 $R1 + 174
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "取消后将立即停止本次安装。", i 0x50000201, i R2, i R3, i 360, i 34, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-      StrCpy $xiaojingCancelBodyControl $0
-      SetCtlColors $xiaojingCancelBodyControl "657A82" "FFFFFF"
-      CreateFont $9 "Microsoft YaHei UI" "11" "400"
-      SendMessage $xiaojingCancelBodyControl ${WM_SETFONT} $9 0
-
-      ${if} ${isUpdated}
-        SendMessage $xiaojingCancelTitleControl ${WM_SETTEXT} 0 "STR:更新开始后无法取消"
-        SendMessage $xiaojingCancelBodyControl ${WM_SETTEXT} 0 "STR:为保护原版本，请等待本次更新完成。"
-        IntOp $R2 $xiaojingInstallerPageWidth - 160
-        IntOp $R2 $R2 / 2
-      ${elseif} $xiaojingFreshCancelAvailable != "1"
-        SendMessage $xiaojingCancelTitleControl ${WM_SETTEXT} 0 "STR:暂时无法安全取消"
-        SendMessage $xiaojingCancelBodyControl ${WM_SETTEXT} 0 "STR:清理程序不可用，请继续完成本次安装。"
-        IntOp $R2 $xiaojingInstallerPageWidth - 160
-        IntOp $R2 $R2 / 2
-      ${else}
-        IntOp $R2 $xiaojingInstallerPageWidth - 316
-        IntOp $R2 $R2 / 2
-        IntOp $R3 $R1 + 258
-        System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x50000000, i R2, i R3, i 150, i 46, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-        StrCpy $xiaojingCancelStopBorder $0
-        SetCtlColors $xiaojingCancelStopBorder "D5E1DE" "D5E1DE"
-
-        IntOp $R2 $R2 + 1
-        IntOp $R3 $R3 + 1
-        System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "取消安装", i 0x50000301, i R2, i R3, i 148, i 44, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-        StrCpy $xiaojingCancelStopButton $0
-        SetCtlColors $xiaojingCancelStopButton "102A36" "FFFFFF"
-        CreateFont $9 "Microsoft YaHei UI" "11" "600"
-        SendMessage $xiaojingCancelStopButton ${WM_SETFONT} $9 0
-
-        IntOp $R2 $R2 + 165
-      ${endif}
-
-      IntOp $R3 $R1 + 258
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "继续安装", i 0x50000301, i R2, i R3, i 150, i 46, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
-      StrCpy $xiaojingCancelContinueButton $0
-      SetCtlColors $xiaojingCancelContinueButton "FFFFFF" "12A489"
-      CreateFont $9 "Microsoft YaHei UI" "11" "600"
-      SendMessage $xiaojingCancelContinueButton ${WM_SETFONT} $9 0
-
-      System::Call 'USER32::RedrawWindow(p $mui.InstFilesPage, p 0, p 0, i 0x0185)'
-
-      System::Alloc 32
-      Pop $0
-    xiaojingCancelMessageLoop:
-      System::Call 'USER32::GetMessageW(p r0, p 0, i 0, i 0) i .r1'
-      StrCmp $1 "0" xiaojingCancelContinue
-      System::Call '*$0(p .r2, i .r3, p .r4, p .r5)'
-      IntCmp $3 ${WM_LBUTTONUP} xiaojingCancelMouseUp xiaojingCancelCheckKey xiaojingCancelCheckKey
-
-    xiaojingCancelMouseUp:
-      StrCmp $2 $xiaojingCancelStopButton xiaojingCancelStop
-      StrCmp $2 $xiaojingCancelContinueButton xiaojingCancelContinue
-
-    xiaojingCancelCheckKey:
-      IntCmp $3 ${WM_KEYUP} xiaojingCancelKeyUp xiaojingCancelDispatchMessage xiaojingCancelDispatchMessage
-
-    xiaojingCancelKeyUp:
-      StrCmp $4 "13" xiaojingCancelContinue
-      StrCmp $4 "27" xiaojingCancelContinue
-
-    xiaojingCancelDispatchMessage:
-      System::Call 'USER32::TranslateMessage(p r0)'
-      System::Call 'USER32::DispatchMessageW(p r0)'
-      Goto xiaojingCancelMessageLoop
-
-    xiaojingCancelStop:
-      StrCpy $xiaojingCancelChoice "cancel"
-      Call xiaojingStartFreshCancel
-      StrCmp $xiaojingCancelLaunchSucceeded "1" 0 xiaojingCancelLaunchFailed
-      StrCpy $xiaojingCancelDialogActive "0"
-      System::Free $0
-      SetErrorLevel 1602
-      Quit
-
-    xiaojingCancelLaunchFailed:
-      SendMessage $xiaojingCancelTitleControl ${WM_SETTEXT} 0 "STR:无法安全取消"
-      SendMessage $xiaojingCancelBodyControl ${WM_SETTEXT} 0 "STR:清理程序未能启动，请继续完成本次安装。"
-      ShowWindow $xiaojingCancelStopButton ${SW_HIDE}
-      ShowWindow $xiaojingCancelStopBorder ${SW_HIDE}
-      Goto xiaojingCancelMessageLoop
-
-    xiaojingCancelContinue:
-      StrCpy $xiaojingCancelChoice "continue"
-
-      StrCpy $xiaojingCancelDialogActive "0"
-      System::Free $0
-      Call xiaojingDestroyCancelDialog
-    FunctionEnd
-
     Function xiaojingStartFreshCancel
       Push $0
       Push $1
@@ -528,19 +363,31 @@ xiaojingAppCheckDone:
     FunctionEnd
 
     Function xiaojingFinalizeInstallSection
-    xiaojingWaitForCancelDecision:
-      StrCmp $xiaojingCancelDialogActive "1" 0 xiaojingCancelDecisionReady
-      Sleep 100
-      Goto xiaojingWaitForCancelDecision
-
-    xiaojingCancelDecisionReady:
       StrCpy $xiaojingInstallInProgress "0"
       Call xiaojingAutoFinish
     FunctionEnd
 
     Function xiaojingInstallerAbortRequested
       StrCmp $xiaojingInstallInProgress "1" 0 xiaojingAbortAllowed
-      Call xiaojingShowCancelDialog
+
+      ${if} ${isUpdated}
+        MessageBox MB_OK|MB_ICONINFORMATION "更新开始后无法取消。为保护原版本，请等待本次更新完成。"
+        Abort
+      ${elseif} $xiaojingFreshCancelAvailable != "1"
+        MessageBox MB_OK|MB_ICONINFORMATION "安装开始后暂时无法安全取消，请等待本次安装完成。"
+        Abort
+      ${endif}
+
+      MessageBox MB_YESNO|MB_ICONQUESTION "确定取消安装？取消后将清理本次已写入的程序文件。" /SD IDNO IDNO xiaojingAbortContinue
+      Call xiaojingStartFreshCancel
+      StrCmp $xiaojingCancelLaunchSucceeded "1" 0 xiaojingAbortCleanupFailed
+      SetErrorLevel 1602
+      Quit
+
+    xiaojingAbortCleanupFailed:
+      MessageBox MB_OK|MB_ICONEXCLAMATION "无法安全清理本次安装，请继续完成安装。"
+
+    xiaojingAbortContinue:
       Abort
 
     xiaojingAbortAllowed:
@@ -565,28 +412,24 @@ xiaojingAppCheckDone:
 
       Push $mui.InstFilesPage
       Call xiaojingFillInstallerPage
-      Call xiaojingSetInstallCloseEnabled
 
-      IntOp $R0 $xiaojingInstallerPageWidth - 140
+      IntOp $R0 $xiaojingInstallerPageWidth - $xiaojingInstallerArtworkWidth
       IntOp $R0 $R0 / 2
-      IntOp $R1 $xiaojingInstallerPageHeight - 155
-      IntOp $R2 $R1 - 140
-      IntOp $R2 $R2 / 2
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x5000020E, i R0, i R2, i 140, i 140, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
+      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x5000020E, i R0, i 8, i $xiaojingInstallerArtworkWidth, i $xiaojingInstallerArtworkHeight, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
       StrCpy $xiaojingProgressProductControl $0
-      SetCtlColors $xiaojingProgressProductControl "FFFFFF" "FFFFFF"
-      ${NSD_SetImage} $xiaojingProgressProductControl "$PLUGINSDIR\xiaojing-product-logo.bmp" $xiaojingProgressProductBitmap
+      ${NSD_SetStretchedImage} $xiaojingProgressProductControl "$PLUGINSDIR\xiaojing-product-logo.bmp" $xiaojingProgressProductBitmap
 
-      IntOp $R2 $R2 + 144
-      IntOp $R0 $xiaojingInstallerPageWidth - 360
+      IntOp $R0 $xiaojingInstallerPageWidth - 480
       IntOp $R0 $R0 / 2
-      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "小兢会计", i 0x50000201, i R0, i R2, i 360, i 42, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
+      IntOp $R1 $xiaojingInstallerArtworkHeight + 22
+      System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "正在安装小兢会计，请稍候…", i 0x50000201, i R0, i R1, i 480, i 36, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
       StrCpy $xiaojingProgressTitleControl $0
       SetCtlColors $xiaojingProgressTitleControl "102A36" "FFFFFF"
-      CreateFont $9 "Microsoft YaHei UI" "18" "700"
-      SendMessage $xiaojingProgressTitleControl ${WM_SETFONT} $9 0
+      CreateFont $1 "Microsoft YaHei UI" "15" "600"
+      SendMessage $xiaojingProgressTitleControl ${WM_SETFONT} $1 0
 
       IntOp $R0 $xiaojingInstallerPageWidth - 120
+      IntOp $R1 $xiaojingInstallerArtworkHeight + 76
       System::Call 'USER32::SetWindowPos(p $mui.InstFilesPage.ProgressBar, p 0, i 60, i R1, i R0, i 10, i 0x0004)'
       SendMessage $mui.InstFilesPage.ProgressBar ${PBM_SETBARCOLOR} 0 0x0089A412
       SendMessage $mui.InstFilesPage.ProgressBar ${PBM_SETBKCOLOR} 0 0x00F2F5EA
@@ -601,7 +444,6 @@ xiaojingAppCheckDone:
       IntOp $R1 $xiaojingInstallerPageHeight - 46
       System::Call 'USER32::CreateWindowExW(i 0, w "STATIC", w "", i 0x5000020E, i R0, i R1, i 110, i 28, p $mui.InstFilesPage, p 0, p 0, p 0) p .r0'
       StrCpy $xiaojingProgressCompanyControl $0
-      SetCtlColors $xiaojingProgressCompanyControl "FFFFFF" "FFFFFF"
       ${NSD_SetImage} $xiaojingProgressCompanyControl "$PLUGINSDIR\xiaojing-company-logo.bmp" $xiaojingProgressCompanyBitmap
     FunctionEnd
 
@@ -632,16 +474,15 @@ xiaojingAppCheckDone:
       StrCpy $xiaojingInstallInProgress "0"
       StrCpy $xiaojingFreshCancelAvailable "0"
       StrCpy $xiaojingCancelLaunchSucceeded "0"
-      StrCpy $xiaojingCancelDialogActive "0"
 
       System::Call 'USER32::GetSystemMetrics(i 0) i .R0'
       System::Call 'USER32::GetSystemMetrics(i 1) i .R1'
       StrCpy $R4 820
-      StrCpy $R5 520
+      StrCpy $R5 680
       ${if} $R0 < 860
         IntOp $R4 $R0 - 40
       ${endif}
-      ${if} $R1 < 560
+      ${if} $R1 < 720
         IntOp $R5 $R1 - 40
       ${endif}
       IntOp $R2 $R0 - $R4
@@ -653,12 +494,17 @@ xiaojingAppCheckDone:
       InitPluginsDir
       File /oname=$PLUGINSDIR\installer-runtime-icon.ico "${BUILD_RESOURCES_DIR}\installer-runtime-icon.ico"
       File /oname=$PLUGINSDIR\xiaojing-product-logo.bmp "${BUILD_RESOURCES_DIR}\installer-product-logo.bmp"
-      File /oname=$PLUGINSDIR\xiaojing-product-logo-small.bmp "${BUILD_RESOURCES_DIR}\installer-product-logo-small.bmp"
       File /oname=$PLUGINSDIR\xiaojing-company-logo.bmp "${BUILD_RESOURCES_DIR}\installer-company-logo.bmp"
       File /oname=$PLUGINSDIR\xiaojing-installer-cancel.ps1 "${BUILD_RESOURCES_DIR}\installer-cancel-helper.ps1"
-      System::Call 'USER32::LoadImageW(p 0, w "$PLUGINSDIR\installer-runtime-icon.ico", i 1, i 0, i 0, i 0x10) p .R9'
+      System::Call 'USER32::GetSystemMetrics(i 11) i .R4'
+      System::Call 'USER32::GetSystemMetrics(i 12) i .R5'
+      System::Call 'USER32::LoadImageW(p 0, w "$PLUGINSDIR\installer-runtime-icon.ico", i 1, i R4, i R5, i 0x10) p .R9'
       StrCmp $R9 0 xiaojingInstallerIconDone
       SendMessage $HWNDPARENT 0x0080 1 $R9
+      System::Call 'USER32::GetSystemMetrics(i 49) i .R4'
+      System::Call 'USER32::GetSystemMetrics(i 50) i .R5'
+      System::Call 'USER32::LoadImageW(p 0, w "$PLUGINSDIR\installer-runtime-icon.ico", i 1, i R4, i R5, i 0x10) p .R9'
+      StrCmp $R9 0 xiaojingInstallerIconDone
       SendMessage $HWNDPARENT 0x0080 0 $R9
     xiaojingInstallerIconDone:
       Pop $R9

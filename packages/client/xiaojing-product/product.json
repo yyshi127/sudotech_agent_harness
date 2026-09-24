@@ -3,8 +3,8 @@
   "product": "xiaojing-accounting",
   "upstream": {
     "remote": "https://github.com/deepseek-ai/deepseek-harness.git",
-    "release": "dsh-v0.1.1-rc.2",
-    "commit": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28"
+    "release": "dsh-v0.1.6-alpha.2",
+    "commit": "ddefc45fbc7f8e46dd73185e68295696d1297887"
   },
   "integrationBase": "48f0c4f9fc5ecb17cd8460639089ae976ea80a79",
   "slots": [
@@ -13,6 +13,7 @@
     "conversation.hero.brand.mark",
     "conversation.hero.brand.content",
     "conversation.hero.context",
+    "conversation.chat.node",
     "onboarding.content",
     "settings.section"
   ],
@@ -93,6 +94,10 @@
   },
   "assets": [
     "apps/web/public/sdoobot-avatar.png",
+    "apps/web/public/xiaojing-robot-logo.png",
+    "apps/web/public/xiaojing-character-logo.png",
+    "apps/web/public/xiaojing-office-robot-logo.png",
+    "apps/web/public/xiaojing-finance-robot-logo.png",
     "apps/web/public/sudo-logo-gray.png",
     "apps/web/public/youcheng-finance-logo.png",
     "apps/web/public/desktop-companion/idle.webp"

@@ -147,8 +147,9 @@ async function mounted(prepare?: (input: {
   const root = await mkdtemp(join(tmpdir(), 'xiaojing-finance-domain-'))
   roots.push(root)
   const financeRoot = join(root, 'Finance工作区')
+  const officeRoot = join(root, '办公工作区')
   const uploadRoot = join(root, 'uploads')
-  await mkdir(uploadRoot, { recursive: true })
+  await Promise.all([officeRoot, uploadRoot].map(path => mkdir(path, { recursive: true })))
   const workspaces = workspaceRegistry()
   await prepare?.({ root, financeRoot, workspaces })
   const ctx = new Context()
@@ -159,6 +160,7 @@ async function mounted(prepare?: (input: {
   const fiber = ctx.plugin(XiaojingFinanceDomain, {
     dshHome: root,
     workspaceRoot: financeRoot,
+    ordinaryWorkspaceRoots: [officeRoot],
     uploadRoot,
   })
   await fiber.await()
@@ -1526,11 +1528,11 @@ describe('XiaojingFinanceDomain', () => {
             : kind === 'journal-analysis' ? { accountId: '35601', current: { rows: [], income: '0.00' } }
               : kind === 'analysis' ? { accountId: '35601', current: { recordCount: 0, groups: [] } } : { accountId: '35601', rows: [] })
       if (kind === 'export') {
-        expect(finance.session.events.filter(event => event.type === 'finance/file-published')).toHaveLength(1)
+        expect(finance.session.snapshotEvents().filter(event => event.type === 'finance/file-published')).toHaveLength(1)
         await expect(ctx.xiaojingFinanceDomain.exportOpenItems(finance, {
           direction: 'receivable', groupBy: 'currency', current: { periodStart: query.month, periodEnd: query.month },
         }, AbortSignal.abort())).rejects.toThrow()
-        expect(finance.session.events.filter(event => event.type === 'finance/file-published')).toHaveLength(1)
+        expect(finance.session.snapshotEvents().filter(event => event.type === 'finance/file-published')).toHaveLength(1)
       }
       const calls = fetcher.mock.calls.length
       for (const other of [agent(ctx, 'voucher-standard', 'standard', standardRoot), agent(ctx, 'voucher-consult', 'finance', standardRoot)]) {
@@ -1557,9 +1559,9 @@ describe('XiaojingFinanceDomain', () => {
         return original(url, init)
       })
       await expect(read(finance)).rejects.toThrow('已变更')
-      expect(JSON.stringify(finance.session.events)).not.toMatch(/fake-key|fake-secret|fake-token/)
+      expect(JSON.stringify(finance.session.snapshotEvents())).not.toMatch(/fake-key|fake-secret|fake-token/)
       if (['export', 'voucher-export', 'balance-export', 'journal-export', 'open-item-export', 'journal-analysis-export'].includes(kind)) {
-        expect(finance.session.events.filter(event => event.type === 'finance/file-published')).toHaveLength(1)
+        expect(finance.session.snapshotEvents().filter(event => event.type === 'finance/file-published')).toHaveLength(1)
       }
     } finally { await dispose() }
   })
@@ -1571,7 +1573,7 @@ describe('XiaojingFinanceDomain', () => {
     const prompt = await ctx.xiaojingFinanceDomain.promptContext(finance)
     expect(prompt).toContain('未绑定任何客户')
     expect(prompt).toContain('不得推测或编造客户')
-    expect(finance.session.events.some(event => event.type === 'finance/client-bound')).toBe(false)
+    expect(finance.session.snapshotEvents().some(event => event.type === 'finance/client-bound')).toBe(false)
     expect(ctx.xiaojingFinanceDomain.currentClientBinding(finance)).toBeUndefined()
     expect(() => ctx.xiaojingFinanceDomain.requireBoundClient(finance)).toThrow(/requires a client-bound Finance session/)
     await dispose()
@@ -1596,14 +1598,15 @@ describe('XiaojingFinanceDomain', () => {
     })
     expect(imported).not.toHaveProperty('clientId')
     expect(await readFile(uploadedPath, 'utf8')).toBe('consultation document')
-    expect(finance.session.events.map(event => event.type)).toContain('finance/consultation-file-imported')
-    expect(finance.session.events.some(event => event.type === 'finance/client-bound')).toBe(false)
+    expect(finance.session.snapshotEvents().map(event => event.type)).toContain('finance/consultation-file-imported')
+    expect(finance.session.snapshotEvents().some(event => event.type === 'finance/client-bound')).toBe(false)
     await dispose()
   })
 
   it('owns a standard Workspace and creates one isolated Workspace for each client', async () => {
     const { ctx, financeRoot, standardRoot, workspaces, dispose } = await mounted()
     const initial = await ctx.xiaojingFinanceDomain.workspaces()
+    expect(initial.workspaceRoot).toBe(resolve(financeRoot))
     expect(initial.standard).toMatchObject({ kind: 'standard', title: '咨询', startable: true })
     expect(initial.consultations).toEqual([])
     expect(initial.clients).toEqual([])
@@ -1634,6 +1637,19 @@ describe('XiaojingFinanceDomain', () => {
     expect(profile).toMatchObject({ schemaVersion: 1, client: { legalName: '客户甲有限公司' } })
     expect(await readFile(join(clientRoot, '01-财务政策', '客户财务政策备注.md'), 'utf8'))
       .toContain('客户甲有限公司专属政策')
+    await dispose()
+  })
+
+  it('rejects a client directory nested inside the ordinary desktop workspace', async () => {
+    const { ctx, root, dispose } = await mounted()
+    const clientRoot = join(root, '办公工作区', '错误帐套')
+    await mkdir(clientRoot, { recursive: true })
+    await expect(ctx.xiaojingFinanceDomain.create({
+      expectedRevision: 0,
+      client: draft('错误帐套有限公司', '上海市'),
+      workspacePath: clientRoot,
+    })).rejects.toThrow(/ordinary Workspace|办公工作区/)
+    await expect(access(join(clientRoot, '00-客户档案'))).rejects.toThrow()
     await dispose()
   })
 
@@ -1822,7 +1838,7 @@ describe('XiaojingFinanceDomain', () => {
       mode: 'client', clientId: first.client.id,
     })
     await ctx.xiaojingFinanceDomain.promptContext(finance)
-    expect(finance.session.events.some(event => event.type === 'turn/start')).toBe(false)
+    expect(finance.session.snapshotEvents().some(event => event.type === 'turn/start')).toBe(false)
 
     await expect(ctx.xiaojingFinanceDomain.stage(finance, {
       mode: 'client', clientId: first.client.id,
@@ -1847,12 +1863,12 @@ describe('XiaojingFinanceDomain', () => {
     expect(await ctx.xiaojingFinanceDomain.stage(finance, {
       mode: 'client', clientId: created.client.id,
     })).toMatchObject({ state: 'ready', clientName: '甲公' })
-    expect(finance.session.events.some(event => event.type === 'finance/client-bound')).toBe(false)
+    expect(finance.session.snapshotEvents().some(event => event.type === 'finance/client-bound')).toBe(false)
 
     const prompt = await ctx.xiaojingFinanceDomain.promptContext(finance)
     expect(prompt).toContain('甲公司')
     expect(prompt).toContain('本会话只绑定客户，不绑定会计期间')
-    const bindings = finance.session.events.filter(event => event.type === 'finance/client-bound')
+    const bindings = finance.session.snapshotEvents().filter(event => event.type === 'finance/client-bound')
     expect(bindings).toHaveLength(1)
     expect(bindings[0]?.type === 'finance/client-bound' && bindings[0].data.clientVersion).toBe(1)
     expect(ctx.sessionProjections.snapshot(finance.session).values.financeClient)
@@ -1976,7 +1992,7 @@ describe('XiaojingFinanceDomain', () => {
       sourcePath: customPublished.path,
       archiveFolder: '..\\越界',
     })).rejects.toThrow(/one directory name/u)
-    expect(finance.session.events.map(event => event.type)).toEqual(expect.arrayContaining([
+    expect(finance.session.snapshotEvents().map(event => event.type)).toEqual(expect.arrayContaining([
       'finance/client-bound',
       'finance/file-imported',
       'finance/file-published',
@@ -2091,8 +2107,8 @@ describe('XiaojingFinanceDomain', () => {
     const bBinding = ctx.xiaojingFinanceDomain.requireBoundClient(b)
     expect(aBinding.client.legalName).toBe('甲公司')
     expect(bBinding.client.legalName).toBe('乙公司')
-    expect(a.session.events.filter(event => event.type === 'finance/client-bound')).toHaveLength(1)
-    expect(b.session.events.filter(event => event.type === 'finance/client-bound')).toHaveLength(1)
+    expect(a.session.snapshotEvents().filter(event => event.type === 'finance/client-bound')).toHaveLength(1)
+    expect(b.session.snapshotEvents().filter(event => event.type === 'finance/client-bound')).toHaveLength(1)
     expect(resolveFinanceClientWorkspace(aBinding, a.session.id).sessionWorkDirectory)
       .not.toBe(resolveFinanceClientWorkspace(aBinding, b.session.id).sessionWorkDirectory)
     await dispose()
@@ -2112,7 +2128,7 @@ describe('XiaojingFinanceDomain', () => {
       mode: 'client',
       clientId: first.client.id,
     })).rejects.toThrow(/does not match the Session workspace/)
-    expect(wrongWorkspace.session.events.some(event => event.type === 'finance/client-bound')).toBe(false)
+    expect(wrongWorkspace.session.snapshotEvents().some(event => event.type === 'finance/client-bound')).toBe(false)
     await dispose()
   })
 
@@ -2126,7 +2142,7 @@ describe('XiaojingFinanceDomain', () => {
     })
     const originalPrompt = await ctx.xiaojingFinanceDomain.promptContext(original)
     const restoredSession = ctx.sessions.create(SessionId('finance-restored'), {
-      seed: [...original.session.events],
+      seed: [...original.session.snapshotEvents()],
       meta: { agentPreset: 'finance', cwd: clientRoot },
     })
     const restored = agentForSession(ctx, restoredSession)
@@ -2172,7 +2188,7 @@ describe('XiaojingFinanceDomain', () => {
       mode: 'client', clientId: created.client.id,
     })).rejects.toThrow(/belongs to another client/)
     expect(await readFile(markerPath, 'utf8')).toBe(conflict)
-    expect(finance.session.events.some(event => event.type === 'finance/client-bound')).toBe(false)
+    expect(finance.session.snapshotEvents().some(event => event.type === 'finance/client-bound')).toBe(false)
     await dispose()
   })
 

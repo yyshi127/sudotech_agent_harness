@@ -1,20 +1,16 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { LayoutController } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import {
-  createSnapshotStore,
-  ConversationEventRegistry,
-  SlotRegistry,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import type {
-  SessionId,
-  SessionListState,
-  WorkspaceId,
-  WorkspaceListState,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { WorkspaceId, WorkspaceSnapshot as WorkspaceListState } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { ConversationEventRegistry } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { WorkspaceCategoryRegistry } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import {
   FinanceClientId,
@@ -66,6 +62,7 @@ const catalog: FinanceClientListView = {
 }
 
 const financeWorkspaces: FinanceWorkspaceListView = {
+  workspaceRoot: '/finance',
   standard: {
     kind: 'standard', workspaceId: 'finance-standard' as never, title: '咨询', startable: true,
   },
@@ -116,6 +113,7 @@ function remote(overrides: Partial<FinanceClientsRemote> = {}): FinanceClientsRe
 }
 
 class DynamicRemoteService extends Service {
+  readonly $host = { isLoopback: true }
   constructor(
     ctx: Context,
     private readonly financeClients: FinanceClientsRemote,
@@ -139,8 +137,23 @@ class DynamicRemoteService extends Service {
   }
 }
 
-afterEach(() => {
+const navigationContexts: Context[] = []
+
+function provideNavigation(ctx: Context): LayoutController {
+  navigationContexts.push(ctx)
+  const layout = new LayoutController({
+    selectPanel: vi.fn(), retainMainPanels: vi.fn(),
+    setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
+    setRightbar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
+  }, () => true)
+  ctx.provide('layout', layout)
+  ctx.effect(() => () => { layout.dispose() })
+  return layout
+}
+
+afterEach(async () => {
   cleanup()
+  for (const ctx of navigationContexts.splice(0)) await ctx.fiber.dispose()
   vi.unstubAllEnvs()
 })
 
@@ -347,11 +360,10 @@ describe('Finance hero client context', () => {
     stage?: ReturnType<typeof vi.fn>
   } = {}) {
     const sessions = createSnapshotStore({
-      current: sessionId,
       byId: {
         [sessionId]: {
           id: sessionId,
-          agentPreset: options.preset ?? 'finance',
+          projectionValues: { agentPreset: options.preset ?? 'finance' },
           blank: options.blank ?? true,
         },
       },
@@ -377,6 +389,7 @@ describe('Finance hero client context', () => {
     })
     const setBlocked = vi.fn()
     const runtime = {
+      sessionId,
       useSessions: bindSnapshotSelector(sessions),
       useWorkspaces: (() => { throw new Error('unused workspace hook') }) as never,
       useFinanceClients: bindSnapshotSelector(clients),
@@ -494,7 +507,7 @@ describe('Finance hero client context', () => {
     expect(screen.queryByRole('button', { name: '选择账套' })).toBeNull()
 
     await act(async () => {
-      bench.sessions.update((state) => { state.byId[sessionId]!.agentPreset = 'standard' })
+      bench.sessions.update((state) => { state.byId[sessionId]!.projectionValues.agentPreset = 'standard' })
     })
     expect(screen.queryByLabelText('账套上下文')).toBeNull()
   })
@@ -695,7 +708,9 @@ describe('Finance client plugin composition', () => {
   it('registers removable Xiaojing-only settings, hero, and header surfaces', async () => {
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
     const ctx = new Context()
-    await ctx.plugin(ConversationEventRegistry).await()
+    const layout = provideNavigation(ctx)
+    const conversationEvents = new ConversationEventRegistry(ctx)
+    ctx.provide('uiConversation', { events: conversationEvents } as never)
     await ctx.plugin(SlotRegistry).await()
     ctx.slots.register({
       name: 'root',
@@ -742,19 +757,18 @@ describe('Finance client plugin composition', () => {
     const unmount = vi.fn()
     new DynamicRemoteService(ctx, api, unmount)
     const sessionList = createSnapshotStore<SessionListState>({
-      ids: [], byId: {}, current: undefined, phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+      ids: [], byId: {}, phase: 'ready' as const,
+      subagentsByParent: {}, jobsBySession: {},
     })
     const workspaceList = createSnapshotStore({
       items: [], archivedSessionIds: [], state: 'idle' as const, phase: 'ready' as const,
-      error: null, baselinesReady: true, recentWorkspaceId: undefined,
+      error: null,
     })
     const noteAgentPreset = vi.fn()
     const open = vi.fn()
     const connectWorkspace = vi.fn(async () => sessionId)
-    const selectPreset = vi.fn(async () => ({
-      result: { ok: true as const, value: { agentPreset: 'finance' } },
-    }))
+    const selectPreset = vi.fn(async () => ok('finance'))
+    ctx.provide('remote.agentPresets', { select: selectPreset } as never)
     ctx.provide('sessions', {
       list: sessionList,
       noteAgentPreset,
@@ -764,10 +778,7 @@ describe('Finance client plugin composition', () => {
       list: workspaceList,
       connectWorkspace,
     } as never)
-    ctx.provide('connection', {
-      api: { agentPresets: { select: selectPreset } },
-      isLoopback: true,
-    } as never)
+    ctx.provide('uiWorkspace', { connectWorkspace, openSession: open, clearSession: vi.fn() } as never)
     const workspaceCategories = new WorkspaceCategoryRegistry()
     ctx.provide('workspaceCategories', workspaceCategories)
     ctx.provide('conversation', { blocks: { setOwned: vi.fn() } } as never)
@@ -777,7 +788,7 @@ describe('Finance client plugin composition', () => {
     expect(ctx.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['attachment-storage'])
     expect(ctx.slots.entries('conversation.hero.context')).toHaveLength(1)
     expect(ctx.slots.entries('conversation.chat.node')).toHaveLength(1)
-    expect(ctx.conversationEvents.entries().map(entry => entry.kind)).toContain('finance-published-file')
+    expect(conversationEvents.entries().map(entry => entry.kind)).toContain('finance-published-file')
     expect(ctx.slots.entries('conversation.session.header.actions')).toHaveLength(1)
     expect(ctx.slots.entries('shell.overlay')).toHaveLength(2)
     await waitFor(() => {
@@ -799,6 +810,7 @@ describe('Finance client plugin composition', () => {
             icon: 'ledger',
             workspaceIds: ['finance-client', 'finance-archived'],
             addLabel: '添加账套工作区',
+            initialPath: '/finance',
           },
           {
             id: 'consultations',
@@ -806,6 +818,7 @@ describe('Finance client plugin composition', () => {
             icon: 'discussion',
             workspaceIds: ['finance-standard'],
             addLabel: '添加咨询工作区',
+            initialPath: '/finance',
           },
         ],
       }])
@@ -837,10 +850,23 @@ describe('Finance client plugin composition', () => {
 
     await workspaceCategories.activate('finance')
     expect(connectWorkspace).toHaveBeenCalledWith('finance-standard')
-    expect(selectPreset).toHaveBeenCalledWith({ sessionId, agentPreset: 'finance' })
+    expect(selectPreset).toHaveBeenCalledWith(sessionId, 'finance')
     expect(api.stage).toHaveBeenCalledWith(sessionId, { mode: 'general' })
-    expect(noteAgentPreset).toHaveBeenCalledWith(sessionId, 'finance')
     expect(open).toHaveBeenCalledWith(sessionId)
+
+    const pendingStage = Promise.withResolvers<Awaited<ReturnType<FinanceClientsRemote['stage']>>>()
+    const stageStarted = Promise.withResolvers<undefined>()
+    vi.mocked(api.stage).mockImplementationOnce(() => {
+      stageStarted.resolve(undefined)
+      return pendingStage.promise
+    })
+    const earlierActivation = workspaceCategories.activate('finance')
+    await stageStarted.promise
+    layout.selectPanel(null)
+    open.mockClear()
+    pendingStage.resolve(await ok({ state: 'general' as const, locked: false as const }))
+    await earlierActivation
+    expect(open).not.toHaveBeenCalled()
 
     const upload = vi.fn(async () => ({
       name: 'random.bin', path: 'E:/uploads/random.bin', size: 20, modifiedAt: '2026-08-28T00:00:00.000Z',
@@ -890,12 +916,12 @@ describe('Finance client plugin composition', () => {
           running: false,
           blank: true,
           updatedAt: 3,
-          agentPreset: 'standard',
+          retainedBy: { mainView: 1 },
+          projectionValues: { agentPreset: 'standard' },
         },
       },
-      current: ordinarySessionId,
       phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+      subagentsByParent: {}, jobsBySession: {},
     })
     sessionContext.mockRejectedValue(new Error('ordinary uploads must not call the Finance Remote'))
     upload.mockClear()
@@ -910,8 +936,8 @@ describe('Finance client plugin composition', () => {
     expect(upload).not.toHaveBeenCalled()
     expect(importUpload).not.toHaveBeenCalled()
     sessionList.set({
-      ids: [], byId: {}, current: undefined, phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+      ids: [], byId: {}, phase: 'ready' as const,
+      subagentsByParent: {}, jobsBySession: {},
     })
 
     await workspaceCategories.renameWorkspace('finance', 'finance-client' as WorkspaceId, '新客户名称')
@@ -932,7 +958,7 @@ describe('Finance client plugin composition', () => {
 
     await fiber.dispose()
     expect(ctx.slots.entries('conversation.chat.node')).toHaveLength(0)
-    expect(ctx.conversationEvents.entries()).toHaveLength(0)
+    expect(conversationEvents.entries()).toHaveLength(0)
     expect(ctx.slots.entries('settings.section')).toHaveLength(0)
     expect(ctx.slots.entries('conversation.hero.context')).toHaveLength(0)
     expect(ctx.slots.entries('conversation.session.header.actions')).toHaveLength(0)
@@ -946,11 +972,13 @@ describe('Finance client plugin composition', () => {
   it('routes a blank Finance preset into the standard Workspace and returns on preset exit', async () => {
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
     const ctx = new Context()
-    await ctx.plugin(ConversationEventRegistry).await()
+    provideNavigation(ctx)
+    ctx.provide('uiConversation', { events: new ConversationEventRegistry(ctx) } as never)
     await ctx.plugin(SlotRegistry).await()
     ctx.slots.register({
       name: 'root',
       children: {
+        'conversation.chat.node': { kind: 'keyed', scope: 'session' },
         'settings.section': { kind: 'list', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
         'conversation.hero.context': { kind: 'single', scope: 'root' },
@@ -973,7 +1001,7 @@ describe('Finance client plugin composition', () => {
     const ordinarySessionId = 'ordinary-finance-switch' as SessionId
     const financeSessionId = 'finance-standard-switch' as SessionId
     const ordinaryReturnSessionId = 'ordinary-return-switch' as SessionId
-    const sessionList = createSnapshotStore({
+    const sessionList = createSnapshotStore<SessionListState>({
       ids: [ordinarySessionId],
       byId: {
         [ordinarySessionId]: {
@@ -982,12 +1010,12 @@ describe('Finance client plugin composition', () => {
           running: false,
           blank: true,
           updatedAt: 1,
-          agentPreset: 'finance',
+          retainedBy: { mainView: 1 },
+          projectionValues: { agentPreset: 'finance' },
         },
       },
-      current: ordinarySessionId,
       phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+      subagentsByParent: {}, jobsBySession: {},
     })
     const ordinaryWorkspaceId = 'ordinary-workspace' as WorkspaceId
     const workspaceList = createSnapshotStore<WorkspaceListState>({
@@ -1013,31 +1041,27 @@ describe('Finance client plugin composition', () => {
       state: 'idle' as const,
       phase: 'ready' as const,
       error: null,
-      baselinesReady: true,
-      recentWorkspaceId: ordinaryWorkspaceId,
     })
     const connectWorkspace = vi.fn(async workspaceId =>
       workspaceId === financeWorkspaces.standard.workspaceId ? financeSessionId : ordinaryReturnSessionId)
     const open = vi.fn((id: SessionId) => {
       sessionList.update((state) => {
         state.ids = [id]
-        state.current = id
         state.byId = { [id]: {
           id, displayTitle: '新会话', running: false, blank: true, updatedAt: 2,
-          agentPreset: id === financeSessionId ? 'finance' : 'standard',
+          retainedBy: { mainView: 1 },
+          projectionValues: { agentPreset: id === financeSessionId ? 'finance' : 'standard' },
         } }
       })
-      workspaceList.update((state) => {
-        const workspaceId = id === financeSessionId ? financeWorkspaces.standard.workspaceId : ordinaryWorkspaceId
-        for (const workspace of state.items) {
-          workspace.sessionIds = workspace.workspaceId === workspaceId ? [id] : []
-        }
-      })
+      const state = workspaceList.getSnapshot()
+      const workspaceId = id === financeSessionId ? financeWorkspaces.standard.workspaceId : ordinaryWorkspaceId
+      workspaceList.set({ ...state, items: state.items.map(workspace => ({
+        ...workspace, sessionIds: workspace.workspaceId === workspaceId ? [id] : [],
+      })) })
     })
     const clear = vi.fn()
-    const selectPreset = vi.fn(async ({ agentPreset }: { agentPreset: string }) => ({
-      result: { ok: true as const, value: { agentPreset } },
-    }))
+    const selectPreset = vi.fn(async (_sessionId: SessionId, agentPreset: string) => ok(agentPreset))
+    ctx.provide('remote.agentPresets', { select: selectPreset } as never)
     ctx.provide('sessions', {
       list: sessionList,
       noteAgentPreset: vi.fn(),
@@ -1045,7 +1069,7 @@ describe('Finance client plugin composition', () => {
       clear,
     } as never)
     ctx.provide('workspaces', { list: workspaceList, connectWorkspace } as never)
-    ctx.provide('connection', { api: { agentPresets: { select: selectPreset } } } as never)
+    ctx.provide('uiWorkspace', { connectWorkspace, openSession: open, clearSession: clear } as never)
     ctx.provide('workspaceCategories', new WorkspaceCategoryRegistry())
     ctx.provide('conversation', { blocks: { setOwned: vi.fn() } } as never)
 
@@ -1068,12 +1092,12 @@ describe('Finance client plugin composition', () => {
           running: false,
           blank: true,
           updatedAt: 2,
-          agentPreset: 'standard',
+          retainedBy: { mainView: 1 },
+          projectionValues: { agentPreset: 'standard' },
         },
       },
-      current: financeSessionId,
       phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+      subagentsByParent: {}, jobsBySession: {},
     })
     workspaceList.set({
       ...workspaceList.getSnapshot(),
@@ -1090,23 +1114,21 @@ describe('Finance client plugin composition', () => {
     })
     await waitFor(() => {
       expect(connectWorkspace).toHaveBeenCalledWith(ordinaryWorkspaceId)
-      expect(selectPreset).toHaveBeenCalledWith({ sessionId: ordinaryReturnSessionId, agentPreset: 'standard' })
+      expect(selectPreset).toHaveBeenCalledWith(ordinaryReturnSessionId, 'standard')
       expect(open).toHaveBeenCalledWith(ordinaryReturnSessionId)
     })
 
     clear.mockClear()
     sessionList.update((state) => {
-      state.current = financeSessionId
       state.ids = [financeSessionId]
       state.byId = { [financeSessionId]: {
         id: financeSessionId, displayTitle: '新会话', running: false, blank: true,
-        updatedAt: 3, agentPreset: 'standard',
+        updatedAt: 3, retainedBy: { mainView: 1 }, projectionValues: { agentPreset: 'standard' },
       } }
     })
     workspaceList.set({
       ...workspaceList.getSnapshot(),
       items: [{ ...workspaceList.getSnapshot().items[1]!, sessionIds: [financeSessionId] }],
-      recentWorkspaceId: financeWorkspaces.standard.workspaceId,
     })
     await waitFor(() => { expect(clear).toHaveBeenCalledTimes(1) })
 

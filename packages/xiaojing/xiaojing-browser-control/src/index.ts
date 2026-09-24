@@ -385,7 +385,7 @@ export async function privateDestination(url: string): Promise<string | undefine
 
 /** DOM-first Edge automation coordinator and model-facing tool consumer. */
 export class BrowserControl extends Service {
-  static inject = ['tools', 'credentials', 'connection']
+  static inject = ['tools', 'credentials', 'connection', 'webServer']
   static Config = Config
 
   private readonly options: ResolvedConfig
@@ -419,7 +419,6 @@ export class BrowserControl extends Service {
     ctx.effect(() => ctx.connection.rpc.handle(
       '/xiaojing-browser-control',
       (endpoint: string, payload: unknown) => this.handleRpc(endpoint, payload),
-      { authority: 'loopback' },
     ), 'xiaojing-browser-control: loopback RPC')
     ctx.on('session/event', (session, event: SessionEvent) => {
       const owner = session.header.id

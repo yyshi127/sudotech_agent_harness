@@ -4,11 +4,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { OpenItemWriteOffRecords, type OpenItemWriteOffId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/open-item-write-off-records.ts'
 import type { OpenItemWriteOffReceiptId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/open-item-write-off.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 class WriteOffPreviewAdapter extends LlmAdapter {
   calls = 0
@@ -46,7 +46,7 @@ class WriteOffPreviewAdapter extends LlmAdapter {
       { name: 'finance_write_off_open_item', args: { id: this.operationId, version: 2 } }, previews[3]!] : previews
     const request = requests[this.calls++]
     if (request !== undefined) {
-      const id = CallId(`write-off-${this.calls}`)
+      const id = ToolCallId(`write-off-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -167,7 +167,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: direction === 'receivable'
           ? execution ? '那笔一毛九欠款已收齐，登记到现金，先给我确认再核销。' : '那笔一毛九的欠款收齐了，先帮我准备登记方案，别直接处理。'
           : execution ? '欠人家的一毛九已用现金付清，给我确认后整笔核销。' : '欠人家的那笔一毛九已经付清，先看看整笔核销该怎么登记。' }], source: { kind: 'user' } }))
@@ -188,11 +188,11 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
             (await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd)).replaceAll(adapter.operationId, '<write-off-id>'), webSnapshotMode())
             approvals++
             await panel.getByRole('button', { name: label }).click()
-            await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+            await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
           }
         }
         await handle.agent.whenIdle()
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         if (execution) {
           expect(results).toHaveLength(7)
           expect(JSON.stringify(results[2])).toContain('版本')
@@ -228,7 +228,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
         } else expect(JSON.stringify(results[3])).toContain('unverified')
         expect(JSON.stringify(results[4])).toContain('unavailable')
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest|ownerDigest/)
-        expect(handle.agent.session.events.some(event => event.type === 'approval/asked')).toBe(false)
+        expect(handle.agent.session.snapshotEvents().some(event => event.type === 'approval/asked')).toBe(false)
         expect(routes.length).toBeGreaterThan(0)
         expect(routes.every(path => ['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson',
           '/finance/cashjournal/getCashierList', '/finance/cashjournal/getAccountList.rjson', '/finance/cashjournal/getListPage.rjson'].includes(path))).toBe(true)
@@ -239,8 +239,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
           .toMatchObject({ outcome: { state: 'accepted', receiptId } })
         const cardSelector = '[data-chat-call-id="write-off-2"]'
         const card = page.locator(cardSelector)
-        await card.waitFor()
-        await card.getByRole('button').first().click()
+        await revealToolCallCard(page, cardSelector)
         await expect.poll(() => card.textContent()).toContain('当前条件不足，未执行')
         expect(await card.textContent()).toContain(direction === 'receivable' ? '业务类型：应收' : '业务类型：应付')
         expect(await card.textContent()).toContain('资金账户的本位币科目配置尚未核实，不能执行核销')

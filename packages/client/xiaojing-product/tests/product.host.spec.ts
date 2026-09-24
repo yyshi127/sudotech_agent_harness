@@ -1,13 +1,30 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import AgentDefaultModelConfig from '@deepseek-ai/dsh-agent-default-model'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
-import SystemPrompt, { PERSONA_SECTION, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import SystemPrompt, { PERSONA_PREFIX_SECTION, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import * as XiaojingProduct from '../src/index.ts'
 import { deletionApprovalReason, XIAOJING_PERSONA, XIAOJING_RESPONSE_POLICY } from '../src/index.ts'
+
+class MemorySettings extends SettingsProvider {
+  doc: Record<string, unknown> = {}
+
+  get writable(): boolean { return true }
+
+  protected load(): Promise<Record<string, unknown>> { return Promise.resolve(structuredClone(this.doc)) }
+
+  protected persist(ns: SettingsNamespace, section: Record<string, unknown>): Promise<void> {
+    this.doc = { ...this.doc, [ns]: structuredClone(section) }
+    return Promise.resolve()
+  }
+}
+
+afterEach(() => { vi.unstubAllEnvs() })
 
 async function mountedProduct(): Promise<Context> {
   const ctx = new Context()
@@ -24,6 +41,8 @@ function openTurnAgent(id: string): Agent {
     id,
     session: {
       events,
+      get seq() { return events.length },
+      eventAt: (seq: number) => events[seq],
       append: (type: string, data: Record<string, unknown>) => {
         const event = { type, data }
         events.push(event)
@@ -53,7 +72,7 @@ function shellTool(execute: () => Promise<string>): ToolDefinition {
 async function runShell(ctx: Context, agent: Agent, command: string) {
   return await ctx.tools.execute({
     signal: new AbortController().signal,
-    callId: CallId(`product-${command}`),
+    callId: ToolCallId(`product-${command}`),
     name: 'pwsh',
     arguments: { command },
     agent,
@@ -61,11 +80,46 @@ async function runShell(ctx: Context, agent: Agent, command: string) {
 }
 
 describe('Xiaojing product persona', () => {
+  it.each([
+    ['deepseek-official', 'deepseek-v4-flash', 'deepseek-flash'],
+    ['deepseek-official', 'deepseek-v4-flash-vision-exp', 'deepseek-flash'],
+    ['deepseek-official', 'deepseek-flash', 'deepseek-flash'],
+    ['other-provider', 'deepseek-v4-flash', 'deepseek-v4-flash'],
+  ])('migrates only retired DeepSeek Flash selections (%s/%s)', async (provider, model, expected) => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    const ctx = new Context()
+    await ctx.plugin(MemorySettings).await()
+    await ctx.plugin(AgentDefaultModelConfig, { provider: 'deepseek-official', model: 'deepseek-flash' }).await()
+    await ctx.settings.replace('agent-default-model', { provider, model })
+    await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()
+    await ctx.plugin(ToolRuntime).await()
+    await ctx.plugin(ApprovalService, { policy: 'never' }).await()
+    await ctx.plugin(XiaojingProduct).await()
+    expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider, model: expected })
+    await ctx.fiber.dispose()
+  })
+
+  it('leaves an official-profile saved model unchanged', async () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'official')
+    const ctx = new Context()
+    await ctx.plugin(MemorySettings).await()
+    await ctx.plugin(AgentDefaultModelConfig, { provider: 'deepseek-official', model: 'deepseek-flash' }).await()
+    await ctx.settings.replace('agent-default-model', {
+      provider: 'deepseek-official', model: 'deepseek-v4-flash',
+    })
+    await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()
+    await ctx.plugin(ToolRuntime).await()
+    await ctx.plugin(ApprovalService, { policy: 'never' }).await()
+    await ctx.plugin(XiaojingProduct).await()
+    expect(ctx.agentDefaultModel.currentSelection().model).toBe('deepseek-v4-flash')
+    await ctx.fiber.dispose()
+  })
+
   it('fills an empty deployment persona without claiming framework authorship', async () => {
     const ctx = await mountedProduct()
 
     const prompt = (await ctx.systemPrompt.assemble()).sections
-      .find(section => section.name === 'deployment:persona')?.text
+      .find(section => section.name === PERSONA_PREFIX_SECTION)?.text
     expect(prompt).toBe(XIAOJING_PERSONA)
     expect(prompt).toContain('based on DeepSeek Harness')
     expect(prompt).toContain('do not claim that SUDO Tech developed the underlying framework')
@@ -88,13 +142,13 @@ describe('Xiaojing product persona', () => {
 
   it('leaves an explicitly configured persona unchanged', async () => {
     const ctx = new Context()
-    await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false, persona: 'User-selected persona.' }).await()
+    await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false, personaPrefix: 'User-selected persona.' }).await()
     await ctx.plugin(ToolRuntime).await()
     await ctx.plugin(ApprovalService, { policy: 'never' }).await()
     await ctx.plugin(XiaojingProduct).await()
 
     const assembled = await ctx.systemPrompt.assemble()
-    expect(assembled.sections.find(section => section.name === PERSONA_SECTION)?.text).toBe('User-selected persona.')
+    expect(assembled.sections.find(section => section.name === PERSONA_PREFIX_SECTION)?.text).toBe('User-selected persona.')
     expect(renderPrompt(assembled)).toContain(XIAOJING_RESPONSE_POLICY)
     await ctx.fiber.dispose()
   })
@@ -189,7 +243,7 @@ describe('mandatory deletion confirmation', () => {
 
     const result = await ctx.tools.execute({
       signal: new AbortController().signal,
-      callId: CallId('product-missing-agent'),
+      callId: ToolCallId('product-missing-agent'),
       name: 'pwsh',
       arguments: { command: "Remove-Item 'test.txt' -Force" },
     })

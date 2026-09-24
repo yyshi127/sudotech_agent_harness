@@ -22,6 +22,8 @@ The model loads the bundled `visualize` skill before its first card, then calls 
 
 Each settled tool result persists the validated fragment, title, mode, and workspace path in session metadata, so replay does not depend on the original source file remaining present. A copy is also saved below the session workspace for export or a later correction.
 
+Completed turns also display their successful cards below the answer, outside the collapsible tool process. Reloading or reopening a conversation restores those cards from the saved results; failed calls do not produce a completed card.
+
 ## Security
 
 Every card runs in an iframe with `sandbox="allow-scripts"`, giving it an opaque origin and no access to the Host document. The frame content security policy blocks forms, nested frames, objects, base URL changes, and network connections. It permits inline script and style plus static resources from the fixed CDN allowlist documented by the bundled skill. The fragment size ceiling bounds both execution input and session-log growth.

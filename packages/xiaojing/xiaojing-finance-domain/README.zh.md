@@ -2,7 +2,9 @@
 
 [English](README.md) | 中文
 
-D01–D06原生账簿和报表当前不可用，因为有成尚未提供受支持的AppKey服务端接口。已否决的[浏览器方案](../../../.agents/notes/rejected/feature/2026-09-14-native-finance-reports.zh.md)不属于本包。后续开发须等待[供应商接口方案](../../../.agents/notes/proposed/feature/2026-09-15-native-finance-report-apis.zh.md)，且不依赖浏览器或手机号SSO。
+D01–D06原生账簿和报表当前不可用，因为有成尚未提供受支持的AppKey服务端接口。已否决的[浏览器方案](../../../.agents/notes/rejected/architecture/2026-09-14-native-finance-reports.zh.md)不属于本包。后续开发须等待[供应商接口方案](../../../.agents/notes/proposed/feature/2026-09-15-native-finance-report-apis.zh.md)，且不依赖浏览器或手机号SSO。
+
+成功的财务工具通过 `withFinanceCard` 在 `tool/result.meta` 中持久保存精简业务卡片。该投影复用各工具既有的 Host 展示函数，完整结果仍可供模型使用；Web 客户端可以重放业务摘要，而不展示原始参数和内部 JSON。失败调用不会伪装成成功卡片。
 
 核销未发送结果在持久恢复和工具输出中保留有界的最后检查阶段 `preflightStage`。它标识本地检查，不表示供应商根因或重试权限；`final-confirmation` 表示批准之后的最终 Host 回调。旧结果没有阶段时仍可读取，且不被改写。不返回原始异常或凭据。参见[诊断决策](../../../.agents/notes/implemented/bug-fix/2026-09-14-write-off-preflight-diagnostics.zh.md)。
 
@@ -118,6 +120,8 @@ Finance 预设通过 `./vouchers-tool` 暴露只读工具 `finance_vouchers`，�
 
 Finance 拥有与普通 Harness 工作区分离的用户可见工作区根目录。桌面产品将其设置为 `文档/小兢会计工作区/Finance工作区`，其他部署也可提供不同的绝对 `workspaceRoot`。根目录包含一个固定显示为“咨询”的 Workspace，并为客户目录中的每条记录生成一个 `clients/<client-id>` Workspace。目录使用稳定客户 ID，而不是可编辑的显示名称，因此客户改名不会改变路径。
 
+Finance 添加操作只把规范化后的 `workspaceRoot` 提供给本地 Client，作为目录选择器的初始位置。部署可声明 `ordinaryWorkspaceRoots`；Finance 启动时会拒绝与 Finance 根目录重叠的普通根目录，创建 Finance Workspace 时也会拒绝与配置的普通根目录或 Workspace Registry 中已注册普通 Workspace 重叠的所选目录。
+
 创建客户时，系统先生成 `00-客户档案`、`01-财务政策`、`02-原始资料`、`03-会话作业`、`04-成果输出` 和 `05-归档`，并向 Harness Workspace 注册客户根目录，然后才提交客户目录记录。修改失败时会撤销新注册和新目录。启动时若发现上次创建中断留下的孤立 Workspace 注册，只移除注册并保留目录和文件，以便人工恢复。归档客户继续保留 Workspace 和历史会话，但不能新建会话。
 
 Workspace 显示名称与财务列表成员关系独立保存在 `$DSH_HOME/finance/workspace-presentation-v1.json`，使用 schema 版本 `1`、revision、进程安全文件锁和原子替换。重命名会同时修改 Harness 注册标题和展示记录，不改变目录。移除咨询或客户 Workspace 只会从财务列表隐藏，仍保留注册、目录、客户档案和会话；通过添加操作再次选择同一目录即可恢复。列表中必须至少保留一个咨询 Workspace。
@@ -144,7 +148,7 @@ Finance 预设消费端以 `@deepseek-ai/dsh-xiaojing-finance-domain/context` �
 
 ## Remote 与隐私
 
-`financeClients` Remote 提供客户档案操作、Workspace 列出／添加／重命名／移除／恢复操作，以及 `stage` 和 `sessionContext`。完整详情读取、全部写操作和暂存选择仅允许 loopback 连接。列表、Workspace 标识、会话上下文和凭据状态使用脱敏返回类型。凭据修改可以接收只写 AppSecret，但任何读取都不会返回该值。Client 不会收到 Workspace 文件路径、密码、Token 或其他会话的完整不可变快照。
+`financeClients` Remote 提供客户档案操作、Workspace 列出／添加／重命名／移除／恢复操作，以及 `stage` 和 `sessionContext`。完整详情读取、全部写操作和暂存选择仅允许 loopback 连接。列表、Workspace 标识、会话上下文和凭据状态使用脱敏返回类型。凭据修改可以接收只写 AppSecret，但任何读取都不会返回该值。本地 Client 只会收到配置的 Finance 根目录，用于初始化添加目录选择器；不会收到各客户 Workspace 路径、密码、Token 或其他会话的完整不可变快照。
 
 ## 科目余额查询
 

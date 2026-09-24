@@ -1,6 +1,6 @@
 /** Browser-local controller for the loopback-only Weixin channel RPC. */
 
-import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import type { WeixinChannelStatus, WeixinConnectionState } from '@deepseek-ai/dsh-xiaojing-weixin-channel/types'
 

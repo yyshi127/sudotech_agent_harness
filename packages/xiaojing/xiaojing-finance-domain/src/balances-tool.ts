@@ -1,6 +1,7 @@
 /** Finance-only balance report consumer; Host owns ledger authority and limits. */
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { withFinanceCard } from './finance-card.ts'
 import type {} from './index.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
@@ -12,7 +13,7 @@ export const inject = ['tools', 'xiaojingFinanceDomain']
 
 /** Register a read-only balance query in the Finance preset. @param ctx - Preset scope. */
 export function apply(ctx: Context): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_balances',
     description: '只读查询当前绑定账套的有成财务科目余额表。用户问现金、银行、某科目余额或本期发生额时，结合上下文确定会计期间，使用本工具后根据科目名称和层级理解用户意图，不要求严格关键词。期间有歧义才询问；不要索取密钥或账套 ID，不搜索文件代替查询。'
       + '\n用户要核对合计、统计一致/无法核对列数、汇总或跨月比较时，调用 analyze=true；核对接口合计用 subjectLevel=1，另一月份用 compareMonth。不要用两次原始查询替代程序核对。回答仅使用本次 reconciliation 和 reconciliationCounts，八个借贷列之外的 Balance 字段不进入核对计数；历史回答冲突时纠正历史答案，不沿用旧计数。'
@@ -71,5 +72,5 @@ export function apply(ctx: Context): void {
     presentCall: args => ({ card: 'generic', title: args.exportExcel ? '导出科目余额查询' : '查询科目余额表', kind: args.exportExcel ? 'other' : 'read' }),
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '科目余额表查询失败' : args.exportExcel ? '科目余额表导出完成' : '科目余额表',
       content: financeResultContent(result.content, result.isError, 'balance') }),
-  }))
+  })))
 }

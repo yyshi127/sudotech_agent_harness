@@ -19,29 +19,33 @@ export type HeroBrandMarkProps =
 export type HeroBrandContentProps =
   PropsRuntime<'conversation.hero.brand.content'> & InjectFace<HeroBrandInjected>
 
-/** Render the Xiaojing avatar at the size requested by the hero shell. */
-export function HeroBrandMark({ size, className, t }: HeroBrandMarkProps): ReactNode {
+/** Render the shared artwork from the office or finance asset alias at the product hero size. */
+export function HeroBrandMark({ className, t, sessionId, useSessions }: HeroBrandMarkProps): ReactNode {
+  const finance = useSessions(state => sessionId !== undefined
+    && state.byId[sessionId]?.projectionValues?.agentPreset === 'finance')
+  const artworkHeight = 970
   return (
-    <img
+    <svg
       className={[css.logo, className].filter(Boolean).join(' ')}
-      style={{ width: size, height: size }}
-      src="/sdoobot-avatar.png"
-      alt={t('assistantAlt')}
-    />
+      style={{ width: 145 * 1254 / artworkHeight, height: 145, overflow: 'hidden' }}
+      viewBox={`0 105 1254 ${artworkHeight}`}
+      role="img"
+      aria-label={t('assistantAlt')}
+    >
+      <image href={finance ? '/xiaojing-finance-robot-logo.png' : '/xiaojing-office-robot-logo.png'} width="1254" height="1254" />
+    </svg>
   )
 }
 
 /** Render the Xiaojing product title and internal-beta badge. */
-export function HeroBrandContent({ t, useSessions }: HeroBrandContentProps): ReactNode {
+export function HeroBrandContent({ t, sessionId, useSessions }: HeroBrandContentProps): ReactNode {
   const version = useApplicationVersion()
-  const finance = useSessions((state) => {
-    const current = state.current
-    return current !== undefined && state.byId[current]?.agentPreset === 'finance'
-  })
+  const finance = useSessions(state => sessionId !== undefined
+    && state.byId[sessionId]?.projectionValues?.agentPreset === 'finance')
   return (
-    <>
+    <span className={css.titleGroup}>
       <span className={css.title}>{t(finance ? 'financeHeroTitle' : 'heroTitle')}</span>
-      <span className={css.badge}>{t('beta')} v{version}</span>
-    </>
+      <span className={css.badge}>{t('betaBadgeFormat').replace('{version}', version)}</span>
+    </span>
   )
 }

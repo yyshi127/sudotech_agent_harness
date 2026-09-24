@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WelcomeNoticeState, WelcomeNoticeStore } from './welcome-store.ts'
@@ -22,19 +22,19 @@ export interface WelcomeNoticeInjected {
   t: (key: keyof typeof en) => string
 }
 
-/** Lifecycle actions and state supplied to a product-owned onboarding body. */
+/** Lifecycle state supplied to a product-owned welcome dialog. */
 export interface OnboardingContentOwnerProps {
-  /** Persist acknowledgement and advance the coordinator when it succeeds. */
+  /** Persist acknowledgement and advance only after the write succeeds. */
   acknowledge: () => Promise<void>
-  /** Whether the acknowledgement write is in flight. */
+  /** Whether acknowledgement is being saved. */
   saving: boolean
-  /** Whether the latest read or write failed. */
+  /** Whether loading or saving acknowledgement failed. */
   failed: boolean
 }
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
-    /** Product-owned copy and presentation inside the versioned welcome lifecycle. */
+    /** Product presentation with the shared welcome acknowledgement lifecycle. */
     'onboarding.content': { kind: 'single'; scope: 'root'; owner: OnboardingContentOwnerProps }
   }
 }

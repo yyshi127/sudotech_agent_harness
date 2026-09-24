@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -5,11 +6,14 @@ import yaml from 'js-yaml'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   assertClientBuildEnvironment,
-  assertClientBuildMutationAllowed,
   clientBuildEnvironmentDefines,
   clientBuildProcessEnvironment,
+  officialClientBuildEnvironment,
   readClientBuildRecord,
+  repositoryClientBuildEnvironment,
   repositoryCommitHash,
+  repositoryGitDirty,
+  repositoryVersion,
   resolveClientBuildEnvironment,
   writeClientBuildRecord,
 } from './client-build-environment.ts'
@@ -21,38 +25,9 @@ const COMMIT_HASH = '0123456789abcdef0123456789abcdef01234567'
 const PROBE_KEY = `process.env.${PROBE_NAME}`
 const originalProbe = process.env[PROBE_NAME]
 const roots: string[] = []
-const OFFICIAL_PROFILE = {
-  DSH_CLIENT_BUILD_PROFILE: 'official',
-  DSH_CLIENT_BOOT_LOGO: '',
-  DSH_CLIENT_BOOT_LOGO_ALT: '',
-  DSH_CLIENT_FAVICON_HREF: '/favicon.svg',
-  DSH_CLIENT_FAVICON_TYPE: 'image/svg+xml',
-  DSH_CLIENT_HTML_LANG: 'en',
-  DSH_CLIENT_PWA_ICON_HREF: '/favicon.svg',
-  DSH_CLIENT_PWA_ICON_SIZES: 'any',
-  DSH_CLIENT_PWA_ICON_TYPE: 'image/svg+xml',
-  DSH_CLIENT_PWA_NAME: 'DeepSeek Harness',
-  DSH_CLIENT_PWA_SHORT_NAME: 'DSH',
-  DSH_CLIENT_TITLE: 'DeepSeek Harness',
-} as const
-const XIAOJING_PROFILE = {
-  DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
-  DSH_CLIENT_BOOT_LOGO: '/sudo-logo-gray.png',
-  DSH_CLIENT_BOOT_LOGO_ALT: '数豆科技',
-  DSH_CLIENT_FAVICON_HREF: '/sdoobot-avatar.png',
-  DSH_CLIENT_FAVICON_TYPE: 'image/png',
-  DSH_CLIENT_HTML_LANG: 'zh-CN',
-  DSH_CLIENT_PWA_ICON_HREF: '/sudo-logo-gray.png',
-  DSH_CLIENT_PWA_ICON_SIZES: '767x216',
-  DSH_CLIENT_PWA_ICON_TYPE: 'image/png',
-  DSH_CLIENT_PWA_NAME: 'SUDO 数豆 AI Agent',
-  DSH_CLIENT_PWA_SHORT_NAME: '数豆 AI',
-  DSH_CLIENT_TITLE: '小兢会计-您的AI办公搭子',
-} as const
 const dshBuildWorkflows = [
   'build-exe-for-python-sdk.yml',
   'ci.yml',
-  'e2b-e2e.yml',
   'e2e.yml',
   'release.yml',
   'release-publish.yml',
@@ -80,11 +55,48 @@ function buildFixture(environment: Record<string, string>): string {
   return fixtureRoot
 }
 
+function git(root: string, args: readonly string[]): string {
+  return execFileSync('git', [...args], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim()
+}
+
+function repositoryFixture(version = '1.2.3-rc.4'): string {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), 'dsh-client-build-repository-'))
+  roots.push(fixtureRoot)
+  write(join(fixtureRoot, 'package.json'), `${JSON.stringify({ version })}\n`)
+  write(join(fixtureRoot, 'tracked.txt'), 'committed\n')
+  git(fixtureRoot, ['init'])
+  git(fixtureRoot, ['config', 'user.name', 'DSH test'])
+  git(fixtureRoot, ['config', 'user.email', 'dsh-test@example.invalid'])
+  git(fixtureRoot, ['config', 'commit.gpgsign', 'false'])
+  git(fixtureRoot, ['add', 'package.json', 'tracked.txt'])
+  git(fixtureRoot, ['commit', '-m', 'fixture'])
+  return fixtureRoot
+}
+
 describe('client build environment', () => {
+  it('supplies the Xiaojing boot brand without changing the official profile', () => {
+    const metadata = { DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7), DSH_CLIENT_VERSION: '1.2.3' }
+    expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'xiaojing' })).toMatchObject({
+      DSH_CLIENT_BOOT_LOGO: '/sudo-logo-gray.png',
+      DSH_CLIENT_BOOT_LOGO_ALT: '数豆科技',
+      DSH_CLIENT_FAVICON: '/xiaojing-character-logo.png',
+    })
+    expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'official' }))
+      .not.toHaveProperty('DSH_CLIENT_BOOT_LOGO')
+    expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'official' }))
+      .not.toHaveProperty('DSH_CLIENT_FAVICON')
+  })
+
   it('requires an exact public environment for a named artifact profile', () => {
     const expected = {
+      DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...OFFICIAL_PROFILE,
+      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_VERSION: '1.2.3',
     } as const
 
     expect(() => { assertClientBuildEnvironment({ PATH: '/bin', ...expected }, expected) }).not.toThrow()
@@ -95,13 +107,15 @@ describe('client build environment', () => {
     }).toThrow(/DSH_CLIENT_UNDECLARED/)
   })
 
-  it('inherits public values by default and isolates explicit artifact profiles', () => {
+  it('inherits public values by default and isolates an explicit official profile', () => {
     const parent = {
       PATH: '/bin',
       DSH_BUILD_CLIENT_PROFILE: 'official',
       DSH_CLIENT_BUILD_PROFILE: 'local',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      DSH_CLIENT_GIT_DIRTY: 'true',
       DSH_CLIENT_TITLE: 'Local title',
+      DSH_CLIENT_VERSION: '1.2.3',
       DSH_CLIENT_EXTRA: 'local-extra',
     }
 
@@ -109,26 +123,109 @@ describe('client build environment', () => {
       DSH_CLIENT_TITLE: 'Local title',
     })
     expect(resolveClientBuildEnvironment(parent)).toEqual({
+      DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...OFFICIAL_PROFILE,
+      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_VERSION: '1.2.3',
     })
     expect(() => {
       resolveClientBuildEnvironment({ DSH_BUILD_CLIENT_PROFILE: 'official' })
     }).toThrow(/DSH_CLIENT_COMMIT_HASH/)
-    expect(resolveClientBuildEnvironment(parent, 'xiaojing')).toEqual({
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...XIAOJING_PROFILE,
-    })
+    expect(() => {
+      resolveClientBuildEnvironment({
+        DSH_BUILD_CLIENT_PROFILE: 'official',
+        DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      })
+    }).toThrow(/DSH_CLIENT_VERSION/)
     expect(() => { resolveClientBuildEnvironment({}, 'unknown') }).toThrow(/unknown client build profile/)
     expect(clientBuildProcessEnvironment(parent, {
+      DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...OFFICIAL_PROFILE,
+      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_VERSION: '1.2.3',
     })).toEqual({
       PATH: '/bin',
+      DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...OFFICIAL_PROFILE,
+      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_VERSION: '1.2.3',
     })
     expect(repositoryCommitHash('/unused', { DSH_CLIENT_COMMIT_HASH: COMMIT_HASH })).toBe(COMMIT_HASH.slice(0, 7))
+  })
+
+  it('owns repository version, commit, and dirty metadata for complete builds', () => {
+    const fixtureRoot = repositoryFixture()
+    const commit = git(fixtureRoot, ['rev-parse', '--short=7', 'HEAD'])
+
+    expect(repositoryVersion(fixtureRoot)).toBe('1.2.3-rc.4')
+    expect(repositoryGitDirty(fixtureRoot)).toBe(false)
+    expect(repositoryClientBuildEnvironment(fixtureRoot, {
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH,
+      DSH_CLIENT_EXTRA: 'preserved',
+      DSH_CLIENT_GIT_DIRTY: 'true',
+      DSH_CLIENT_VERSION: 'spoofed',
+    })).toEqual({
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      DSH_CLIENT_EXTRA: 'preserved',
+      DSH_CLIENT_VERSION: '1.2.3-rc.4',
+    })
+    expect(officialClientBuildEnvironment(fixtureRoot)).toEqual({
+      DSH_CLIENT_BUILD_PROFILE: 'official',
+      DSH_CLIENT_COMMIT_HASH: commit,
+      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_VERSION: '1.2.3-rc.4',
+    })
+
+    write(join(fixtureRoot, '.gitignore'), 'ignored.txt\n')
+    git(fixtureRoot, ['add', '.gitignore'])
+    git(fixtureRoot, ['commit', '-m', 'ignore fixture'])
+    write(join(fixtureRoot, 'ignored.txt'), 'ignored\n')
+    expect(repositoryGitDirty(fixtureRoot)).toBe(false)
+    rmSync(join(fixtureRoot, 'ignored.txt'))
+
+    write(join(fixtureRoot, 'tracked.txt'), 'unstaged\n')
+    expect(repositoryGitDirty(fixtureRoot)).toBe(true)
+    write(join(fixtureRoot, 'tracked.txt'), 'committed\n')
+    expect(repositoryGitDirty(fixtureRoot)).toBe(false)
+
+    write(join(fixtureRoot, 'tracked.txt'), 'staged\n')
+    git(fixtureRoot, ['add', 'tracked.txt'])
+    expect(repositoryGitDirty(fixtureRoot)).toBe(true)
+    git(fixtureRoot, ['commit', '-m', 'staged fixture'])
+    expect(repositoryGitDirty(fixtureRoot)).toBe(false)
+
+    write(join(fixtureRoot, 'untracked.txt'), 'untracked\n')
+    expect(repositoryGitDirty(fixtureRoot)).toBe(true)
+    expect(repositoryClientBuildEnvironment(fixtureRoot, {
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH,
+    })).toEqual({
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      DSH_CLIENT_GIT_DIRTY: 'true',
+      DSH_CLIENT_VERSION: '1.2.3-rc.4',
+    })
+
+    rmSync(join(fixtureRoot, 'untracked.txt'))
+    const submoduleSource = repositoryFixture('9.8.7')
+    git(fixtureRoot, ['-c', 'protocol.file.allow=always', 'submodule', 'add', submoduleSource, 'submodule'])
+    git(fixtureRoot, ['commit', '-am', 'submodule fixture'])
+    expect(repositoryGitDirty(fixtureRoot)).toBe(false)
+    write(join(fixtureRoot, 'submodule/tracked.txt'), 'modified submodule\n')
+    expect(repositoryGitDirty(fixtureRoot)).toBe(true)
+  })
+
+  it('omits dirty metadata when repository metadata is unavailable', () => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), 'dsh-client-build-no-git-'))
+    roots.push(fixtureRoot)
+    write(join(fixtureRoot, 'package.json'), '{"version":"2.0.0"}\n')
+
+    expect(repositoryGitDirty(fixtureRoot)).toBeUndefined()
+    expect(repositoryClientBuildEnvironment(fixtureRoot, {
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH,
+      DSH_CLIENT_GIT_DIRTY: 'true',
+    })).toEqual({
+      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
+      DSH_CLIENT_VERSION: '2.0.0',
+    })
   })
 
   it('defines only public client values over a non-enumerable fallback', () => {
@@ -177,8 +274,10 @@ describe('client build environment', () => {
 
   it('binds the recorded environment to a complete set of client artifacts', () => {
     const officialEnvironment = {
+      DSH_CLIENT_BUILD_PROFILE: 'official',
       DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...OFFICIAL_PROFILE,
+      DSH_CLIENT_TITLE: 'DeepSeek Harness',
+      DSH_CLIENT_VERSION: '1.2.3',
     }
     const official = buildFixture(officialEnvironment)
     const defaultBuild = buildFixture({})
@@ -189,21 +288,10 @@ describe('client build environment', () => {
 
     write(join(official, 'apps/web/dist/index.html'), '<main>changed</main>')
     expect(() => { readClientBuildRecord(official) }).toThrow(/artifacts differ/)
-  })
 
-  it('blocks a partial Client rebuild from replacing a recorded profile', () => {
-    const environment = {
-      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
-      ...XIAOJING_PROFILE,
-    }
-    const fixture = buildFixture(environment)
-    const cleanRoot = mkdtempSync(join(tmpdir(), 'dsh-client-build-empty-'))
-    roots.push(cleanRoot)
-
-    expect(() => { assertClientBuildMutationAllowed(fixture, environment) }).not.toThrow()
-    expect(() => { assertClientBuildMutationAllowed(fixture, {}) })
-      .toThrow(/partial Client rebuild.*pnpm run build:xiaojing/)
-    expect(() => { assertClientBuildMutationAllowed(cleanRoot, {}) }).not.toThrow()
+    const chunked = buildFixture(officialEnvironment)
+    write(join(chunked, 'packages/client/example/lib/client.pdf.js'), 'module.exports = {}\n')
+    expect(() => { readClientBuildRecord(chunked) }).toThrow(/artifacts differ/)
   })
 
   it('keeps public client values out of workflow-wide environments', () => {

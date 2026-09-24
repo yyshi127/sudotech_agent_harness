@@ -40,7 +40,7 @@ describe('SidebarRoot.module.css', () => {
     expect(declarations('.collapsed .regionArea')?.get('margin-right')).toBe('0')
   })
 
-  it('moves the four upper controls while the settings seat only fades', () => {
+  it('moves the upper controls while footer navigation only fades', () => {
     const animation = 'rail-in 150ms var(--ds-ease-in-out) backwards'
     for (const selector of [
       '.railIn .iconButton',
@@ -52,6 +52,7 @@ describe('SidebarRoot.module.css', () => {
     expect(declarations('.railIn .footArea')?.get('animation')).toBe(
       'rail-fade-in 150ms var(--ds-ease-in-out) backwards',
     )
+    expect(declarations('.railIn .panelList')?.get('animation')).toBeUndefined()
     expect(css).toMatch(
       /@keyframes rail-in\s*\{\s*from\s*\{\s*opacity: 0;\s*transform: translateX\(49px\);\s*}\s*}/,
     )

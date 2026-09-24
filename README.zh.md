@@ -1,79 +1,96 @@
-# 小兢会计
+# DeepSeek Harness
 
 [English](README.md) | 中文
 
-<p align="center"><img src="apps/desktop/assets/app-icon.png" alt="小兢会计应用图标" width="112"></p>
+DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的开源 agent harness（智能体框架）。
 
-**小兢会计——您的 AI 办公搭子**是一款面向日常办公与财务工作场景的 Windows 桌面 agent（智能体），将桌面交互、本地工作区和可配置的 AI 模型服务整合为可安装应用。
+它构建于**一切皆插件**的架构之上，由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512)。
 
-## 产品功能
+文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
 
-- **安装即可运行的 Windows 应用：**安装程序自带 Node.js 运行时，终端用户无需另行安装 Node.js。
-- **本地工作区：**应用会在用户的“文档”目录下创建`小兢会计工作区`，agent 可在用户授予的权限范围内处理文件和执行命令。
-- **提示词文件附件：**用户可以把本地文件上传到当前提示词，在发送前移除待发送文件，并在设置中管理已上传文件。
-- **可编辑的模型设置：**用户在启动后配置 DeepSeek API Key，也可以随时返回同一设置页面更换密钥。
-- **数豆产品体验：**界面、产品名称、视觉体系、初次使用说明、安装程序和默认部署配置均围绕小兢会计进行定制。
+## 开发者预览
 
-![小兢会计桌面端界面](apps/xiaojing-download/assets/app-preview.png)
+DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+
+运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
 
 <a id="run"></a>
 
-## 安装与启动
+## 运行
 
-对外发布的安装程序支持 64 位 Windows 10 和 Windows 11。
+### 通过 `npm` 运行
 
-1. 从公司发布页面下载 Windows 安装程序。
-2. 运行安装程序并选择一个父文件夹，安装程序会自动补充固定的 `xiaojing-agent-desktop` 应用目录。
-3. 从桌面或开始菜单启动小兢会计，应用会自动启用内置运行时。
+安装 `Node.js`，然后运行：
 
-## 配置 API Key
+```sh
+npx @deepseek-ai/dsh web
+```
 
-1. 登录 [DeepSeek 开放平台](https://platform.deepseek.com/)并创建 API Key。
-2. 在小兢会计中打开**设置 → 模型**，找到 DeepSeek 并选择**编辑**。
-3. 将密钥粘贴到**API 密钥**并保存；需要更换时，返回同一页面输入新密钥即可。
-4. API Key 属于敏感信息，请勿通过聊天、截图或文件分享给他人。
+该命令默认会在 `http://127.0.0.1:3080` 启动 Web UI，本机启动时还会用默认浏览器打开页面。通过 SSH 启动时只打印宿主机 URL，因为本地转发地址由 SSH 客户端或编辑器持有。传入 `--no-open` 可仅运行服务器而不打开浏览器。详见 [Web UI 指南](docs/user/guide/index.zh.md)。
 
 <a id="run-from-source"></a>
 
-## 从源码开发
+### 从源码运行
 
-源码开发需要 Node.js `^22.19.0` 或 `>=24.0.0`，以及 pnpm `11.7.0`。
-
-修改产品界面、插件、用量统计或桌面封装前，请先阅读[小兢会计产品开发基线](docs/xiaojing-product-development.zh.md)。
+如需从仓库源码运行：
 
 ```sh
-git clone git@github.com:yyshi127/sudotech_agent_harness.git
-cd sudotech_agent_harness
-corepack enable
+git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
 pnpm install
-pnpm desktop:dev
+pnpm run build
+pnpm dsh web
 ```
 
-使用以下命令构建 Windows 安装程序：
+`pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
 
-```sh
-pnpm desktop:dist
+## 社区与支持
+
+- 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
+- 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。
+- 欢迎加入 DeepSeek Harness 企微群：扫码添加企微小助手并填写入群问卷，完成后小助手会邀请你入群。
+
+<table>
+  <thead>
+    <tr>
+      <th align="center">企微小助手</th>
+      <th align="center">入群问卷</th>
+      <th align="center">微信公众号</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="https://cdn.deepseek.com/harness/readme/community-wecom-assistant.png" alt="DeepSeek Harness 企微小助手二维码" width="180" height="180"></td>
+      <td align="center"><a href="https://trtgsjkv6r.feishu.cn/share/base/form/shrcnIt5twSVdLGD52KJBckGCgg"><img src="https://cdn.deepseek.com/harness/readme/community-wecom-survey.png" alt="DeepSeek Harness 入群问卷二维码" width="180" height="180"></a></td>
+      <td align="center"><img src="https://cdn.deepseek.com/harness/readme/community-wechat-official-account.png" alt="DeepSeek Harness 团队微信公众号二维码" width="180" height="180"></td>
+    </tr>
+  </tbody>
+</table>
+
+## 参与贡献
+
+参见 [CONTRIBUTING.md](CONTRIBUTING.zh.md)。
+
+## 开发
+
+请先阅读[开发指南](docs/development.zh.md)与[架构文档](docs/architecture.zh.md)。
+
+面向 agent：请遵循 [AGENTS.md](AGENTS.md)。
+
+## 引用
+
+```bibtex
+@misc{deepseek-harness2026,
+  title={DeepSeek Harness: Everything is a Plugin},
+  author={DeepSeek-AI},
+  year={2026},
+  publisher={GitHub},
+  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
+}
 ```
-
-生成的安装程序位于 `apps/desktop/dist/installer/`。构建产物和内置运行时二进制文件不会提交到 Git。
-
-## 仓库结构
-
-- `apps/desktop/`：Electron 桌面外壳、启动页、安装配置和桌面资源。
-- `apps/web/`：集成到桌面应用中的 Web 界面。
-- `apps/xiaojing-download/`：Windows 下载静态页面。
-- `packages/`：DeepSeek Harness 的功能包及面向本产品的界面定制。
-
-## 上游来源与归属
-
-本仓库直接基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 开源源码构建，该项目由 [DeepSeek AI](https://deepseek.com) 开发。瑞华云数豆科技面向内部及授权产品场景，对界面、品牌、默认配置和 Windows 封装进行定制。
-
-小兢会计并非对底层 agent harness 的独立重新实现，也不是 DeepSeek 官方发行的桌面版本。源码和安装程序均继续保留 DeepSeek Harness 的来源说明及第三方许可证信息。
-
-## 项目状态
-
-小兢会计目前处于内部测试阶段，仅面向授权用户使用。不同版本之间的界面、配置和安装行为可能发生变化。
 
 ## 许可证
 
-DeepSeek Harness 源码继续遵循 [MIT 许可证](LICENSE)，第三方依赖及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+[MIT](LICENSE)
+
+第三方依赖及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

@@ -10,10 +10,11 @@
  * card takes over.
  */
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the `conversation.input.dock` SlotMap declaration.
-import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { StepLocation } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import { extractStreamingFragment, trimStreamingScripts, VISUALIZE_TOOL_NAME } from '../fragment.ts'
 import { buildStreamShellDoc, HEIGHT_MESSAGE_TYPE, STREAM_MESSAGE_TYPE } from '../shell.ts'
 import { resolveTheme } from './theme.ts'
@@ -143,10 +144,19 @@ function Preview({ argsRaw }: { argsRaw: string }) {
  * Dock entry: mounts the preview exactly while the streaming partial carries
  * a `visualize` tool-call block.
  */
-export function StreamingPreview({ session }: StreamingPreviewProps) {
-  // Defensive guard mirroring the official dock rows: a host passing no
-  // session must degrade to an empty dock instead of crashing.
-  const blocks = session.partial?.blocks
+export function StreamingPreview({ useChat }: StreamingPreviewProps) {
+  const step = useChat((snapshot) => {
+    const turn = snapshot.timeline.turnOrder.at(-1)
+    return turn === undefined ? undefined : snapshot.timeline.turns.get(turn)?.steps.at(-1)
+  })
+  return step === undefined ? null : <StepPreview step={step} />
+}
+
+/** Step data retains tool-only deltas even when Chat creates no Assistant row. */
+function StepPreview({ step }: { step: StepLocation }) {
+  const source = step.data.source('assistant-step')
+  const assistant = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot)
+  const blocks = assistant?.status === 'running' ? assistant.blocks : undefined
   if (blocks === undefined) return null
   // Last matching block: a turn can contain several visualize calls; only the
   // most recent one can still be streaming.

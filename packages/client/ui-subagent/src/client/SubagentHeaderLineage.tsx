@@ -3,18 +3,21 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  indexSubagentDescendants, type SessionId, type SessionListState, type SessionProjectionMap,
-  type SessionSummary, type SubagentAddress, type SubagentCatalogSnapshot,
-} from '@deepseek-ai/dsh-client-runtime/client'
+  type SessionListState, type SessionProjectionMap, type SessionSummary,
+  type SubagentCatalogSnapshot,
+} from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import {
-  IconChevronDownOutline14, IconChevronRightOutline14, IconRefreshOutline14, StateDot,
+  IconChevronDownOutline14, IconChevronRightOutline14, IconRefreshOutline14,
+  StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-subagent/client'
 import type {} from '@deepseek-ai/dsh-token-meter/client'
 import css from './SubagentHeaderLineage.module.css'
+import { indexSubagentDescendants } from './subagent-lineage.ts'
 
 type CatalogEntry = SubagentCatalogSnapshot['entries'][number]
 type Catalogs = SessionListState['subagentsByParent']
@@ -22,6 +25,7 @@ type Catalogs = SessionListState['subagentsByParent']
 /** Business actions supplied by the slot registration. */
 export interface SubagentCatalogInjected {
   openChild: (address: SubagentAddress) => void
+  openChildAside: (address: SubagentAddress) => void
   refresh: (parentSessionId: SessionId) => void
   setCatalogOpen: (parentSessionId: SessionId, open: boolean) => void
 }
@@ -40,6 +44,7 @@ interface CatalogRowsProps {
   level: number
   now: number
   openChild: (address: SubagentAddress) => void
+  openChildAside: (address: SubagentAddress) => void
   refresh: (parentSessionId: SessionId) => void
   toggleBranch: (childSessionId: SessionId) => void
   closeCatalog: () => void
@@ -63,13 +68,13 @@ function treeItems(root: HTMLDivElement | null): HTMLElement[] {
 }
 
 /** Compact token count shared in shape with the conversation stats strip. */
-function formatTokens(value: number): string {
+function formatTokens(value: number, t: TranslateNS<typeof NS>): string {
   const scaled = (next: number): string => next >= 100
     ? String(Math.round(next))
     : String(Math.round(next * 10) / 10)
   if (value < 1_000) return String(value)
-  if (value < 1_000_000) return `${scaled(value / 1_000)}K`
-  return `${scaled(value / 1_000_000)}M`
+  if (value < 1_000_000) return t('tokens.thousand', { value: scaled(value / 1_000) })
+  return t('tokens.million', { value: scaled(value / 1_000_000) })
 }
 
 /** Sum the four disjoint durable provider-usage buckets. */
@@ -236,7 +241,7 @@ function CatalogLoadingRows({
 /** Render one catalog level and recurse only through explicitly expanded rows. */
 function CatalogRows({
   parentSessionId, currentSessionId, catalog, catalogs, summaries, expanded, level, now,
-  openChild, refresh, toggleBranch, closeCatalog, t,
+  openChild, openChildAside, refresh, toggleBranch, closeCatalog, t,
 }: CatalogRowsProps & { t: TranslateNS<typeof NS> }) {
   const emptyLoading = catalog.state === 'loading' && catalog.entries.length === 0
   const reserveDisclosure = catalog.entries.some(
@@ -310,7 +315,7 @@ function CatalogRows({
         )
         const tokenMetric = totalTokens === undefined
           ? undefined
-          : `${formatTokens(totalTokens)} tok`
+          : t('tokens.total', { value: formatTokens(totalTokens, t) })
         const durationMetric = durationMs === undefined
           ? undefined
           : {
@@ -323,6 +328,12 @@ function CatalogRows({
 
         const open = (): void => {
           openChild({ parentSessionId, childSessionId: entry.id, mode: entry.mode })
+          closeCatalog()
+        }
+        const openAside = (event: MouseEvent<HTMLButtonElement>): void => {
+          event.preventDefault()
+          event.stopPropagation()
+          openChildAside({ parentSessionId, childSessionId: entry.id, mode: entry.mode })
           closeCatalog()
         }
         const handleKey = (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -390,6 +401,18 @@ function CatalogRows({
                     )}
                   </span>
                 )}
+                {!isCurrent && (
+                  <button
+                    type="button"
+                    className={css.sidebarButton}
+                    aria-label={t('open.sidebar', { label })}
+                    title={t('open.sidebar', { label })}
+                    onClick={openAside}
+                    onKeyDown={(event) => { event.stopPropagation() }}
+                  >
+                    <IconChevronRightOutline14 />
+                  </button>
+                )}
               </div>
             </div>
             {isExpanded && !knownLeaf && (
@@ -418,6 +441,7 @@ function CatalogRows({
                       level={level + 1}
                       now={now}
                       openChild={openChild}
+                      openChildAside={openChildAside}
                       refresh={refresh}
                       toggleBranch={toggleBranch}
                       closeCatalog={closeCatalog}
@@ -480,7 +504,7 @@ function catalogMenuPosition(trigger: HTMLButtonElement): CSSProperties {
 /** One trigger-plus-tree dropdown over the catalog rooted at `rootSessionId`. */
 function CatalogDropdown({
   rootSessionId, currentSessionId, displayTitle, openTitle, variant, separator = false,
-  useSessions, openChild, refresh, setCatalogOpen, t,
+  useSessions, openChild, openChildAside, refresh, setCatalogOpen, t,
 }: CatalogDropdownProps) {
   const ancestorSwitcher = variant === 'switcher' && openTitle !== undefined
   const catalogs = useSessions(state => state.subagentsByParent)
@@ -496,7 +520,6 @@ function CatalogDropdown({
   const hoverOpenTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const observedCatalogs = useRef(new Set<SessionId>())
-  const requestedInitialCatalog = useRef<SessionId>()
   const setCatalogOpenRef = useRef(setCatalogOpen)
   setCatalogOpenRef.current = setCatalogOpen
   const currentEntry = currentSessionId === undefined
@@ -527,16 +550,6 @@ function CatalogDropdown({
       error: null,
     }
     : catalog
-
-  useEffect(() => {
-    if (
-      variant !== 'switcher'
-      || catalog !== undefined
-      || requestedInitialCatalog.current === rootSessionId
-    ) return
-    requestedInitialCatalog.current = rootSessionId
-    refresh(rootSessionId)
-  }, [catalog, refresh, rootSessionId, variant])
 
   const observeCatalog = (parentSessionId: SessionId, next: boolean): void => {
     if (next) observedCatalogs.current.add(parentSessionId)
@@ -675,8 +688,8 @@ function CatalogDropdown({
 
   // Visibility needs evidence of children (entries, summary-known descendants,
   // or a failed load worth retrying). A bare loading catalog is not evidence:
-  // selecting any session schedules a refresh whose loading snapshot would
-  // otherwise flash the action in and out on childless sessions.
+  // an opened menu or another active catalog consumer can start a refresh whose
+  // loading snapshot would otherwise flash the action on childless sessions.
   const visible = presentedCatalog !== undefined
     && (variant === 'switcher'
       || presentedCatalog.state === 'error'
@@ -793,6 +806,7 @@ function CatalogDropdown({
             level={1}
             now={now}
             openChild={openChild}
+            openChildAside={openChildAside}
             refresh={refresh}
             toggleBranch={toggleBranch}
             closeCatalog={() => { changeOpen(false) }}
@@ -811,13 +825,13 @@ function CatalogDropdown({
  */
 export function SubagentHeaderLineage({
   lineageSessionId, displayTitle, openTitle,
-  useSessions, openChild, refresh, setCatalogOpen, t,
+  useSessions, openChild, openChildAside, refresh, setCatalogOpen, t,
 }: SubagentHeaderLineageProps) {
   const parentId = useSessions((state) => {
     const summary = state.byId[lineageSessionId]
     return summary?.origin === 'subagent' ? summary.parentId : undefined
   })
-  const shared = { useSessions, openChild, refresh, setCatalogOpen, t }
+  const shared = { useSessions, openChild, openChildAside, refresh, setCatalogOpen, t }
   if (parentId === undefined) {
     return (
       <CatalogDropdown

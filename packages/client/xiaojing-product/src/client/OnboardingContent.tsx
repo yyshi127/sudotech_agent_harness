@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import { useOnboardingRootInert } from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { XiaojingProductKey } from './locales.ts'
 import css from './OnboardingContent.module.css'
@@ -19,11 +18,21 @@ export interface OnboardingContentInjected {
 /** Product onboarding content props. */
 export type OnboardingContentProps = PropsRuntime<'onboarding.content'> & InjectFace<OnboardingContentInjected>
 
-/** Render the versioned DeepSeek API key setup guide. */
+/**
+ * Render the first-use guide; Escape and mask clicks cannot acknowledge it.
+ * @param props - shared acknowledgement state and localized product copy.
+ * @returns the blocking setup guide with its explicit start action.
+ */
 export function OnboardingContent({ acknowledge, saving, failed, t }: OnboardingContentProps): ReactNode {
   const paragraphs = t('onboardingBody').split('\n\n')
   const titleRef = useRef<HTMLHeadingElement | null>(null)
-  useOnboardingRootInert()
+  useEffect(() => {
+    const root = document.getElementById('root')
+    if (root === null) return
+    const previous = root.inert
+    root.inert = true
+    return () => { root.inert = previous }
+  }, [])
 
   useEffect(() => { titleRef.current?.focus() }, [])
 

@@ -1,10 +1,12 @@
 /** Xiaojing product UI contributions. */
 
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import { AboutSection } from './AboutSection.tsx'
@@ -32,10 +34,15 @@ function syncThemeColor(): void {
   if (metadata !== null) metadata.content = getComputedStyle(document.body).backgroundColor
 }
 
+/** Keep internal model instructions out of the Xiaojing end-user transcript. */
+function HiddenSystemPromptNode(): null {
+  return null
+}
+
 /** Product UI requires generic slots, locale, and the preset-copy registry. */
 export const inject = ['slots', 'locale', 'agentPresetDisplay']
 
-/** Register Xiaojing brand, hero, onboarding, and theme as one unloadable product layer. */
+/** Register Xiaojing brand, hero, onboarding, About settings, and theme as one unloadable product layer. */
 export function apply(ctx: ClientContext): void {
   if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing') return
   ctx.effect(() => {
@@ -81,6 +88,11 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: (): HeroBrandInjected => ({ t }),
   }, HeroBrandContent))
+  ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
+    name: 'conversation.chat.node',
+    key: 'system-prompt',
+    priority: -1,
+  }, HiddenSystemPromptNode))
   ctx.slots.inject('onboarding.content', () => ctx.slots.register({
     name: 'onboarding.content',
     locale: NS,

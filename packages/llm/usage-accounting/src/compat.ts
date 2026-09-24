@@ -4,13 +4,18 @@ import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { GenerateOptions, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
 import type { Config as DeepSeekConfig } from '@deepseek-ai/dsh-llm-deepseek'
-import { PUBLIC_BASE_URL, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
+import { MESSAGES_BASE_URL, PUBLIC_BASE_URL, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-settings'
 import type { UsageBuckets } from './pricing.ts'
 
 const PROVIDER = 'deepseek-official'
-const SETTINGS_NS = settingsNamespace('llm-deepseek')
+const SETTINGS_NS = 'llm-deepseek'
+const BASE_URL_ENV = 'DEEPSEEK_BASE_URL'
+const OFFICIAL_ENDPOINTS = [PUBLIC_BASE_URL, MESSAGES_BASE_URL].map((baseURL) => {
+  const url = new URL(baseURL)
+  return { origin: url.origin, pathname: normalizedPathname(url.pathname) }
+})
 
 /** One actual provider request ready for durable settlement. */
 export interface UsageObservation {
@@ -32,11 +37,18 @@ function fingerprint(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex')
 }
 
+function normalizedPathname(pathname: string): string {
+  return pathname.replace(/\/+$/u, '')
+}
+
 function officialEndpoint(baseURL: string): boolean {
   try {
     const actual = new URL(baseURL)
-    const official = new URL(PUBLIC_BASE_URL)
-    return actual.origin === official.origin && (actual.pathname === '/' || actual.pathname === '')
+    if (actual.username || actual.password || actual.search || actual.hash) return false
+    const pathname = normalizedPathname(actual.pathname)
+    return OFFICIAL_ENDPOINTS.some(endpoint => (
+      actual.origin === endpoint.origin && pathname === endpoint.pathname
+    ))
   } catch {
     return false
   }
@@ -59,14 +71,27 @@ function bucketsOf(usage: TokenUsage): UsageBuckets {
   }
 }
 
-async function identityOf(ctx: Context): Promise<{ keyFingerprint: string; officialEndpoint: boolean } | undefined> {
+/** Current request identity and whether the affected implicit Messages default can recover its own history. */
+export interface CurrentUsageIdentity {
+  keyFingerprint: string
+  officialEndpoint: boolean
+  recoverDefaultMessagesHistory: boolean
+}
+
+async function identityOf(ctx: Context): Promise<CurrentUsageIdentity | undefined> {
   const raw = ctx.settings.get(SETTINGS_NS) as DeepSeekConfig | undefined
-  const connection = resolveAdapterOptions(raw ?? {}, launchEnvironmentOf(ctx))
+  const environment = launchEnvironmentOf(ctx)
+  const connection = resolveAdapterOptions(raw ?? {}, environment)
   const resolved = await ctx.credentials.resolve(connection.apiKeyEnv)
   if (resolved === undefined) return undefined
   return {
     keyFingerprint: fingerprint(resolved.value),
     officialEndpoint: officialEndpoint(connection.baseURL),
+    recoverDefaultMessagesHistory: connection.protocol === 'messages'
+      && raw?.baseURL === undefined
+      && environment.get(BASE_URL_ENV) === undefined
+      && normalizedPathname(new URL(connection.baseURL).pathname)
+        === normalizedPathname(new URL(MESSAGES_BASE_URL).pathname),
   }
 }
 
@@ -90,7 +115,8 @@ async function* observe(
       else if (requestIdentity.value !== undefined) {
         try {
           await callbacks.settle({
-            ...requestIdentity.value,
+            keyFingerprint: requestIdentity.value.keyFingerprint,
+            officialEndpoint: requestIdentity.value.officialEndpoint,
             model: options.model,
             occurredAt,
             purpose: options.purpose ?? 'conversation',
@@ -125,4 +151,13 @@ export function installUsageObserver(ctx: Context, callbacks: UsageObserverCallb
  */
 export async function currentKeyFingerprint(ctx: Context): Promise<string | undefined> {
   return (await identityOf(ctx))?.keyFingerprint
+}
+
+/**
+ * Resolve the current accounting identity without exposing credential material.
+ * @param ctx - Host context carrying settings and credential services.
+ * @returns current fingerprint and endpoint classification, or undefined when no key is configured.
+ */
+export async function currentUsageIdentity(ctx: Context): Promise<CurrentUsageIdentity | undefined> {
+  return identityOf(ctx)
 }

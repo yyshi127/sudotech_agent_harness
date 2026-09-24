@@ -1,4 +1,1 @@
-- button "应收导出完成":
-  - img
-  - img
-  - text: 应收导出完成
+- region "应收导出完成": 应收导出完成 账套：应收应付测试账套 往来记录：0 笔 导出文件：应收导出-{{uuid}}.xlsx 保存位置：{{cwd}}\open-item-client\04-成果输出\应收导出-{{uuid}}.xlsx

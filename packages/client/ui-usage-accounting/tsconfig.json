@@ -14,8 +14,8 @@
     { "path": "../../runtime-diagnostics/invariants" },
     { "path": "../../typert/protocol" },
     { "path": "../locale" },
-    { "path": "../runtime" },
     { "path": "../ui-primitives" },
+    { "path": "../ui-renderer" },
     { "path": "../ui-settings" },
     { "path": "../ui-sidebar" },
     { "path": "../ui-slots" }

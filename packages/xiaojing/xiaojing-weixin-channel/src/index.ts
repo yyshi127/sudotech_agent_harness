@@ -5,18 +5,21 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
-import type {} from '@deepseek-ai/dsh-client-connection'
+import type { ConnectionRpcResult } from '@deepseek-ai/dsh-client-connection'
+import type {} from '@deepseek-ai/dsh-api-session-controller'
 import type {} from '@deepseek-ai/dsh-commands'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
-import { RpcId } from '@deepseek-ai/dsh-host-apiproxy'
-import type { PromptContentPart, RpcResult } from '@deepseek-ai/dsh-host-apiproxy/api'
+import type {
+  PromptContentPart, SessionRequestId,
+} from '@deepseek-ai/dsh-api-session-controller/types'
 import type { ImageAttachmentLimits, ImageMediaType } from '@deepseek-ai/dsh-attachment'
 import type { AssistantMessage, ContentBlock, UserMessage } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-permission-presets'
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { ApprovalOutcome, ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
 import QRCode from 'qrcode'
 import { z } from 'zod'
@@ -68,7 +71,6 @@ const MEDIA_UNSUPPORTED = '当前版本支持文字、图片和普通文档，�
 const SESSION_TITLE = '微信助手'
 const WORKSPACE_WRITE_PRESET = 'workspace-write'
 const FULL_ACCESS_PRESET = 'danger-full-access'
-const VISION_MODEL = 'deepseek-v4-flash-vision-exp'
 
 /** Deployment tunables for network deadlines and reply delivery. */
 export interface Config {
@@ -116,8 +118,8 @@ export const Config: Schema<Config> = Schema.object({
 
 /** Services used by the Host-only channel. */
 export const inject = [
-  'connection', 'credentials', 'apiProxy', 'agents', 'systemPrompt', 'tools',
-  'commands', 'permissionPresets', 'attachments',
+  'connection', 'credentials', 'sessionController', 'agents', 'systemPrompt', 'tools',
+  'commands', 'permissionPresets', 'attachments', 'webServer',
 ]
 
 interface ResolvedConfig {
@@ -200,7 +202,7 @@ function resolveConfig(config: Config): ResolvedConfig {
   }
 }
 
-function ok<T>(value: T): RpcResult<T> {
+function ok<T>(value: T): ConnectionRpcResult<T> {
   return { ok: true, value }
 }
 
@@ -224,7 +226,7 @@ function parseApprovalReply(text: string | undefined): ApprovalReply | 'malforme
   return /^(?:确认|拒绝)(?:码)?[\s:：-]*[0-9]*$/u.test(value) ? 'malformed' : undefined
 }
 
-function failed(error: unknown): RpcResult<never> {
+function failed(error: unknown): ConnectionRpcResult<never> {
   return {
     ok: false,
     error: {
@@ -434,7 +436,7 @@ export class XiaojingWeixinChannel {
   private suspended = true
   private leaseOwned = false
   private readonly configuredAgents = new Map<Agent, Array<() => void>>()
-  private readonly rpcOperations = new Set<Promise<RpcResult<unknown>>>()
+  private readonly rpcOperations = new Set<Promise<ConnectionRpcResult<unknown>>>()
   private readonly interruptionNotifiedTasks = new Set<string>()
 
   /**
@@ -487,7 +489,6 @@ export class XiaojingWeixinChannel {
     this.ctx.effect(() => this.ctx.connection.rpc.handle(
       '/xiaojing-weixin',
       (endpoint: string, payload: unknown) => this.dispatchRpc(endpoint, payload),
-      { authority: 'loopback' },
     ), 'xiaojing-weixin-channel: loopback RPC')
 
     this.ctx.on('agent/created', ({ agent }) => { this.configureAgent(agent) })
@@ -580,14 +581,14 @@ export class XiaojingWeixinChannel {
     return next
   }
 
-  private dispatchRpc(endpoint: string, payload: unknown): Promise<RpcResult<unknown>> {
+  private dispatchRpc(endpoint: string, payload: unknown): Promise<ConnectionRpcResult<unknown>> {
     const operation = this.handleRpc(endpoint, payload)
     this.rpcOperations.add(operation)
     void operation.finally(() => { this.rpcOperations.delete(operation) })
     return operation
   }
 
-  private async handleRpc(endpoint: string, payload: unknown): Promise<RpcResult<unknown>> {
+  private async handleRpc(endpoint: string, payload: unknown): Promise<ConnectionRpcResult<unknown>> {
     try {
       if (this.disposed) throw new Error('微信频道已经停止。')
       switch (endpoint) {
@@ -983,7 +984,7 @@ export class XiaojingWeixinChannel {
     const command = text.match(/^\/?权限(?:\s+(.+))?$/iu)
     if (command === null) return false
     const agent = await this.ensureAgent()
-    const current = this.ctx.permissionPresets.current(agent.session.events)
+    const current = this.ctx.permissionPresets.current(agent.session)
     const target = command[1]?.trim().toLowerCase().replace(/\s+/gu, ' ')
     if (target === undefined || target === '') {
       await this.sendRaw([
@@ -1115,19 +1116,12 @@ export class XiaojingWeixinChannel {
       this.state.sessionReady = false
       await this.persist()
     }
-    const response = await this.ctx.apiProxy.sessions.create({
-      rpcId: RpcId(randomUUID()),
-      payload: { sessionId: SessionId(id) },
-    })
-    if (!response.result.ok) throw new Error(response.result.error.message)
-    const agent = this.ctx.agents.get(response.result.value.sessionId)
+    const created = await this.ctx.sessionController.create({ sessionId: SessionId(id) })
+    const agent = this.ctx.agents.get(created.sessionId)
     if (agent === undefined) throw new Error('微信助手会话未能启动。')
     this.configureAgent(agent)
     if (!this.state.sessionReady) {
-      const renamed = await this.ctx.apiProxy.sessions.rename({
-        rpcId: RpcId(randomUUID()), payload: { sessionId: agent.session.id, title: SESSION_TITLE },
-      })
-      if (!renamed.result.ok) throw new Error(renamed.result.error.message)
+      await this.ctx.sessionController.rename({ sessionId: agent.session.id, title: SESSION_TITLE })
       this.state.sessionReady = true
       await this.persist()
     }
@@ -1259,9 +1253,7 @@ export class XiaojingWeixinChannel {
 
   private async cancelSession(agent: Agent): Promise<void> {
     try {
-      await this.ctx.apiProxy.sessions.cancel({
-        rpcId: RpcId(randomUUID()), payload: { sessionId: agent.session.id },
-      })
+      this.ctx.sessionController.cancel({ sessionId: agent.session.id })
     } catch {
       // The suspended channel already blocks remote delivery; cancellation is best effort until agent quiescence.
     }
@@ -1305,23 +1297,20 @@ export class XiaojingWeixinChannel {
         if (error instanceof WeixinTaskInputError) return `⚠️ ${error.message}`
         throw error
       }
-      if (content.some(part => part.type === 'image')) {
-        await this.ensureVisionModel(SessionId(this.state.sessionId as string))
-      }
-      const response = await this.ctx.apiProxy.sessions.prompt({
-        rpcId: RpcId(task.rpcId),
-        payload: {
+      try {
+        await this.ctx.sessionController.prompt({
+          requestId: task.rpcId as SessionRequestId,
           sessionId: SessionId(this.state.sessionId as string),
           mode: 'queue',
           content,
           clientTimeZone: 'Asia/Shanghai',
-        },
-      })
-      if (!response.result.ok) {
-        if (response.result.error.code === 'attachment-error') {
-          return `⚠️ 图片未能提交：${imageAdmissionReason(response.result.error.details.reason)}`
+        }, new AbortController().signal)
+      } catch (error) {
+        const remote = remoteErrorOf(error)
+        if (remote?.code === 'session/attachment-invalid') {
+          return `⚠️ 图片未能提交：${imageAdmissionReason(String(remote.details.reason))}`
         }
-        throw new Error(response.result.error.message)
+        throw error
       }
       if (this.isStopped()) {
         await this.cancelSession(agent)
@@ -1335,25 +1324,6 @@ export class XiaojingWeixinChannel {
       this.active = undefined
       await this.stopTyping(task.contextToken)
     }
-  }
-
-  private async ensureVisionModel(sessionId: SessionId): Promise<void> {
-    const models = await this.ctx.apiProxy.sessions.models({
-      rpcId: RpcId(randomUUID()), payload: { sessionId },
-    })
-    if (!models.result.ok) throw new Error(models.result.error.message)
-    if (models.result.value.current.provider === 'deepseek-official'
-      && models.result.value.current.model === VISION_MODEL) return
-    const selected = await this.ctx.apiProxy.sessions.selectModel({
-      rpcId: RpcId(randomUUID()),
-      payload: {
-        sessionId,
-        provider: 'deepseek-official',
-        model: VISION_MODEL,
-        saveDefault: false,
-      },
-    })
-    if (!selected.result.ok) throw new Error(selected.result.error.message)
   }
 
   private async progressHeartbeat(current: ActiveTurn, signal: AbortSignal): Promise<void> {
@@ -1392,16 +1362,12 @@ export class XiaojingWeixinChannel {
   }
 
   private async findCommittedReply(task: WeixinPendingMessage): Promise<{ found: boolean; ended: boolean; text: string }> {
-    const response = await this.ctx.apiProxy.sessions.history({
-      rpcId: RpcId(randomUUID()),
-      payload: { sessionId: SessionId(this.state.sessionId as string), maxMessages: 100 },
-    })
-    if (!response.result.ok) throw new Error(response.result.error.message)
+    const inspection = await this.ctx.sessionController.inspect(SessionId(this.state.sessionId as string))
     let openTurn: number | undefined
     let targetTurn: number | undefined
     let text = ''
     let ended = false
-    for (const { event } of response.result.value.events) {
+    for (const event of inspection.events) {
       if (event.type === 'turn/start') openTurn = event.data.turn
       if (event.type === 'user/message' && sourceRpcId(event.data) === task.rpcId) targetTurn = openTurn
       if (event.type === 'assistant/message' && targetTurn !== undefined && event.data.turn === targetTurn) {

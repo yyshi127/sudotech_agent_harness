@@ -23,6 +23,7 @@
     { "path": "../../runtime-diagnostics/invariants" },
     { "path": "../../llm/llm" },
     { "path": "../../sandbox/sandbox-policy" },
-    { "path": "../../skill/skill" }
+    { "path": "../../skill/skill" },
+    { "path": "../../util/values" }
   ]
 }

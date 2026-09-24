@@ -14,8 +14,8 @@ import {
   Button, IconFolderClose16, IconPlusOutline16, Menu, Modal, type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
-  WorkspaceId, WorkspaceListState, WorkspaceView,
-} from '@deepseek-ai/dsh-client-runtime/client'
+  WorkspaceId, WorkspaceSnapshot, WorkspaceView,
+} from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/slots.ts'
 import css from './WorkspacePicker.module.css'
@@ -31,8 +31,8 @@ export interface WorkspacePickFlowProps {
   /** The anchor button element — the popover's placement anchor. */
   anchorRef?: RefObject<HTMLElement | null> | undefined
   /** Selector hook over the workspace list (framework standard hook). */
-  useWorkspaces: <S>(selector: (state: WorkspaceListState) => S) => S
-  /** Adopt a picked host directory as a real Workspace; undefined means a product flow was cancelled. */
+  useWorkspaces: <S>(selector: (state: WorkspaceSnapshot) => S) => S
+  /** Adopt a picked host directory as a real Workspace. */
   createWorkspace: (input: { path: string }) => Promise<Pick<WorkspaceView, 'workspaceId'> | undefined>
   /** Bound occupancy selector hook for this surface's directory-flow hole (empty leaves the surface with no add action). */
   useDirectoryFlow: SnapshotSelectorHook<boolean>
@@ -48,6 +48,8 @@ export interface WorkspacePickFlowProps {
   visibleWorkspaceIds?: ReadonlySet<WorkspaceId>
   /** Whether this picker may adopt another ordinary Workspace. */
   allowCreate?: boolean
+  /** Optional absolute directory where the add flow starts. */
+  initialPath?: string
   /** Menu opening direction relative to the anchor. */
   side?: 'bottom' | 'top' | 'right'
   /** Currently active workspace (trailing check in the picker list). */
@@ -72,6 +74,7 @@ export function WorkspacePickFlow({
   addOnly = false,
   visibleWorkspaceIds,
   allowCreate = true,
+  initialPath,
   side = 'bottom',
   selectedId,
 }: WorkspacePickFlowProps) {
@@ -169,6 +172,7 @@ export function WorkspacePickFlow({
   const flowOwner: DirectoryFlowOwnerProps = {
     open: flowOpen,
     busy: pickingFolder,
+    ...(initialPath === undefined ? {} : { initialPath }),
     onPicked: (path) => {
       setPickingFolder(true)
       void adoptDirectory(path).finally(() => { setPickingFolder(false) })

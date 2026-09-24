@@ -1,6 +1,6 @@
 /** Validated, read-only reference projections; no missing value implies an enabled or selectable record. */
 import { z } from 'zod'
-import { assertNever } from '@deepseek-ai/dsh-llm'
+import { assertNever } from '@deepseek-ai/dsh-util-values'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { FinanceYouchengAccount } from './types.ts'
 

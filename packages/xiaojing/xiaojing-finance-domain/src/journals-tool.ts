@@ -5,6 +5,7 @@ import s from '@deepseek-ai/schemastery'
 import type {} from './index.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-journals-tool'
@@ -17,7 +18,7 @@ export const Config: s<Config> = s.object({ pageSize: s.number().min(1).max(100)
 
 /** Register the bounded read-only journal tool. @param ctx - Finance preset scope. @param config - Default page size. */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_journals',
     description: '只读查询或核对当前绑定账套的有成日记账。比较、汇总或问进账/花费差多少，必须使用 analyze:true：先用 finance_references 的 cash-accounts 确定账户 ID，再传 cashAccountId、month 和比较时的 baselineMonth，直接使用返回的核对结果与差额；不要分查两个月第一页后自行相减。即使同时查询凭证、余额或应收应付，这一要求也不变。仅查看原始流水时才使用普通分页查询。'
       + '\n用户说进账、花了多少钱、银行收支等，结合上下文理解收入/支出及账户，不要求严格关键词。month 必填，省略日期时后端自动补齐月初月末；原始分页查询每次只查一个月。账户不明确时先用 finance_references 查询 cash-accounts，cashAccountId 必须来自该账套的查询结果，不把科目编码当账户 ID；省略则不限定出纳账户。不搜索配置或索取密钥。按结果日期、账户、收入、支出展示：空页不等于当天没有流水，缺失币种不补人民币或元，相邻余额一致不等于独立核验。汇总不是业务流水，不重复加总；空值不当零，不跨币种相加。不自行新增或生成凭证。'
@@ -89,5 +90,5 @@ export function apply(ctx: Context, config: Config): void {
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '日记账查询失败'
       : args.exportExcel ? '日记账导出完成' : args.analyze ? '日记账收支汇总' : '日记账查询结果',
     content: financeResultContent(result.content, result.isError, 'journal') }),
-  }))
+  })))
 }

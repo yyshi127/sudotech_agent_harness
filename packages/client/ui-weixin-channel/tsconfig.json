@@ -13,7 +13,7 @@
     { "path": "../../xiaojing/xiaojing-weixin-channel" },
     { "path": "../connection/tsconfig.client.json" },
     { "path": "../locale" },
-    { "path": "../runtime" },
+    { "path": "../ui-renderer" },
     { "path": "../ui-settings" },
     { "path": "../ui-slots" }
   ]

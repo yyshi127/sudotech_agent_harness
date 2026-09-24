@@ -310,6 +310,8 @@ export type FinanceWorkspaceEntry =
 
 /** Browser-safe Finance workspace registry projection. */
 export interface FinanceWorkspaceListView {
+  /** Canonical Finance root used as the initial directory for local add flows. */
+  workspaceRoot: string
   /** Fixed standard-consultation workspace. */
   standard: FinanceStandardWorkspaceEntry
   /** User-selected consultation workspaces. */

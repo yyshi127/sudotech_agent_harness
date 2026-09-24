@@ -3,7 +3,7 @@
  * releases a consumer whose config reads `ctx.webStartup` directly.
  */
 
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -11,7 +11,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { internals, provideCmdline } from '@deepseek-ai/dsh-cmdline'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, WEB_STARTUP_SERVICE, type WebStartupValues } from '../src/startup.ts'
 
 /** What one fixture boot observed. */
@@ -23,8 +23,13 @@ interface Observed {
 
 const disposers: (() => Promise<void>)[] = []
 
+/** Fixture tree roots, removed after their booted tree has been disposed. */
+const tempDirs: string[] = []
+
 afterEach(async () => {
   for (const dispose of disposers.splice(0)) await dispose()
+  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  vi.unstubAllEnvs()
   internals.stdout = process.stdout
   internals.stderr = process.stderr
 })
@@ -39,6 +44,7 @@ async function bootProvider(args: string[]): Promise<{
   observed: Observed
 }> {
   const dir = mkdtempSync(join(tmpdir(), 'dsh-web-startup-'))
+  tempDirs.push(dir)
   const observed: Observed = { exits: [], out: '' }
   writeFileSync(join(dir, 'reader.mjs'), `
 export function apply(_ctx, config) { globalThis.__webStartupObserved.readerConfig = config }
@@ -114,6 +120,19 @@ describe('web command-line provider', () => {
       port: 3080,
       trustedHosts: [],
     })
+  })
+
+  it('prepares the Xiaojing Finance root before dependent rows activate', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-web-startup-finance-'))
+    tempDirs.push(root)
+    const financeWorkspaceRoot = join(root, 'Finance工作区')
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    vi.stubEnv('XIAOJING_FINANCE_WORKSPACE_ROOT', financeWorkspaceRoot)
+
+    const { values } = await bootProvider([])
+
+    expect(values?.financeWorkspaceRoot).toBe(financeWorkspaceRoot)
+    expect(existsSync(financeWorkspaceRoot)).toBe(true)
   })
 
   it('prints its own help and leaves the consumer pending', async () => {

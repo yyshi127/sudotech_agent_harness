@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { XiaojingWeixinChannel } from '../src/index.ts'
 import { WeixinStateStore } from '../src/state.ts'
@@ -149,17 +150,15 @@ describe('Xiaojing Weixin media assembly', () => {
       whenIdle: () => Promise.resolve(),
     }
     const prompt = vi.fn(async (request: {
-      rpcId: string
-      payload: {
-        content: Array<
+      requestId: string
+      content: Array<
           { type: 'text'; text: string }
           | { type: 'image'; mediaType: string; data: string; name?: string }
-        >
-      }
+      >
     }) => {
       emit('agent/inbox/claimed', {
         agent,
-        message: { role: 'user', content: request.payload.content, source: { rpcId: request.rpcId } },
+        message: { role: 'user', content: request.content, source: { rpcId: request.requestId } },
         turn: 1,
       })
       emit('session/event', agent.session, {
@@ -170,11 +169,8 @@ describe('Xiaojing Weixin media assembly', () => {
         type: 'turn/end', seq: 2, time: Date.now(),
         data: { turn: 1, reason: { kind: 'completed' } },
       })
-      return { result: { ok: true, value: { accepted: true } } }
+      return { accepted: true }
     })
-    const selectModel = vi.fn(async () => ({
-      result: { ok: true, value: { selected: { provider: 'deepseek-official', model: 'deepseek-v4-flash-vision-exp' } } },
-    }))
     const ctx = {
       attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: () => () => undefined } },
@@ -182,17 +178,13 @@ describe('Xiaojing Weixin media assembly', () => {
         resolve: vi.fn(async () => ({ value: 'private-token' })),
         unset: vi.fn(),
       },
-      apiProxy: { sessions: {
-        create: vi.fn(async () => ({ result: { ok: true, value: { sessionId } } })),
+      sessionController: {
+        create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
-        models: vi.fn(async () => ({
-          result: { ok: true, value: { current: { provider: 'deepseek-official', model: 'deepseek-v4-flash' }, groups: [], failures: [], routable: true } },
-        })),
-        selectModel,
-        history: vi.fn(),
-        cancel: vi.fn(async () => ({ result: { ok: true, value: { accepted: true } } })),
-      } },
+        inspect: vi.fn(async () => ({ events: [] })),
+        cancel: vi.fn(),
+      },
       agents: { get: () => agent },
       logger: { warn: vi.fn() },
       on,
@@ -216,7 +208,7 @@ describe('Xiaojing Weixin media assembly', () => {
     await channel.start()
 
     await waitFor(() => outbound.includes('文件已接收。'))
-    const content = prompt.mock.calls[0]?.[0].payload.content ?? []
+    const content = prompt.mock.calls[0]?.[0].content ?? []
     expect(content[0]).toMatchObject({
       type: 'image',
       mediaType: 'image/png',
@@ -232,14 +224,7 @@ describe('Xiaojing Weixin media assembly', () => {
     expect(submitted).not.toContain('context-document')
     expect(submitted).not.toContain(key.toString('hex'))
     expect(await readFile(join(mediaDir, '采购单.xlsx'))).toEqual(plaintext)
-    expect(selectModel).toHaveBeenCalledWith(expect.objectContaining({
-      payload: {
-        sessionId,
-        provider: 'deepseek-official',
-        model: 'deepseek-v4-flash-vision-exp',
-        saveDefault: false,
-      },
-    }))
+    expect(prompt.mock.calls[0]?.[0]).toMatchObject({ sessionId })
     await waitFor(async () => (await store.load()).completedMessageIds.includes('client:document-task'))
 
     await channel.dispose()
@@ -337,22 +322,15 @@ describe('Xiaojing Weixin media assembly', () => {
       },
       whenIdle: () => Promise.resolve(),
     }
-    const prompt = vi.fn(async (request: { rpcId: string; payload: { content: Array<{ type: string }> } }) => {
-      if (request.rpcId === '88888888-8888-4888-8888-888888888888') {
-        return {
-          result: {
-            ok: false,
-            error: {
-              code: 'attachment-error',
-              message: 'Image exceeds configured dimensions.',
-              details: { reason: 'IMAGE_DIMENSION_TOO_LARGE' },
-            },
-          },
-        }
+    const prompt = vi.fn(async (request: { requestId: string; content: Array<{ type: string }> }) => {
+      if (request.requestId === '88888888-8888-4888-8888-888888888888') {
+        throw new RemoteError('session/attachment-invalid', 'Image exceeds configured dimensions.', {
+          reason: 'IMAGE_DIMENSION_TOO_LARGE',
+        })
       }
       emit('agent/inbox/claimed', {
         agent,
-        message: { role: 'user', content: request.payload.content, source: { rpcId: request.rpcId } },
+        message: { role: 'user', content: request.content, source: { rpcId: request.requestId } },
         turn: 1,
       })
       emit('session/event', agent.session, {
@@ -363,7 +341,7 @@ describe('Xiaojing Weixin media assembly', () => {
         type: 'turn/end', seq: 2, time: Date.now(),
         data: { turn: 1, reason: { kind: 'completed' } },
       })
-      return { result: { ok: true, value: { accepted: true } } }
+      return { accepted: true }
     })
     const ctx = {
       attachments: { imageLimits: { ...IMAGE_LIMITS, maxImageBytes: 16 } },
@@ -372,24 +350,13 @@ describe('Xiaojing Weixin media assembly', () => {
         resolve: vi.fn(async () => ({ value: 'private-token' })),
         unset: vi.fn(),
       },
-      apiProxy: { sessions: {
-        create: vi.fn(async () => ({ result: { ok: true, value: { sessionId } } })),
+      sessionController: {
+        create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
-        models: vi.fn(async () => ({
-          result: {
-            ok: true,
-            value: {
-              current: { provider: 'deepseek-official', model: 'deepseek-v4-flash-vision-exp' },
-              groups: [],
-              failures: [],
-              routable: true,
-            },
-          },
-        })),
-        history: vi.fn(),
-        cancel: vi.fn(async () => ({ result: { ok: true, value: { accepted: true } } })),
-      } },
+        inspect: vi.fn(async () => ({ events: [] })),
+        cancel: vi.fn(),
+      },
       agents: { get: () => agent },
       logger: { warn: vi.fn() },
       on,
@@ -534,10 +501,10 @@ describe('Xiaojing Weixin media assembly', () => {
       },
       whenIdle: () => Promise.resolve(),
     }
-    const prompt = vi.fn(async (request: { rpcId: string; payload: { content: Array<{ text: string }> } }) => {
+    const prompt = vi.fn(async (request: { requestId: string; content: Array<{ text: string }> }) => {
       emit('agent/inbox/claimed', {
         agent,
-        message: { role: 'user', content: request.payload.content, source: { rpcId: request.rpcId } },
+        message: { role: 'user', content: request.content, source: { rpcId: request.requestId } },
         turn: 1,
       })
       if (sendTool === undefined) throw new Error('weixin_send_file was not registered')
@@ -559,7 +526,7 @@ describe('Xiaojing Weixin media assembly', () => {
         type: 'turn/end', seq: 2, time: Date.now(),
         data: { turn: 1, reason: { kind: 'completed' } },
       })
-      return { result: { ok: true, value: { accepted: true } } }
+      return { accepted: true }
     })
     const ctx = {
       attachments: { imageLimits: IMAGE_LIMITS },
@@ -568,13 +535,13 @@ describe('Xiaojing Weixin media assembly', () => {
         resolve: vi.fn(async () => ({ value: 'private-token' })),
         unset: vi.fn(),
       },
-      apiProxy: { sessions: {
-        create: vi.fn(async () => ({ result: { ok: true, value: { sessionId } } })),
+      sessionController: {
+        create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
-        history: vi.fn(),
-        cancel: vi.fn(async () => ({ result: { ok: true, value: { accepted: true } } })),
-      } },
+        inspect: vi.fn(async () => ({ events: [] })),
+        cancel: vi.fn(),
+      },
       agents: { get: () => agent },
       logger: { warn: vi.fn() },
       on,

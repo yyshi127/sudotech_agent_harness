@@ -5,6 +5,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from './index.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader identity. */
 export const name = 'xiaojing-finance-open-item-deletion-tool'
@@ -23,7 +24,7 @@ export const Config: s<Config> = s.object({ maxBytes: s.number().min(1).step(1).
  * @param config - Validated bounds passed unchanged to the Host.
  */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_prepare_open_item_deletion',
     description: '准备、修改或只读检查应收/应付删除前信息。理解用户日常说法后用 finance_open_items 定位，歧义先澄清；记录 openItemId 不等于往来账户 ID、客户 ID、摘要或行号。prepare/revise 指定准确记录 ID、应收 receivable 或应付 payable、起止期间；inspect 只用原本地记录 id。展示目标金额、已知限制和待核实项。execution为requires-confirmation时可用finance_delete_open_item请求准确版本确认；不能把未提供字段当成零或无关联。确认会明确提示有成可能连带删除关联对冲、核销或收入记录，公开接口无法完整排除该影响。not-observed 仅指原方向和期间未返回目标，不能宣称全账套删除成功；结果未知只检查原id，不重发。',
     parameters: {
@@ -46,8 +47,8 @@ export function apply(ctx: Context, config: Config): void {
       kind: 'other' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '应收应付删除检查未完成' : '应收应付删除条件与限制',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
-  ctx.tools.register(defineTool({
+  })))
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_delete_open_item',
     description: '执行finance_prepare_open_item_deletion已展示的准确id/version。Host在确认前及发送前重查账套、方向、期间、目标状态和已观察关联，并强制确认公开接口无法完整排除的连带删除风险。聊天同意不能绕过确认；已知关联或状态限制禁止发送。接口接收不等于删除已核验完成，回查只覆盖原方向及期间；超时、响应丢失或回查失败只读inspect原id，绝不重发。',
     parameters: { id: { type: 'string', required: true, description: '已展示的本地应收应付删除预览ID。' },
@@ -62,5 +63,5 @@ export function apply(ctx: Context, config: Config): void {
     presentCall: () => ({ card: 'generic', title: '确认并删除指定应收应付', kind: 'delete' }),
     presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '应收应付删除未完成' : '应收应付删除结果',
       content: financeResultContent(result.content, result.isError, 'operation') }),
-  }))
+  })))
 }

@@ -61,18 +61,23 @@ function assertNever(value: never): never {
  * Open the modern Win32 folder picker off the event loop.
  * @param signal - caller lifetime; abort closes the dialog and rejects.
  * @param internals - Worker/window hooks for deterministic tests.
+ * @param initialPath - optional absolute directory shown when the picker opens.
  * @returns the selected path, or null when the user cancels.
  */
 export async function pickWin32Directory(
   signal: AbortSignal,
   internals: Win32DialogInternals = {},
+  initialPath?: string,
 ): Promise<string | null> {
   if (signal.aborted) throw new Error('native directory picker aborted')
   const spawnWorker = internals.spawnWorker ?? spawnDialogWorker
   const closeWindows = internals.closeThreadWindows ?? hostCloseThreadWindows
   const closeRetryMs = internals.closeRetryMs ?? CLOSE_RETRY_MS
 
-  const worker: Win32DialogWorkerLike = spawnWorker({ title: DIALOG_TITLE })
+  const worker: Win32DialogWorkerLike = spawnWorker({
+    title: DIALOG_TITLE,
+    ...(initialPath === undefined ? {} : { initialPath }),
+  })
   let dialogThreadId: number | undefined
   let closeTimer: NodeJS.Timeout | undefined
   let settled = false

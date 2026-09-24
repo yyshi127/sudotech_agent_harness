@@ -1,7 +1,8 @@
 /** Finance-only blank-session mode and client controls. */
 
 import { useEffect, useState, type ReactNode } from 'react'
-import type { SessionId, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconChevronDownOutline14, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
@@ -31,8 +32,8 @@ export type FinanceHeroContextProps =
 
 /** Render compact Finance controls only for a blank Finance session. */
 export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
-  const { useSessions, useFinanceClients, t } = props
-  const summary = useSessions(state => state.current === undefined ? undefined : state.byId[state.current])
+  const { sessionId, useSessions, useFinanceClients, t } = props
+  const summary = useSessions(state => sessionId === undefined ? undefined : state.byId[sessionId])
   const catalog = useFinanceClients(state => state)
   const [context, setContext] = useState<FinanceSessionContextView | null>(null)
   const [mode, setMode] = useState<FinanceHomeMode>('standard')
@@ -41,8 +42,7 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
   const [busy, setBusy] = useState(false)
   const [transitionFailed, setTransitionFailed] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const sessionId = summary?.id
-  const visible = summary?.agentPreset === 'finance' && summary.blank
+  const visible = summary?.projectionValues?.agentPreset === 'finance' && summary.blank
 
   useEffect(() => {
     let active = true

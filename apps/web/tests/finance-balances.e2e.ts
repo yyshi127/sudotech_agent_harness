@@ -5,11 +5,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 const row = {
   subjectCode: '1001', subjectName: '库存现金', subjectLevel: 1, hasChild: false,
@@ -23,7 +23,11 @@ class BalanceAdapter extends LlmAdapter {
   constructor(readonly scenario: string) { super() }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.calls += 1
-    const evidenceRules = options.system?.match(/财务查询证据规则：\n(?:- [^\n]+\n?){4}/)?.[0]?.trim()
+    const systemText = options.messages.filter(message => message.role === 'system')
+      .flatMap(message => message.content)
+      .filter(block => block.type === 'text')
+      .map(block => block.text).join('\n')
+    const evidenceRules = systemText.match(/财务查询证据规则：\n(?:- [^\n]+\n?){4}/)?.[0]?.trim()
     expect(evidenceRules).toContain('名称相同不证明账户与科目对应')
     expect(evidenceRules).toContain('不能判为异常，也不能判为正常')
     expect(evidenceRules).toContain('不能解释成“即贷方余额”')
@@ -32,7 +36,7 @@ class BalanceAdapter extends LlmAdapter {
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-balances/read-evidence.expected.md', import.meta.url)), evidenceRules!, webSnapshotMode())
     }
     if (this.scenario === 'analysis' && this.calls === 1) {
-      const id = CallId('balance-analysis-skill')
+      const id = ToolCallId('balance-analysis-skill')
       const args = JSON.stringify({ name: 'finance-data-analysis' })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'skill', argumentsDelta: args }
@@ -52,7 +56,7 @@ class BalanceAdapter extends LlmAdapter {
       expect(JSON.stringify(options)).toContain('空值统一写“未提供”，包括科目表、接口汇总、标题和结论')
       expect(JSON.stringify(options)).toContain('没有凭证关联证据，不从现金银行金额相等或相反推断划转')
       expect(JSON.stringify(options)).toContain('直接引用返回的合计，不添加自行展开的算式')
-      const id = CallId('balance-query')
+      const id = ToolCallId('balance-query')
       const args = JSON.stringify({ month: '2026-09', ...this.scenario === 'root' ? { subjectLevel: 1 } : {}, ...this.scenario === 'export' ? { exportExcel: true } : {}, ...this.scenario === 'level' ? { subjectLevel: 2 } : {}, ...this.scenario === 'range' ? { subjectLevel: 1, subjectLevelEnd: 4 } : {},
         ...this.scenario === 'compare' ? { analyze: true, compareMonth: '2026-08', monthEnd: '2026-09', subjectLevel: 1, subjectLevelEnd: 1, exportExcel: true } : {},
         ...this.scenario === 'compare-invalid' ? { analyze: true, compareMonth: '2026-08', monthEnd: '2026-10', subjectLevel: 1, exportExcel: true } : {} })
@@ -151,7 +155,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: scenario === 'compare' ? '比较2026年9月与8月的一级科目余额并导出Excel，保留未知值和完整性限制。' : scenario === 'export' ? '导出2026年9月科目余额的接口查询结果，保留范围限制。' : scenario === 'level' ? '只查2026年9月二级科目余额。' : '看看2026年9月现金还剩多少，这个月进出多少，只查询。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(scenario === 'analysis' ? 3 : 2)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name)).toEqual(scenario === 'analysis' ? ['skill', 'finance_balances'] : ['finance_balances'])
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token/)
@@ -196,11 +200,9 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-balances/${scenario}-result.expected.md`, import.meta.url)), resultSnapshot, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       const selector = '[data-chat-call-id="balance-query"]'
-      const card = page.locator(selector)
-      await card.waitFor()
-      if (scenario !== 'export' && scenario !== 'compare') await card.getByRole('button').first().click()
+      await revealToolCallCard(page, selector)
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-balances/${scenario}-card.expected.md`, import.meta.url)), await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('balance-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })
       try { expect(ctx.tools.schemas(standard.agent).some(tool => tool.name === 'finance_balances')).toBe(false) }

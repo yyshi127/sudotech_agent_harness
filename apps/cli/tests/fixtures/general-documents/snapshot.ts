@@ -2,9 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
-import { boot, loadOverlayPatches, registerProfileModuleFallback } from '@deepseek-ai/dsh-app-boot'
+import { boot, healProfilesModuleFallback, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
-import { CallId, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-presets'
@@ -57,13 +57,12 @@ await mkdir(uploadRoot, { recursive: true })
 const sourcePath = join(uploadRoot, '普通模式资料.csv')
 await writeFile(sourcePath, '项目,金额\n云服务费,88.00\n')
 
-const unregisterModuleFallback = registerProfileModuleFallback(installAnchor, dshHome)
+await healProfilesModuleFallback({ installAnchor, home: dshHome })
 const ctx = await boot('general-document-snapshot', rootConfig, [
   ...loadOverlayPatches('general-document-snapshot', basePatch),
   ...loadOverlayPatches('general-document-snapshot', webPatch),
   ...overrides,
 ], (bootCtx) => {
-  bootCtx.effect(() => unregisterModuleFallback)
   provideCmdline(bootCtx, { args: [], exit: () => {} })
 })
 
@@ -99,14 +98,14 @@ try {
     if (document === undefined) throw new Error('General document snapshot did not discover the user upload')
     const signal = new AbortController().signal
     const list = await ctx.tools.execute({
-      callId: CallId('general-document-snapshot-list'),
+      callId: ToolCallId('general-document-snapshot-list'),
       name: 'document_reader',
       arguments: { action: 'list' },
       signal,
       agent: handle.agent,
     })
     const read = await ctx.tools.execute({
-      callId: CallId('general-document-snapshot-read'),
+      callId: ToolCallId('general-document-snapshot-read'),
       name: 'document_reader',
       arguments: { action: 'read', document_id: document.documentId, cursor: 0 },
       signal,

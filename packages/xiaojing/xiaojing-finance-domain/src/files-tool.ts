@@ -4,6 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { financeModelCall } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader-visible plugin name. */
 export const name = 'xiaojing-finance-files-tool'
@@ -13,7 +14,7 @@ export const inject = ['tools', 'xiaojingFinanceDomain']
 
 /** Register the Finance-only controlled file lifecycle tool. @param ctx - Finance agent scope. */
 export function apply(ctx: Context): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_files',
     description: [
       'Commit files in the current client-bound Finance workspace.',
@@ -92,5 +93,5 @@ export function apply(ctx: Context): void {
       title: result.isError ? '财务文件处理未完成' : args.action === 'publish' ? '财务成果已保存' : '财务文件已归档',
       content: financeResultContent(result.content, result.isError, 'file'),
     }),
-  }))
+  })))
 }

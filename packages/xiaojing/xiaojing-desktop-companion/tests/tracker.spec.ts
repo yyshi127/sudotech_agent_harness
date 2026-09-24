@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CallId } from '@deepseek-ai/dsh-llm/brand'
+import { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
 import type { SessionEvent, SessionEventMap, SessionEventType } from '@deepseek-ai/dsh-session'
 import { ApprovalRequestId } from '@deepseek-ai/dsh-user-approval/types'
 import { CompanionTracker } from '../src/tracker.ts'
@@ -16,7 +16,7 @@ describe('CompanionTracker', () => {
     expect(tracker.snapshot(0)).toMatchObject({ state: 'thinking', activeTaskCount: 1, approvalCount: 0 })
 
     tracker.ingest('a', event('tool/call', {
-      turn: 1, step: 1, callId: CallId('call-1'), name: 'read', arguments: '{}',
+      turn: 1, step: 1, callId: ToolCallId('call-1'), name: 'read', arguments: '{}',
     }), 10)
     expect(tracker.snapshot(10).state).toBe('executing')
 
@@ -37,7 +37,7 @@ describe('CompanionTracker', () => {
     const tracker = new CompanionTracker()
     tracker.ingest('a', event('turn/start', { turn: 1 }), 0)
     tracker.ingest('a', event('tool/call', {
-      turn: 1, step: 1, callId: CallId('call-a'), name: 'read', arguments: '{}',
+      turn: 1, step: 1, callId: ToolCallId('call-a'), name: 'read', arguments: '{}',
     }), 0)
     tracker.ingest('b', event('turn/start', { turn: 1 }), 0)
     tracker.ingest('c', event('turn/start', { turn: 1 }), 0)
@@ -68,7 +68,7 @@ describe('CompanionTracker', () => {
     expect(tracker.setWeixinOnline(true, 1)).toBe(false)
     tracker.ingest('secret-session-title', event('turn/start', { turn: 1 }), 2)
     tracker.ingest('secret-session-title', event('tool/call', {
-      turn: 1, step: 1, callId: CallId('secret-call'), name: 'secret-tool', arguments: '{"secret":true}',
+      turn: 1, step: 1, callId: ToolCallId('secret-call'), name: 'secret-tool', arguments: '{"secret":true}',
     }), 3)
     const snapshot = tracker.snapshot(3)
     expect(snapshot).toEqual({

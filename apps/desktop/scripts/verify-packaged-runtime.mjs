@@ -1,14 +1,16 @@
 /** Verify the generated Electron archive and boot its packaged Xiaojing Host. */
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { backendLaunchUrl, backendSessionCookie } from '../backend-auth.mjs'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
-const resourcesPath = join(appRoot, 'dist', 'installer', 'win-unpacked', 'resources')
+const resourcesPath = process.env.XIAOJING_PACKAGED_RESOURCES_PATH
+  ?? join(appRoot, 'dist', 'installer', 'win-unpacked', 'resources')
 const archivePath = join(resourcesPath, 'app.asar')
 if (!existsSync(archivePath)) {
   throw new Error(`packaged Electron archive is missing: ${archivePath}`)
@@ -27,9 +29,42 @@ for (const match of packagedMain.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
   }
 }
 
+verifyPackagedPluginImports(resourcesPath)
 await verifyPackagedHostBoot(resourcesPath)
 
-console.log('packaged Electron main-process imports and Xiaojing Host boot verified')
+console.log('packaged Electron imports, backend plugins, and Xiaojing Host boot verified')
+
+function verifyPackagedPluginImports(resourcesRoot) {
+  const nodePath = join(resourcesRoot, 'runtime', 'node.exe')
+  const modulesRoot = join(resourcesRoot, 'app.asar.unpacked', 'node_modules', '@deepseek-ai')
+  for (const name of [
+    'dsh-authorization',
+    'dsh-hook-protocol',
+    'dsh-ptc-runtime',
+    'dsh-sdk-protocol',
+    'dsh-util-time',
+    'dsh-util-workspace-path',
+  ]) {
+    if (!existsSync(join(modulesRoot, name, 'package.json'))) {
+      throw new Error(`packaged backend dependency is missing: @deepseek-ai/${name}`)
+    }
+  }
+  const pluginUrls = [
+    'dsh-api-session-controller',
+    'dsh-subagent',
+    'dsh-ptc-runtime-node',
+  ].map(name => pathToFileURL(join(modulesRoot, name, 'lib', 'index.js')).href)
+  const result = spawnSync(nodePath, [
+    '--input-type=module',
+    '-e',
+    'await Promise.all(process.argv.slice(1).map(specifier => import(specifier)))',
+    ...pluginUrls,
+  ], { encoding: 'utf8', windowsHide: true })
+  if (result.error !== undefined) throw result.error
+  if (result.status !== 0) {
+    throw new Error(`packaged backend plugin import failed:\n${result.stderr || result.stdout}`)
+  }
+}
 
 async function verifyPackagedHostBoot(resourcesRoot) {
   const nodePath = join(resourcesRoot, 'runtime', 'node.exe')
@@ -49,6 +84,17 @@ async function verifyPackagedHostBoot(resourcesRoot) {
   const temporaryRoot = mkdtempSync(join(tmpdir(), 'xiaojing-packaged-runtime-'))
   const workspacePath = join(temporaryRoot, 'workspace')
   mkdirSync(workspacePath, { recursive: true })
+  const webProfileDir = join(temporaryRoot, 'dsh-home', 'profiles', 'web')
+  const webManifestPath = join(webProfileDir, 'package.json')
+  mkdirSync(webProfileDir, { recursive: true })
+  writeFileSync(webManifestPath, JSON.stringify({
+    name: 'dsh-profile-web',
+    private: true,
+    dependencies: {},
+    dsh: { profile: { bundles: [
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-file-uploads',
+    ] } },
+  }, undefined, 2) + '\n')
   const environment = {
     ...process.env,
     DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
@@ -85,7 +131,7 @@ async function verifyPackagedHostBoot(resourcesRoot) {
         callback()
       }
       child.stdout.on('data', () => {
-        if (/dsh web:\s+http:\/\/127\.0\.0\.1:\d+/.test(output)) finish(resolveBoot)
+        if (backendLaunchUrl(output) !== undefined) finish(resolveBoot)
       })
       child.once('error', error => finish(() => rejectBoot(error)))
       child.once('exit', (code, signal) => {
@@ -94,6 +140,19 @@ async function verifyPackagedHostBoot(resourcesRoot) {
         )))
       })
     })
+    const launchUrl = backendLaunchUrl(output)
+    if (launchUrl === undefined) throw new Error('packaged Host did not print an authenticated launch URL')
+    const cookie = await backendSessionCookie(launchUrl)
+    const application = await fetch(new URL('/', launchUrl), { headers: { cookie } })
+    if (!application.ok || !(await application.text()).includes('<html')) {
+      throw new Error('packaged Host rejected the desktop authentication cookie')
+    }
+    const migrated = JSON.parse(readFileSync(webManifestPath, 'utf8'))
+    if (JSON.stringify(migrated.dsh?.profile?.bundles) !== JSON.stringify([
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app',
+    ])) {
+      throw new Error('packaged Xiaojing Host did not migrate the retired Web profile')
+    }
   } finally {
     terminateProcessTree(child)
     rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 3 })

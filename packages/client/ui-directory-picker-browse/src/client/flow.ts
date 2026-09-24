@@ -5,7 +5,7 @@
  */
 import { createElement } from 'react'
 import type { ReactElement } from 'react'
-import type { DirectoryListing } from '@deepseek-ai/dsh-client-runtime/client'
+import type { DirectoryListing } from '@deepseek-ai/dsh-api-remotes/client'
 import type { Translate } from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the owner contract of the directory-flow holes.
 import type { DirectoryFlowOwnerProps } from '@deepseek-ai/dsh-client-ui-workspace/client'
@@ -34,6 +34,7 @@ export function BrowseDirectoryFlow(props: DirectoryFlowOwnerProps & BrowseFlowI
   return createElement(DirectoryBrowser, {
     open: props.open,
     busy: props.busy,
+    ...(props.initialPath === undefined ? {} : { initialPath: props.initialPath }),
     listDirectory: props.listDirectory,
     createDirectory: props.createDirectory,
     t: props.t,

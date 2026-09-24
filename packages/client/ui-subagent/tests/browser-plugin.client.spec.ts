@@ -2,10 +2,12 @@
 import { Context } from '@deepseek-ai/cordis'
 import { stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
 import { describe, expect, it } from 'vitest'
-import {
-  SlotRegistry, type ConversationSnapshot, type SessionId, type SessionListState,
-  type SessionSummary, type SubagentAddress,
-} from '@deepseek-ai/dsh-client-runtime/client'
+import type {
+  SessionListState, SessionSnapshot, SessionSummary,
+} from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { apply as applyLocale, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import {
@@ -39,9 +41,6 @@ function sessionsWith(sessions: SessionSummary[]) {
       subscribe: () => () => {},
     },
     actionCalls,
-    openSubagent: (address: SubagentAddress) => {
-      actionCalls.push({ method: 'openSubagent', args: [address] })
-    },
     refreshSubagents: (parentSessionId: SessionId) => {
       actionCalls.push({ method: 'refreshSubagents', args: [parentSessionId] })
       return Promise.resolve()
@@ -68,7 +67,16 @@ async function fullBench(sessions: SessionSummary[]) {
   const ctx = new Context()
   const face = sessionsWith(sessions)
   ctx.provide('sessions', face)
-  ctx.provide('connection', { api: { settings: {} }, isLoopback: false } as never)
+  ctx.provide('uiWorkspace', {
+    openSession: (address: SubagentAddress) => {
+      face.actionCalls.push({ method: 'openSession', args: [address] })
+    },
+  } as never)
+  ctx.provide('sidebarRight', {
+    openResource: (address: string, options: unknown) => {
+      face.actionCalls.push({ method: 'openResource', args: [address, options] })
+    },
+  } as never)
   ctx.provide('remote', { $on: () => () => {} } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   await provideSlotFaces(ctx)
@@ -89,7 +97,7 @@ const FAMILY: SessionSummary[] = [
 
 describe('apply', () => {
   it('declares the services it binds', () => {
-    expect(inject).toEqual(['sessions', 'slots', 'locale'])
+    expect(inject).toEqual(['sessions', 'uiWorkspace', 'slots', 'locale', 'sidebarRight'])
   })
 
   it('registers catalog actions and selects read-only subagent composers from session facts', async () => {
@@ -103,10 +111,18 @@ describe('apply', () => {
       mode: 'continuable',
     }
     actions.openChild(address)
+    actions.openChildAside(address)
     actions.refresh(sid('parent'))
     actions.setCatalogOpen(sid('parent'), true)
     expect(face.actionCalls).toEqual([
-      { method: 'openSubagent', args: [address] },
+      { method: 'openSession', args: [address] },
+      {
+        method: 'openResource',
+        args: [
+          'dsh-resource://subagentchat/session/c1?parent=parent&mode=continuable',
+          { kind: 'subagentchat', preferNewPane: true },
+        ],
+      },
       { method: 'refreshSubagents', args: [sid('parent')] },
       { method: 'setSubagentCatalogOpen', args: [sid('parent'), true] },
     ])
@@ -115,13 +131,14 @@ describe('apply', () => {
       .find(entry => entry.component === SubagentReadOnlyComposer)!
     const select = composerEntry.select as (owner: ComposerChainProps) => SubagentReadOnlyMatch | null
     const owner = (
-      subagent: ConversationSnapshot['subagent'] | undefined,
+      subagent: SessionSnapshot['subagent'] | undefined,
       running = false,
     ): ComposerChainProps => ({
-      interactions: [],
+      sessionId: subagent?.address.childSessionId,
       session: subagent === undefined
         ? undefined
-        : ({ subagent, running } as unknown as ConversationSnapshot),
+        : ({ subagent, running } as SessionSnapshot),
+      pendingInteraction: undefined,
     })
     expect(select(owner(undefined))).toBeNull()
     expect(select(owner(null))).toBeNull()
@@ -130,6 +147,7 @@ describe('apply', () => {
     // One-shot stays read-only even while running: it has no stop action.
     expect(select(owner({ address: { ...address, mode: 'one-shot' }, parentAvailable: true }, true)))
       .toEqual({ reason: 'one-shot' })
+    expect(select(owner({ address }))).toBeNull()
     expect(select(owner({ address, parentAvailable: true }))).toBeNull()
     expect(select(owner({ address, parentAvailable: false })))
       .toEqual({ reason: 'parent-unavailable' })

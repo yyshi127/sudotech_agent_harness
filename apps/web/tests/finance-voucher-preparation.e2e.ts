@@ -4,12 +4,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { VoucherRecords, type PreparedVoucherId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/voucher-records.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 const proposal = { date: '2026-09-09', documentMaker: '测试员', sourcePaths: [], entries: [
   { summary: '银行取现', subjectCode: '1001', side: 'debit', amount: '0.30', auxiliary: [] },
@@ -60,7 +60,7 @@ class PreparationAdapter extends LlmAdapter {
     const request = requests[this.calls++]
     if (request !== undefined) {
       const args = JSON.stringify(request)
-      const id = CallId(this.creating ? `creation-${this.creating}-${this.calls}`
+      const id = ToolCallId(this.creating ? `creation-${this.creating}-${this.calls}`
         : this.recovering ? `recovery-${this.recoveryRun}-${this.calls}` : `preparation-${this.calls}`)
       const name = this.creating && this.calls > 1 && !(this.creating === 'upload-failed' && this.calls === 4)
         ? 'finance_create_voucher' : 'finance_prepare_voucher'
@@ -212,7 +212,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
         text: '/finance-voucher-draft\n先拟一张今天银行取现三毛钱的凭证，制单人测试员，没附件，别提交。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(6)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(results).toHaveLength(5)
       const first = results[0]?.flatMap(block => block.type === 'tool-result' ? block.content : []).find(block => block.type === 'text')
@@ -233,10 +233,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
         normalize(JSON.stringify(results, null, 2)), webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       const card = page.locator('[data-chat-call-id="preparation-1"]')
-      await card.waitFor()
-      await card.getByRole('button').first().click()
+      await revealToolCallCard(page, '[data-chat-call-id="preparation-1"]')
       await expect.poll(() => card.textContent()).toContain('已准备，等待确认')
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-voucher-preparation/card.expected.md', import.meta.url)),
         normalize(await captureStableAria(page, '[data-chat-call-id="preparation-1"]', scaffold.workspaceCwd)), webSnapshotMode())
@@ -255,7 +254,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: '查看刚才的提交记录，不要重发。' }], source: { kind: 'user' } }))
         await handle.agent.whenIdle()
         expect(adapter.calls).toBe(2)
-        const result = handle.agent.session.events.filter(event => event.type === 'tool/result').at(-1)
+        const result = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').at(-1)
         if (result?.type !== 'tool/result') throw new Error('Missing recovery result')
         const content = result.data.message.content
         const recovered = content.flatMap(block => block.type === 'tool-result' ? block.content : [])
@@ -331,7 +330,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
             submission: { identity: { flowId: adapter.preparedId }, payload: { certificateCode: 36 } } })
         }
         beforeUpload = () => { expect(approvals).toBe(2) }
-        const eventsBefore = handle.agent.session.events.length
+        const eventsBefore = handle.agent.session.snapshotEvents().length
         try {
           handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: '请创建刚才预览的凭证，需要确认时展示完整内容。' }], source: { kind: 'user' } }))
           if (mode === 'accepted') {
@@ -358,9 +357,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
               }
               approvals++
               await panel.getByRole('button', { name: choice.label }).click()
-              await expect.poll(() => handle.agent.session.events.slice(eventsBefore)
+              await expect.poll(() => handle.agent.session.snapshotEvents().slice(eventsBefore)
                 .filter(event => event.type === 'approval/decided').length).toBe(approvals)
-              expect(JSON.stringify(handle.agent.session.events.slice(eventsBefore)
+              expect(JSON.stringify(handle.agent.session.snapshotEvents().slice(eventsBefore)
                 .filter(event => event.type === 'approval/decided').at(-1))).toContain(choice.outcome)
             }
           }
@@ -385,12 +384,11 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
           expect(paths.filter(path => path.includes('createCertificate'))).toHaveLength(writesBefore + (prevented ? 0 : 1))
           const durable = await records.read(adapter.preparedId as PreparedVoucherId)
           expect(durable.phase).toBe(prevented ? 'prepared' : mode === 'response-loss' ? 'outcome-unknown' : 'accepted')
-          const creationEvents = handle.agent.session.events.slice(eventsBefore)
+          const creationEvents = handle.agent.session.snapshotEvents().slice(eventsBefore)
           if (mode === 'accepted') {
             await expect.poll(() => page.locator('[data-approval-key]').count()).toBe(0)
             const submittedCard = page.locator('[data-chat-call-id="creation-accepted-3"]')
-            await submittedCard.waitFor()
-            await submittedCard.getByRole('button').first().click()
+            await revealToolCallCard(page, '[data-chat-call-id="creation-accepted-3"]')
             await expect.poll(() => submittedCard.textContent()).toContain('已完成并核对')
             expect(await submittedCard.textContent()).not.toContain('270826')
             await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-voucher-preparation/submitted-card.expected.md', import.meta.url)),

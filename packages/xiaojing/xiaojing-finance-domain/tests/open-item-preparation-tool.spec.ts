@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import * as plugin from '../src/open-item-preparation-tool.ts'
@@ -24,7 +24,7 @@ it('exposes sourced preparation but no credential, ledger, endpoint or approval 
       accountId: '174626', categoryId: '578250', auxiliaryCategoryCode: '01', auxiliaryItemId: '191501',
       summary: '往来测试', keeperName: '测试员', accountReferenceQuery: query } }
     const run = (name: string, parameters: object, owner: Agent | undefined = agent) =>
-      ctx.tools.execute({ callId: CallId('open-item'), name, arguments: parameters, agent: owner, signal })
+      ctx.tools.execute({ callId: ToolCallId('open-item'), name, arguments: parameters, agent: owner, signal })
     expect((await run('finance_open_item_accounts', query)).isError).toBe(false)
     expect(queryObservedOpenItemAccounts).toHaveBeenCalledWith(agent, query, signal)
     expect((await run('finance_prepare_open_item', args)).isError).toBe(false)

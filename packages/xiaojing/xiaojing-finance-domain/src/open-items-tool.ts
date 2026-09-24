@@ -5,6 +5,7 @@ import s from '@deepseek-ai/schemastery'
 import type {} from './index.ts'
 import { financeModelCall, financeModelJson } from './model-result.ts'
 import { financeResultContent } from './result-presentation.ts'
+import { withFinanceCard } from './finance-card.ts'
 
 /** Loader-visible plugin identity. */
 export const name = 'xiaojing-finance-open-items-tool'
@@ -17,7 +18,7 @@ export const Config: s<Config> = s.object({ pageSize: s.number().min(1).max(100)
 
 /** Register read-only open-item querying. @param ctx - Finance preset scope. @param config - Default page size. */
 export function apply(ctx: Context, config: Config): void {
-  ctx.tools.register(defineTool({
+  ctx.tools.register(withFinanceCard(defineTool({
     name: 'finance_open_items',
     description: `只读查询当前绑定账套的有成应收或应付。结合自然语言与上下文识别意图：别人欠我们、待收款通常为 receivable；我们欠别人、待付款通常为 payable，不要求固定关键词。方向不清楚时澄清，不猜测。期间必填；查询两种方向须分别调用。按返回的币种、金额、余额、科目和辅助项目展示，不把辅助项目名称直接当作已核实的客户或供应商身份。不索取密钥或搜索配置。汇总不是业务记录，不重复加总；空值不当零，不跨币种相加。一页不是全部，结清不代表银行已收付款。不执行新增、删除或核销。
 汇总标签：previous-page 只称“上一页总计”，不能改称“初始余额”“期初余额”；total 只称“接口合计”，不能在未核实其范围时改称“本页合计”。标题、表格及总结均遵守此规则，不用免责声明抵消错误标签。
@@ -56,5 +57,5 @@ export function apply(ctx: Context, config: Config): void {
     presentResult: (args, result) => ({ card: 'generic', title: result.isError ? '应收应付查询失败'
       : args.exportExcel ? `${args.direction === 'receivable' ? '应收' : '应付'}导出完成` : '应收应付查询结果',
     content: financeResultContent(result.content, result.isError, 'open-item') }),
-  }))
+  })))
 }

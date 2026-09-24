@@ -2,6 +2,9 @@
 
 /** Simplified Chinese Finance client-management dictionary. */
 export const zh = {
+  toolWorking: '财务任务处理中…',
+  toolResultUnavailable: '财务结果已返回，请查看小兢会计的回复。',
+  toolFailed: '财务任务未完成',
   publishedFileOpen: '打开财务成果',
   publishedFileLocalOnly: '请在运行小兢会计的电脑上打开此文件。',
   reimbursementTitle: '有成报销连接',
@@ -138,6 +141,9 @@ export const zh = {
 
 /** English Finance client-management dictionary. */
 export const en: Record<keyof typeof zh, string> = {
+  toolWorking: 'Finance task in progress…',
+  toolResultUnavailable: 'Finance result received. See Xiaojing’s reply.',
+  toolFailed: 'Finance task not completed',
   publishedFileOpen: 'Open Finance deliverable',
   publishedFileLocalOnly: 'Open this file on the computer running Xiaojing.',
   reimbursementTitle: 'Youcheng reimbursement connection',

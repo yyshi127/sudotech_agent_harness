@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import Tools from '@deepseek-ai/dsh-tools'
 import * as plugin from '../src/journal-deletion-tool.ts'
@@ -20,7 +20,7 @@ it('delegates exact journal deletion requests and removes both tools on disposal
     const agent = { ctx } as Agent
     const signal = new AbortController().signal
     const run = (name: string, args: object, bound = true) => ctx.tools.execute({
-      callId: CallId('journal-deletion'), name, arguments: args, signal, ...(bound ? { agent } : {}) })
+      callId: ToolCallId('journal-deletion'), name, arguments: args, signal, ...(bound ? { agent } : {}) })
     const prepare = { action: 'prepare', journalId: '123', cashAccountId: '174622', month: '2022-01' }
     expect((await run('finance_prepare_journal_deletion', prepare)).isError).toBe(false)
     expect(prepareJournalDeletion).toHaveBeenCalledWith(agent, prepare, signal, limits)

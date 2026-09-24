@@ -12,7 +12,7 @@
     { "path": "../../runtime-diagnostics/invariants" },
     { "path": "../../xiaojing/xiaojing-desktop-companion" },
     { "path": "../locale" },
-    { "path": "../runtime" },
+    { "path": "../ui-renderer" },
     { "path": "../ui-settings" },
     { "path": "../ui-slots" }
   ]

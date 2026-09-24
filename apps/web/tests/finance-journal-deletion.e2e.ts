@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { JournalDeletionRecords, type JournalDeletionId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/journal-deletion-records.ts'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
@@ -39,7 +39,7 @@ class JournalDeletionAdapter extends LlmAdapter {
     if (this.changedConfirmation) requests.splice(5, 1)
     const request = requests[this.calls++]
     if (request !== undefined) {
-      const id = CallId(`journal-deletion-${this.calls}`)
+      const id = ToolCallId(`journal-deletion-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -124,7 +124,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms journal deletion versions
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: '把刚才那条一分钱现金测试流水删掉，先给我看清楚再确认。' }],
           source: { kind: 'user' } }))
         const panel = page.locator('[data-approval-key]')
@@ -158,13 +158,13 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms journal deletion versions
           }
           approvals++
           await panel.getByRole('button', { name: confirmation.label }).click()
-          await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+          await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
         }
         await handle.agent.whenIdle()
         expect(writes).toBe(changedConfirmation ? 0 : 1)
         expect(await records.read(adapter.deletionId as JournalDeletionId)).toMatchObject({
           phase: changedConfirmation ? 'prepared' : scenario === 'lost' ? 'outcome-unknown' : 'accepted', version: 2 })
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         expect(results).toHaveLength(changedConfirmation ? 6 : 7)
         expect(JSON.stringify(results[2])).toContain('版本')
         expect(JSON.stringify(results[3])).toContain('未获得')

@@ -4,11 +4,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 const queries = [
   { kind: 'subjects', name: '费用' }, { kind: 'auxiliary-categories' }, { kind: 'auxiliary-items', categoryCode: '01' },
@@ -23,7 +23,7 @@ class ReferenceAdapter extends LlmAdapter {
     const query = queries[this.calls++]
     if (query !== undefined) {
       const args = JSON.stringify(query)
-      const id = CallId(`reference-${this.calls}`)
+      const id = ToolCallId(`reference-${this.calls}`)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'finance_references', argumentsDelta: args }
       yield { type: 'block-end', index: 0, block: { type: 'tool-call', id, name: 'finance_references', arguments: args } }
@@ -100,7 +100,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('queries five reference kinds witho
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: '查询账套的科目、辅助类别和项目、出纳账户及收支类别，不新增资料。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(6)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name)).toEqual(queries.map(() => 'finance_references'))
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token/)
@@ -110,10 +110,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('queries five reference kinds witho
       await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-references/result.expected.md', import.meta.url)), JSON.stringify(results, null, 2), webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       const card = page.locator('[data-chat-call-id="reference-1"]')
-      await card.waitFor()
-      await card.getByRole('button').first().click()
+      await revealToolCallCard(page, '[data-chat-call-id="reference-1"]')
       await expect.poll(() => card.textContent()).toContain('资料类型：会计科目')
       await expect.poll(() => card.textContent()).toContain('返回记录：2 条')
       expect(await card.textContent()).not.toMatch(/unverified|coverage|requestedLimit|returnedCount|接口/)

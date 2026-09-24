@@ -5,10 +5,10 @@ import { rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
-  CLIENT_BUILD_PROFILE_SELECTOR,
   CLIENT_BUILD_RECORD_PATH,
+  CLIENT_BUILD_PROFILE_SELECTOR,
   clientBuildProcessEnvironment,
-  repositoryCommitHash,
+  repositoryClientBuildEnvironment,
   resolveClientBuildEnvironment,
   writeClientBuildRecord,
 } from './client-build-environment.ts'
@@ -35,17 +35,13 @@ function main(): void {
     allowPositionals: false,
   })
   const root = resolve(import.meta.dirname, '..')
-  const parentEnvironment: NodeJS.ProcessEnv = {
-    ...process.env,
-    DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, process.env),
-  }
-  const selectedProfile = values.profile
-    ?? parentEnvironment[CLIENT_BUILD_PROFILE_SELECTOR]
-    ?? 'xiaojing'
-  const clientEnvironment = resolveClientBuildEnvironment(parentEnvironment, selectedProfile)
-  const buildEnvironment = clientBuildProcessEnvironment(parentEnvironment, clientEnvironment)
+  const repositoryEnvironment = repositoryClientBuildEnvironment(root, process.env)
+  const profile = values.profile ?? process.env[CLIENT_BUILD_PROFILE_SELECTOR]
+  const clientEnvironment = resolveClientBuildEnvironment(repositoryEnvironment, profile)
+  const buildEnvironment = clientBuildProcessEnvironment(process.env, clientEnvironment)
 
   rmSync(resolve(root, CLIENT_BUILD_RECORD_PATH), { force: true })
+  runScript('build:native-system', buildEnvironment)
   runScript('build:lib', buildEnvironment)
   runScript('build:web', buildEnvironment)
   const record = writeClientBuildRecord(root, clientEnvironment)

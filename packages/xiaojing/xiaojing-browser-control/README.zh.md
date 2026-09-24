@@ -4,6 +4,8 @@
 
 小兢会计的 DOM 优先 Microsoft Edge 自动化插件。一个可移除 Cordis 插件负责 `browser_control` 工具、全局页面注册表、每轮次页面租约、专用 Playwright Edge 适配器和可选的个人 Edge 扩展适配器。它不修改 `agent-loop`、官方 UI 包或用户的 Edge profile。
 
+个人 Edge 设置 RPC 通过 Connection 注册 Web 路由，因此 Host 插件启动时同时需要 `connection` 和 `webServer`。
+
 ## Edge 路线
 
 专用路线是默认且无需设置的路线。它使用配置的 `profileDir` 持久 profile，以可见方式启动本机已安装的 Microsoft Edge。用户可以登录并最小化窗口；Playwright 仍能继续普通 DOM 操作，不移动物理鼠标，也不通过物理键盘输入。只有 `disposition: "new_window"` 才会创建另一个顶层窗口。
@@ -56,7 +58,7 @@ Host 会验证固定扩展 ID 和协议版本，然后双方通过与随机 nonc
 
 #### 模型看到什么
 
-[`browser_control` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-xiaojing-browser-control)要求模型创建页面前先复用匹配页面，通过 `act` 批量完成表单和菜单，并让网页工作始终使用 DOM 语义。结果会标明 `managed` 或 `personal` 路线、会话独立的不透明页面和窗口 ID，以及有界语义观察。模型不能安装扩展或绕过其配对状态。
+`browser_control` schema 要求模型创建页面前先复用匹配页面，通过 `act` 批量完成表单和菜单，并让网页工作始终使用 DOM 语义。结果会标明 `managed` 或 `personal` 路线、会话独立的不透明页面和窗口 ID，以及有界语义观察。模型不能安装扩展或绕过其配对状态。
 
 #### Token 影响
 
@@ -68,7 +70,7 @@ Host 会验证固定扩展 ID 和协议版本，然后双方通过与随机 nonc
 
 ## 已知限制与延期工作
 
-- 财务报表不属于浏览器控制能力。D01–D06须等待供应商提供受支持的接口；已否决的浏览器路线记录在[浏览器报表决策](../../../.agents/notes/rejected/feature/2026-09-14-native-finance-reports.zh.md)中。
+- 财务报表不属于浏览器控制能力。D01–D06须等待供应商提供受支持的接口；已否决的浏览器路线记录在[浏览器报表决策](../../../.agents/notes/rejected/architecture/2026-09-14-native-finance-reports.zh.md)中。
 
 - Microsoft Edge 必须已经安装且未被设备策略禁用；应用不会捆绑浏览器运行时。
 - 接管个人 Edge 需要用户手动完成一次解压扩展安装和配对；普通未受管理的 Windows 设备不支持静默安装。

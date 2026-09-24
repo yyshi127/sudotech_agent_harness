@@ -1,7 +1,7 @@
 /** Harness-version adapter for Finance preset and blank-session checks. */
 
 import type { Session } from '@deepseek-ai/dsh-session'
-import { resolveSessionPreset } from '@deepseek-ai/dsh-agent-presets'
+import type {} from '@deepseek-ai/dsh-agent-presets'
 
 /** Stable Xiaojing Finance preset id. */
 export const FINANCE_PRESET_ID = 'finance'
@@ -12,7 +12,11 @@ export const FINANCE_PRESET_ID = 'finance'
  * @returns Finance membership.
  */
 export function isFinanceSession(session: Session): boolean {
-  return resolveSessionPreset(session) === FINANCE_PRESET_ID
+  let preset = session.header.agentPreset
+  for (const event of session.snapshotEvents()) {
+    if (event.type === 'agent-preset/selected') preset = event.data.agentPreset
+  }
+  return preset === FINANCE_PRESET_ID
 }
 
 /**
@@ -21,5 +25,5 @@ export function isFinanceSession(session: Session): boolean {
  * @returns Whether context may still be staged.
  */
 export function isBlankFinanceSession(session: Session): boolean {
-  return !session.events.some(event => event.type === 'turn/start')
+  return !session.snapshotEvents().some(event => event.type === 'turn/start')
 }

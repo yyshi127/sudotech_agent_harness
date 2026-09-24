@@ -58,7 +58,10 @@ describe('native directory picker', () => {
   it('uses the Win32 dialog and never spawns a command when it answers', async () => {
     const run = vi.fn<DirectoryPickerRunner>()
     const pickWin32Dialog = vi.fn(async (): Promise<string | null> => 'C:\\work\\selected')
-    await expect(pickNativeDirectory(signal(), { platform: 'win32', run, pickWin32Dialog })).resolves.toBe('C:\\work\\selected')
+    await expect(pickNativeDirectory(
+      signal(), { platform: 'win32', run, pickWin32Dialog }, 'C:\\Finance工作区',
+    )).resolves.toBe('C:\\work\\selected')
+    expect(pickWin32Dialog).toHaveBeenCalledWith(expect.any(AbortSignal), {}, 'C:\\Finance工作区')
     pickWin32Dialog.mockResolvedValueOnce(null)
     await expect(pickNativeDirectory(signal(), { platform: 'win32', run, pickWin32Dialog })).resolves.toBeNull()
     expect(run).not.toHaveBeenCalled()

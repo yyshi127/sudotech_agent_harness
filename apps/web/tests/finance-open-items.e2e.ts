@@ -5,11 +5,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 const marker = { id: -123, date: '', abstractStr: '合计', subjectCode: '', subjectName: '', auxiliaryItemIds: '', auxiliaryItemName: '',
   currencyCode: '', baseCurrencyCode: '', money: 0, balance: 0, baseMoney: 0, baseBalance: 0, categoryName: '', remark: '' }
@@ -27,7 +27,7 @@ class OpenItemAdapter extends LlmAdapter {
       expect(JSON.stringify(options)).toContain('page/pageSize 只影响普通查询')
       expect(JSON.stringify(options)).toContain('本次查询记录的未结余额')
       expect(JSON.stringify(options)).toContain('summaries 币种为空时不能借用业务行币种')
-      const id = CallId('open-item-query')
+      const id = ToolCallId('open-item-query')
       const args = JSON.stringify({ direction: this.scenario === 'payable' ? 'payable' : 'receivable', periodStart: '2026-09', periodEnd: '2026-09', ...this.scenario === 'export' ? { exportExcel: true } : {} })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: 'finance_open_items', argumentsDelta: args }
@@ -100,7 +100,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
       handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: scenario === 'export' ? '导出2026年9月全部应收记录。' : scenario === 'payable' ? '查查2026年9月我们还欠别人的款，只查询。' : '查查2026年9月别人欠我们的款，只查询。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(2)
-      const events = handle.agent.session.events
+      const events = handle.agent.session.snapshotEvents()
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name)).toEqual(['finance_open_items'])
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token/)
@@ -132,7 +132,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-items/${scenario}-result.expected.md`, import.meta.url)), resultSnapshot, webSnapshotMode())
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-      await page.goto(scaffold.baseUrl)
+      await page.goto(scaffold.authenticatedUrl)
       if (scenario === 'export') {
         const file = events.find(event => event.type === 'finance/file-published')!.data.file
         const delivery = page.locator('[data-finance-published-file]').getByRole('button')
@@ -147,9 +147,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
         expect(await delivery.count()).toBe(1)
       }
       const selector = '[data-chat-call-id="open-item-query"]'
-      const card = page.locator(selector)
-      await card.waitFor()
-      if (scenario !== 'export') await card.getByRole('button').first().click()
+      await revealToolCallCard(page, selector)
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-items/${scenario}-card.expected.md`, import.meta.url)), await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('open-item-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })
       try { expect(ctx.tools.schemas(standard.agent).some(tool => tool.name === 'finance_open_items')).toBe(false) }

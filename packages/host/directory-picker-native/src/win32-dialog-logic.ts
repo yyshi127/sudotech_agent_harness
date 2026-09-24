@@ -25,18 +25,23 @@ export interface Win32FolderDialog {
    */
   setOptions(options: number): number
   /**
+   * `IFileDialog::SetFolder` using a filesystem shell item.
+   * @param path - absolute directory to display initially.
+   * @returns the call chain's HRESULT.
+   */
+  setFolder(path: string): number
+  /**
    * `IFileDialog::SetTitle`.
    * @param title - the dialog title text.
    * @returns the call's HRESULT.
    */
   setTitle(title: string): number
   /**
-   * `IModalWindow::Show`; blocks the calling thread until the user selects or
-   * dismisses.
-   * @param ownerWindow - foreground HWND used as the modal owner, or null.
+   * `IModalWindow::Show` with no owner window; blocks the calling thread
+   * until the user selects or dismisses.
    * @returns the call's HRESULT (`HRESULT_CANCELLED` on dismissal).
    */
-  show(ownerWindow: unknown): number
+  show(): number
   /**
    * `IFileDialog::GetResult` + `IShellItem::GetDisplayName(SIGDN_FILESYSPATH)`,
    * releasing the shell item and freeing the COM string.
@@ -81,10 +86,19 @@ export interface Win32DialogBindings {
    */
   currentThreadId(): number
   /**
-   * `GetForegroundWindow` immediately before the modal dialog opens.
-   * @returns the foreground HWND, or null when Windows has none.
+   * Make the dialog that `Show` is about to create able to take the
+   * foreground. Windows grants activation only to the foreground process,
+   * to a process it started, or to a process that received recent input; a
+   * worker spawned by a background host (the web GUI server) qualifies for
+   * none, so the dialog would open behind every other window. Synthesizing
+   * one Alt press (down, then up) through `keybd_event` counts this process
+   * as the most recent input owner — a community-documented technique with
+   * no documented contract. Call immediately before `Show`. When the
+   * process already holds foreground rights (a console-launched CLI), the
+   * press is inert, but the focused window still receives the lone Alt and
+   * may briefly highlight its menu bar before the dialog activates.
    */
-  foregroundWindow(): unknown
+  pressAltForForeground(): void
 }
 
 /**
@@ -106,12 +120,14 @@ function check(hr: number, what: string): number {
  * @param title - the dialog title text.
  * @param onShowing - called with the native thread id immediately before the
  *   blocking `Show`, so a driver on another thread can close the dialog.
+ * @param initialPath - optional absolute directory displayed before `Show`.
  * @returns the selected filesystem path, or null when the user cancels.
  */
 export function runFolderDialog(
   bindings: Win32DialogBindings,
   title: string,
   onShowing: (threadId: number) => void,
+  initialPath?: string,
 ): string | null {
   bindings.setThreadDpiAwareness()
   check(bindings.coInitializeSta(), 'CoInitializeEx')
@@ -122,8 +138,10 @@ export function runFolderDialog(
     try {
       check(dialog.setOptions(FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR), 'SetOptions')
       check(dialog.setTitle(title), 'SetTitle')
+      if (initialPath !== undefined) check(dialog.setFolder(initialPath), 'SetFolder')
       onShowing(bindings.currentThreadId())
-      const shown = dialog.show(bindings.foregroundWindow())
+      bindings.pressAltForForeground()
+      const shown = dialog.show()
       if (shown === HRESULT_CANCELLED) return null
       check(shown, 'Show')
       const result = dialog.resultPath()

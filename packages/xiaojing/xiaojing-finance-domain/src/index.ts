@@ -2,7 +2,7 @@
 
 import { createHash, randomUUID } from 'node:crypto'
 import { open, realpath, stat } from 'node:fs/promises'
-import { basename, join, resolve } from 'node:path'
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { Service, type Context } from '@deepseek-ai/cordis'
 import s from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -147,6 +147,8 @@ export interface Config {
   dshHome?: string
   /** Absolute user-visible root for standard consultation and customer workspaces. */
   workspaceRoot?: string
+  /** Ordinary Workspace roots that Finance directories may neither contain nor enter. */
+  ordinaryWorkspaceRoots?: string[]
   /** Local upload directory whose completed files may enter customer source materials. */
   uploadRoot?: string
   /** HTTPS Finance API origin for the internal test label. */
@@ -203,6 +205,7 @@ export interface Config {
 export const Config: s<Config> = s.object({
   dshHome: s.string(),
   workspaceRoot: s.string(),
+  ordinaryWorkspaceRoots: s.array(s.string()).default([]),
   uploadRoot: s.string(),
   youchengTestApiUrl: s.string().default('https://cwdata.yiqiyun.com'),
   youchengProductionApiUrl: s.string().default('https://cwdata.yiqiyun.com'),
@@ -317,6 +320,15 @@ function pathKey(path: string): string {
   return process.platform === 'win32' ? path.toLocaleLowerCase('en-US') : path
 }
 
+function pathsOverlap(left: string, right: string): boolean {
+  return containsPath(left, right) || containsPath(right, left)
+}
+
+function containsPath(parent: string, candidate: string): boolean {
+  const child = relative(pathKey(parent), pathKey(candidate))
+  return child === '' || (child !== '..' && !child.startsWith(`..${sep}`) && !isAbsolute(child))
+}
+
 const STANDARD_WORKSPACE_KEY = 'standard'
 
 function consultationWorkspaceKey(path: string): string {
@@ -406,7 +418,7 @@ function voucherOriginalSummaries(record: PreparedVoucherRecord | undefined): ob
 
 function managedFilesOf(agent: Agent): FinanceManagedFile[] {
   const files: FinanceManagedFile[] = []
-  for (const event of agent.session.events) {
+  for (const event of agent.session.snapshotEvents()) {
     if (event.type === 'finance/file-imported'
       || event.type === 'finance/file-published'
       || event.type === 'finance/file-archived') {
@@ -426,6 +438,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   private readonly workspacePresentationStore: FinanceWorkspacePresentationStore
   private readonly fileLifecycle: FinanceFileLifecycle
   private readonly workspaceRoot: string
+  private ordinaryWorkspaceRoots: string[]
   private readonly staged = new WeakMap<Agent['session'], StagedSelection>()
   private readonly pendingFlush = new WeakSet<Agent['session']>()
   private readonly youcheng: YouchengConnection
@@ -485,6 +498,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       config.uploadRoot ?? (process.env.DSH_UPLOAD_DIR?.trim() || join(dshHome, 'uploads')),
     ))
     this.workspaceRoot = resolve(config.workspaceRoot ?? join(process.cwd(), 'Finance工作区'))
+    this.ordinaryWorkspaceRoots = (config.ordinaryWorkspaceRoots ?? []).map(root => resolve(root))
     this.youcheng = new YouchengConnection(resolveYouchengApiUrls(
       config.youchengTestApiUrl ?? 'https://cwdata.yiqiyun.com',
       config.youchengProductionApiUrl ?? 'https://cwdata.yiqiyun.com',
@@ -532,7 +546,13 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       this.consultationStore.init(),
       this.workspacePresentationStore.init(),
     ])
-    await ensureFinanceWorkspaceLayout(this.workspaceRoot)
+    const layout = await ensureFinanceWorkspaceLayout(this.workspaceRoot)
+    this.ordinaryWorkspaceRoots = await Promise.all(this.ordinaryWorkspaceRoots.map(canonicalDirectory))
+    const canonicalFinanceRoot = await canonicalDirectory(layout.root)
+    const overlappingOrdinaryRoot = this.ordinaryWorkspaceRoots.find(root => pathsOverlap(root, canonicalFinanceRoot))
+    if (overlappingOrdinaryRoot !== undefined) {
+      throw new Error(`xiaojing-finance-domain: Finance root overlaps ordinary Workspace root "${overlappingOrdinaryRoot}"`)
+    }
     await this.workspaces()
     this.ctx.effect(
       () => this.ctx.sessionProjections.register(financeClientProjectionDefinition),
@@ -612,7 +632,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
     const parsed = reimbursementRequestSchema.safeParse(input)
     if (!parsed.success) throw new Error(`报销请求参数无效：${parsed.error.issues.map(issue => issue.path.join('.')).join('、')}。请按工具说明补齐，不接受审批、支付或任意接口调用。`)
     const request = parsed.data
-    if (request.action === 'create') assertReimbursementConsent(agent.session.events)
+    if (request.action === 'create') assertReimbursementConsent(agent.session.snapshotEvents())
     const { binding } = await this.requireBoundClientWorkspace(agent)
     const { client } = await this.store.read(binding.client.id)
     if (client.status !== 'active' || client.financeSystem?.system !== 'youcheng') throw new Error('当前帐套未配置有成或已归档。')
@@ -621,7 +641,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const api = await this.reimbursementConnection.connect(client.id, stopped)
       const checkCurrent = async (): Promise<void> => {
         stopped.throwIfAborted()
-        if (request.action === 'create') assertReimbursementConsent(agent.session.events)
+        if (request.action === 'create') assertReimbursementConsent(agent.session.snapshotEvents())
         if ((await this.store.read(client.id)).client.version !== client.version
           || (await this.readReimbursementConnection(client.id)).revision !== api.revision) throw new Error('执行期间帐套或报销配置已变更，请核对原任务。')
       }
@@ -678,7 +698,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
    * @returns Host-only receipt; consumers must omit downloadUrl from model-visible output.
    */
   async uploadFinanceAttachment(agent: Agent, sourcePath: string, signal: AbortSignal): Promise<FinanceAttachmentUpload> {
-    assertReimbursementConsent(agent.session.events)
+    assertReimbursementConsent(agent.session.snapshotEvents())
     const pending = (async () => {
       const stopped = AbortSignal.any([signal, this.stopped.signal])
       stopped.throwIfAborted()
@@ -693,7 +713,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const extension = financeOriginalExtension(file.name, content)
       stopped.throwIfAborted()
       const scope = createHash('sha256').update(`${binding.client.id}/${agent.session.id}`).digest('hex')
-      assertReimbursementConsent(agent.session.events)
+      assertReimbursementConsent(agent.session.snapshotEvents())
       return this.attachmentStorage.upload(`${binding.client.id}/${scope}/${file.sha256}${extension}`, file.name, content, stopped)
     })()
     this.activeChecks.add(pending)
@@ -707,10 +727,11 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
    */
   @Remote('workspaces')
   async workspaces(): Promise<FinanceWorkspaceListView> {
-    const [catalog, consultations, presentationRecords] = await Promise.all([
+    const [catalog, consultations, presentationRecords, workspaceRoot] = await Promise.all([
       this.store.list(),
       this.consultationStore.list(),
       this.workspacePresentationStore.list(),
+      canonicalDirectory(this.workspaceRoot),
     ])
     const presentations = new Map(presentationRecords.map(record => [record.key, record]))
     const standardPresentation = presentationOf(presentations, STANDARD_WORKSPACE_KEY, '咨询')
@@ -750,6 +771,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       }
     }))
     return {
+      workspaceRoot,
       standard,
       consultations: consultationEntries.map(item => item.entry),
       clients: clientEntries.map(item => item.entry),
@@ -2909,14 +2931,24 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
 
   private async assertWorkspacePathAvailable(path: string): Promise<void> {
     const canonicalRoot = await canonicalDirectory(this.workspaceRoot)
-    const reserved = [
-      canonicalRoot,
+    const financeWorkspaces = [
       ...await this.consultationWorkspacePaths(),
       ...await this.clientWorkspacePaths(),
     ]
     const selected = pathKey(path)
-    if (reserved.some(candidate => pathKey(candidate) === selected)) {
+    if (pathKey(canonicalRoot) === selected
+      || financeWorkspaces.some(candidate => pathsOverlap(candidate, path))) {
       throw new Error('xiaojing-finance-domain: the selected directory already belongs to Finance')
+    }
+    const configuredOrdinaryRoot = this.ordinaryWorkspaceRoots.find(root => pathsOverlap(root, path))
+    if (configuredOrdinaryRoot !== undefined) {
+      throw new Error(`xiaojing-finance-domain: the selected Finance directory overlaps ordinary Workspace root "${configuredOrdinaryRoot}"`)
+    }
+    const financeWorkspaceKeys = new Set(financeWorkspaces.map(pathKey))
+    const ordinaryWorkspace = this.ctx.workspaceRegistry.list().find(workspace =>
+      !financeWorkspaceKeys.has(pathKey(workspace.path)) && pathsOverlap(workspace.path, path))
+    if (ordinaryWorkspace !== undefined) {
+      throw new Error(`xiaojing-finance-domain: the selected Finance directory overlaps ordinary Workspace "${ordinaryWorkspace.title}"`)
     }
   }
 
@@ -2937,7 +2969,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   }
 
   private binding(agent: Agent): FinanceClientBinding | undefined {
-    const state = foldFinanceClientEvents(agent.session.events)
+    const state = foldFinanceClientEvents(agent.session.snapshotEvents())
     return state.state === 'bound' ? state.binding : undefined
   }
 

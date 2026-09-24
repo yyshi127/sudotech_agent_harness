@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { VoucherDeletionRecords, type VoucherDeletionId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/voucher-deletion-records.ts'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
@@ -39,7 +39,7 @@ class DeletionAdapter extends LlmAdapter {
     if (this.changedConfirmation) requests.splice(5, 1)
     const request = requests[this.calls++]
     if (request !== undefined) {
-      const id = CallId(`deletion-${this.calls}`)
+      const id = ToolCallId(`deletion-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -125,7 +125,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: '把刚才那张一分钱测试凭证删掉，先给我看清楚再确认。' }],
           source: { kind: 'user' } }))
         const panel = page.locator('[data-approval-key]')
@@ -145,7 +145,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
         for (const confirmation of confirmations) {
           try { await panel.waitFor() }
           catch (error) {
-            const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+            const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
             throw new Error(`Deletion approval missing; calls=${adapter.calls}; results=${JSON.stringify(results)}`, { cause: error })
           }
           await expect.poll(() => panel.getAttribute('data-approval-key')).not.toBe(previousKey)
@@ -168,13 +168,13 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms the exact deletion versio
           }
           approvals++
           await panel.getByRole('button', { name: confirmation.label }).click()
-          await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+          await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
         }
         await handle.agent.whenIdle()
         expect(writes).toBe(changedConfirmation ? 0 : 1)
         expect(await records.read(adapter.deletionId as VoucherDeletionId)).toMatchObject({
           phase: changedConfirmation ? 'prepared' : scenario === 'lost' ? 'outcome-unknown' : 'accepted', version: 2 })
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         expect(results).toHaveLength(changedConfirmation ? 6 : 7)
         expect(JSON.stringify(results[2])).toContain('版本')
         expect(JSON.stringify(results[3])).toContain('未获得')

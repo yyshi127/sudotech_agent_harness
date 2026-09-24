@@ -14,10 +14,12 @@
     { "path": "../../xiaojing/xiaojing-finance-domain" },
     { "path": "../connection/tsconfig.client.json" },
     { "path": "../locale" },
-    { "path": "../runtime" },
     { "path": "../ui-agent-preset" },
+    { "path": "../ui-chat" },
     { "path": "../ui-conversation" },
+    { "path": "../ui-renderer" },
     { "path": "../ui-settings" },
+    { "path": "../ui-tool" },
     { "path": "../ui-slots" },
     { "path": "../ui-workspace" }
   ]

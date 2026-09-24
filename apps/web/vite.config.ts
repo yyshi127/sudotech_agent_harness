@@ -1,8 +1,11 @@
+import { readFile, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { clientBuildEnvironmentDefines } from '../../scripts/client-build-environment.ts'
+import { productWebBundleIsolation } from './product-isolation.ts'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
@@ -10,65 +13,30 @@ const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite ca
   + 'For client-plugin HMR, run `pnpm dsh web` together with `pnpm run dev:web`.'
 const DEFAULT_CLIENT_TITLE = 'DSH Local Build'
 
-/** Escape build-time text before placing it in an HTML attribute. */
-function escapeHtmlAttribute(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+/** Escape build-time text before placing it in the HTML title element. */
+function escapeHtmlText(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-/** Project the selected client profile metadata into the initial HTML document. */
-function clientDocumentMetadata(): Plugin {
-  const title = escapeHtmlAttribute(process.env.DSH_CLIENT_TITLE ?? DEFAULT_CLIENT_TITLE)
-  const language = escapeHtmlAttribute(process.env.DSH_CLIENT_HTML_LANG ?? 'en')
-  const faviconHref = escapeHtmlAttribute(process.env.DSH_CLIENT_FAVICON_HREF ?? '/favicon.svg')
-  const faviconType = escapeHtmlAttribute(process.env.DSH_CLIENT_FAVICON_TYPE ?? 'image/svg+xml')
-  const bootLogo = process.env.DSH_CLIENT_BOOT_LOGO
-  const bootLogoAlt = process.env.DSH_CLIENT_BOOT_LOGO_ALT
+/** Project the public build title, favicon, and optional boot brand into the initial HTML document. */
+function clientDocumentTitle(): Plugin {
+  const title = escapeHtmlText(process.env.DSH_CLIENT_TITLE ?? DEFAULT_CLIENT_TITLE)
+  const bootLogo = process.env.DSH_CLIENT_BOOT_LOGO?.trim()
+  const favicon = process.env.DSH_CLIENT_FAVICON?.trim()
   return {
-    name: 'dsh-client-document-metadata',
+    name: 'dsh-client-document-title',
     transformIndexHtml(html) {
-      const metadata = [
-        bootLogo === undefined || bootLogo === ''
-          ? ''
-          : `    <meta name="dsh-boot-logo" content="${escapeHtmlAttribute(bootLogo)}" />\n`,
-        bootLogoAlt === undefined || bootLogoAlt === ''
-          ? ''
-          : `    <meta name="dsh-boot-logo-alt" content="${escapeHtmlAttribute(bootLogoAlt)}" />\n`,
-      ].join('')
-      return html
-        .replace('<html lang="en">', `<html lang="${language}">`)
-        .replace(
-          '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />',
-          `<link rel="icon" type="${faviconType}" href="${faviconHref}" />`,
-        )
-        .replace('<title>DSH Local Build</title>', `${metadata}    <title>${title}</title>`)
-    },
-  }
-}
-
-/** Generate install metadata from the selected client profile. */
-function clientPwaManifest(): Plugin {
-  const manifest = {
-    id: '/',
-    name: process.env.DSH_CLIENT_PWA_NAME ?? 'DeepSeek Harness',
-    short_name: process.env.DSH_CLIENT_PWA_SHORT_NAME ?? 'DSH',
-    start_url: '/',
-    scope: '/',
-    display: 'fullscreen',
-    icons: [{
-      src: process.env.DSH_CLIENT_PWA_ICON_HREF ?? '/favicon.svg',
-      sizes: process.env.DSH_CLIENT_PWA_ICON_SIZES ?? 'any',
-      type: process.env.DSH_CLIENT_PWA_ICON_TYPE ?? 'image/svg+xml',
-      purpose: 'any',
-    }],
-  }
-  return {
-    name: 'dsh-client-pwa-manifest',
-    generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'manifest.webmanifest',
-        source: `${JSON.stringify(manifest, null, 2)}\n`,
-      })
+      let document = html.replace('<title>DSH Local Build</title>', `<title>${title}</title>`)
+      if (favicon) document = document.replace(/<link\b[^>]*\brel="icon"[^>]*>/g, '')
+      return {
+        html: document,
+        tags: [...(bootLogo ? [
+          { tag: 'meta', attrs: { name: 'dsh-boot-logo', content: bootLogo }, injectTo: 'head' },
+          { tag: 'meta', attrs: { name: 'dsh-boot-logo-alt', content: process.env.DSH_CLIENT_BOOT_LOGO_ALT ?? '' }, injectTo: 'head' },
+        ] as const : []), ...(favicon ? [
+          { tag: 'link', attrs: { rel: 'icon', href: favicon }, injectTo: 'head' },
+        ] as const : [])],
+      }
     },
   }
 }
@@ -79,6 +47,47 @@ function rejectStandaloneServe(): Plugin {
     name: 'dsh-reject-standalone-web-serve',
     config(_config, env) {
       if (env.command === 'serve') throw new Error(STANDALONE_ERROR)
+    },
+  }
+}
+
+/**
+ * Emit preview.html beside index.html: the built index page with one module
+ * script — the worker bootstrap entry — spliced ahead of its entry tag. Both
+ * pages share every chunk; the extra tag is the only difference, so the
+ * static worker deployment ships the served page verbatim plus its
+ * bootstrap.
+ */
+function emitPreviewPage(): Plugin {
+  let bootstrapFile: string | undefined
+  let write = true
+  let written = false
+  let outputDirectory = ''
+  return {
+    name: 'dsh-emit-preview-page',
+    configResolved(config) {
+      write = config.build.write
+      outputDirectory = resolve(config.root, config.build.outDir)
+    },
+    buildStart() {
+      bootstrapFile = undefined
+      written = false
+    },
+    generateBundle(_options, bundle) {
+      if (!write) return
+      for (const item of Object.values(bundle)) {
+        if (item.type === 'chunk' && item.isEntry && item.name === 'bootstrap') bootstrapFile = item.fileName
+      }
+      if (bootstrapFile === undefined) throw new Error('vite: preview bootstrap entry missing from the bundle')
+    },
+    writeBundle() { written = true },
+    async closeBundle() {
+      if (!write || !written || bootstrapFile === undefined) return
+      const page = await readFile(resolve(outputDirectory, 'index.html'), 'utf8')
+      const anchor = page.indexOf('<script type="module"')
+      if (anchor === -1) throw new Error('vite: built index.html lost its module entry tag')
+      const tag = `<script type="module" crossorigin src="./${bootstrapFile}"></script>`
+      await writeFile(resolve(outputDirectory, 'preview.html'), `${page.slice(0, anchor)}${tag}${page.slice(anchor)}`)
     },
   }
 }
@@ -155,11 +164,33 @@ function npmPackageOf(id: string): string | undefined {
 }
 
 export default defineConfig({
-  plugins: [rejectStandaloneServe(), clientDocumentMetadata(), clientPwaManifest(), react()],
+  // Relative asset URLs: preview.html mounts the same output under any base
+  // directory, and the served index resolves identically from the site root.
+  base: './',
+  plugins: [
+    rejectStandaloneServe(), clientDocumentTitle(), react(), emitPreviewPage(),
+    productWebBundleIsolation(src('../..'), src('.')),
+  ],
   build: {
+    // The worker bootstrap holds its page at top-level await; Vite's default
+    // `modules` target (es2020-era) rejects that syntax.
+    target: 'es2022',
     sourcemap: true,
     rollupOptions: {
+      input: {
+        index: src('./index.html'),
+        // Standalone entry, not an index.html script tag: Vite folds every
+        // module tag of one page into a single synthetic entry, and only a
+        // separate input keeps the shared page chunks bootstrap-free.
+        bootstrap: src('./src/preview.ts'),
+      },
       output: {
+        // The worker-preview surface groups under dist/preview/ (the page
+        // itself stays at dist/preview.html), so the published payload can
+        // exclude it as one directory.
+        entryFileNames(chunk): string {
+          return chunk.name === 'bootstrap' ? 'preview/[name]-[hash].js' : 'assets/[name]-[hash].js'
+        },
         // Output layout: the two main chunks stay at assets/ root; lazy
         // @shikijs/langs grammar chunks group under assets/langs/; fonts
         // (all KaTeX faces referenced by vendor.css) group under
@@ -190,6 +221,10 @@ export default defineConfig({
         },
       },
     },
+  },
+  worker: {
+    // The preview worker rides dist/preview/ with the rest of that surface.
+    rollupOptions: { output: { entryFileNames: 'preview/[name]-[hash].js' } },
   },
   resolve: {
     // One instance per shared npm identity: a bare specifier otherwise resolves

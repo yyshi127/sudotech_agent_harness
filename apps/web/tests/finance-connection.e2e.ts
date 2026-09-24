@@ -148,7 +148,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
       client: { legalName: '数豆科技', shortName: '数豆科技', taxpayerType: 'general-vat', registeredRegion: '苏州', accountingStandard: 'small-enterprise', financePolicyNotes: '费用按部门归集。', chartMappings: [], externalSystemRefs: [] },
     })
     const page = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1440, height: 1100 } })
-    await page.goto(scaffold.baseUrl)
+    await page.goto(scaffold.authenticatedUrl)
     await page.getByRole('button', { name: '财务助手', exact: true }).click()
     await page.getByText('账套', { exact: true }).first().waitFor()
     expect(await page.getByText('客户', { exact: true }).count()).toBe(0)
@@ -229,7 +229,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
     await scaffold.ctx.fiber.dispose()
     const restarted = await launchWebScaffold({ harnessHome: scaffold.harnessHome, agentPresets })
     try {
-      await page.goto(restarted.baseUrl)
+      await page.goto(restarted.authenticatedUrl)
       await page.getByRole('button', { name: '财务助手', exact: true }).click()
       const idle = page.getByRole('status', { name: /尚未验证；可点击名称旁的连接图标核验账套/ })
       await idle.waitFor()

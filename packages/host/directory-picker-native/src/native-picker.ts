@@ -11,7 +11,7 @@ export interface DirectoryPickerInternals {
   platform?: NodeJS.Platform
   run?: DirectoryPickerRunner
   /** Replaces the in-process Win32 dialog (`pickWin32Directory`) for deterministic tests. */
-  pickWin32Dialog?: (signal: AbortSignal) => Promise<string | null>
+  pickWin32Dialog?: typeof pickWin32Directory
 }
 
 function outputPath(stdout: string): string | null {
@@ -43,21 +43,31 @@ function rethrowIfAborted(signal: AbortSignal, error: unknown): void {
  * Open the platform directory picker.
  * @param signal - caller/connection lifetime; abort terminates the native command.
  * @param internals - Platform and runner hooks for deterministic tests.
+ * @param initialPath - optional absolute directory shown when the picker opens.
  * @returns the selected path, or null when the user cancels.
  */
 export async function pickNativeDirectory(
   signal: AbortSignal,
   internals: DirectoryPickerInternals = {},
+  initialPath?: string,
 ): Promise<string | null> {
   const platform = internals.platform ?? process.platform
   const run = internals.run ?? runNativeCommand
 
   if (platform === 'darwin') {
     try {
-      const result = await run('osascript', [
-        '-e', 'set selectedFolder to choose folder with prompt "Select Workspace Directory"',
-        '-e', 'POSIX path of selectedFolder',
-      ], signal)
+      const result = await run('osascript', initialPath === undefined
+        ? [
+          '-e', 'set selectedFolder to choose folder with prompt "Select Workspace Directory"',
+          '-e', 'POSIX path of selectedFolder',
+        ]
+        : [
+          '-e', 'on run argv',
+          '-e', 'set selectedFolder to choose folder with prompt "Select Workspace Directory" default location (POSIX file (item 1 of argv))',
+          '-e', 'POSIX path of selectedFolder',
+          '-e', 'end run',
+          '--', initialPath,
+        ], signal)
       return outputPath(result.stdout)
     } catch (error: unknown) {
       if (!signal.aborted && errorCode(error) === 1
@@ -71,15 +81,16 @@ export async function pickNativeDirectory(
     // per-monitor-v2 DPI and abort support. koffi is a packaged dependency
     // whose availability the install guarantees, so there is no fallback
     // tier: any failure surfaces as-is (no PowerShell fallback tier; see
-    // .agents/notes/implemented/simplification/2026-08-04-drop-windows-powershell-picker-fallback.md).
+    // .agents/notes/archived/simplification/2026-08-04-drop-windows-powershell-picker-fallback.md).
     const pickDialog = internals.pickWin32Dialog ?? pickWin32Directory
-    return await pickDialog(signal)
+    return await pickDialog(signal, {}, initialPath)
   }
 
   if (platform === 'linux') {
     try {
       const result = await run('zenity', [
         '--file-selection', '--directory', '--title=Select Workspace Directory',
+        ...(initialPath === undefined ? [] : [`--filename=${initialPath}${initialPath.endsWith('/') ? '' : '/'}`]),
       ], signal)
       return outputPath(result.stdout)
     } catch (error: unknown) {
@@ -90,7 +101,7 @@ export async function pickNativeDirectory(
 
     try {
       const result = await run('kdialog', [
-        '--getexistingdirectory', '.', '--title', 'Select Workspace Directory',
+        '--getexistingdirectory', initialPath ?? '.', '--title', 'Select Workspace Directory',
       ], signal)
       return outputPath(result.stdout)
     } catch (error: unknown) {

@@ -12,6 +12,9 @@ import {
   resolveCompanionBounds,
 } from './desktop-companion.mjs'
 import { assertXiaojingDesktopClientBuild } from './client-build-profile.mjs'
+import { backendLaunchUrl, backendSessionCookie, companionEventsUrl } from './backend-auth.mjs'
+import { registerXiaojingDirectoryPicker } from './xiaojing-directory-picker.mjs'
+import { registerXiaojingOpenPath } from './xiaojing-open-path.mjs'
 
 const identity = JSON.parse(readFileSync(new URL('./identity.json', import.meta.url), 'utf8'))
 const PRODUCT_NAME = identity.productName
@@ -101,7 +104,7 @@ async function startDesktop() {
 }
 
 function createMainWindow() {
-  const icon = join(import.meta.dirname, 'assets', 'taskbar-icon.png')
+  const icon = join(import.meta.dirname, 'assets', 'windows-icon.png')
   const window = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -175,7 +178,7 @@ async function wakeCompanion({ startupGreeting = false } = {}) {
     skipTaskbar: true,
     hasShadow: false,
     title: '桌面小兢',
-    icon: join(import.meta.dirname, 'assets', 'taskbar-icon.png'),
+    icon: join(import.meta.dirname, 'assets', 'windows-icon.png'),
     backgroundColor: '#00000000',
     webPreferences: {
       contextIsolation: true,
@@ -240,7 +243,7 @@ async function resetCompanionPosition() {
 }
 
 function createTray() {
-  const image = nativeImage.createFromPath(join(import.meta.dirname, 'assets', 'taskbar-icon.png')).resize({ width: 24, height: 24 })
+  const image = nativeImage.createFromPath(join(import.meta.dirname, 'assets', 'windows-icon.png')).resize({ width: 24, height: 24 })
   tray = new Tray(image)
   tray.setToolTip(PRODUCT_NAME)
   tray.on('double-click', showMainWindow)
@@ -271,6 +274,13 @@ function companionContextMenu() {
 }
 
 function registerDesktopIpc() {
+  registerXiaojingDirectoryPicker({
+    ipcMain,
+    dialog,
+    getWindow: () => mainWindow,
+    defaultPath: xiaojingWorkspacePaths().office,
+  })
+  registerXiaojingOpenPath({ ipcMain, shell, getWindow: () => mainWindow })
   ipcMain.handle(channels.applicationInfo, () => ({ version: app.getVersion() }))
   ipcMain.handle(channels.state, () => desktopState())
   ipcMain.handle(channels.wake, () => wakeCompanion())
@@ -440,10 +450,11 @@ function startBackend() {
   if (app.isPackaged && !existsSync(paths.node)) throw new Error(`找不到应用运行时：${paths.node}`)
 
   const dataRoot = join(app.getPath('userData'), 'harness')
-  const workspace = join(app.getPath('documents'), '小兢会计工作区')
+  const { office: officeWorkspace, finance: financeWorkspace } = xiaojingWorkspacePaths()
   const logs = join(app.getPath('userData'), 'logs')
   mkdirSync(dataRoot, { recursive: true })
-  mkdirSync(workspace, { recursive: true })
+  mkdirSync(officeWorkspace, { recursive: true })
+  mkdirSync(financeWorkspace, { recursive: true })
   mkdirSync(logs, { recursive: true })
 
   const log = createWriteStream(join(logs, 'backend.log'), { flags: 'a' })
@@ -451,7 +462,8 @@ function startBackend() {
     ...process.env,
     DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
     DSH_HOME: dataRoot,
-    XIAOJING_FINANCE_WORKSPACE_ROOT: join(workspace, 'Finance工作区'),
+    XIAOJING_OFFICE_WORKSPACE_ROOT: officeWorkspace,
+    XIAOJING_FINANCE_WORKSPACE_ROOT: financeWorkspace,
     DSH_TELEMETRY_DISABLED: '1',
     ...(app.isPackaged ? { XIAOJING_EDGE_EXTENSION_DIR: join(process.resourcesPath, 'xiaojing-edge-extension') } : {}),
     NODE_USE_ENV_PROXY: process.env.NODE_USE_ENV_PROXY ?? '1',
@@ -464,7 +476,7 @@ function startBackend() {
   }
 
   backend = spawn(paths.node, [paths.cli, 'web', '--port', '0', '--no-open'], {
-    cwd: workspace,
+    cwd: officeWorkspace,
     env: environment,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -475,8 +487,8 @@ function startBackend() {
     const text = String(chunk)
     log.write(text)
     output = `${output}${text}`.slice(-16_384)
-    const match = output.match(/dsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/)
-    if (match?.[1] !== undefined) openApplication(match[1])
+    const url = backendLaunchUrl(output)
+    if (url !== undefined) void openApplication(url).catch(failBackend)
   }
   backend.stdout.on('data', consume)
   backend.stderr.on('data', consume)
@@ -489,6 +501,14 @@ function startBackend() {
     }
   })
   startupTimer = setTimeout(() => { failBackend(new Error('应用后端启动超时，请查看日志后重试。')) }, BACKEND_READY_TIMEOUT_MS)
+}
+
+function xiaojingWorkspacePaths() {
+  const root = join(app.getPath('documents'), '小兢会计工作区')
+  return {
+    office: join(root, '办公工作区'),
+    finance: join(root, 'Finance工作区'),
+  }
 }
 
 function backendPaths() {
@@ -506,44 +526,28 @@ function backendPaths() {
 
 async function openApplication(url) {
   if (backendUrl !== undefined || mainWindow === undefined) return
-  backendUrl = url
+  backendUrl = new URL(url).origin
   clearTimeout(startupTimer)
-  startCompanionStateStream(url)
+  const cookie = await backendSessionCookie(url)
   await mainWindow.loadURL(url)
-  await mainWindow.webContents.insertCSS(`
-    body::before {
-      content: '';
-      position: fixed;
-      z-index: 2147483647;
-      top: 0;
-      left: 380px;
-      right: 140px;
-      height: 40px;
-      -webkit-app-region: drag;
-      pointer-events: auto;
-    }
-    button, a, input, textarea, select, [role='button'], [role='menuitem'] {
-      -webkit-app-region: no-drag;
-    }
-    [class*='_headerUtilities'] { margin-right: 138px; }
-  `)
+  startCompanionStateStream(companionEventsUrl(url), cookie)
   mainWindow.setTitle(WINDOW_TITLE)
   applicationReady = true
   broadcastDesktopState()
 }
 
-function startCompanionStateStream(url) {
+function startCompanionStateStream(url, cookie) {
   companionStreamAbort?.abort()
   companionStreamAbort = new AbortController()
-  void consumeCompanionStateStream(url, companionStreamAbort.signal)
+  void consumeCompanionStateStream(url, cookie, companionStreamAbort.signal)
 }
 
-async function consumeCompanionStateStream(url, signal) {
+async function consumeCompanionStateStream(url, cookie, signal) {
   while (!signal.aborted) {
     try {
-      const response = await fetch(`${url}/xiaojing-desktop-companion/events`, {
+      const response = await fetch(url, {
         signal,
-        headers: { accept: 'text/event-stream' },
+        headers: { accept: 'text/event-stream', cookie },
       })
       if (!response.ok || response.body === null) throw new Error(`state stream returned ${response.status}`)
       const reader = response.body.getReader()

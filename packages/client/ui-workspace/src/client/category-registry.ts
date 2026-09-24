@@ -5,8 +5,8 @@ import {
   createSnapshotStore,
   type ObservableSnapshot,
   type SnapshotStore,
-  type WorkspaceId,
-} from '@deepseek-ai/dsh-client-runtime/client'
+} from '@deepseek-ai/dsh-client-store'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 
 /** Product-neutral semantic icons available to a nested workspace section. */
 export type WorkspaceCategorySectionIcon = 'discussion' | 'ledger' | 'person'
@@ -23,6 +23,8 @@ export interface WorkspaceCategorySection {
   icon?: WorkspaceCategorySectionIcon
   /** Optional label for the section's directory-backed add action. */
   addLabel?: string
+  /** Optional absolute directory where the add flow starts. */
+  initialPath?: string
 }
 
 /** Supplemental status supplied by a product category for one workspace row. */
@@ -93,6 +95,8 @@ export interface WorkspaceCategorySnapshot {
   categories: readonly (WorkspaceCategoryState & { id: string })[]
   /** Category whose workspaces are visible in the conversation picker; absent means ordinary workspaces. */
   pickerCategoryId?: string
+  /** Sidebar category used by unscoped New Session actions; absent means ordinary workspaces. */
+  activeCategoryId?: string
 }
 
 /** Registry keeping product categories outside the generic Workspace implementation. */
@@ -101,6 +105,7 @@ export class WorkspaceCategoryRegistry {
   readonly store: SnapshotStore<WorkspaceCategorySnapshot> = createSnapshotStore({ categories: [] })
 
   private pickerCategoryId: string | undefined
+  private activeCategoryId: string | undefined
   private readonly providers = new Map<string, {
     provider: WorkspaceCategoryProvider
     disposeSource: () => void
@@ -124,6 +129,7 @@ export class WorkspaceCategoryRegistry {
       current.disposeSource()
       this.providers.delete(provider.id)
       if (this.pickerCategoryId === provider.id) this.pickerCategoryId = undefined
+      if (this.activeCategoryId === provider.id) this.activeCategoryId = undefined
       this.project()
     }
   }
@@ -233,6 +239,19 @@ export class WorkspaceCategoryRegistry {
     this.project()
   }
 
+  /**
+   * Select the sidebar category without changing durable Workspace membership.
+   * @param categoryId - Registered category, or undefined for ordinary workspaces.
+   */
+  setActiveCategory(categoryId: string | undefined): void {
+    if (categoryId !== undefined && !this.providers.has(categoryId)) {
+      throw new Error(`unknown workspace category: ${categoryId}`)
+    }
+    if (this.activeCategoryId === categoryId) return
+    this.activeCategoryId = categoryId
+    this.project()
+  }
+
   private project(): void {
     const categories = [...this.providers.values()]
       .map(({ provider }) => ({
@@ -247,6 +266,7 @@ export class WorkspaceCategoryRegistry {
     this.store.set({
       categories,
       ...(this.pickerCategoryId === undefined ? {} : { pickerCategoryId: this.pickerCategoryId }),
+      ...(this.activeCategoryId === undefined ? {} : { activeCategoryId: this.activeCategoryId }),
     })
   }
 }

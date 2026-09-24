@@ -1,6 +1,6 @@
 /** Customer record editor opened from a Finance workspace action menu. */
 import { useEffect, useState, type ReactNode } from 'react'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconCloseOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { FinanceClientId } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'

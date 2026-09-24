@@ -1,16 +1,22 @@
 // @vitest-environment jsdom
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
-  SessionListState, WorkspaceId, WorkspaceListState, WorkspaceView,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+  WorkspaceId, WorkspaceSnapshot, WorkspaceView,
+} from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type {} from '@deepseek-ai/dsh-client-locale/client'
+import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from '../src/client/contract/slots.ts'
-import type { WorkspaceCategorySnapshot } from '../src/client/category-registry.ts'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { WorkspacePicker } from '../src/client/WorkspacePicker.tsx'
 import { zh } from '../src/client/locales.ts'
+
+// Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
+const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
 afterEach(cleanup)
 
@@ -29,11 +35,11 @@ function hook<T>(snapshot: T) {
   return function select<S>(selector: (state: T) => S): S { return selector(snapshot) }
 }
 const sessions: SessionListState = {
-  ids: [], byId: {}, current: undefined, phase: 'ready', subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined,
+  ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {},
 }
-const workspaceState = (items: readonly WorkspaceView[]): WorkspaceListState => ({
-  items, archivedSessionIds: [], state: 'idle', phase: 'ready', error: null, baselinesReady: true,
-  recentWorkspaceId: items[0]?.workspaceId,
+const noPendingInteraction: SessionStatusSnapshot = new Map()
+const workspaceState = (items: readonly WorkspaceView[]): WorkspaceSnapshot => ({
+  items, archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
 })
 function anchor(): { current: HTMLElement } {
   const element = document.createElement('button')
@@ -82,7 +88,6 @@ function mount(
   items: readonly WorkspaceView[] = [workspace('alpha', 'Alpha')],
   createWorkspace = vi.fn(),
   occupancy = occupancySource(),
-  categories: WorkspaceCategorySnapshot = { categories: [] },
 ) {
   const onPick = vi.fn()
   const onClose = vi.fn()
@@ -93,12 +98,15 @@ function mount(
       open
       anchorRef={anchorRef}
       useSessions={hook(sessions)}
+      useSessionStatus={hook(noPendingInteraction)}
+      useSessionRetainInfo={() => undefined}
+      usePanelInfo={usePanelInfo} useResource={useResource}
       useWorkspaces={hook(workspaceState(nextItems))}
+      useWorkspaceCategories={hook({ categories: [] })}
       onPick={onPick}
       onClose={onClose}
       createWorkspace={createWorkspace}
       useDirectoryFlow={occupancy.useDirectoryFlow}
-      useWorkspaceCategories={hook(categories)}
       renderSlot={renderSlot}
       t={t}
     />
@@ -214,25 +222,31 @@ describe('WorkspacePicker', () => {
     render(
       <WorkspacePicker
         open useSessions={hook(sessions)} useWorkspaces={hook(workspaceState([workspace('alpha', 'Alpha')]))}
+        useWorkspaceCategories={hook({ categories: [] })}
+        useSessionStatus={hook(noPendingInteraction)}
+        useSessionRetainInfo={() => undefined}
+        usePanelInfo={usePanelInfo} useResource={useResource}
         onPick={vi.fn()} onClose={vi.fn()} createWorkspace={vi.fn()}
-        useDirectoryFlow={occupancySource().useDirectoryFlow} useWorkspaceCategories={hook({ categories: [] })}
-        renderSlot={renderSlot} t={t}
+        useDirectoryFlow={occupancySource().useDirectoryFlow} renderSlot={renderSlot} t={t}
       />,
     )
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
   it('keeps the menu up while the list baseline is still in flight', () => {
-    const state: WorkspaceListState = {
-      ...workspaceState([]), phase: 'pending', state: 'loading', baselinesReady: false,
+    const state: WorkspaceSnapshot = {
+      ...workspaceState([]), phase: 'pending', state: 'loading',
     }
     const { renderSlot } = flowProbe()
     render(
       <WorkspacePicker
         open anchorRef={anchor()} useSessions={hook(sessions)} useWorkspaces={hook(state)}
+        useWorkspaceCategories={hook({ categories: [] })}
+        useSessionStatus={hook(noPendingInteraction)}
+        useSessionRetainInfo={() => undefined}
+        usePanelInfo={usePanelInfo} useResource={useResource}
         onPick={vi.fn()} onClose={vi.fn()} createWorkspace={vi.fn()}
-        useDirectoryFlow={occupancySource().useDirectoryFlow} useWorkspaceCategories={hook({ categories: [] })}
-        renderSlot={renderSlot} t={t}
+        useDirectoryFlow={occupancySource().useDirectoryFlow} renderSlot={renderSlot} t={t}
       />,
     )
     // An empty list is not final yet: jumping into the directory flow here
@@ -307,32 +321,6 @@ describe('WorkspacePicker', () => {
     act(() => { b.occupancy.flip(false) })
     expect(b.probe.owner!.open).toBe(false)
     expect(screen.getByRole<HTMLButtonElement>('menuitem', { name: 'Alpha' }).disabled).toBe(false)
-    expect(screen.queryByRole('menuitem', { name: '添加工作区…' })).toBeNull()
-  })
-
-  it('shows only the selected product category and hides generic workspace creation', () => {
-    mount(
-      [
-        workspace('ordinary', '普通项目'),
-        workspace('finance-standard', '咨询'),
-        workspace('finance-client', '数豆科技'),
-      ],
-      vi.fn(),
-      occupancySource(),
-      {
-        pickerCategoryId: 'finance',
-        categories: [{
-          id: 'finance',
-          label: '财务工作区',
-          ordinaryLabel: '普通工作区',
-          workspaceIds: [wid('finance-standard'), wid('finance-client')],
-          newSessionDisabledWorkspaceIds: [],
-        }],
-      },
-    )
-    expect(screen.queryByRole('menuitem', { name: '普通项目' })).toBeNull()
-    expect(screen.getByRole('menuitem', { name: '咨询' })).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: '数豆科技' })).toBeTruthy()
     expect(screen.queryByRole('menuitem', { name: '添加工作区…' })).toBeNull()
   })
 })

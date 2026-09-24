@@ -4,10 +4,10 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { OpenItemDeletionRecords, type OpenItemDeletionId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/open-item-deletion-records.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 class DeletionPreviewAdapter extends LlmAdapter {
   calls = 0
@@ -39,7 +39,7 @@ class DeletionPreviewAdapter extends LlmAdapter {
       { name: 'finance_delete_open_item', args: { id: this.operationId, version: 2 } }, previews[3]!] : previews
     const request = requests[this.calls++]
     if (request !== undefined) {
-      const id = CallId(`open-deletion-${this.calls}`)
+      const id = ToolCallId(`open-deletion-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -133,7 +133,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         const prompt = execution
           ? direction === 'receivable' ? '删除那笔一分钱应收记录，先给我准确版本确认。' : '删除那笔一分钱应付记录，先给我准确版本确认。'
           : direction === 'receivable' ? '一月那笔一分钱别人欠我们的记录，先看看删掉会影响什么，别直接删。'
@@ -165,11 +165,11 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
               .replaceAll(adapter.operationId, '<deletion-id>'), webSnapshotMode())
             approvals++
             await panel.getByRole('button', { name: confirmation.label }).click()
-            await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+            await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
           }
         }
         await handle.agent.whenIdle()
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         if (execution) {
           expect(results).toHaveLength(7)
           expect(JSON.stringify(results[2])).toContain('版本')
@@ -210,7 +210,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
         expect(JSON.stringify(results[3])).toContain('present')
         expect(JSON.stringify(results)).toContain('公开接口的完整关联影响未核实')
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest|ownerDigest/)
-        expect(handle.agent.session.events.some(event => event.type === 'approval/asked')).toBe(false)
+        expect(handle.agent.session.snapshotEvents().some(event => event.type === 'approval/asked')).toBe(false)
         expect(routes.length).toBeGreaterThan(0)
         expect(routes.every(path => ['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson',
           '/finance/cashjournal/getCashierList'].includes(path))).toBe(true)
@@ -218,8 +218,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
           inventory: { selection: { direction } } })
         const cardSelector = '[data-chat-call-id="open-deletion-2"]'
         const card = page.locator(cardSelector)
-        await card.waitFor()
-        await card.getByRole('button').first().click()
+        await revealToolCallCard(page, cardSelector)
         await expect.poll(() => card.textContent()).toContain(direction === 'payable'
           ? '当前条件不足，未执行' : '已准备，等待确认')
         expect(await card.textContent()).toContain('摘要：删除检查专用')

@@ -54,8 +54,12 @@ function firstResultLine(content: readonly { type: string; text?: string }[]): s
   return 'visualization failed'
 }
 
-/** The settled, well-formed card: header line plus the sandboxed frame. */
-function Frame({ meta, callId }: { meta: VisualizeMeta; callId: string }) {
+/**
+ * Render persisted visualization content independently of tool-process disclosure.
+ * @param props - validated metadata and the owning call identifier.
+ * @returns the titled, sandboxed interactive frame.
+ */
+export function VisualizeFrame({ meta, callId }: { meta: VisualizeMeta; callId: string }) {
   const [height, setHeight] = useState(MIN_HEIGHT)
 
   useEffect(() => {
@@ -117,5 +121,5 @@ export function VisualizeCard({ callId, block }: ToolCallViewProps) {
     // text instead of guessing at markup.
     return <div style={headerStyle}>{firstResultLine(block.content)}</div>
   }
-  return <Frame meta={meta} callId={callId} />
+  return <VisualizeFrame meta={meta} callId={callId} />
 }

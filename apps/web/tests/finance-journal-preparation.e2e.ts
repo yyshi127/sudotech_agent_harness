@@ -4,12 +4,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { CallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { JournalRecords, type PreparedJournalId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/journal-records.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 
 class JournalAdapter extends LlmAdapter {
   calls = 0
@@ -46,7 +46,7 @@ class JournalAdapter extends LlmAdapter {
     const request = this.calls < (this.scenario === 'currency-change' ? 6 : requests.length) ? requests[this.calls] : undefined
     this.calls++
     if (request !== undefined) {
-      const id = CallId(`${this.direction}-${this.calls}`)
+      const id = ToolCallId(`${this.direction}-${this.calls}`)
       const args = JSON.stringify(request.args)
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
       yield { type: 'tool-call-delta', index: 0, id, name: request.name, argumentsDelta: args }
@@ -134,7 +134,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('requires the exact journal revisio
         await workspace.attachSession(handle.agent.session.id)
         await ctx.xiaojingFinanceDomain.stage(handle.agent, { mode: 'client', clientId: created.client.id })
         await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
-        await page.goto(scaffold.baseUrl)
+        await page.goto(scaffold.authenticatedUrl)
         handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: direction === 'income'
           ? '帮我记一笔现金收入一毛一，改成一毛二再确认，不要生成凭证。' : '现金花了七分，改成八分再确认，不要实际付款。' }], source: { kind: 'user' } }))
         const panel = page.locator('[data-approval-key]')
@@ -155,12 +155,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('requires the exact journal revisio
           if (scenario === 'currency-change' && approvals === 1) currencyId = '120456'
           approvals++
           await panel.getByRole('button', { name: label }).click()
-          await expect.poll(() => handle.agent.session.events.filter(event => event.type === 'approval/decided').length).toBe(approvals)
+          await expect.poll(() => handle.agent.session.snapshotEvents().filter(event => event.type === 'approval/decided').length).toBe(approvals)
         }
         await handle.agent.whenIdle()
         expect(adapter.calls).toBe(scenario === 'currency-change' ? 7 : 8)
         expect(writes).toBe(scenario === 'currency-change' ? 0 : 1)
-        const results = handle.agent.session.events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
+        const results = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').map(event => event.data.message.content)
         expect(results).toHaveLength(scenario === 'currency-change' ? 6 : 7)
         expect(JSON.stringify(results[2])).toContain('版本')
         expect(JSON.stringify(results[3])).toContain('未获得')
@@ -176,8 +176,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('requires the exact journal revisio
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)
         const selector = `[data-chat-call-id="${direction}-5"]`
         const card = page.locator(selector)
-        await card.waitFor()
-        await card.getByRole('button').first().click()
+        await revealToolCallCard(page, selector)
         await expect.poll(() => card.textContent()).toContain(scenario === 'currency-change'
           ? '资料或新增位置已变化'
           : scenario === 'expense' ? '结果待确认' : '已完成并核对')

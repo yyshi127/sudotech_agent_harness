@@ -1,10 +1,11 @@
 /** Replayable file delivery from committed Finance publication events. */
-import type { ConversationNodeDefinition } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ConversationNodeDefinition } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { FinanceManagedFile } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
 
 type PublishedFile = Pick<FinanceManagedFile, 'path' | 'name'>
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
+declare module '@deepseek-ai/dsh-client-ui-chat/client' {
   interface ChatNodeDataMap {
     /** Successfully published Finance file; never inferred from assistant prose. */
     'finance-published-file': PublishedFile

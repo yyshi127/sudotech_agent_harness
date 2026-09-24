@@ -9,8 +9,8 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: 'dsh-v0.1.1-rc.2',
-  commit: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28',
+  release: 'dsh-v0.1.6-alpha.2',
+  commit: 'ddefc45fbc7f8e46dd73185e68295696d1297887',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {
@@ -19,6 +19,7 @@ if (manifest.schemaVersion !== 1
 
 const coreRoots = [
   'packages/client/ui-sidebar/src',
+  'packages/client/ui-chat/src',
   'packages/client/ui-conversation/src',
   'packages/client/ui-settings-models/src',
   'packages/client/ui-settings/src',
@@ -105,7 +106,7 @@ const jsExpression = new Type('tag:yaml.org,2002:js', {
   construct: value => ({ __jsExpr: value }),
 })
 const entrySchema = JSON_SCHEMA.extend(jsExpression)
-const standardPresetPath = join(root, 'apps', 'cli', 'config', 'agent-presets', 'standard', 'agent.cordis.yml')
+const standardPresetPath = join(root, 'packages', 'preset', 'agent-presets', 'presets', 'standard', 'agent.cordis.yml')
 const financePresetPath = join(root, expectedFinancePreset.composition)
 const standardRows = load(await readFile(standardPresetPath, 'utf8'), { schema: entrySchema })
 const financeRows = load(await readFile(financePresetPath, 'utf8'), { schema: entrySchema })
@@ -169,10 +170,10 @@ if (!Array.isArray(standardRows) || !Array.isArray(financeRows)) {
   const financePersona = personas[0]
   if (personas.length !== 1
     || financePersona?.name !== '@deepseek-ai/dsh-persona'
-    || typeof financePersona?.config?.text !== 'string'
-    || !financePersona.config.text.includes('Finance模式')
-    || !financePersona.config.text.includes('待核验')
-    || !financePersona.config.text.includes('finance_document')) {
+    || typeof financePersona?.config?.prefix !== 'string'
+    || !financePersona.config.prefix.includes('Finance模式')
+    || !financePersona.config.prefix.includes('待核验')
+    || !financePersona.config.prefix.includes('finance_document')) {
     errors.push('Finance模式 must own one finance-specific, verification-aware persona row')
   }
 }
@@ -210,9 +211,9 @@ const directoryIds = async (directory) => (await readdir(directory, { withFileTy
   .filter(entry => entry.isDirectory())
   .map(entry => entry.name)
   .sort()
-const officialPresetIds = await directoryIds(join(root, 'apps', 'cli', 'config', 'agent-presets'))
+const officialPresetIds = await directoryIds(join(root, 'packages', 'preset', 'agent-presets', 'presets'))
 const productPresetIds = await directoryIds(join(root, expectedFinanceRules.presetRoot))
-if (JSON.stringify(officialPresetIds) !== JSON.stringify(['code', 'cordis', 'minimal', 'standard'])) {
+if (JSON.stringify(officialPresetIds) !== JSON.stringify(['cordis', 'minimal', 'ptc', 'standard'])) {
   errors.push('official Agent-preset root must contain only the four upstream presets')
 }
 if (JSON.stringify(productPresetIds) !== JSON.stringify(manifest.agentPresets.map(value => value.id).sort())) {
@@ -424,9 +425,10 @@ const buildEnvironment = await readFile(join(root, 'scripts', 'client-build-envi
 if (!buildEnvironment.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
   errors.push('xiaojing client build profile is missing')
 }
-const buildOrchestrator = await readFile(join(root, 'scripts', 'build.ts'), 'utf8')
-if (!buildOrchestrator.includes("parentEnvironment[CLIENT_BUILD_PROFILE_SELECTOR]\n    ?? 'xiaojing'")) {
-  errors.push('the default complete build no longer selects the xiaojing client profile')
+const rootManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+if (rootManifest.scripts?.['build:xiaojing'] !== 'tsx scripts/build.ts --profile xiaojing'
+  || !rootManifest.scripts?.['desktop:dist']?.includes('pnpm run build:xiaojing')) {
+  errors.push('the desktop release path no longer selects the xiaojing client profile')
 }
 
 if (errors.length > 0) {
