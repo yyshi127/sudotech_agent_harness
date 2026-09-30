@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-finance-f4-acceptance.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-f4-acceptance.md
-youcheng-finance-f4-acceptance.md: 2fcd9ed94691eace515eeb5d932edb6301f2f61d
-youcheng-finance-f4-acceptance.zh.md: 641ed026f64622bb7c1506df1d496b7773a8195d
+/youcheng-finance-f4-acceptance:
+  en: 7c1cf983c7eff8d6
+  zh: 4bd33ebb044a35d8
+/youcheng-finance-f4-acceptance/scope-and-completion:
+  en: dae908f9af8d9679
+  zh: 72e6f6d2aa854c58
+/youcheng-finance-f4-acceptance/autonomous-checkpoints:
+  en: 7378dbf05e304b4e
+  zh: 6003f1d62f487a04
+/youcheng-finance-f4-acceptance/execution-batches:
+  en: 957eb38d292e1a1d
+  zh: da00a4d71f1d6e2f
+/youcheng-finance-f4-acceptance/capability-evidence-map:
+  en: 2643a3701bcedd80
+  zh: 1c99ea0d30334fe6
+/youcheng-finance-f4-acceptance/deferred-native-reports:
+  en: ebd1a7f9c5f68975
+  zh: a36aa62809e028ba
+/youcheng-finance-f4-acceptance/test-environment-and-evidence-rules:
+  en: ec76ab068b0276c1
+  zh: 64fb5c3a818416c0
+/youcheng-finance-f4-acceptance/remaining-completion-conditions:
+  en: 82411bc439949442
+  zh: 7d234943a4174b8b

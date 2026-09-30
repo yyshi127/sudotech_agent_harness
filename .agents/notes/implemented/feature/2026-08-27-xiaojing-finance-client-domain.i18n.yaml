@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-27-xiaojing-finance-client-domain.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-27-xiaojing-finance-client-domain.md
-2026-08-27-xiaojing-finance-client-domain.md: 1a5eff623ffd10571f9b08cafef5150c8d18806e
-2026-08-27-xiaojing-finance-client-domain.zh.md: fce5a4e7521694a6a40f0081acb3929bbe1179de
+/agent-note-xiaojing-finance-client-domain-and-immutable-session-context:
+  en: 3f230ed9272d7b0e
+  zh: 395d6e7056541676
+/agent-note-xiaojing-finance-client-domain-and-immutable-session-context/problem:
+  en: 19e2cd483ae23c96
+  zh: 328011324ee8b4f3
+/agent-note-xiaojing-finance-client-domain-and-immutable-session-context/decision:
+  en: ec4bcd40d175ff8b
+  zh: 3953b4aa3c29bdc7
+/agent-note-xiaojing-finance-client-domain-and-immutable-session-context/alternatives-considered:
+  en: 7395003c0f61ecd6
+  zh: 754841773ac41dac
+/agent-note-xiaojing-finance-client-domain-and-immutable-session-context/verification:
+  en: ab421c757738524c
+  zh: a2549a3a3362c273
+/agent-note-xiaojing-finance-client-domain-and-immutable-session-context/consequences:
+  en: 40a4a17efc6391f3
+  zh: f697fde90f7ee6cb

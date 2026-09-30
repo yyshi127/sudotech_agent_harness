@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { IconDataOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconDataOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UsageAccountingView } from './controller.ts'
 import type { UsageAccountingKey } from './locales.ts'
@@ -117,7 +117,7 @@ export function UsageSidebar({ wide, refresh, useUsage, t }: UsageSidebarProps):
           setOpen(current => !current)
         }}
       >
-        <IconDataOutline16 className={css.icon} size={16} />
+        <IconDataOutlineRegular className={css.icon} size={16} />
         {wide && (
           <span className={css.label}>
             {view.status === 'error' || view.snapshot === null

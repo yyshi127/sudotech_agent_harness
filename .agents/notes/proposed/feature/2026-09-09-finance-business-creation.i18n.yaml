@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-09-finance-business-creation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-09-finance-business-creation.md
-2026-09-09-finance-business-creation.md: 46d30d78152ecec7a9e23e428f8434363469943d
-2026-09-09-finance-business-creation.zh.md: 7eea61bb6714afe45228fa87fe29ac355efaa4a8
+/agent-note-finance-business-creation:
+  en: db5dbb4781af829b
+  zh: 6397642291f4046c
+/agent-note-finance-business-creation/problem:
+  en: 498824fd6b2a30d4
+  zh: 830d1adc9257d1cd
+/agent-note-finance-business-creation/proposal:
+  en: db4b480c6058933b
+  zh: b5f74a8bf4f4eaa9
+/agent-note-finance-business-creation/alternatives-considered:
+  en: 308310caaca03aab
+  zh: af99b97bd80cfece
+/agent-note-finance-business-creation/acceptance-criteria:
+  en: 7f4f65074f112df7
+  zh: 4b2dd746ee5e4f62
+/agent-note-finance-business-creation/risks:
+  en: c8f100d5533a81aa
+  zh: 2cb4f7ae0f0236eb

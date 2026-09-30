@@ -418,6 +418,7 @@ function voucherOriginalSummaries(record: PreparedVoucherRecord | undefined): ob
 
 function managedFilesOf(agent: Agent): FinanceManagedFile[] {
   const files: FinanceManagedFile[] = []
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
   for (const event of agent.session.snapshotEvents()) {
     if (event.type === 'finance/file-imported'
       || event.type === 'finance/file-published'
@@ -632,6 +633,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
     const parsed = reimbursementRequestSchema.safeParse(input)
     if (!parsed.success) throw new Error(`报销请求参数无效：${parsed.error.issues.map(issue => issue.path.join('.')).join('、')}。请按工具说明补齐，不接受审批、支付或任意接口调用。`)
     const request = parsed.data
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
     if (request.action === 'create') assertReimbursementConsent(agent.session.snapshotEvents())
     const { binding } = await this.requireBoundClientWorkspace(agent)
     const { client } = await this.store.read(binding.client.id)
@@ -641,6 +643,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const api = await this.reimbursementConnection.connect(client.id, stopped)
       const checkCurrent = async (): Promise<void> => {
         stopped.throwIfAborted()
+        // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
         if (request.action === 'create') assertReimbursementConsent(agent.session.snapshotEvents())
         if ((await this.store.read(client.id)).client.version !== client.version
           || (await this.readReimbursementConnection(client.id)).revision !== api.revision) throw new Error('执行期间帐套或报销配置已变更，请核对原任务。')
@@ -698,6 +701,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
    * @returns Host-only receipt; consumers must omit downloadUrl from model-visible output.
    */
   async uploadFinanceAttachment(agent: Agent, sourcePath: string, signal: AbortSignal): Promise<FinanceAttachmentUpload> {
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
     assertReimbursementConsent(agent.session.snapshotEvents())
     const pending = (async () => {
       const stopped = AbortSignal.any([signal, this.stopped.signal])
@@ -713,6 +717,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const extension = financeOriginalExtension(file.name, content)
       stopped.throwIfAborted()
       const scope = createHash('sha256').update(`${binding.client.id}/${agent.session.id}`).digest('hex')
+      // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
       assertReimbursementConsent(agent.session.snapshotEvents())
       return this.attachmentStorage.upload(`${binding.client.id}/${scope}/${file.sha256}${extension}`, file.name, content, stopped)
     })()
@@ -2969,6 +2974,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
   }
 
   private binding(agent: Agent): FinanceClientBinding | undefined {
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
     const state = foldFinanceClientEvents(agent.session.snapshotEvents())
     return state.state === 'bound' ? state.binding : undefined
   }

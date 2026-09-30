@@ -15,7 +15,7 @@ describe('Xiaojing Agent-preset declarations', () => {
       expect.objectContaining({
         id: 'preset-finance',
         name: '@deepseek-ai/dsh-agent-preset',
-        config: expect.objectContaining({ id: 'finance', name: 'Finance模式', order: 5 }),
+        config: expect.objectContaining({ id: 'finance', name: 'Finance模式', order: 5 }) as object,
       }),
     ]))
   })

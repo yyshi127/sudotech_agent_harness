@@ -231,7 +231,7 @@ describe('Xiaojing product UI', () => {
     expect(document.body.dataset.xiaojingProduct).toBe('')
     expect(document.documentElement.dataset.dshClientBuildProfile).toBe('xiaojing')
     expect(themeColor.content).toBe('rgb(251, 253, 253)')
-    expect(product.ctx.agentPresetDisplay.resolve({ id: 'finance', trust: 'system' }, key => key))
+    expect(product.ctx.agentPresetDisplay.resolve({ id: 'finance' }, key => key))
       .toEqual({ name: 'Finance模式', description: en.financePresetDescription })
     document.body.style.backgroundColor = 'rgb(255, 255, 255)'
     await fiber.dispose()

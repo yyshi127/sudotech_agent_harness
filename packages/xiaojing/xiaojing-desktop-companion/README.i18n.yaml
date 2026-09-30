@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-desktop-companion/README.md
-README.md: c54c852e9360ce711ddec2ef1b29204670954866
-README.zh.md: a313ffb4fd8a8c35785447b9936ba24ba119b754
+/:
+  en: 3c7876b21234df13
+  zh: 3c7876b21234df13
+/deepseek-ai-dsh-xiaojing-desktop-companion:
+  en: 661736134d308a56
+  zh: 383f40d0055bd392
+/deepseek-ai-dsh-xiaojing-desktop-companion/summary:
+  en: 84f44e1d5b9c81c9
+  zh: c566371aae12e83f
+/deepseek-ai-dsh-xiaojing-desktop-companion/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-desktop-companion/composition-and-state:
+  en: dc94f81903364004
+  zh: e122f8c052f9fda6
+/deepseek-ai-dsh-xiaojing-desktop-companion/desktop-transport:
+  en: 81067dc9e0a2315a
+  zh: 5f4fc5785008b4a8
+/deepseek-ai-dsh-xiaojing-desktop-companion/model-experience:
+  en: aa8800e4daf6b48a
+  zh: fc50cffe931ff390
+/deepseek-ai-dsh-xiaojing-desktop-companion/model-experience/kv-cache-effect:
+  en: 46a359bb821bc0df
+  zh: c5ee224beb2002a1
+/deepseek-ai-dsh-xiaojing-desktop-companion/known-limitations-and-deferred-work:
+  en: 757c662383c1f03c
+  zh: 28f52c95d2a3d0b2
+/deepseek-ai-dsh-xiaojing-desktop-companion/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

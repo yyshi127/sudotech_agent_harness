@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-22-xiaojing-historical-session-admission.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-22-xiaojing-historical-session-admission.md
-2026-09-22-xiaojing-historical-session-admission.md: 81d39dbd9f89f3d66d14aca470f922a79aa84f95
-2026-09-22-xiaojing-historical-session-admission.zh.md: 97e952e4f2c3eb42487fa71d6207a17b4eb22668
+/agent-note-xiaojing-historical-session-admission:
+  en: 97fbe202e4aa56e5
+  zh: 7d568bb4ec691025
+/agent-note-xiaojing-historical-session-admission/problem:
+  en: 145628651f83fa8b
+  zh: f96f3b08d55f90f6
+/agent-note-xiaojing-historical-session-admission/decision:
+  en: b5a2d9c679f9351f
+  zh: ae7f2bce20d46953
+/agent-note-xiaojing-historical-session-admission/alternatives-considered:
+  en: 0c6626ca447c889c
+  zh: 5f2ec2f100dad619
+/agent-note-xiaojing-historical-session-admission/consequences:
+  en: 74f8fbf180c8c5bc
+  zh: caeeb0db2ba1f6cd

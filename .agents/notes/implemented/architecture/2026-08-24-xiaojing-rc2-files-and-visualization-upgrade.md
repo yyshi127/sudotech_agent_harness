@@ -14,7 +14,7 @@ The product also needs the `Nagi-ovo/dsh-visualize` plugin, but its cards must r
 
 ### Recorded upstream merge
 
-The upgrade branch starts from Xiaojing integration base `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` and formally merges official tag `dsh-v0.1.1-rc.2` at commit `b150a551b8d465e31e418e1b2eaf5e79bbb7d28`. Merge commit `9314d9526c949fb8884f4ddc380deb7f242775ce` preserves both histories. [`product.json`](../../../../packages/client/xiaojing-product/product.json) records the official release, commit, and product integration base. Package versions align with rc.2 while the desktop product version remains `0.2.0`.
+The upgrade branch starts from Xiaojing integration base `xiaojing-history-20260930-4` and formally merges official tag `dsh-v0.1.1-rc.2` at commit `dsh-v0.1.1-rc.2`. Merge commit `xiaojing-history-20260930-5` preserves both histories. [`product.json`](../../../../packages/client/xiaojing-product/product.json) records the official release, commit, and product integration base. Package versions align with rc.2 while the desktop product version remains `0.2.0`.
 
 ### Canonical native-image ownership
 

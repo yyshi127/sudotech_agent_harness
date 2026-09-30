@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-25-xiaojing-finance-mode-foundation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-25-xiaojing-finance-mode-foundation.md
-2026-08-25-xiaojing-finance-mode-foundation.md: c8a8ed7a847d032caade01f3a40e97524d393b10
-2026-08-25-xiaojing-finance-mode-foundation.zh.md: f24a779df3f5ec30bded2bee677f79c7f8a34f97
+/agent-note-xiaojing-finance-foundation:
+  en: 06af24e3108a3ee6
+  zh: 91b3fa1f4e8738e8
+/agent-note-xiaojing-finance-foundation/problem:
+  en: a16680d0654aae19
+  zh: c4dba9c0b6f3d747
+/agent-note-xiaojing-finance-foundation/decision:
+  en: 77c72a046ce3e55a
+  zh: 4eeb189b42e3ae51
+/agent-note-xiaojing-finance-foundation/verification:
+  en: c6fadf646b1b7abe
+  zh: e42be4de08d847ec
+/agent-note-xiaojing-finance-foundation/alternatives-considered:
+  en: 7719f54d615594ae
+  zh: a75b0c66404ce787
+/agent-note-xiaojing-finance-foundation/consequences:
+  en: 681bceec30d82d13
+  zh: 2496d075b1bf9b16

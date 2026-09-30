@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-09-finance-voucher-creation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-09-finance-voucher-creation.md
-2026-09-09-finance-voucher-creation.md: 0526328f7017e1ef82272eb7caabc047c83379d1
-2026-09-09-finance-voucher-creation.zh.md: 0918c23b84cd87097e9320d42b37bf3c10c9f0b6
+/agent-note-finance-voucher-preparation-and-confirmed-creation:
+  en: 3253388f89574441
+  zh: 5e7b964a09aec616
+/agent-note-finance-voucher-preparation-and-confirmed-creation/problem:
+  en: a60f6ecf88c06e3b
+  zh: f3b3c6db8baf59a7
+/agent-note-finance-voucher-preparation-and-confirmed-creation/decision:
+  en: e42c8a78f671e59a
+  zh: 6ef46d77ea43bcf1
+/agent-note-finance-voucher-preparation-and-confirmed-creation/alternatives-considered:
+  en: 98209240ef82baeb
+  zh: 2351d2da94fcd947
+/agent-note-finance-voucher-preparation-and-confirmed-creation/verification:
+  en: 49af6a49c566bfca
+  zh: f2c0114469e3a129
+/agent-note-finance-voucher-preparation-and-confirmed-creation/consequences:
+  en: b8811e3ee404c70d
+  zh: b6d43f99c393a782

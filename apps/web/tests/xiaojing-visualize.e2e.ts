@@ -138,10 +138,10 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     expect(results).toHaveLength(2)
     const [skillResult, result] = results
     if (skillResult === undefined || result === undefined) throw new Error('skill or visualize result missing')
-    expect(skillResult.data.message.content[0].toolCallId).toBe(calls[0]?.data.callId)
-    expect(result.data.message.content[0].toolCallId).toBe(calls[1]?.data.callId)
-    expect(skillResult.data.message.content[0].isError).not.toBe(true)
-    expect(result.data.message.content[0].isError).not.toBe(true)
+    expect(skillResult.data.message.source.callId).toBe(calls[0]?.data.callId)
+    expect(result.data.message.source.callId).toBe(calls[1]?.data.callId)
+    expect(skillResult.data.message.isError).not.toBe(true)
+    expect(result.data.message.isError).not.toBe(true)
     const meta = result.data.meta as { fragment: string; path: string }
     expect(meta.fragment).toBe(FRAGMENT)
     expect(await readFile(meta.path, 'utf8')).toBe(FRAGMENT)

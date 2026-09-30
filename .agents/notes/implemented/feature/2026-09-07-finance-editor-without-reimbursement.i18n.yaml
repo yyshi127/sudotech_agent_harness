@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-finance-editor-without-reimbursement.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-finance-editor-without-reimbursement.md
-2026-09-07-finance-editor-without-reimbursement.md: af8bb0e16d77e8b91f517374eb247e0adcb2ca54
-2026-09-07-finance-editor-without-reimbursement.zh.md: e747e3e871f05ab687522d49e84208d8d2c3eace
+/agent-note-financial-ledger-editor-without-reimbursement-settings:
+  en: 4a39385007006273
+  zh: 056060d291b6c527
+/agent-note-financial-ledger-editor-without-reimbursement-settings/problem:
+  en: aeaccbbdbada4430
+  zh: 7c5f8bd4d07f0ec6
+/agent-note-financial-ledger-editor-without-reimbursement-settings/decision:
+  en: bedeb9ed11437df3
+  zh: 3924b399ea9d0302
+/agent-note-financial-ledger-editor-without-reimbursement-settings/alternatives-considered:
+  en: d66ad600fe336a44
+  zh: 3bca0e600dc84151
+/agent-note-financial-ledger-editor-without-reimbursement-settings/consequences:
+  en: 39c04bd64dd6a444
+  zh: 58997226616a6ff9

@@ -1610,6 +1610,7 @@ export class BrowserControl extends Service {
       'powershell.exe',
       ['-NoProfile', '-Command', `Invoke-Item -LiteralPath ${quotedPath}`],
       AbortSignal.any([this.lifecycle.signal, AbortSignal.timeout(10_000)]),
+      'hidden',
     )
   }
 

@@ -26,9 +26,8 @@ class OpenItemAdapter extends LlmAdapter {
   get revised() { return { ...this.proposal, amount: '0.06' } }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls >= 2 && this.preparedId === '') {
-      const block = options.messages.flatMap(message => message.content)
-        .find(item => item.type === 'tool-result' && item.toolCallId === 'open-item-2')
-      const text = block?.type === 'tool-result' ? block.content.find(item => item.type === 'text') : undefined
+      const block = options.messages.find(message => message.role === 'tool' && message.source.callId === 'open-item-2')
+      const text = block?.content.find(item => item.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing open-item preview')
       const value: unknown = JSON.parse(text.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
@@ -163,7 +162,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact open-item revisions
         const durable = await new OpenItemRecords(join(scaffold.harnessHome, 'finance/open-item-preparations'),
           `${created.client.id}/${handle.agent.session.id}`, 131072).read(adapter.preparedId as PreparedOpenItemId)
         expect(durable).toMatchObject({ phase: scenario === 'lost' ? 'outcome-unknown' : 'accepted', version: 2 })
-        const text = results[5]?.flatMap(block => block.type === 'tool-result' ? block.content : []).find(block => block.type === 'text')
+        const text = results[5]?.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing open-item outcome')
         expect(JSON.parse(text.text)).toMatchObject({ complete: scenario !== 'lost' })
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)

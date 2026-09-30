@@ -1,8 +1,24 @@
+---
+description: "Xiaojing settings page for Microsoft Edge automation"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-xiaojing-browser-control
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Removable Xiaojing Client settings for Microsoft Edge automation. The plugin registers one `settings.section` only when `DSH_CLIENT_BUILD_PROFILE=xiaojing` and the Client connection is loopback. Removing its Web composition entry removes the page without changing the Host tool or official settings owners.
+
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
+## Capabilities
 
 The page presents two routes:
 
@@ -30,3 +46,10 @@ None; the Host `browser_control` package owns the model-facing semantic protocol
 - Personal Edge requires one manual unpacked-extension installation and pairing. An unmanaged Windows installation cannot silently install that extension.
 - The page cannot test a real website on the user's behalf. Connection status confirms the authenticated local bridge, while task execution remains observable in the owning conversation.
 - Edge Add-ons or enterprise-policy distribution is deferred. Removing the Client package removes only this settings section and does not revoke an already stored Host credential.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

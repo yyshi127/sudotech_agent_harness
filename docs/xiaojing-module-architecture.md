@@ -9,7 +9,7 @@ This page maps Xiaojing Accounting 0.3.1 across the repository. It identifies wh
 | Item | Current value | Source of truth |
 |---|---|---|
 | Desktop version | `0.3.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| Harness baseline | `dsh-v0.1.7-rc.1` / `46a7f68...` | [`packages/client/xiaojing-product/product.json`](../packages/client/xiaojing-product/product.json) |
+| Harness baseline | `dsh-v0.1.7-rc.1` / `dsh-v0.1.7-rc.1...` | [`packages/client/xiaojing-product/product.json`](../packages/client/xiaojing-product/product.json) |
 | Runtime composition | Cordis profiles, bundles, and configuration rows | [`packages/boot/app-boot/src/profile.ts`](../packages/boot/app-boot/src/profile.ts), [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | Xiaojing Client selector | `DSH_CLIENT_BUILD_PROFILE=xiaojing` | [`scripts/client-build-environment.ts`](../scripts/client-build-environment.ts) |
 

@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-xiaojing-rc1-native-vision-upgrade.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md
-2026-08-21-xiaojing-rc1-native-vision-upgrade.md: 99c7638291967fe27bf4619f9609e0d0eb736c11
-2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md: 73a2d7ce1ced7f2127144f56e8a300ad08d72e53
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration:
+  en: c7cd871214830db7
+  zh: 651482ccc5dd5105
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/problem:
+  en: 7cc9cb3be50bc488
+  zh: 72d1802d75a05a5d
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/decision:
+  en: a15c7c13f167e5ac
+  zh: a15c7c13f167e5ac
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/decision/recorded-upstream-merge:
+  en: 38485b3f8930d886
+  zh: e0a5052166e2cd0c
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/decision/product-presentation-and-feature-isolation:
+  en: 216d5c05c429b77f
+  zh: db6e68e09494c615
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/decision/one-upload-entry-over-native-images:
+  en: 9cb5753a8933d9c3
+  zh: 834220693e7afd10
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/decision/weixin-vision-and-model-scope:
+  en: 79cf163903775109
+  zh: 355b811bde097f55
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/decision/accounting-and-durable-data:
+  en: ff522e4da340bb38
+  zh: 299a54c36a7ab9f3
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/verification:
+  en: a08a1ecd8bc60290
+  zh: 0b98782f585a938b
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/alternatives-considered:
+  en: c13556f7ce4bea39
+  zh: b844bfb24b194ae5
+/agent-note-xiaojing-accounting-rc-1-native-vision-integration/consequences:
+  en: 0547b63176c1520d
+  zh: a9ed0fa2fb30c52a

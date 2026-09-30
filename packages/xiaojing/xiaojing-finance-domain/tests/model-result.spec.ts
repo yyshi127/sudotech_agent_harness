@@ -3,7 +3,7 @@ import { financeModelCall, financeModelJson } from '../src/model-result.ts'
 
 describe('Finance model result projection', () => {
   it('retains business and continuation fields while removing internal evidence recursively', () => {
-    const visible = JSON.parse(financeModelJson({
+    const visible: unknown = JSON.parse(financeModelJson({
       id: 'local-operation', version: 2, accountName: '演示账套', voucherCount: 53,
       pageSize: 20, pagesRead: 3, notice: 'internal explanation', fingerprint: 'digest',
       file: { path: 'D:/成果/全部凭证.xlsx', name: '全部凭证.xlsx', sha256: 'hash', size: 4096 },

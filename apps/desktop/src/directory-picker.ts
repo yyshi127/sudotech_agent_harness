@@ -32,9 +32,10 @@ export function installDesktopDirectoryPicker(
     if (window.isMinimized()) window.restore()
     window.show()
     window.focus()
+    const startPath = initialPath ?? defaultPath
     const result = dialog.showOpenDialog(window, {
       properties: ['openDirectory', 'createDirectory'],
-      ...(initialPath === undefined && defaultPath === undefined ? {} : { defaultPath: initialPath ?? defaultPath }),
+      ...(startPath === undefined ? {} : { defaultPath: startPath }),
     }).then(
       ({ canceled, filePaths }) => window.isDestroyed() || canceled ? null : filePaths[0] ?? null,
     ).finally(() => { pending.delete(window) })

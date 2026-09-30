@@ -143,8 +143,8 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'finance').then(() => undefined),
     })
     try {
-      expect(ctx.tools.get('finance_balances', handle.agent)?.presentCall).toBeTypeOf('function')
-      expect(ctx.tools.get('finance_balances', handle.agent)?.presentResult).toBeTypeOf('function')
+      expect(typeof ctx.tools.get('finance_balances', handle.agent)?.presentCall).toBe('function')
+      expect(typeof ctx.tools.get('finance_balances', handle.agent)?.presentResult).toBe('function')
       const workspace = await ctx.workspaceRegistry.resolveByPath(workspacePath)
       if (workspace === undefined) throw new Error('Missing workspace')
       await workspace.attachSession(handle.agent.session.id)
@@ -164,7 +164,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
         ...scenario === 'compare' ? ['/auth/getAccessToken.rjson', '/finance/auxiliary/queryAccountList.rjson', '/finance/subject/getList.rjson'] : []])
       let resultSnapshot = JSON.stringify(results, null, 2)
       if (scenario === 'analysis') {
-        const blocks = results[0]?.filter(block => block.type === 'tool-result').flatMap(block => block.content)
+        const blocks = results[0]
         const loaded = blocks?.find(block => block.type === 'text')
         if (loaded?.type !== 'text') throw new Error('Missing loaded analysis skill')
         const instructions = loaded.text.match(/<skill_instructions>\n([\s\S]*?)\n<\/skill_instructions>/)?.[1]
@@ -179,7 +179,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure',
         expect(bytes.subarray(0, 2).toString()).toBe('PK')
         expect(bytes.length).toBe(file.size)
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256)
-        const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
+        const blocks = results.flat()
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing balance export receipt')
         const receipt = JSON.parse(text.text) as {

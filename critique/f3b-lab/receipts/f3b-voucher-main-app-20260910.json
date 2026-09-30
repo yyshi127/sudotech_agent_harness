@@ -26,6 +26,6 @@
   "verificationScope": "Unfiltered all-period voucher list projections; journal and open-item inventories cover January2022 only. No claim of full unrelated voucher-detail equality.",
   "recovery": "Original creation and deletion records plus pre/post inventories retained; no automatic restoration or resend",
   "browser": "Agent-browser installed; existing Chrome has no reachable9222/9223 CDP endpoint. No new browser launched. Main-app verification uses real local RPC and approval channel, not a claimed visible Chrome click.",
-  "remaining": ["Other voucher provenance", "Attachment and linked-record effects", "Duplicate confirmation UX"],
+  "remaining": ["Other voucher source identity", "Attachment and linked-record effects", "Duplicate confirmation UX"],
   "f3bComplete": false
 }

@@ -6,6 +6,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { ContextFormed } from '@deepseek-ai/dsh-llm'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'document-fixture': { kind: 'document-fixture' } & ContextFormed
+  }
+}
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { generalDocumentCandidates } from '../src/general-compat.ts'
 
@@ -59,7 +66,7 @@ describe('ordinary-session document source adapter', () => {
     }), { surfaceOp: 'append' })
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: `上传文件：\`${join(uploadRoot, 'plugin.pdf')}\`` }],
-      source: { kind: 'plugin', plugin: 'fixture' },
+      source: { kind: 'document-fixture' },
     }), { surfaceOp: 'append' })
 
     const candidates = await generalDocumentCandidates(uploadRoot, { session } as Agent)

@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-finance-f3b-handoff.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-f3b-handoff.md
-youcheng-finance-f3b-handoff.md: a551e6af8de124d12a98e3fc23d811540ad6cb60
-youcheng-finance-f3b-handoff.zh.md: 2506a65dd4287847cf480bcedaa680b7b3d16e39
+/youcheng-finance-f3b-task-handoff:
+  en: 02ac5a904f0f6019
+  zh: 189501ab6a391159
+/youcheng-finance-f3b-task-handoff/handoff-conclusion:
+  en: f31bc8753ffc15f9
+  zh: 75381043ff22cd85
+/youcheng-finance-f3b-task-handoff/project-and-git:
+  en: cad8605cf0539319
+  zh: dd27bd888731bae4
+/youcheng-finance-f3b-task-handoff/runtime:
+  en: 119ba5d44adfce99
+  zh: 324fc60245c57584
+/youcheng-finance-f3b-task-handoff/qualified-paths-and-evidence:
+  en: 2901bb0fcbdddc8b
+  zh: 1be933a3a6a33365
+/youcheng-finance-f3b-task-handoff/tests-and-repository-gates:
+  en: cb5f0e4603d8b060
+  zh: 0b76bef2a527f287
+/youcheng-finance-f3b-task-handoff/authorization-and-limits:
+  en: d4506c8f560f9eb0
+  zh: fe03f7e0e1876c29
+/youcheng-finance-f3b-task-handoff/code-and-continuation:
+  en: 93c82c7ecf792dcd
+  zh: ac932b721113abaf

@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-09-30-xiaojing-finance-rc2.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-09-30-xiaojing-finance-rc2.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-09-30-xiaojing-finance-rc2:
+  en: 1c00ee4328738cc1
+  zh: ae541f59c8253366
+/2026-09-30-xiaojing-finance-rc2/summary:
+  en: f4a56122e7eea650
+  zh: 5e1d575555511190
+/2026-09-30-xiaojing-finance-rc2/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-09-30-xiaojing-finance-rc2/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-09-30-xiaojing-finance-rc2/compatibility:
+  en: 2ac34c2788bac262
+  zh: add3e84d02a60aac
+/2026-09-30-xiaojing-finance-rc2/verification:
+  en: 1c52b51b2b6d8db2
+  zh: e2cddb0806f0ec38
+/2026-09-30-xiaojing-finance-rc2/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

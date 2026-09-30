@@ -33,8 +33,7 @@ function safeFailure(value: string): string | null {
 export function FinanceToolCard({ block, t }: Props) {
   const done = 'kind' in block
   const meta = done && !block.isError ? financeCardMeta(block.meta) : null
-  const result = done && block.content.length === 1 && block.content[0]?.type === 'tool-result'
-    ? block.content[0].content : done ? block.content : []
+  const result = done ? block.content : []
   const failure = done && block.isError && result.length === 1 && result[0]?.type === 'text'
     ? safeFailure(result[0].text) : null
   const title = meta?.title ?? (done

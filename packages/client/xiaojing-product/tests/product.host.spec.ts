@@ -1,28 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import AgentDefaultModelConfig from '@deepseek-ai/dsh-agent-default-model'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
-import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import { configurationFixture } from '../../../settings/settings/tests/configuration-fixture.ts'
 import SystemPrompt, { PERSONA_PREFIX_SECTION, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import * as XiaojingProduct from '../src/index.ts'
 import { deletionApprovalReason, XIAOJING_PERSONA, XIAOJING_RESPONSE_POLICY } from '../src/index.ts'
-
-class MemorySettings extends SettingsProvider {
-  doc: Record<string, unknown> = {}
-
-  get writable(): boolean { return true }
-
-  protected load(): Promise<Record<string, unknown>> { return Promise.resolve(structuredClone(this.doc)) }
-
-  protected persist(ns: SettingsNamespace, section: Record<string, unknown>): Promise<void> {
-    this.doc = { ...this.doc, [ns]: structuredClone(section) }
-    return Promise.resolve()
-  }
-}
 
 afterEach(() => { vi.unstubAllEnvs() })
 
@@ -87,24 +73,22 @@ describe('Xiaojing product persona', () => {
     ['other-provider', 'deepseek-v4-flash', 'deepseek-v4-flash'],
   ])('migrates only retired DeepSeek Flash selections (%s/%s)', async (provider, model, expected) => {
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
-    const ctx = new Context()
-    await ctx.plugin(MemorySettings).await()
-    await ctx.plugin(AgentDefaultModelConfig, { provider: 'deepseek-official', model: 'deepseek-flash' }).await()
-    await ctx.settings.replace('agent-default-model', { provider, model })
+    const { ctx } = await configurationFixture({ hmr: false })
+    await ctx.agentDefaultModel.saveSelection({ provider, model })
     await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()
     await ctx.plugin(ToolRuntime).await()
     await ctx.plugin(ApprovalService, { policy: 'never' }).await()
     await ctx.plugin(XiaojingProduct).await()
-    expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider, model: expected })
+    await vi.waitFor(() => {
+      expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider, model: expected })
+    })
     await ctx.fiber.dispose()
   })
 
   it('leaves an official-profile saved model unchanged', async () => {
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'official')
-    const ctx = new Context()
-    await ctx.plugin(MemorySettings).await()
-    await ctx.plugin(AgentDefaultModelConfig, { provider: 'deepseek-official', model: 'deepseek-flash' }).await()
-    await ctx.settings.replace('agent-default-model', {
+    const { ctx } = await configurationFixture({ hmr: false })
+    await ctx.agentDefaultModel.saveSelection({
       provider: 'deepseek-official', model: 'deepseek-v4-flash',
     })
     await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()

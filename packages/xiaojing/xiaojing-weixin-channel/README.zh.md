@@ -1,9 +1,23 @@
+---
+description: "Xiaojing Weixin iLink channel, durable Agent session bridge, and encrypted image/document transfer"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-weixin-channel
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计的 Host 侧微信频道。该 Cordis 插件绑定一个腾讯 iLink bot，通过出站 HTTPS 长轮询接收单聊文字、图片和文档消息，在持久化 Harness Agent 会话中执行任务，并返回适合手机阅读的文字或本机文件。它不需要公网 Webhook、Python 运行时、OpenClaw 或额外的模型 API Key。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 组合与协议
 
 该插件预装在小兢会计产品组合中。它只使用腾讯官方 iLink 和 CDN 主机，并拒绝服务端返回的非官方地址。媒体字节通过腾讯 CDN 引用和 AES-128-ECB 加密传输。浏览器设置插件通过仅限 loopback 的 `/xiaojing-weixin` RPC 频道与 Host 通信；浏览器响应只包含脱敏状态，不包含 bot token、消息 context token、CDN 密钥或绑定完成后的二维码内容。完成组装的插件还会向注入该能力的 Host 同级插件提供频道实例，并在连接状态变化后发送脱敏的 `xiaojing-weixin/status` 事件；该事件只包含同一组浏览器安全状态字段。
@@ -120,3 +134,10 @@ schema 和注册顺序在 Agent 生命周期内保持稳定，属于可复用请
 - 扫码绑定的是 iLink bot 身份，不是接管个人微信账号。
 - 腾讯 iLink 可用性和凭据有效性属于外部依赖。关闭小兢会计后，消息接收和任务执行都会停止。
 - 协议无法保证远程发送成功后立即崩溃场景下的最终结果严格只投递一次。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

@@ -1,6 +1,7 @@
 /** Xiaojing product copy. */
 
 export const zh = {
+  versionPrefix: 'v',
   heroTitle: '小兢会计，您的AI办公搭子',
   financeHeroTitle: '小兢会计，您的AI财务助手',
   betaBadgeFormat: '{version}内测版',
@@ -46,6 +47,7 @@ export const zh = {
 
 /** English Xiaojing product dictionary. */
 export const en: { [Key in keyof typeof zh]: string } = {
+  versionPrefix: 'v',
   heroTitle: 'Xiaojing Accounting, Your AI Workmate',
   financeHeroTitle: 'Xiaojing Accounting, Your AI Finance Assistant',
   betaBadgeFormat: 'Internal Beta v{version}',
@@ -72,7 +74,7 @@ export const en: { [Key in keyof typeof zh]: string } = {
   featureFinanceEvidence: 'Added an official-source Chinese finance and tax evidence service that checks source text, jurisdiction, and effective dates and marks unsupported claims for verification.',
   featureFinanceDocuments: 'Unified PDF, Word, Excel, PPTX, image, and digital-invoice reading, including embedded visuals and scanned-PDF vision.',
   featureFinanceSkills: 'Added four reproducible tax calculations and the first five professional workflow skills with inputs, formulas, authorities, and results preserved.',
-  featureFinanceAcceptance: 'Completed Stage 1 integration acceptance for multi-client isolation, provenance, calculation consistency, and upgrade data protection.',
+  featureFinanceAcceptance: 'Completed Stage 1 integration acceptance for multi-client isolation, source identity, calculation consistency, and upgrade data protection.',
   featureFinanceYouchengCore: 'Added Youcheng Finance queries, analysis, and result exports for vouchers, balances, cash journals, receivables, payables, and reference data.',
   featureFinanceYouchengMaintenance: 'Added confirmed creation, deletion, and supported write-off workflows for vouchers, cash journals, open items, and reference data, with durable readback records.',
   featureFinanceCapabilityInventory: 'Added an authoritative Finance capability inventory that distinguishes supported, limited, and unsupported work; reimbursement and six native reports without open APIs are no longer presented as available.',

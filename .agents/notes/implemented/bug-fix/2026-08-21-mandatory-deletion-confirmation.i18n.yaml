@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-mandatory-deletion-confirmation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-mandatory-deletion-confirmation.md
-2026-08-21-mandatory-deletion-confirmation.md: 133326a5d2f11e976e96a2c0266bccd6a689c5e3
-2026-08-21-mandatory-deletion-confirmation.zh.md: 34597742bf4d24845ee12fe0da6d0431d60c68c8
+/agent-note-mandatory-deletion-confirmation:
+  en: 32d237a90205646e
+  zh: 05bca2c7776321b3
+/agent-note-mandatory-deletion-confirmation/problem:
+  en: 3ebb384b922de112
+  zh: 9794b646ed18fd8c
+/agent-note-mandatory-deletion-confirmation/decision:
+  en: 1e115e3e008c0c15
+  zh: 5a2a9d6c8c2c9923
+/agent-note-mandatory-deletion-confirmation/alternatives-considered:
+  en: 7f49f4b4ab81d3af
+  zh: 38e0ebc2fccbea70
+/agent-note-mandatory-deletion-confirmation/consequences:
+  en: aeabca462ae2362f
+  zh: 9d30c7c44f029139

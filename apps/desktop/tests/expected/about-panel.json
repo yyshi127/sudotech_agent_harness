@@ -1,8 +1,13 @@
 {
   "darwin:en-US": {
     "menu": [
-      { "label": "About Xiaojing Accounting", "role": "about" },
-      { "type": "separator" }
+      {
+        "label": "About Xiaojing Accounting",
+        "role": "about"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
       "applicationName": "小兢会计-您的AI办公搭子",
@@ -14,12 +19,17 @@
   },
   "darwin:zh-CN": {
     "menu": [
-      { "label": "关于小兢会计", "role": "about" },
-      { "type": "separator" }
+      {
+        "label": "关于小兢会计",
+        "role": "about"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
       "applicationName": "小兢会计-您的AI办公搭子",
-      "applicationVersion": "1.0.0",
+      "applicationVersion": "0.3.1",
       "version": "",
       "copyright": "",
       "iconPath": "<app icon>"
@@ -27,8 +37,12 @@
   },
   "win32:zh-CN": {
     "menu": [
-      { "label": "关于小兢会计" },
-      { "type": "separator" }
+      {
+        "label": "关于小兢会计"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
       "applicationName": "小兢会计-您的AI办公搭子",
@@ -40,12 +54,16 @@
   },
   "win32:en-US": {
     "menu": [
-      { "label": "About Xiaojing Accounting" },
-      { "type": "separator" }
+      {
+        "label": "About Xiaojing Accounting"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
       "applicationName": "小兢会计-您的AI办公搭子",
-      "applicationVersion": "1.0.0",
+      "applicationVersion": "0.3.1",
       "version": "",
       "copyright": "",
       "iconPath": "<app icon>"

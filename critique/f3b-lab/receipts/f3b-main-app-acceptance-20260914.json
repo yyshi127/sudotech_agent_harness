@@ -356,7 +356,7 @@
   },
   "limitations": [
     "Manual and external voucher origins without a validated local creation appId/flowId remain unsupported and open in the broader CF12 proposal.",
-    "Known linked, audited, settled or unsupported-origin targets remain blocked; six fixture paths do not qualify every provenance.",
+    "Known linked, audited, settled or unsupported-origin targets remain blocked; six fixture paths do not qualify every source identity.",
     "Vendor period-lock state is unavailable; checks do not provide a vendor-wide concurrency lock.",
     "Write-off qualifies full base-currency settlement only, not partial/foreign-currency/reverse settlement or actual funds movement.",
     "Deletion readback is scope-limited; omitted AR/AP remaining balances remain unavailable, never zero/matched.",

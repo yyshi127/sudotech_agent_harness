@@ -19,9 +19,8 @@ class WriteOffPreviewAdapter extends LlmAdapter {
     readonly execution = false) { super() }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls > 0 && this.operationId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === 'write-off-1')
-      const text = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === 'write-off-1')
+      const text = result?.content.find(block => block.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing actual write-off preview')
       const value: unknown = JSON.parse(text.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
@@ -196,8 +195,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
           expect(JSON.stringify(results[2])).toContain('版本')
           expect(JSON.stringify(results[3])).toContain('未获得')
           expect(JSON.stringify(results[5])).toContain('不得重发')
-          const block = results[6]?.find(value => value.type === 'tool-result')
-          const text = block?.type === 'tool-result' ? block.content.find(value => value.type === 'text') : undefined
+          const text = results[6]?.find(value => value.type === 'text')
           if (text?.type !== 'text') throw new Error('Missing final execution readback')
           expect(JSON.parse(text.text)).toMatchObject({ phase: preflightFailed ? 'not-sent' : lost ? 'outcome-unknown' : 'accepted',
             readback: { settlement: preflightFailed ? 'mismatch' : 'matched', businessAccount: 'matched',
@@ -216,8 +214,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and indep
         expect(JSON.stringify(results[2])).toContain('版本')
         expect(JSON.stringify(results[3])).toContain('matched')
         if (accepted) {
-          const block = results[3]?.find(value => value.type === 'tool-result')
-          const text = block?.type === 'tool-result' ? block.content.find(value => value.type === 'text') : undefined
+          const text = results[3]?.find(value => value.type === 'text')
           if (text?.type !== 'text') throw new Error('Missing accepted recovery result')
           expect(JSON.parse(text.text)).toMatchObject({ phase: 'accepted', outcome: { state: 'accepted', receiptId },
             readback: { operation: identityChanged ? 'unverified' : 'matched',

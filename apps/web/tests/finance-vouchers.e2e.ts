@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
-import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type LlmModelInfo, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
@@ -17,6 +17,9 @@ class VoucherAdapter extends LlmAdapter {
   constructor(readonly beyondLastPage = false, readonly withDetail = false,
     readonly networkFailure = false, readonly exportExcel = false) { super() }
   calls = 0
+  override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    return Promise.resolve([{ provider, id: 'voucher-test', name: 'voucher-test' }])
+  }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     this.calls += 1
     if (this.calls === 1) {
@@ -204,7 +207,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
         expect(bytes.subarray(0, 2).toString()).toBe('PK')
         expect(bytes.length).toBe(file.size)
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256)
-        const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
+        const blocks = results.flat()
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing exported voucher receipt')
         const receipt = JSON.parse(text.text) as {

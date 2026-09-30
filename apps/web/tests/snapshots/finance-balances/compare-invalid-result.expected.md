@@ -1,15 +1,8 @@
 [
   [
     {
-      "type": "tool-result",
-      "toolCallId": "balance-query",
-      "content": [
-        {
-          "type": "text",
-          "text": "Error: 余额分析须指定单个 subjectLevel，不与期间范围或层级范围混用。"
-        }
-      ],
-      "isError": true
+      "type": "text",
+      "text": "Error: 余额分析须指定单个 subjectLevel，不与期间范围或层级范围混用。"
     }
   ]
 ]

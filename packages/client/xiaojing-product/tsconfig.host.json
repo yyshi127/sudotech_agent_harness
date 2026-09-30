@@ -7,18 +7,32 @@
   },
   "files": [
     "src/deletion-guard.ts",
-    "src/index.ts",
-    "src/invariant.ts"
+    "src/index.ts"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../core/agent-default-model" },
-    { "path": "../../settings/settings" },
-    { "path": "../../core/tools" },
-    { "path": "../../interaction/user-approval" },
-    { "path": "../../core/system-prompt" },
-    { "path": "../../xiaojing/xiaojing-browser-control" },
-    { "path": "../../xiaojing/xiaojing-computer-control" },
-    { "path": "../../runtime-diagnostics/invariants" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../core/agent-default-model"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../interaction/user-approval"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../xiaojing/xiaojing-browser-control"
+    },
+    {
+      "path": "../../xiaojing/xiaojing-computer-control"
+    }
   ]
 }

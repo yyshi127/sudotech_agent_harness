@@ -2,6 +2,13 @@
 
 /** Simplified Chinese Finance client-management dictionary. */
 export const zh = {
+  storageAccessKeyId: 'AccessKey ID',
+  storageAccessKeySecret: 'AccessKey Secret',
+  clientRegionVersion: '{region} · v{version}',
+  accountNameId: '{name} · ID {id}',
+  clientNameAccountId: '{name}-{account}-ID {id}',
+  reimbursementProductionUrl: 'https://yiqbdata.superboss.cc',
+  reimbursementTestUrl: 'https://yiqbdatatest.superboss.cc',
   toolWorking: '财务任务处理中…',
   toolResultUnavailable: '财务结果已返回，请查看小兢会计的回复。',
   toolFailed: '财务任务未完成',
@@ -141,6 +148,13 @@ export const zh = {
 
 /** English Finance client-management dictionary. */
 export const en: Record<keyof typeof zh, string> = {
+  storageAccessKeyId: 'AccessKey ID',
+  storageAccessKeySecret: 'AccessKey Secret',
+  clientRegionVersion: '{region} · v{version}',
+  accountNameId: '{name} · ID {id}',
+  clientNameAccountId: '{name}-{account}-ID {id}',
+  reimbursementProductionUrl: 'https://yiqbdata.superboss.cc',
+  reimbursementTestUrl: 'https://yiqbdatatest.superboss.cc',
   toolWorking: 'Finance task in progress…',
   toolResultUnavailable: 'Finance result received. See Xiaojing’s reply.',
   toolFailed: 'Finance task not completed',

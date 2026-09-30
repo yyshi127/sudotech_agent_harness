@@ -25,9 +25,8 @@ class JournalAdapter extends LlmAdapter {
   get revised() { return { ...this.proposal, amount: this.direction === 'income' ? '0.12' : '0.08' } }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls > 0 && this.preparedId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === `${this.direction}-1`)
-      const text = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === `${this.direction}-1`)
+      const text = result?.content.find(block => block.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing actual journal preview')
       const value: unknown = JSON.parse(text.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
@@ -168,7 +167,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('requires the exact journal revisio
           `${created.client.id}/${handle.agent.session.id}`, 131072).read(adapter.preparedId as PreparedJournalId)
         expect(durable).toMatchObject({ phase: scenario === 'currency-change' ? 'prepared'
           : direction === 'income' ? 'accepted' : 'outcome-unknown', version: 2 })
-        const text = results[4]?.flatMap(block => block.type === 'tool-result' ? block.content : []).find(block => block.type === 'text')
+        const text = results[4]?.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing journal outcome')
         if (scenario !== 'currency-change') expect(JSON.parse(text.text), text.text).toMatchObject({ complete: direction === 'income' })
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)

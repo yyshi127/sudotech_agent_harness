@@ -50,7 +50,7 @@ Both policies contribute their complete current meaning to the cache-safe runtim
 
 ## Approval request
 
-`ApprovalRequest` identifies the agent and tool action closely enough to route and audit the question. It deliberately omits tool arguments: an answerer attaches the prompt to the already-streamed tool call through `callId` instead of rendering a second copy that could drift.
+`ApprovalRequest` identifies the agent and tool action closely enough to route and audit the question. It deliberately omits tool arguments: an answerer attaches the prompt to the already-streamed tool call through `callId` instead of rendering a second copy that could drift. Optional `displayReason` carries requester-owned locale strings to presentation; `reason` remains the audit text.
 
 ```ts type-equiv
 /**
@@ -130,6 +130,20 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  *   append commit point.
  */
 async request(req: ApprovalRequest): Promise<ApprovalOutcome>
+
+/**
+ * Ask for a security confirmation that the session's ordinary approval
+ * policy cannot suppress. This method is reserved for product security
+ * invariants such as deletion confirmation; it does not grant the action
+ * and still fails closed when no answerer is available, the user rejects,
+ * or the request is cancelled. Audit and turn-enclosure behavior are the
+ * same as {@link request}.
+ * @param req - the mandatory decision (agent, tool identity, reason, signal).
+ * @returns the closed outcome; `'allowed-once'` is the only grant.
+ * @throws when no turn is open or either audit event fails before the session
+ *   append commit point.
+ */
+async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
  * Read the session override without applying the configured default.

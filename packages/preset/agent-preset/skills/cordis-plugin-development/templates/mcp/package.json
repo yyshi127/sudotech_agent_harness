@@ -1,7 +1,11 @@
 {
   "name": "@local/demo-mcp",
-  "version": "1.0.0",
+  "version": "0.2.0-rc.2",
   "private": true,
   "type": "module",
-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
 }

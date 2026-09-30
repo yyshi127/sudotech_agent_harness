@@ -9,12 +9,18 @@ const FLASH_MODEL: DeepSeekCatalogModel = {
   contextWindow: DEFAULT_CONTEXT_WINDOW,
   inputModalities: ['text', 'image'],
   systemPromptUpdate: 'in-history',
+  toolUpdate: 'addition-only',
 }
 
 /** Advisory official model entries; deployments may replace the catalog. */
 export const DEFAULT_MODELS: DeepSeekCatalogModel[] = [FLASH_MODEL]
 
-/** Resolve configured capabilities while keeping retired Flash wire aliases out of the selector. */
+/**
+ * Resolve configured capabilities while keeping retired Flash wire aliases out of the selector.
+ * @param connection - selected connection and its configured model catalog.
+ * @param id - requested model identifier, including a retained Flash alias.
+ * @returns configured model capabilities, or undefined for an unknown identifier.
+ */
 export function configuredModel(connection: DeepSeekConnectionOptions, id: string): DeepSeekCatalogModel | undefined {
   const configured = connection.models.find(model => model.id === id)
   if (configured !== undefined) return configured

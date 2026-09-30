@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/README.md
-README.md: 59284906851de8172309cd2f43dec841c1a84d0a
-README.zh.md: 08017977c92b3d9a10402943e7dd33bb7b4ee0f7
+/:
+  en: 238994afa3378975
+  zh: 238994afa3378975
+/xiaojing-xiaojing-product-capabilities:
+  en: 9ee7e34be2b483bb
+  zh: 679583838682dd8e
+/xiaojing-xiaojing-product-capabilities/summary:
+  en: 7e86c03164f6511c
+  zh: 56abb8e7a9cb20b1
+/xiaojing-xiaojing-product-capabilities/packages:
+  en: 4ffe8d6a2c3ee1d7
+  zh: 68e96bc708aa6cff
+/xiaojing-xiaojing-product-capabilities/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/xiaojing-xiaojing-product-capabilities/finance-extension-packages:
+  en: b9f4d225cbc8cd26
+  zh: d9ee0f02798c3af4
+/xiaojing-xiaojing-product-capabilities/finance-extension-packages/dev-note:
+  en: 0a1253c6f7b5e8b9
+  zh: 9f56528562c7c914

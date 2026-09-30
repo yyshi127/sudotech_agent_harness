@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-weixin-channel/README.md
-README.md: 26e5dcbc5080aa20b68a385142ed902b926e2bcf
-README.zh.md: 1ee77524a0fa2d129cf494fba6b14c650b7ce68e
+/:
+  en: 025d534368ad0400
+  zh: 025d534368ad0400
+/deepseek-ai-dsh-client-ui-weixin-channel:
+  en: f1f74de51366f782
+  zh: 2d7fe7d7b6ef88bf
+/deepseek-ai-dsh-client-ui-weixin-channel/summary:
+  en: 0bdd9a60b7682373
+  zh: 37361dd6697f6d22
+/deepseek-ai-dsh-client-ui-weixin-channel/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-client-ui-weixin-channel/composition-and-presentation:
+  en: 6b1b24408f87872a
+  zh: d6d6e06a1490c9eb
+/deepseek-ai-dsh-client-ui-weixin-channel/security:
+  en: 793b2be13b42cd3b
+  zh: 5bf9221d870416b5
+/deepseek-ai-dsh-client-ui-weixin-channel/model-experience:
+  en: 73bfb512ed49e39d
+  zh: 1dfd69c5e650dd57
+/deepseek-ai-dsh-client-ui-weixin-channel/model-experience/kv-cache-effect:
+  en: 44d04937106b8b14
+  zh: f7b24086a9c496d0
+/deepseek-ai-dsh-client-ui-weixin-channel/known-limitations-and-deferred-work:
+  en: 153c35163a834100
+  zh: f05bda7e0b65ab37
+/deepseek-ai-dsh-client-ui-weixin-channel/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

@@ -1,8 +1,24 @@
+---
+description: "Xiaojing semantic browser automation over Microsoft Edge"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-browser-control
 
 English | [中文](README.zh.md)
 
+## Summary
+
 DOM-first Microsoft Edge automation for Xiaojing. One removable Cordis plugin owns the `browser_control` tool, a global page registry, per-turn page leases, a dedicated Playwright Edge adapter, and an optional personal Edge extension adapter. It does not modify `agent-loop`, official UI packages, or a person's Edge profile.
+
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
+## Capabilities
 
 The personal Edge settings RPC registers a Web route through Connection, so the Host plugin requires both `connection` and `webServer` at startup.
 
@@ -58,7 +74,7 @@ The Host validates the fixed extension ID and protocol version, then both sides 
 
 #### What the model sees
 
-The `browser_control` schema tells the model to reuse matching pages before creating one, batch forms and menus with `act`, and keep webpage work on DOM semantics. Results identify `managed` or `personal` surface, opaque session-local page and window IDs, and bounded semantic observations. The model cannot install the extension or bypass its pairing state.
+The `browser_control` schema tells the model to reuse matching pages before creating one, batch forms and menus with `act`, and keep webpage work on DOM semantics. Results identify `managed` or `personal` surface, opaque session-local page and window IDs, and bounded semantic observations. The model cannot install the extension or bypass its pairing state. The generated [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-xiaojing-browser-control) records this schema.
 
 #### Token effect
 
@@ -77,3 +93,10 @@ The schema remains stable for the plugin lifetime. Page observations appear afte
 - Closed Shadow DOM, canvas-only pages, CAPTCHAs, UKey and certificate prompts, secure browser surfaces, and operating-system dialogs require user handling.
 - A browser or another DevTools client may deny `chrome.debugger` attachment. The plugin reports that failure and does not switch routes or repeat already completed actions.
 - Pixel interpretation is not part of browser control. The model's vision capability may explain a user-provided image, but it does not authorize coordinate clicks.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

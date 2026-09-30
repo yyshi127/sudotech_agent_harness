@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-04-temporary-youcheng-voucher-query.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-04-temporary-youcheng-voucher-query.md
-2026-09-04-temporary-youcheng-voucher-query.md: 8af044ac4a5d43da41f330454dbf0f56cc6ca449
-2026-09-04-temporary-youcheng-voucher-query.zh.md: 9aadef6b81fd4f368000cce2057393c3e1dc722a
+/agent-note-temporary-youcheng-voucher-query:
+  en: b0f4c716a2875a44
+  zh: d079cf5277300794
+/agent-note-temporary-youcheng-voucher-query/problem:
+  en: 106daf357f97fbc3
+  zh: 73c740bbbf2a8687
+/agent-note-temporary-youcheng-voucher-query/decision:
+  en: de16cac63a6260d2
+  zh: 657f120ac425971e
+/agent-note-temporary-youcheng-voucher-query/alternatives-considered:
+  en: 84cbbcc61923b24d
+  zh: 7f8f0e65f6785611
+/agent-note-temporary-youcheng-voucher-query/consequences:
+  en: 4044f5865856b406
+  zh: 96afebcc8d7bf5af
+/agent-note-temporary-youcheng-voucher-query/verification:
+  en: cc930575e96ab992
+  zh: 59e4c8f2bb6f1e87

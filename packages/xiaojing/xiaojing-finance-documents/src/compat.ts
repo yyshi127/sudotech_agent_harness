@@ -46,6 +46,7 @@ export interface DocumentSource<TFile extends DocumentSourceFile = DocumentSourc
 export type FinanceDocumentSource = DocumentSource<FinanceDocumentFile>
 
 function bindingFromSession(session: Session): FinanceClientBinding | undefined {
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
   for (const event of session.snapshotEvents()) {
     if (event.type === 'finance/client-bound') return event.data
   }
@@ -113,6 +114,7 @@ export function financeDocumentSourceFromEvent(
 export function financeDocumentSources(ctx: Context, agent: Agent): FinanceDocumentSource[] {
   const binding = ctx.xiaojingFinanceDomain.currentClientBinding(agent)
   const sources: FinanceDocumentSource[] = []
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
   for (const event of agent.session.snapshotEvents()) {
     const source = event.type === 'finance/file-imported'
       ? binding === undefined ? undefined : clientSource(binding, agent.session, event.data.file)

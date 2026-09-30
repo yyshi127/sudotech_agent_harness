@@ -33,11 +33,11 @@ kind: "package-reference"
 <a id="observation-and-settlement"></a>
 ## 观察与结算
 
-兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek 设置、凭据解析和 DeepSeek 请求身份事件的位置。提供方会在模型 fetch 前报告选定的基址，以及账户认证或 API Key 的 SHA-256 指纹；观察器在对应异步流调用内捕获这项事实，并且只记录首个 `usage` 分片。请求进行期间切换设置、登录状态或 Key 不会改变该请求的归属。普通对话、压缩、会话标题和重试请求会在提供方返回用量后分别结算。
+兼容适配文件是唯一导入 `llm/stream`、`TokenUsage`、DeepSeek 设置、凭据解析和 DeepSeek 请求身份事件的位置。API Key 提供方在解析请求认证时报告选定基址和实际使用 Key 的 SHA-256 指纹；观察器在对应异步流调用内捕获这项事实，并且只记录首个 `usage` 分片。请求进行期间切换设置、登录状态或 Key 不会改变该请求的归属。普通对话、压缩、会话标题和重试请求会在提供方返回用量后分别结算。
 
 只有 Messages 根地址 `https://api.deepseek.com/anthropic` 使用内置价格计费。根地址 `https://api.deepseek.com`、其他路径和自定义来源仍标记为未计价。
 
-通过已登录 DeepSeek 账户认证的请求不纳入统计。观察器绝不会把账户令牌产生的用量归到已配置的 API Key。
+独立的 `deepseek-account` 路由不纳入统计。账号登录不会停用 API Key 路由或隐藏当前 Key 的用量账本。
 
 每条记录包含缓存命中输入、缓存未命中输入、输出、缓存写入 token、模型、请求发生的北京时间日期、请求用途、价格版本，以及固定的总费用和分类费用。API Key 只保留 SHA-256 指纹。切换 Key 后旧记录仍保留，但 `snapshot()` 只返回当前所配 Key 的本月数据。
 
@@ -71,8 +71,9 @@ None, as this observer reads provider usage after a request and registers no mod
 
 No direct effect; the plugin does not change request prefixes, messages, tools, or provider routing.
 
-<a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
+
+<a id="known-limitations-and-deferred-work"></a>
 
 - 显示金额是依据提供方返回用量和公开价格在本机计算的结果，不是 DeepSeek 开放平台的正式账单或账户余额。
 - 统计从插件首次创建账本时开始，不会根据旧会话反向重建。

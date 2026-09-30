@@ -1,15 +1,8 @@
 [
   [
     {
-      "type": "tool-result",
-      "toolCallId": "analysis-query",
-      "content": [
-        {
-          "type": "text",
-          "text": "Error: 往来记录缺少所选维度的分组标识，不能按名称推断；可改为按币种汇总。"
-        }
-      ],
-      "isError": true
+      "type": "text",
+      "text": "Error: 往来记录缺少所选维度的分组标识，不能按名称推断；可改为按币种汇总。"
     }
   ]
 ]

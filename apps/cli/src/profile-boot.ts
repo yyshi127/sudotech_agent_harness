@@ -15,6 +15,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { FiberState, type Context } from '@deepseek-ai/cordis'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
+import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import {
   boot,
   composeEntries,
@@ -24,6 +25,7 @@ import {
   installFailLoud,
   loadOverlayPatches,
   loadProfile,
+  reportSkippedBundles,
   PluginPackages,
   PROFILE_PATCH_FILENAME,
   PROFILE_TEMPLATES,
@@ -53,9 +55,15 @@ const XIAOJING_FINANCE_PRESET_PATCH = fileURLToPath(
 export function xiaojingPresetPatches(
   clientProfile: string | undefined = process.env.DSH_CLIENT_BUILD_PROFILE,
 ): PatchOptions[] {
-  return clientProfile === 'xiaojing'
-    ? loadOverlayPatches(NAME, XIAOJING_FINANCE_PRESET_PATCH)
-    : []
+  if (clientProfile !== 'xiaojing') return []
+  const patches = loadOverlayPatches(NAME, XIAOJING_FINANCE_PRESET_PATCH)
+  const preset = patches.flatMap(patch => patch.insert ?? []).find(entry => entry.id === 'preset-finance')
+  const definition = preset?.config as { plugins: EntryOptions[] } | undefined
+  const skills = definition?.plugins.find(entry => entry.id === 'skill-filesystem')
+  if (!skills) throw new Error('Xiaojing Finance preset is missing its skill-filesystem declaration')
+  const skillConfig = skills.config as { customSkillDirs?: string[] }
+  skillConfig.customSkillDirs = [join(dirname(XIAOJING_FINANCE_PRESET_PATCH), 'skills')]
+  return patches
 }
 
 /** Launcher-owned readiness signal committed only after boot and host setup succeed. */
@@ -185,6 +193,7 @@ export function initializeProfileFromDefault(
 export function prepareProfile(name: string, userLayer = true, fromDefaultProfile?: string): Profile {
   if (fromDefaultProfile !== undefined) initializeProfileFromDefault(name, fromDefaultProfile)
   const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer })
+  reportSkippedBundles(NAME, profile)
   writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
   return profile
 }
@@ -301,7 +310,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     })
 
     const rootConfig = join(composed.profile.dir, PROFILE_ROOT_FILENAME)
-    const profileContext: ProfileContext = {
+    let profileContext: ProfileContext = {
       name: options.profile,
       ...(options.packageManager === undefined ? {} : { packageManager: options.packageManager }),
       dir: composed.profile.dir, patchPath: composed.profile.patchPath,
@@ -310,11 +319,10 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       cwd: process.cwd(), home: resolveDshHome(),
       overlays: composed.overlays, telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
     }
-    const patches = readProfilePatches(NAME, profileContext, composed.profile)
+    let patches = readProfilePatches(NAME, profileContext, composed.profile)
     if (composeEntries([patches]).some(row => row.id === 'agent-preset-registry')) {
-      const productPatches = xiaojingPresetPatches()
-      const bundlePatchCount = composed.profile.layers.reduce((sum, layer) => sum + layer.patches.length, 0)
-      patches.splice(bundlePatchCount, 0, ...productPatches)
+      profileContext = { ...profileContext, deploymentPatches: xiaojingPresetPatches() }
+      patches = readProfilePatches(NAME, profileContext, composed.profile)
     }
     const ctx = await boot(NAME, rootConfig, patches, async (hostCtx) => {
       app.current = hostCtx

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-25-xiaojing-branded-two-stage-installer.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-25-xiaojing-branded-two-stage-installer.md
-2026-08-25-xiaojing-branded-two-stage-installer.md: 4e2a826646e8a97252466490f77a9f96bd2ba6c6
-2026-08-25-xiaojing-branded-two-stage-installer.zh.md: 63327c350956a3dce14ddab68cfb9233d85b3c18
+/agent-note-xiaojing-branded-two-stage-windows-installer:
+  en: 6d75c626ae512b41
+  zh: 0c2cb0e8a23ca91e
+/agent-note-xiaojing-branded-two-stage-windows-installer/problem:
+  en: 28ad362269d9eb8a
+  zh: 51a66621713fee23
+/agent-note-xiaojing-branded-two-stage-windows-installer/decision:
+  en: 4bd583157b0b8afa
+  zh: f010c6e819613c1f
+/agent-note-xiaojing-branded-two-stage-windows-installer/alternatives-considered:
+  en: 07243d860c087a77
+  zh: 7b30965d1f202f7e
+/agent-note-xiaojing-branded-two-stage-windows-installer/consequences:
+  en: ded8cd3575f0371c
+  zh: b1c05cf9a940545c
+/agent-note-xiaojing-branded-two-stage-windows-installer/verification:
+  en: e767b3c138d59afc
+  zh: 6eb4d4aa024dc88a

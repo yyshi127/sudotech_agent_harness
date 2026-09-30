@@ -88,7 +88,7 @@
   },
   "remaining": [
     {
-      "item": "Manual/external voucher provenance",
+      "item": "Manual/external voucher source identity",
       "state": "unresolved",
       "evidence": "critique/f3b-lab/receipts/voucher-context-1789357738220.json",
       "finding": "Fresh public list/details and existing Chrome manual detail omit original appId/flowId. No arbitrary identifiers or external voucher deletion attempted."

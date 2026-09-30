@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-14-open-item-deletion-balances.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-14-open-item-deletion-balances.md
-2026-09-14-open-item-deletion-balances.md: 11cdb420e6db4a652da13cc1ee15ce32b4dbbcca
-2026-09-14-open-item-deletion-balances.zh.md: 6ada2f5b88414747325e44cb798042618a3e8c81
+/agent-note-currency-separated-deletion-balance-evidence:
+  en: bf4feb6541feb508
+  zh: 9a45ef47294ceb3c
+/agent-note-currency-separated-deletion-balance-evidence/problem:
+  en: d4198c64db38d4b0
+  zh: a8268936b76df1da
+/agent-note-currency-separated-deletion-balance-evidence/decision:
+  en: 551b5dae97235918
+  zh: 2dc114c2df1148dd
+/agent-note-currency-separated-deletion-balance-evidence/alternatives-considered:
+  en: b37086227dba5bf3
+  zh: 46d63c068981e04e
+/agent-note-currency-separated-deletion-balance-evidence/consequences:
+  en: f07fad15a71f7d1e
+  zh: d16732bd856f54ce

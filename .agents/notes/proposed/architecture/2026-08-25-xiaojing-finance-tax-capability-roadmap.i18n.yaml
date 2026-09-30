@@ -1,6 +1,172 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-25-xiaojing-finance-tax-capability-roadmap.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-25-xiaojing-finance-tax-capability-roadmap.md
-2026-08-25-xiaojing-finance-tax-capability-roadmap.md: 68cd07b7718a87bfcffdb71d18fcf794d44918e7
-2026-08-25-xiaojing-finance-tax-capability-roadmap.zh.md: 4d35b45895a63cc8ea9189316be330e85cf88eb3
+/agent-note-xiaojing-finance-and-tax-capability-roadmap:
+  en: 616c5fb149f8413f
+  zh: 5f268a2d5699f411
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/problem:
+  en: 585277026e984bdc
+  zh: f8bf03c8ea9140cd
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/proposal:
+  en: c461a0671a6c2081
+  zh: 634ba04082b57742
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/proposal/product-boundary:
+  en: fe0d75210371d562
+  zh: 5ed99467127e50e0
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/proposal/target-users-and-initial-scope:
+  en: 24d12458d31c7137
+  zh: 70be5260e9bcfbac
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/capability-architecture:
+  en: f5077bf07e5dc09a
+  zh: f5077bf07e5dc09a
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/capability-architecture/package-ownership:
+  en: 03e5b70b321aa40f
+  zh: 0e983f58983d3077
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/capability-architecture/stable-service-contracts:
+  en: 5afe3d871534a9a1
+  zh: 55888cfd85b89338
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/capability-architecture/public-evidence-policy:
+  en: 3a15ea8332412190
+  zh: 338d68776f8f0fc5
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-0-engineering-prerequisites:
+  en: 3ce7536e6dc479e6
+  zh: 322ac9d4966aad66
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-1-professional-finance-and-tax-foundation:
+  en: ba8b7938ad4cdd3f
+  zh: ba8b7938ad4cdd3f
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-1-professional-finance-and-tax-foundation/goal:
+  en: 6f82ed8a04a7a4c7
+  zh: 28de54fa8862133a
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-1-professional-finance-and-tax-foundation/deliverables:
+  en: 4aef847708f6e31c
+  zh: be0e78e0a79eba10
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-1-professional-finance-and-tax-foundation/stage-1-release-criteria:
+  en: 81a019503d1620c7
+  zh: c529273d0c03b0a0
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-1-youcheng-finance-first-reimbursement-deferred:
+  en: daf8a50283085208
+  zh: 565481ca5796049b
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-1-youcheng-finance-first-reimbursement-deferred/goal:
+  en: 5814386505deaa31
+  zh: 28231819dede61f8
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-1-youcheng-finance-first-reimbursement-deferred/technical-route:
+  en: 13a7367b5ce2c382
+  zh: 6974e98258d6c135
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-1-youcheng-finance-first-reimbursement-deferred/workflow-rules:
+  en: 69e38406ce51beeb
+  zh: c2a072b0ea77cc7d
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-1-youcheng-finance-first-reimbursement-deferred/stage-2-1-release-criteria:
+  en: 6a622912f12a2695
+  zh: 24b6bf704fb14123
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-2-sdoo-and-odoo-accounting-integration:
+  en: 66029bf511a22beb
+  zh: 66029bf511a22beb
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-2-sdoo-and-odoo-accounting-integration/goal:
+  en: 974aaf4972a225c0
+  zh: 96ce956de4736019
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-2-sdoo-and-odoo-accounting-integration/sdoo-agent-api:
+  en: e96242f8a623c439
+  zh: 2cf287b7e224bb39
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-2-sdoo-and-odoo-accounting-integration/delivery-sequence:
+  en: dfc89d0f616cbb19
+  zh: a7c785d75cec47eb
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-2-2-sdoo-and-odoo-accounting-integration/stage-2-2-release-criteria:
+  en: fb0d061c5f9199d4
+  zh: b834499009b3cd20
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-3-compliance-review-and-risk-discovery:
+  en: cf8f2f4c3c131fcc
+  zh: cf8f2f4c3c131fcc
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-3-compliance-review-and-risk-discovery/goal:
+  en: 58c2a77625885ab8
+  zh: 9b77bf56bdfdb0a7
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-4-proactive-finance-management:
+  en: 83f3c4e31240207b
+  zh: 83f3c4e31240207b
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/stage-4-proactive-finance-management/goal:
+  en: 061d171c3ad9fc6c
+  zh: b54b3fbfbea47f68
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog:
+  en: 5a95dba8fb1862da
+  zh: 4928f1eec29c3ccb
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f0-1-finance-extension-foundation:
+  en: db5daa19b0b8b60b
+  zh: 61c2e362f6efecb0
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-1-finance-preset-strict-superset:
+  en: 7df75b6576ce53cc
+  zh: 4e674b83bce27d84
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-2-local-multi-client-context:
+  en: c3a922ffdfcf5b06
+  zh: 8ae98d0e70ecf2fc
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-3-official-evidence-service:
+  en: 211f2bf246bded5d
+  zh: 6fbefec7d3156322
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-4-finance-document-normalization:
+  en: 07a27e02c3369b29
+  zh: 855b273bc4eccc9a
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-5-trial-calculations-and-finance-skill-pack:
+  en: 043c77e0d9acf7ed
+  zh: 95a359c3d7842aa5
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-6-stage-1-integrated-acceptance:
+  en: caedfd444b67948b
+  zh: faa961d13539d7eb
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f0-finance-scope-and-acceptance-checklist:
+  en: 8eb62838113eabc7
+  zh: e074c52ab371be31
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f1-independent-finance-connection-and-queries:
+  en: 35fc0ba5b8b6a168
+  zh: 78a6e833f2d7229f
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f2-finance-voucher-operations:
+  en: a289b2bcf2617a38
+  zh: fa7bfac716db3cf5
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f3-finance-journals-balances-and-maintenance:
+  en: ae656f79ad8e6695
+  zh: d76091c5495bb2fb
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f4-full-finance-acceptance:
+  en: a3f943006025ad59
+  zh: f862f0155df2d5ef
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f2s-1-sdoo-agent-api-contract:
+  en: 711fcda94dcd79c3
+  zh: a0f5a77a49c9fd47
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f2s-2-sdoo-accounting-read-path:
+  en: 5c7a93329a60209d
+  zh: d7e2fe02a1595934
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f2s-3-sdoo-voucher-invoice-and-open-item-workflows:
+  en: 84197de2acbfd19b
+  zh: 96791a0e7d5c9bd7
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f2s-4-sdoo-reconciliation-reports-and-close:
+  en: 7023a2381f507343
+  zh: fe668084cba24cbd
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f2s-5-sdoo-integration-certification:
+  en: 9a383a1f3e16cfd5
+  zh: ed77661946790e8a
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f3-1-compliance-finding-foundation:
+  en: e0a724f428ee4248
+  zh: 2766e40f2f97284f
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f3-2-reimbursement-and-invoice-risk-pack:
+  en: f961352f56cf2d07
+  zh: 7d72a1bd31f47902
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f3-3-accounting-and-tax-risk-pack:
+  en: a971e5736bc5046a
+  zh: 913089c61116e6c1
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f3-4-compliance-center-and-remediation:
+  en: 0e3456e51d4ca0f0
+  zh: f365e29de14acae9
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f4-1-proactive-close-and-deadline-assistant:
+  en: 6ff4a25ddabdd47e
+  zh: 0965a0c4c1c3a30c
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/gpt-executable-development-task-catalog/f4-2-local-portfolio-insight:
+  en: 0530fb320071d8eb
+  zh: 7f7458491ae1f281
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/development-session-protocol:
+  en: 92a43e9f80efc4ee
+  zh: 7c8b6463297d8e4d
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/alternatives-considered:
+  en: c6e307c8b9d72361
+  zh: 1e339d401b4efbdd
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/acceptance-criteria:
+  en: 5e03db48ac9c31c8
+  zh: 93d6444710456319
+/agent-note-xiaojing-finance-and-tax-capability-roadmap/risks:
+  en: 24782a64f865a240
+  zh: 6fb95552ade64663

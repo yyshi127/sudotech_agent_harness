@@ -1,9 +1,23 @@
+---
+description: "Versioned deterministic trial calculations for Xiaojing Finance mode"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-calculations
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Versioned deterministic trial calculations for Xiaojing Finance mode. The Host service owns pure decimal calculation and client-context adaptation; a separate Finance-preset consumer registers `finance_calculation`. Standard and other presets receive no tool, and neither entry changes the Agent Loop.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Supported rule pack
 
 Rule set `cn-mainland-2026-v1` accepts evaluation dates from 2026-01-01 through 2027-12-31 and covers four bounded calculations:
@@ -44,3 +58,10 @@ The standing Finance prompt and tool schema are stable. Request-specific values 
 - The first rule pack intentionally excludes mixed VAT rates, simplified taxation, special industries, most preferential treatments, final settlement, non-salary IIT, consumption tax itself, and local rules beyond the supplied surcharge rates.
 - The package performs trial calculations only. It does not prepare or submit a return, post a voucher, make a payment, or mutate an external system.
 - Remove the `xiaojing-finance-calculations` Host row and the Finance preset's `finance-calculations` consumer row to remove the capability without affecting client records, documents, Standard mode, or official Harness profiles.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

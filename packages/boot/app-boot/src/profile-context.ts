@@ -23,6 +23,8 @@ export interface ProfileContext {
   readonly home: string
   /** Bundle packages used to start this process, before any persisted edits. */
   readonly startedBundles: readonly string[]
+  /** Launcher-owned deployment patches, applied after bundles and before user layers on every reload. */
+  readonly deploymentPatches?: readonly PatchOptions[]
   /** Parsed command-line overlays, applied above profile and home patches. */
   readonly overlays: readonly PatchOptions[]
   /** Launch-time DSH_TELEMETRY_DISABLED value; any non-empty value opts out. */
@@ -64,6 +66,7 @@ export function readProfilePatches(binName: string, context: ProfileContext, ini
   const profile = initialProfile ?? loadProfileDirectory(binName, context.dir, context.installAnchor, { userLayer: false })
   const patches = structuredClone([
     ...profile.layers.flatMap(layer => layer.patches),
+    ...(context.deploymentPatches ?? []),
     ...(initialProfile?.patches ?? loadOptionalPatches(binName, context.patchPath) ?? []),
     ...(loadOptionalPatches(binName, join(context.home, PROFILE_PATCH_FILENAME)) ?? []),
     ...context.overlays,

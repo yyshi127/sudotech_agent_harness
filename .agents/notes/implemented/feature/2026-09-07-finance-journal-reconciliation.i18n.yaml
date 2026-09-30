@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-finance-journal-reconciliation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-finance-journal-reconciliation.md
-2026-09-07-finance-journal-reconciliation.md: 818d386a1d9c049e87d8c96143c641850c065d53
-2026-09-07-finance-journal-reconciliation.zh.md: e38c4cc0d9be6590a12048a8931e3ab2c1c32108
+/agent-note-single-account-journal-reconciliation:
+  en: 69f0d194b963d3a2
+  zh: f9ead77fdd9b5690
+/agent-note-single-account-journal-reconciliation/problem:
+  en: e937ca113e323d7f
+  zh: f11d2054fa201967
+/agent-note-single-account-journal-reconciliation/decision:
+  en: adeb29e6f65c7b99
+  zh: 95d80ff3bf60b3d9
+/agent-note-single-account-journal-reconciliation/alternatives-considered:
+  en: e2c302bcabe07e85
+  zh: f572a8e04ff5f4cd
+/agent-note-single-account-journal-reconciliation/consequences:
+  en: 50a03438fd71f2da
+  zh: dfdccaef5160e7cf

@@ -9,7 +9,7 @@
 | 项目 | 当前值 | 真源 |
 |---|---|---|
 | 桌面版本 | `0.3.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| Harness 基线 | `dsh-v0.1.7-rc.1` / `46a7f68...` | [`packages/client/xiaojing-product/product.json`](../packages/client/xiaojing-product/product.json) |
+| Harness 基线 | `dsh-v0.1.7-rc.1` / `dsh-v0.1.7-rc.1...` | [`packages/client/xiaojing-product/product.json`](../packages/client/xiaojing-product/product.json) |
 | 运行时装配 | Cordis profile、bundle 和配置行 | [`packages/boot/app-boot/src/profile.ts`](../packages/boot/app-boot/src/profile.ts)、[`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | Xiaojing Client 选择器 | `DSH_CLIENT_BUILD_PROFILE=xiaojing` | [`scripts/client-build-environment.ts`](../scripts/client-build-environment.ts) |
 

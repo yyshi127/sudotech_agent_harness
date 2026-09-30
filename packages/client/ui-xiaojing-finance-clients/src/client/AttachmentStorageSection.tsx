@@ -69,8 +69,8 @@ export function AttachmentStorageSection(props: AttachmentStorageSectionProps): 
             <span>{t(`storage.${key}`)}</span>
             <input required value={view.config[key]} onChange={(event) => { edited(); setView({ ...view, config: { ...view.config, [key]: event.target.value } }) }} autoComplete="off" spellCheck={false} />
           </label>)}
-          <label><span>AccessKey ID</span><input type="password" autoComplete="new-password" value={id} required={!view.configured} placeholder={view.configured ? t('storageKeepKeys') : ''} onChange={(event) => { edited(); setId(event.target.value) }} /></label>
-          <label><span>AccessKey Secret</span><input type="password" autoComplete="new-password" value={secret} required={!view.configured} placeholder={view.configured ? t('storageKeepKeys') : ''} onChange={(event) => { edited(); setSecret(event.target.value) }} /></label>
+          <label><span>{t('storageAccessKeyId')}</span><input type="password" autoComplete="new-password" value={id} required={!view.configured} placeholder={view.configured ? t('storageKeepKeys') : ''} onChange={(event) => { edited(); setId(event.target.value) }} /></label>
+          <label><span>{t('storageAccessKeySecret')}</span><input type="password" autoComplete="new-password" value={secret} required={!view.configured} placeholder={view.configured ? t('storageKeepKeys') : ''} onChange={(event) => { edited(); setSecret(event.target.value) }} /></label>
         </div>
         <p className={css.hint}>{t('storageKeyHelp')}</p>
       </fieldset>

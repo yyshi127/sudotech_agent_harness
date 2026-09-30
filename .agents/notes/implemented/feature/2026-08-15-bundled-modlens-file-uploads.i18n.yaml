@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-bundled-modlens-file-uploads.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-bundled-modlens-file-uploads.md
-2026-08-15-bundled-modlens-file-uploads.md: c26bfc75a7abc5cfbd1790b36114647606b01552
-2026-08-15-bundled-modlens-file-uploads.zh.md: b01d5b1c899f848378bacd1fdc4593d1ae9bc935
+/agent-note-ship-modlens-and-prompt-file-uploads-in-the-web-profile:
+  en: 002893ebbccf85c2
+  zh: 641b3c19a4456588
+/agent-note-ship-modlens-and-prompt-file-uploads-in-the-web-profile/problem:
+  en: 3edb64d1b716d21d
+  zh: 1d1324639bf205eb
+/agent-note-ship-modlens-and-prompt-file-uploads-in-the-web-profile/decision:
+  en: 35e95ccb8123f858
+  zh: 7056c63b1f9f9942
+/agent-note-ship-modlens-and-prompt-file-uploads-in-the-web-profile/verification:
+  en: e4c820b1ec0525f0
+  zh: fd0113a6f8b21271
+/agent-note-ship-modlens-and-prompt-file-uploads-in-the-web-profile/alternatives-considered:
+  en: 667a41fe3e94fd88
+  zh: 6a4b72be08930be4
+/agent-note-ship-modlens-and-prompt-file-uploads-in-the-web-profile/consequences:
+  en: e9c0f85f1699954d
+  zh: fa589c24c4b7d605

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-29-xiaojing-finance-calculations-and-skills.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-29-xiaojing-finance-calculations-and-skills.md
-2026-08-29-xiaojing-finance-calculations-and-skills.md: aef7662222ca1b947e359fdeb2618a1e42c1f04d
-2026-08-29-xiaojing-finance-calculations-and-skills.zh.md: 5ba31087a47ae93b82707a0331104b2920899344
+/agent-note-xiaojing-finance-deterministic-calculations-and-first-workflow-skills:
+  en: f01a5b95fbadf756
+  zh: b1865268c31b5dfc
+/agent-note-xiaojing-finance-deterministic-calculations-and-first-workflow-skills/problem:
+  en: a6bb2396d4e3a7c1
+  zh: 829367c000e5e1e3
+/agent-note-xiaojing-finance-deterministic-calculations-and-first-workflow-skills/decision:
+  en: 80b47d6cc92f1b2b
+  zh: 791caa389252c3ea
+/agent-note-xiaojing-finance-deterministic-calculations-and-first-workflow-skills/alternatives-considered:
+  en: aff7157016b8ebdd
+  zh: b5643ff7420d7383
+/agent-note-xiaojing-finance-deterministic-calculations-and-first-workflow-skills/verification:
+  en: d23d16dbb23fcbb5
+  zh: efb8376db167f1b6
+/agent-note-xiaojing-finance-deterministic-calculations-and-first-workflow-skills/consequences:
+  en: 209ae879e4e6294e
+  zh: 57493b7860dfa321

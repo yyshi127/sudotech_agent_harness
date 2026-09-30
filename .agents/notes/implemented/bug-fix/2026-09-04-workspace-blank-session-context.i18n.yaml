@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-04-workspace-blank-session-context.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-04-workspace-blank-session-context.md
-2026-09-04-workspace-blank-session-context.md: 887d78ea740109c5b7c86637106cad959e4a0a4e
-2026-09-04-workspace-blank-session-context.zh.md: 3ac13193796d9d57ecf0eb86a41a0d7597ca9de6
+/agent-note-workspace-blank-session-context:
+  en: 7d9e032811dc0fea
+  zh: e0e575b6c43be04f
+/agent-note-workspace-blank-session-context/problem:
+  en: 7e2b96dca75df857
+  zh: aaa7a9de81c7c035
+/agent-note-workspace-blank-session-context/decision:
+  en: d14dd374ccdeb43e
+  zh: fea6beeff4c1cfc1
+/agent-note-workspace-blank-session-context/alternatives-considered:
+  en: 0acf184cfe2383e8
+  zh: ecd0340badd81d22
+/agent-note-workspace-blank-session-context/consequences:
+  en: a47aa25508d55178
+  zh: 95edd533f3883629
+/agent-note-workspace-blank-session-context/verification:
+  en: 26fe0f6aa47473c5
+  zh: 34bc1b0696ca4766

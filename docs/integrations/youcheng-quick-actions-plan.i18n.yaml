@@ -1,6 +1,16 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-quick-actions-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-quick-actions-plan.md
-youcheng-quick-actions-plan.md: fe40b3f21903fd9691cb6294a92f278ecd299b77
-youcheng-quick-actions-plan.zh.md: 067b2c0b7bdde26c120884a0b64a801311809298
+/separate-youcheng-module-quick-actions:
+  en: f4a4a42ff40f8f64
+  zh: 6a1285cc30759316
+/separate-youcheng-module-quick-actions/purpose-and-sequence:
+  en: dba94d656b0e00c4
+  zh: 47d23aac45695d8b
+/separate-youcheng-module-quick-actions/minimal-design:
+  en: f4e767cc9dc426c2
+  zh: c511d124df037ad2
+/separate-youcheng-module-quick-actions/isolation-acceptance:
+  en: 589853a71394530c
+  zh: 1dabf8e25a51f72d

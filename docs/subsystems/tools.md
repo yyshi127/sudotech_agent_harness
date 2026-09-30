@@ -403,14 +403,15 @@ Each interception waterfall returns a typed **Decision** (the idiom shared with 
  * model-facing reason and optional structured error identity; `cancel` selects
  * the canonical cancellation result without presenting a policy denial; `ask`
  * runs only after an approval service returns `allowed-once` and otherwise
- * denies. Input rewriting is excluded because arguments are already logged and
+ * denies; its `reason` is the audited approval reason and its optional
+ * `displayReason` is the localized prompt text. Input rewriting is excluded because arguments are already logged and
  * presented.
  */
 type PreToolDecision =
   | { kind: 'allow' }
   | { kind: 'deny'; reason: string; info?: ToolErrorInfo }
   | { kind: 'cancel' }
-  | { kind: 'ask'; reason?: string }
+  | { kind: 'ask'; reason?: string; displayReason?: { readonly en: string; readonly [locale: string]: string } }
 ```
 
 ```ts type-equiv
@@ -597,76 +598,6 @@ async execute(exec: ToolExecutionInput): Promise<ToolExecutionResult>
 Types: [ScopeKey](scope.md)
 
 Source: [`packages/core/tools/src/index.ts`](../../packages/core/tools/src/index.ts)
-
-<a id="ctxxiaojingbrowsercontrol--browsercontrol"></a>
-
-### `ctx.xiaojingBrowserControl` — `BrowserControl`
-
-DOM-first Edge automation coordinator and model-facing tool consumer.
-
-```ts cordis-catalog
-/**
- * Return the current managed and personal Edge status without exposing credentials.
- * @returns Sanitized route and extension state.
- */
-status(): BrowserControlStatus
-
-/**
- * Explain whether one request requires a one-shot user approval.
- * @param owner - Agent session making the request.
- * @param request - Validated semantic browser operation.
- * @returns Approval reason, or undefined for a read or low-risk edit.
- */
-async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined>
-
-/**
- * Execute one unprotected browser operation for an owning session; protected requests must use the registered tool.
- * @param owner - Agent session making the request.
- * @param request - Browser operation.
- * @param signal - Cancellation signal.
- * @returns Bounded semantic result.
- */
-async run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>
-
-/** Close the dedicated Edge process while leaving the optional extension bridge available. */
-async close(): Promise<void>
-```
-
-Types: [SessionId](core.md)
-
-Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts`](../../packages/xiaojing/xiaojing-browser-control/src/index.ts)
-
-<a id="ctxxiaojingcomputercontrol--computercontrol"></a>
-
-### `ctx.xiaojingComputerControl` — `ComputerControl`
-
-Semantic Windows UI Automation provider and model-facing tool consumer.
-
-```ts cordis-catalog
-/**
- * Explain whether one request requires a one-shot user approval.
- * @param owner - Agent session that owns the observed Windows targets.
- * @param request - Validated Windows operation.
- * @returns The approval reason, or undefined when the operation may proceed directly.
- */
-approvalReason(owner: SessionId, request: ComputerActionRequest): string | undefined
-
-/**
- * Execute one validated Windows operation for an owning session.
- * @param owner - Agent session that owns the observed Windows targets.
- * @param request - Windows operation to execute.
- * @param signal - Cancellation signal for the operation.
- * @returns The bounded application catalog, window list, or UI Automation observation produced by the operation.
- */
-run(owner: SessionId, request: ComputerActionRequest, signal: AbortSignal): Promise<ComputerActionResult>
-
-/** Terminate the helper process tree and reject any pending request. */
-async close(): Promise<void>
-```
-
-Types: [SessionId](core.md)
-
-Source: [`packages/xiaojing/xiaojing-computer-control/src/index.ts`](../../packages/xiaojing/xiaojing-computer-control/src/index.ts)
 
 <a id="tools-events"></a>
 

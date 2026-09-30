@@ -2,7 +2,7 @@
 
 English | [中文](xiaojing-product-development.zh.md)
 
-This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.3.1 source baseline on official `dsh-v0.1.7-rc.1`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md), and [desktop companion and tray decision](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md) own the rationale and rejected alternatives.
+This reference defines how Xiaojing Accounting is assembled on DeepSeek Harness, which source layer owns each customization, and which compatibility rules a later development session must preserve. It describes the current 0.3.1 source baseline on official `dsh-v0.2.0-rc.2`; package READMEs own package-level details, while the [0.1.9 architecture decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md), [rc.8 upgrade decision](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md), [rc.1 native-vision upgrade decision](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.md), [rc.2 image-pipeline and visualization decision](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md), and [desktop companion and tray decision](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md) own the rationale and rejected alternatives.
 
 Read the [module and source architecture map](xiaojing-module-architecture.md) first when you need a quick view of the upstream core, Xiaojing plugins, Electron shell, and source directories.
 
@@ -19,10 +19,10 @@ Before editing product code, identify the owning layer instead of starting from 
 
 | Item | Current value | Source of truth |
 |---|---|---|
-| Desktop product version | `0.3.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| Official Harness baseline | `dsh-v0.1.7-rc.1` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| Official baseline commit | `46a7f68b0922371ce7144b668b90e377d8e799f4` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| Product integration base | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Desktop product version | `0.3.1` | [`apps/desktop/identity.json.productVersion`](../apps/desktop/package.json) |
+| Official Harness baseline | `dsh-v0.2.0-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Official baseline commit | `dsh-v0.2.0-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| Product integration base | `xiaojing-history-20260930-4` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | Source repository | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
 `product.json` is the explicit upstream record; do not infer the baseline from similar-looking source. The `@deepseek-ai/dsh-*` package scope remains the repository-wide workspace convention, while the desktop package uses `@deepseek-ai/dsh-desktop`. Product copy and attribution must continue to state that Xiaojing Accounting is based on DeepSeek Harness with internal branding and configuration, not that Sudotech developed the underlying framework.
@@ -31,7 +31,7 @@ Before editing product code, identify the owning layer instead of starting from 
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream dsh-v0.1.7-rc.1 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream dsh-v0.2.0-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Finance["Finance product extension boundary"]
   Adapters --> Usage["Usage host and client plugins"]
@@ -195,7 +195,7 @@ Protocol, media, and state tests use a fake iLink/CDN server and never contact W
 
 `@deepseek-ai/dsh-client-ui-desktop-companion` contributes the near-final Xiaojing-only “Desktop Xiaojing” Settings section and validates every companion result from the restricted Electron preload bridge. In an ordinary browser it renders a Windows-desktop-only notice and no inactive controls. Electron owns the transparent companion BrowserWindow, key-pose animation, 50% default visual scale, 30%–100% size preference, nearby status bubble, drag and multi-display recovery, main-window-interior default and reset placement, tray menu, main-window hide behavior, single-instance restoration, true application exit, and atomic `preferences-v1.json` writes. Tucking the companion destroys only its renderer; the Host, active tasks, and Weixin channel continue running.
 
-The Xiaojing product plugin contributes the final “About Xiaojing” Settings section after Desktop Xiaojing. It displays the current release and its feature list, and the empty-session beta badge includes the same version. Electron returns the packaged version through a read-only preload call; Web previews use a checked fallback that the product-layer gate requires to match `apps/desktop/package.json`.
+The Xiaojing product plugin contributes the final “About Xiaojing” Settings section after Desktop Xiaojing. It displays the current release and its feature list, and the empty-session beta badge includes the same version. Electron returns the packaged version through a read-only preload call; Web previews use a checked fallback that the product-layer gate requires to match `apps/desktop/identity.json.productVersion`.
 
 The feature remains removable as three explicit composition pieces: the Host row, the Client row, and the Electron assets/lifecycle. Removing the Cordis rows removes task-state observation and the settings section without changing Harness core. The Electron bridge exposes no Node, filesystem, arbitrary IPC, or BrowserWindow object to either renderer.
 
@@ -261,7 +261,7 @@ The main-window minimize button remains a normal taskbar minimize action. The cl
 
 [`identity.json`](../apps/desktop/identity.json) is the single source for package name, App ID/AppUserModelId, NSIS GUID, installation directory name, executable name, product name, per-user scope, shortcut name, and user-data path segments. Treat every field as immutable during ordinary releases. `verify-desktop-identity.mjs` compares the manifest, Electron entry, and NSIS configuration against the fixed values and rejects drift.
 
-The version in `apps/desktop/package.json` must increase for every distributed installer. With the same identity, NSIS recognizes the existing installation, reuses `InstallLocation`, skips the directory page, replaces application files, and refreshes shortcuts. Moving the installation directory still requires uninstall and reinstall; changing identity would create a second application rather than an upgrade.
+The version in `apps/desktop/identity.json.productVersion` must increase for every distributed installer. With the same identity, NSIS recognizes the existing installation, reuses `InstallLocation`, skips the directory page, replaces application files, and refreshes shortcuts. Moving the installation directory still requires uninstall and reinstall; changing identity would create a second application rather than an upgrade.
 
 ### Durable format changes
 

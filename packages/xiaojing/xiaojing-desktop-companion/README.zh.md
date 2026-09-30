@@ -1,9 +1,23 @@
+---
+description: "Sanitized task-state aggregation for the Xiaojing Windows desktop companion"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-desktop-companion
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计 Windows 桌面宠物的 Host 侧任务状态聚合插件。这个 Cordis 插件观察 Harness 会话、审批以及脱敏后的微信状态事件，并向 Electron 桌面端发布一份不含任务内容的全局快照。它不修改 Agent Loop、任务执行、模型提示词或用户会话。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 组合与状态
 
 该插件仅由小兢会计产品组合加载。它跟踪开放轮次、未完成工具、未解决审批、最近终态和脱敏后的微信在线标记。全局状态优先级依次为等待确认、失败、执行、思考、成功和待机。完成轮次保留成功状态 2.5 秒，失败、阻塞、达到最大 token 和中断轮次保留失败状态 5 秒。多个活动轮次只汇总为数量。工具完成时从工具消息的来源读取调用 id，包括内容为空的结果。
@@ -29,3 +43,10 @@ Host 在 `/xiaojing-desktop-companion` 下提供仅限 loopback 的 JSON 快照�
 - Host 报告语义任务生命周期状态，不报告进度百分比或任务内容。
 - 桌面显示、动画、拖动和系统托盘生命周期属于 Windows Electron 层，普通网页中不可用。
 - 进程重启会清除短暂的成功和失败计时；活动状态由新的生命周期事件重建，不重播历史动画。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

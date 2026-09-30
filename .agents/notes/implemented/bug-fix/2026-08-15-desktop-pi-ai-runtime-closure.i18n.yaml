@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-desktop-pi-ai-runtime-closure.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-15-desktop-pi-ai-runtime-closure.md
-2026-08-15-desktop-pi-ai-runtime-closure.md: e4a8396d04512e4917fb0ea8e8e8941e3ee1ed55
-2026-08-15-desktop-pi-ai-runtime-closure.zh.md: 5a6e7e0619b6886e12bce02d0b92099a1eeacc68
+/agent-note-anchor-pi-ai-runtime-dependencies-in-the-desktop-package:
+  en: c7c4958ca18638c5
+  zh: fc245fd91d0509a0
+/agent-note-anchor-pi-ai-runtime-dependencies-in-the-desktop-package/problem:
+  en: b0f3b84895d92d03
+  zh: 97f01fbbed504a3f
+/agent-note-anchor-pi-ai-runtime-dependencies-in-the-desktop-package/decision:
+  en: 801982584f5c08af
+  zh: 939b42553cd0d17b
+/agent-note-anchor-pi-ai-runtime-dependencies-in-the-desktop-package/verification:
+  en: 9bb731ccf6e036f2
+  zh: b4ccffbed55cc8cb
+/agent-note-anchor-pi-ai-runtime-dependencies-in-the-desktop-package/alternatives-considered:
+  en: 516e110ac07f0bf6
+  zh: 44e6c043b0c4c2d5
+/agent-note-anchor-pi-ai-runtime-dependencies-in-the-desktop-package/consequences:
+  en: 21d6bb7e195aafc7
+  zh: 7a181e1214cb02dd

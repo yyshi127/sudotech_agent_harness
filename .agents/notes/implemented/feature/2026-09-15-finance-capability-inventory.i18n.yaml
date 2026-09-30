@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-15-finance-capability-inventory.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-15-finance-capability-inventory.md
-2026-09-15-finance-capability-inventory.md: 308e384aaad3234d239b0030736e803d354b85d4
-2026-09-15-finance-capability-inventory.zh.md: bbe59ca70c391c268f33916ba45b42ac23503c3f
+/agent-note-canonical-finance-capability-inventory:
+  en: c06829f01cb24392
+  zh: 030e56c713d88e2a
+/agent-note-canonical-finance-capability-inventory/problem:
+  en: 8caeeb7b37713649
+  zh: 4670f866467b6d5f
+/agent-note-canonical-finance-capability-inventory/decision:
+  en: 2f5906712eddd649
+  zh: 44912a1f5d1bb380
+/agent-note-canonical-finance-capability-inventory/alternatives-considered:
+  en: 882a195e03dc266b
+  zh: d75a89087a462690
+/agent-note-canonical-finance-capability-inventory/consequences:
+  en: e6d335fb10b96511
+  zh: 9ae26fd8988366c4
+/agent-note-canonical-finance-capability-inventory/verification:
+  en: 11c1d848510ec349
+  zh: 5ffdac45daaa750a

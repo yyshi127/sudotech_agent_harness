@@ -2,6 +2,7 @@
 
 import { strFromU8 } from 'fflate'
 import { XMLParser } from 'fast-xml-parser'
+import { SyntaxValidator } from 'fast-xml-validator'
 
 type XmlRecord = Record<string, unknown>
 
@@ -79,7 +80,9 @@ export const xml = {
   parse(data: Uint8Array, code: string): readonly unknown[] {
     let value: unknown
     try {
-      value = parser.parse(strFromU8(data), true) as unknown
+      const input = strFromU8(data)
+      SyntaxValidator.validate(input)
+      value = parser.parse(input)
     } catch (error) {
       throw new XmlParseError(code, error)
     }

@@ -1,9 +1,23 @@
+---
+description: "Sidebar daily usage summary and current-month usage calendar"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-usage-accounting
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Xiaojing-profile browser presentation for the local usage-accounting Remote. It adds a current-day summary to `sidebar.footer.action` and a current-month calendar to `settings.section` without owning billing data or credential values. Official and local Harness client builds register neither entry.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Composition
 
 The plugin requires the generic sidebar and settings slots, locale, the generated `remote.usageAccounting` client, and forwarded Host events. Both entries share one observable controller. The slot renderer binds that observable to `useUsage`; components receive only the framework hook, a refresh callback, and localized copy.
@@ -28,3 +42,10 @@ No direct effect; opening or refreshing either view does not alter a model reque
 
 - The page intentionally exposes only the current month and current API key; it has no month navigation, chart, export, balance, or cloud synchronization.
 - A disconnected or failed Remote shows an unavailable state and keeps no independent browser-side billing ledger.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-28-xiaojing-finance-document-normalization.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-28-xiaojing-finance-document-normalization.md
-2026-08-28-xiaojing-finance-document-normalization.md: 903163fe7017844bbdcbf110669380f8accc18ac
-2026-08-28-xiaojing-finance-document-normalization.zh.md: 6b54ff83e5a5d514340e841441c80fa57a01624c
+/agent-note-xiaojing-finance-deterministic-document-normalization:
+  en: 8903be0b6e248488
+  zh: d2a504e0266be2e4
+/agent-note-xiaojing-finance-deterministic-document-normalization/problem:
+  en: 76b144300c05eb09
+  zh: a1642e166e286270
+/agent-note-xiaojing-finance-deterministic-document-normalization/decision:
+  en: 416a5a268bbf485c
+  zh: ba0389265f2a5125
+/agent-note-xiaojing-finance-deterministic-document-normalization/alternatives-considered:
+  en: 3b726776da63a8c5
+  zh: 90f73291adbca163
+/agent-note-xiaojing-finance-deterministic-document-normalization/verification:
+  en: ef7bcf4ef24cfe83
+  zh: 200b70d648833b13
+/agent-note-xiaojing-finance-deterministic-document-normalization/consequences:
+  en: 44426b0dd7bfa2d8
+  zh: fb65ef294a9090ec

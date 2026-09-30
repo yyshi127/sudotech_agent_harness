@@ -77,7 +77,7 @@ export function normalizeCompanionPreferences(value: unknown): DesktopCompanionP
     && typeof position.x === 'number' && Number.isFinite(position.x)
     && typeof position.y === 'number' && Number.isFinite(position.y)
     && (typeof position.displayId === 'number' || typeof position.displayId === 'string')
-    ? { x: Math.round(Number(position.x)), y: Math.round(Number(position.y)), displayId: position.displayId }
+    ? { x: Math.round(position.x), y: Math.round(position.y), displayId: position.displayId }
     : undefined
   return {
     schemaVersion: 1,

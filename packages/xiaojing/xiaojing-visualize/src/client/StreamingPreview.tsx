@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the `conversation.input.dock` SlotMap declaration.
 import type { StepLocation } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -20,7 +20,7 @@ import { buildStreamShellDoc, HEIGHT_MESSAGE_TYPE, STREAM_MESSAGE_TYPE } from '.
 import { resolveTheme } from './theme.ts'
 
 /** Dock entry props: the InputZone owner share (live conversation snapshot). */
-type StreamingPreviewProps = PropsRuntime<'conversation.input.dock'>
+type StreamingPreviewProps = PropsRuntime<'conversation.input.dock'> & PropsLocale<'xiaojing.visualize'>
 
 /**
  * Flush interval for posting fragment updates into the persistent shell.
@@ -87,7 +87,7 @@ function useThrottled(value: string): string {
 }
 
 /** The mounted preview, split out so hooks only run while a call streams. */
-function Preview({ argsRaw }: { argsRaw: string }) {
+function Preview({ argsRaw, t }: { argsRaw: string; t: StreamingPreviewProps['t'] }) {
   const throttled = useThrottled(argsRaw)
   const fragment = extractStreamingFragment(throttled)
   const preview = fragment === undefined ? '' : trimStreamingScripts(fragment)
@@ -125,13 +125,13 @@ function Preview({ argsRaw }: { argsRaw: string }) {
   return (
     <div style={wrapStyle}>
       <div style={labelStyle}>
-        {hasContent ? 'Visualize · streaming preview' : 'Visualize · composing…'}
+        {t(hasContent ? 'streaming' : 'composing')}
       </div>
       <iframe
         ref={frameRef}
         sandbox="allow-scripts"
         referrerPolicy="no-referrer"
-        title="Visualization streaming preview"
+        title={t('streamingTitle')}
         srcDoc={doc}
         style={{ ...frameStyle, height: hasContent ? Math.min(contentHeight, PREVIEW_MAX_HEIGHT) : 0 }}
         onLoad={() => { setLoaded(true) }}
@@ -144,16 +144,16 @@ function Preview({ argsRaw }: { argsRaw: string }) {
  * Dock entry: mounts the preview exactly while the streaming partial carries
  * a `visualize` tool-call block.
  */
-export function StreamingPreview({ useChat }: StreamingPreviewProps) {
+export function StreamingPreview({ useChat, t }: StreamingPreviewProps) {
   const step = useChat((snapshot) => {
     const turn = snapshot.timeline.turnOrder.at(-1)
     return turn === undefined ? undefined : snapshot.timeline.turns.get(turn)?.steps.at(-1)
   })
-  return step === undefined ? null : <StepPreview step={step} />
+  return step === undefined ? null : <StepPreview step={step} t={t} />
 }
 
 /** Step data retains tool-only deltas even when Chat creates no Assistant row. */
-function StepPreview({ step }: { step: StepLocation }) {
+function StepPreview({ step, t }: { step: StepLocation; t: StreamingPreviewProps['t'] }) {
   const source = step.data.source('assistant-step')
   const assistant = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot)
   const blocks = assistant?.status === 'running' ? assistant.blocks : undefined
@@ -165,5 +165,5 @@ function StepPreview({ step }: { step: StepLocation }) {
     if (block.kind === 'tool-call' && block.name === VISUALIZE_TOOL_NAME) argsRaw = block.argsRaw
   }
   if (argsRaw === undefined) return null
-  return <Preview argsRaw={argsRaw} />
+  return <Preview argsRaw={argsRaw} t={t} />
 }

@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-implementation-design.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-implementation-design.md
-youcheng-implementation-design.md: 9517b126f2292c838a6e08c7af6c28ce20ea6590
-youcheng-implementation-design.zh.md: 2418dcb6eb5c9a380c1b22bfcd352884d2e995fe
+/youcheng-finance-and-reimbursement-implementation-design:
+  en: c9f08a3f960ee914
+  zh: a2d723d0a03411fd
+/youcheng-finance-and-reimbursement-implementation-design/objective-and-limits:
+  en: 60332da039b40d60
+  zh: aa77d80245adf214
+/youcheng-finance-and-reimbursement-implementation-design/responsibilities-and-implementation-locations:
+  en: a4fe007502e21f81
+  zh: 49cb22c48b4607b3
+/youcheng-finance-and-reimbursement-implementation-design/current-finance-scope-and-ledger-protection:
+  en: d8481e017e4eda49
+  zh: ba1a4e5167c22908
+/youcheng-finance-and-reimbursement-implementation-design/finance-flow-and-data-first-implementation:
+  en: add376d0ae71a4c7
+  zh: 51c573f322ceb02a
+/youcheng-finance-and-reimbursement-implementation-design/one-operation-s-flow:
+  en: da37aebdcc2b43eb
+  zh: 630a78e23f5a3ff8
+/youcheng-finance-and-reimbursement-implementation-design/reimbursement-data-deferred-until-r-stage:
+  en: 166cac1aff1d230a
+  zh: 0454865f970a9ec5
+/youcheng-finance-and-reimbursement-implementation-design/connection-permission-and-settings:
+  en: 3c40fcf9566a3348
+  zh: 4a73834e1ff2722a
+/youcheng-finance-and-reimbursement-implementation-design/reimbursement-attachments-and-invoices-r-stage-only:
+  en: a5c8646a27966315
+  zh: 468d4f5c1ce8af9d
+/youcheng-finance-and-reimbursement-implementation-design/task-state-duplicates-and-recovery:
+  en: d899f09d0dff8e3b
+  zh: 9b2f9944ec576eaf
+/youcheng-finance-and-reimbursement-implementation-design/model-and-user-results:
+  en: ba11374fa5dba351
+  zh: 9eaf1e28ec452107
+/youcheng-finance-and-reimbursement-implementation-design/verification-release-and-deferral-conditions:
+  en: 1ac3187e2b1b66ff
+  zh: 67c4c74a45ce57ae

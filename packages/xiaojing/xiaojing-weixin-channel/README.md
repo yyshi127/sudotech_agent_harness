@@ -1,9 +1,23 @@
+---
+description: "Xiaojing Weixin iLink channel, durable Agent session bridge, and encrypted image/document transfer"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-weixin-channel
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Host-side Weixin channel for Xiaojing. This Cordis plugin pairs one Tencent iLink bot, receives direct text, image, and document messages by outbound HTTPS long polling, runs them through a durable Harness Agent session, and returns phone-friendly text or local files. It does not require a public webhook, Python runtime, OpenClaw, or an additional model API key.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Composition and Protocol
 
 The plugin is preinstalled in the Xiaojing product composition. It uses only Tencent's official iLink and CDN hosts and rejects a server-returned non-official address. Media bytes use Tencent CDN references and AES-128-ECB encryption. The browser settings plugin communicates with the Host through the loopback-only `/xiaojing-weixin` RPC channel; browser responses contain sanitized state and never include bot tokens, message context tokens, CDN keys, or QR contents after pairing. The assembled plugin also provides the channel instance to injected Host peers and emits a sanitized `xiaojing-weixin/status` event after connection transitions; this event contains only the same browser-safe status fields.
@@ -120,3 +134,10 @@ The schema and registration order remain stable for the Agent lifetime and stay 
 - Pairing creates an iLink bot identity; it does not take over a personal Weixin account.
 - Tencent iLink availability and credential validity are external dependencies. Closing Xiaojing stops message reception and task execution.
 - The protocol cannot guarantee exactly-once final-result delivery across a crash after the remote send succeeds.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

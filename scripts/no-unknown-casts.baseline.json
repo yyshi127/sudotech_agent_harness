@@ -2,6 +2,9 @@
   "apps/cli/tests/built-bin.e2e.ts": {
     "e3b3858336ae260253abe549d2b763f5087ab4e8650f4eb5b323339eff0a6ce4": 1
   },
+  "apps/cli/tests/plugin-runtime-shadow.snapshot.ts": {
+    "def6ff1b34cfc9555954cee1863bc36c7318518af925c8b7f2f7320f672dda1c": 1
+  },
   "apps/cli/tests/profiles/acp/tests/acp.e2e.ts": {
     "e3b3858336ae260253abe549d2b763f5087ab4e8650f4eb5b323339eff0a6ce4": 1
   },
@@ -56,9 +59,6 @@
     "4fb87a7468d8632606fe338680cfcdec41051b543052a0ec14c55862b43ed928": 1,
     "bb108d5dfeed36030bc4cf80fbbef2ef0cbcc72ab603bad208560b55bbf54875": 1
   },
-  "apps/desktop/tests/mandatory-update-window.spec.ts": {
-    "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 1
-  },
   "apps/desktop/tests/preload-windows.client.spec.ts": {
     "fdbd843bccc38b95f572f49587aacc29b9b0c67390d922ab5404a5935c747487": 1
   },
@@ -76,9 +76,6 @@
   "apps/desktop/tests/update-http-executor.spec.ts": {
     "e46a2f88f5bcac6be4336f4a9b106f5cb17c1eec4610b29145dc413254471a94": 1
   },
-  "apps/desktop/tests/update-overlay.spec.ts": {
-    "4000017f1f3dabd4bdf8eb91120cf4ff0dd09bad89d4683151f4785974d204a5": 1
-  },
   "apps/desktop/tests/update-schedule.spec.ts": {
     "d8502ebfa0f7381727d04f3999c1a1e85c27ca770ef336e6cbe9dfd41d6b53bd": 1
   },
@@ -88,13 +85,33 @@
   "apps/desktop/tests/windows-update-publisher.spec.ts": {
     "166d96cf5548261d768f2ca6566611cfed9b98c954cbf1abfb6349e5f6a1f16e": 1
   },
+  "apps/desktop/tests/xiaojing-open-path.spec.ts": {
+    "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 1,
+    "d01c132ad069530cb93fd27a80fce4a746bbbebec53375fd92cd7a823510bd55": 1
+  },
   "apps/web/tests/assembled-boot.ts": {
     "203f87d9e4f18ce1f00bf575fe96f724975341cbb67b8c51ea45d4cbb8e60005": 1,
     "56cede35ce34488cdae4b19aec217c9c939377eb891fe68827fbd64cd019170c": 1,
     "fda84896a47e7f9d046fcd7e10e9096c8b002bc5f1ea0c7753e57abe87528dea": 1
   },
+  "apps/web/tests/dsh-file-upload-routing.client.spec.ts": {
+    "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 1
+  },
+  "apps/web/tests/finance-journal-preparation.e2e.ts": {
+    "9d869eacbf28551a3803ab1466e82ec18a4646704624812960cd14d8ab45b3e6": 1
+  },
+  "apps/web/tests/finance-master-data-preparation.e2e.ts": {
+    "9d869eacbf28551a3803ab1466e82ec18a4646704624812960cd14d8ab45b3e6": 1
+  },
+  "apps/web/tests/finance-open-item-preparation.e2e.ts": {
+    "9d869eacbf28551a3803ab1466e82ec18a4646704624812960cd14d8ab45b3e6": 1
+  },
   "apps/web/tests/onboarding-deepseek-config.e2e.ts": {
     "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 2
+  },
+  "apps/web/tests/scaffold-hermetic.e2e.ts": {
+    "3cf80a9d269d0029659b407449496a83eaedb74eb06fa36ebfd5f3b549289fd3": 1,
+    "b1bcf23419dea472ab400a8be88983684f3651e646b844b8f169d8aaf0b9eb40": 1
   },
   "apps/web/tests/scaffold.ts": {
     "3d845108a2e6928c911c093813f3d6a1cdd510ef148f3515cb852a254a7aa14d": 1
@@ -107,8 +124,8 @@
   },
   "apps/web/tests/shipped-composition.e2e.ts": {
     "5bb6193769cfbb9fc09abd705fed714917784de269546fde14ac1171fb00644b": 1,
-    "b2def0b3b454c0ec221ad44faa663f941032cc45334ac72eec66a0f556890234": 1,
-    "c0a4d4dd9b52881eb8190c56fb8ea5a25a70590b78b1e4a0996defab767699f0": 1
+    "c0a4d4dd9b52881eb8190c56fb8ea5a25a70590b78b1e4a0996defab767699f0": 1,
+    "dee2329b643e67758e8e55eb184e99c90a09a587364bfff71cfe52c399197490": 1
   },
   "apps/web/tests/smoke-real.e2e.ts": {
     "621628e4e895b24171e82d1b3fa3ecb12970e8eb0dfccab8bacc8c5784188a28": 1
@@ -462,17 +479,8 @@
     "c595e4648d474f3a9538ab1e2140c25255bb4675c6e7bae8043adf9158915b69": 10,
     "ddca8a18cd7755688ea48674c48c3c8a6107186815ea91f516424bbed0e1c518": 1
   },
-  "packages/client/ui-agent-preset/tests/components.client.spec.tsx": {
-    "0df95ae2a37a0b3403599b7478d4d59fa2611cb1189b67e8b3fd0f4fcbf500e1": 1,
-    "6c63f71c0aeb1a9a97ec28a3242f77eef021ecfcee48238f17592eb2f1040c09": 1
-  },
-  "packages/client/ui-agent-preset/tests/settings-store.client.spec.ts": {
-    "74d9d12b6f146dcd600e84c9fde4d8e9e3d4e66aa485cc598ef4e763188b0eac": 1,
-    "8dc4dd33a728f8be87bedb987dacefe36155443f0d2e0cc58da9716947d85920": 1
-  },
   "packages/client/ui-approval/tests/ui-approval.client.spec.tsx": {
-    "3e392ff0165a51a6ac716515b99af35ec152f89607cff72080cb9afbcff63f46": 1,
-    "d3a081f97422a352526b7014a6aa4c6c8f78cb27587568bc4150232db2037198": 1
+    "3e392ff0165a51a6ac716515b99af35ec152f89607cff72080cb9afbcff63f46": 1
   },
   "packages/client/ui-attachment/tests/attachment-rail.client.spec.tsx": {
     "b42ab24a43e0f7542bf1deb8f7ac3a76698d29e098f8dc575af6c08774987c32": 1
@@ -513,9 +521,6 @@
   },
   "packages/client/ui-chat/tests/conversation.client.spec.ts": {
     "299fcafb8671655372c99c1dbe14e2705536d569bf475ca09693f87b3b1182da": 1
-  },
-  "packages/client/ui-chat/tests/skill-name-projector.client.spec.ts": {
-    "cc5bd784736472e7293f8b0e2d889b0cf1c156a218457571390871164e35b5d5": 1
   },
   "packages/client/ui-chat/tests/tool-call-tree.client.spec.ts": {
     "427f7efc431dec431f6707ea0e4431c54fafc97efbcc9c93865d29f2488300d9": 1
@@ -598,7 +603,7 @@
   },
   "packages/client/ui-open-in-app/tests/browser-plugin.client.spec.ts": {
     "7fdf7245d961ef29ffa74eb31e45825ca3c61bd7f5791f453acfd802184ee355": 1,
-    "eee35b4d8641824c6eaacfe03ed60d353d81d5257d1111132f34d46a7b13ef35": 2,
+    "eee35b4d8641824c6eaacfe03ed60d353d81d5257d1111132f34d46a7b13ef35": 3,
     "ff65b54ee69109a8b059fc2a2136c71a5476b47115120c7c92a01171d517f3d7": 1
   },
   "packages/client/ui-permission-presets/tests/browser-plugin.client.spec.ts": {
@@ -631,17 +636,11 @@
   "packages/client/ui-plan/tests/plan-resource.client.spec.ts": {
     "fa53d5cd55d87b522c83a98968e3a2bf933b1cc1b84d2f009e79d6c702099786": 1
   },
-  "packages/client/ui-plugin-manager/tests/browser-plugin.client.spec.tsx": {
-    "04984a2ce1486250236e638e0197da0a1a840855ed3975c59130a85358c7e5fe": 1
-  },
   "packages/client/ui-primitives/tests/highlight-viewport.client.spec.tsx": {
     "6061de0a1e01547eb1abf9d4e1b5fa79fda112fa35dda980775491123413dcce": 1
   },
   "packages/client/ui-primitives/tests/hover-card.client.spec.tsx": {
     "3f1388888979d95f395647d76b2e7a57bfa1d6e0042ede409015a5a1e24c0ab9": 1
-  },
-  "packages/client/ui-schedule/tests/schedule-catalog-action.client.spec.tsx": {
-    "d76ae9c57204752a2f68fadae5ef55d45e6675ce10c407ceed217c9648a011a9": 1
   },
   "packages/client/ui-session/src/client/index.ts": {
     "0fae329186de631f08edbf22f01cbfbf15d7c1ea8dce64e4cefa8ad0a8d43dea": 1,
@@ -662,11 +661,7 @@
     "5c8c41ba658c0576bea6c34b1226c27e7b0328c03c9eea0d6c920f940c9d8f5b": 1
   },
   "packages/client/ui-settings-models/tests/components.client.spec.tsx": {
-    "149134633dbc576c06d4fd7ae295957de037e229a7d9f029d5576be5f3d56bd0": 1,
-    "34e91417f24ec20ab9adb34c131dafc76c9481af9163a6a32e0c4eda834be8a5": 1
-  },
-  "packages/client/ui-settings-models/tests/provider-form.client.spec.tsx": {
-    "34e91417f24ec20ab9adb34c131dafc76c9481af9163a6a32e0c4eda834be8a5": 1
+    "149134633dbc576c06d4fd7ae295957de037e229a7d9f029d5576be5f3d56bd0": 1
   },
   "packages/client/ui-settings-models/tests/store.client.spec.ts": {
     "6b8b0a920c558092d20bc17623b7050e0f7403f896fde7da17bb45677899b910": 1
@@ -740,12 +735,6 @@
   "packages/client/ui-sidebar-right/src/client/persistence.ts": {
     "58c93ff6942e5ed7b892ff2e537c4304dbf2d7366e55b5c08559452c9a25bbd8": 1
   },
-  "packages/client/ui-sidebar-right/tests/expand-button.client.spec.tsx": {
-    "0f8ea23b013318ec4b8d64e4ae2bd9d54a57b7a7d4be5b88ed0eb332ee42e76c": 1
-  },
-  "packages/client/ui-sidebar-right/tests/guide-body.client.spec.tsx": {
-    "8ba56a6ed5e4e5fa21ddca80c6bcd30e7c7f2117b8949e4175e3723e66c9d8ed": 1
-  },
   "packages/client/ui-sidebar-right/tests/seat.client.spec.tsx": {
     "1e3017afba65017e855900ad51f65999e712b08beb1b33bfe996d3cdb137a105": 1
   },
@@ -754,9 +743,6 @@
   },
   "packages/client/ui-sidebar-terminal/tests/terminal-cursor.client.spec.ts": {
     "c17c30832b2cde55b57c2c94083562feb1e941ade2d01268f1d49d31a6c6e2ca": 1
-  },
-  "packages/client/ui-sidebar-terminal/tests/terminal-guide.client.spec.tsx": {
-    "303c4744be6bc68cb05cd1c303a49602cac074bfaf34cf4d8e2b324a6acf45ff": 1
   },
   "packages/client/ui-sidebar-terminal/tests/terminal-theme.client.spec.ts": {
     "1fa946c54b497010d85a36dcb586ae0a99991d8eb4eab8ef709eb34af373fdc5": 1
@@ -852,8 +838,17 @@
   "packages/client/ui-workspace/tests/apply.client.spec.ts": {
     "b467270b0c2a95d6b29939f6baf4d5c8e5031e99a1d15437a3060f35735d8d37": 1
   },
+  "packages/client/ui-xiaojing-finance-clients/tests/published-file.client.spec.tsx": {
+    "975ebaea42c685b32ef01ee9d4b38728294073cc75bb40eb0695f50acb5a91c9": 1
+  },
   "packages/client/web/tests/boot-client.client.spec.ts": {
     "5120c3da1b5c58832ad2e2fa40567b8c7ea59e7ebb53058f45eda7ea95b2620d": 1
+  },
+  "packages/client/xiaojing-product/src/client/application-info.ts": {
+    "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 1
+  },
+  "packages/client/xiaojing-product/tests/product.host.spec.ts": {
+    "9a7580dc2b91cb41fb1343d624bdf41611444ea08e34dd320a5fb9c80d373879": 1
   },
   "packages/compaction/command-compact/tests/command-compact.spec.ts": {
     "439249ecfa0f0b09db43b475a9c50602ae19f2d7d6919522a8c44bc71912aad4": 1
@@ -1369,7 +1364,6 @@
     "0c7b023d04a2d6744d9844f27de8438231e642fd058e2b75e113a1996711014a": 1
   },
   "packages/interaction/tool-ask-user/tests/tool-ask-user.spec.ts": {
-    "60655aea47d3d8667f90341b58e3faaf64d12670b9592af837aa40ecf7b83583": 1,
     "d423bbcd1caff7aab2e2de52564efbc9061e775620a530157805a43d851c6fe9": 1
   },
   "packages/interaction/user-approval/tests/approval.spec.ts": {
@@ -1474,6 +1468,13 @@
   "packages/llm/token-meter/tests/turn-usage.spec.ts": {
     "2312a66ba30733088a1b1be2553279db1d74f2ddc20523b139b4a18097711885": 1,
     "50055da659db5deda5f3626fdb3c5c26f7fc8c95716603b4509a87e42e7e7365": 1
+  },
+  "packages/llm/usage-accounting/tests/accounting.spec.ts": {
+    "e87443b2dcbfcd641eba56e2afb1b9daaa697f89df846c40cdea6bfb9b8a7ef3": 1
+  },
+  "packages/llm/usage-accounting/tests/invariant.spec.ts": {
+    "3b2467fc27697e4df3507afbc0d05aaed0b0341511dc6de8088efc4e48ba6145": 1,
+    "fd0e480aea3dc4160dd4e92fb77781bc3e4a36e4c5e3861609ef3867d4d569ca": 1
   },
   "packages/lsp/lsp-stdio/src/translate.ts": {
     "487a58a6269113d4cbfd31915a9abdbf016e672be9a2af2c6d5d57b087d0b011": 2
@@ -1746,11 +1747,11 @@
   "packages/session/session-persistence-jsonl/tests/jsonl.spec.ts": {
     "1058f7a4a2b920b8693144d4c329875739c05b83bcae4d1378427cc1d5f141a0": 1,
     "2f28d83ee100961d65baf06b0b57ff95b046c36d1e135dab4195ffbd6420a7fd": 1,
+    "867b22041615ee0ba30753701714ed7d88f2be4ea658819f05b2b1e79dc20981": 1,
     "a7d8cc8d42e37ad5cc4882241492ac572ed8163c7fb8663180e893c7178e906f": 1,
     "aca72c9c675ac6aab8379d5d137eac122eb59803238c3e652bbea6e3e26da35b": 1,
     "b40f3bbda2adba664b54271ea4b552ffb2c78a239d39d8b1e882cca164d21c4f": 12,
     "b9fc932acb5b23fefbcc63e176999dd795d7cf7323a66a9a4de4c07b20d9c33c": 1,
-    "c5d92cfb860759a6a1fd46a250b0c5be0e9b5779224b72f3dbbe0ace562a9f69": 1,
     "cc4c2ee361b8bd0a257383b90983432e1f707057eb6d90935bc023483858aa39": 1,
     "cdd46c8ceda6d5707bc2abfba329351ba06bcc030b314a3c799d72a4971bd5a4": 1,
     "e2d206e4df81b98095928134c70558ac4d642cfe41184d6a5c06bda9d2942fe1": 1,
@@ -2044,6 +2045,7 @@
     "416427f118cf3c2d67ab698603fe2b07ba78d55a6fb55648839a12ab57f5d221": 1,
     "5c99a7715c482c4ac75609c3770da0be5a6cb3b170c12fd70be19ab0019fcd0e": 1,
     "6a25678b631ac67122d26b6cf13b67adc0190c344a224fd5923c3756fd7b4502": 1,
+    "80c4158039c4e56b4f90848b86e06f9ed566c6a6bd5e71dbbe6b4721cee77a97": 1,
     "c7d8f7a40efd6ff31a10617083557b5e652e91686780a6ccdd0ebfcd47642649": 1
   },
   "packages/subprocess/win32-process/tests/process.spec.ts": {
@@ -2248,6 +2250,62 @@
   "packages/workspace/workspace/tests/workspace.spec.ts": {
     "0d0da2a0032b5048b24134b558c094fea2617b57376a1518f9e2c9d662b75913": 1,
     "8196d0655165d1befec721a728296d16bc04c31c9a7227f9cec5bf791d80961b": 1
+  },
+  "packages/xiaojing/xiaojing-browser-control/src/personal-edge.ts": {
+    "b121cee14635b00f7891217013e4682493cf96f676710be60722fdf8b862aea3": 1
+  },
+  "packages/xiaojing/xiaojing-browser-control/tests/browser-control.spec.ts": {
+    "907fa5f969be349c7d5f1c4794c96cc9d80ae341449283febf9c0c63614f1706": 1,
+    "e87443b2dcbfcd641eba56e2afb1b9daaa697f89df846c40cdea6bfb9b8a7ef3": 1
+  },
+  "packages/xiaojing/xiaojing-browser-control/tests/personal-edge.spec.ts": {
+    "6fe9024d30e0d4757a348b83d246925b3f5aeaf2e79a0eff4bf12f3c9fb5826b": 1
+  },
+  "packages/xiaojing/xiaojing-computer-control/tests/computer-control.spec.ts": {
+    "884400d7212fd32a4afc4f41e0840c262eb883bcc8f7b324ef75873b1a71cdd3": 1
+  },
+  "packages/xiaojing/xiaojing-finance-documents/src/general-tool.ts": {
+    "6fe9024d30e0d4757a348b83d246925b3f5aeaf2e79a0eff4bf12f3c9fb5826b": 1
+  },
+  "packages/xiaojing/xiaojing-finance-documents/src/tool.ts": {
+    "6fe9024d30e0d4757a348b83d246925b3f5aeaf2e79a0eff4bf12f3c9fb5826b": 1
+  },
+  "packages/xiaojing/xiaojing-finance-domain/src/youcheng.ts": {
+    "3731644758b2a2bcc522000c131faf6cb3654e9f19e01c27e29dd7a033f2849e": 1
+  },
+  "packages/xiaojing/xiaojing-finance-domain/tests/domain.spec.ts": {
+    "6a746c32839918048b5da0bc30ee89db09cd7dfd691ea59c50b92ba17eeac283": 1,
+    "81bfa587dba541614e9fae125b1f1a7843a5eb4059203a8e673b26a8528eff59": 1,
+    "a4dc6d85a9b8c21c9b05b71fef1bf3009055aa00a6327edbd9d01072fe9e1059": 1
+  },
+  "packages/xiaojing/xiaojing-finance-domain/tests/references.spec.ts": {
+    "fad923339f929c1a5bae9961018a22afa4b897a9c53df1746ac42c9df7f1e729": 1
+  },
+  "packages/xiaojing/xiaojing-visualize/tests/plugin.spec.ts": {
+    "4777453719b1a12ac03d7405a7cc1662ac1873b8eb0016a08ccd11f27076e803": 1,
+    "f2caf8384df2893e07b4ed849fb68ed6d952f56f5144120e2d4c8cc71fa80057": 1
+  },
+  "packages/xiaojing/xiaojing-visualize/tests/tool.spec.ts": {
+    "0597f3987a9d4162124e21d8eae7733a3bfa3d08423c2edbba95fe6623f25c8f": 1,
+    "577dc64af1ccdd34975a5f9264e5bb84d8daac30fa88ced6925cfaae8d20ba95": 2,
+    "6c8f1628ff3734b829070712fac5bd8224903a2455bd9c175817a40336ae7402": 1,
+    "b203e3947e2323da73188435169cb649b04bc941b663130dc3995f6acd79dc59": 1,
+    "bd4fc9969331db6bd3d9e9887310f380fed16a1ef4861d696281d3cce7b157ef": 1,
+    "bdd42d11d9ef68c12dd903a5879057b7daccb38cc84020198bf701deba7a75fa": 1,
+    "e82b77ed78a607e3b8941ce40ec65663a470c3631044f06ae79852149c841296": 1
+  },
+  "packages/xiaojing/xiaojing-weixin-channel/tests/channel-media.integration.spec.ts": {
+    "4f89ede5bd883c6b8026b13e8065763b9687b7c3a23536988f4d29a8a52ad9cf": 1,
+    "629289e9c914a9f4166568f35e1b0c7be19c1f4149e3e948fb581fae4142cced": 2,
+    "b30d0e7c51f294775f0ac0344689332a2c33bf5b11f15554b168f6ef71a19fa2": 1
+  },
+  "packages/xiaojing/xiaojing-weixin-channel/tests/channel.integration.spec.ts": {
+    "5619054a4391042e5ba6510938001b47f5efe31eb4575461f7ca258a6692906e": 1,
+    "93723d9d52602903f7516126ddedf60e360fde69f5e6b0ebe648ecab88324291": 1
+  },
+  "packages/xiaojing/xiaojing-weixin-channel/tests/media.spec.ts": {
+    "15cd3b95bd353e3f72d692d957eb3250cdf2fcf1bef6b1767a5f463adce1ecbf": 1,
+    "42ef78462be91e2b56c696b193c1f4aca6baf59ffb2bfab65346d0cea5c52981": 1
   },
   "scripts/benchmark-npm-resolution.ts": {
     "f30cc8d63e02fd6608c2c80f9564bfc17f171581770ba2df4b1a62a8869a3105": 1

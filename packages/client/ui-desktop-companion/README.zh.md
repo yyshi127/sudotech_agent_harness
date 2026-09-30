@@ -1,9 +1,23 @@
+---
+description: "Xiaojing settings page for the Windows desktop companion"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-desktop-companion
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计 Windows 桌面宠物的专属设置界面。Client 插件注册“桌面小兢”设置栏目，并将原生操作委托给受限的 Electron preload bridge。它不创建原生窗口、不读取文件，也不拥有宠物任务状态。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 组合与界面
 
 该插件仅在 `xiaojing` 构建 profile 中注册 id 为 `desktop-companion`、order 为 `1000` 的 `settings.section`，使其位于设置导航最下方。页面显示角色预览、当前脱敏状态、活动任务数量、30%–100% 大小调节器，以及唤醒、收起和重置桌面位置的控制按钮。持久化偏好没有大小字段时，角色默认显示为原始尺寸的 50%。
@@ -29,3 +43,10 @@ renderer 只能调用 `getCompanionState()`、`wakeCompanion()`、`tuckCompanion
 - 原生控制必须通过小兢会计 Windows Electron preload bridge 才能使用。
 - 设置页不提供动画、声音、角色定制、开机自启动或输入框。
 - 整个应用退出后设置页也不再运行；必须重新启动应用，才能再次唤醒桌面宠物。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-xiaojing-finance-clients/README.md
-README.md: b48dc2c8263d98eab506ef61c6e1ff65964685e3
-README.zh.md: bb54d3f68aa198d347c0cecc05525306338002b3
+/:
+  en: ab697a088194c527
+  zh: ab697a088194c527
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients:
+  en: 6d25e4dca651daa5
+  zh: 7b3bea05a22776d1
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/summary:
+  en: 1d5193550f4b5ad8
+  zh: 4e5521cd2f8431fa
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/ledger-information:
+  en: 2ce9f1c5dd22685f
+  zh: 8d70eaaf323eaf86
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/attachment-and-reimbursement-configuration:
+  en: e2828ed588ff318e
+  zh: aecbf15cb2a6f177
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/conversation-context:
+  en: 9c43eaf352a92889
+  zh: e90a86207844ee77
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/unified-uploads:
+  en: fd15624c0ffe7a4b
+  zh: bd8c6f356b066afa
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/finance-workspace-category:
+  en: aa60077d192633f0
+  zh: 22389d7722a9fbff
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/model-experience:
+  en: 460bbd9157b2d702
+  zh: 8d17f5d2ea7da091
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/model-experience/kv-cache-effect:
+  en: a8f28387ef3f07b1
+  zh: ee9bedcc87e8c15b
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/known-limitations-and-deferred-work:
+  en: 8b683830c05b5bb2
+  zh: 714b06e8a24b304f
+/deepseek-ai-dsh-client-ui-xiaojing-finance-clients/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

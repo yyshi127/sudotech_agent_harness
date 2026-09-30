@@ -1,0 +1,10 @@
+# Bilingual-pair consistency record for xiaojing.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/subsystems/xiaojing.md
+/xiaojing-product-services:
+  en: 646ebbda8da8df01
+  zh: 29e14cb0ec9344ed
+/xiaojing-product-services/request-and-result-types:
+  en: 280252211be17d2b
+  zh: 9bd037aefec6bec0

@@ -1,9 +1,23 @@
+---
+description: "Xiaojing Finance client management and immutable session-context surfaces"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-xiaojing-finance-clients
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Removable Xiaojing Client presentation for local Finance client records and per-session context selection. The package is compiled only for `DSH_CLIENT_BUILD_PROFILE=xiaojing`; removing its Web composition row removes every Finance client UI without changing the Host service, other presets, or official Harness UI. The UI labels these records `Ledgers`; persistence, Remote identifiers, and Workspace paths use the Finance client model.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Ledger information
 
 The blank-session ledger selector renders `short name-ledger name-ID value`; a historical record without a short name falls back to its legal name. The selected Youcheng ledger name is stored with its ID, so a restart does not replace a known name with a generic label; historical records without that stored name keep the generic fallback until the binding is selected and saved again. The full label remains available on hover when the chip is truncated. Selection still uses the local client ID, never the display text.
@@ -70,3 +84,10 @@ None directly. The Host package owns the model-visible general or client-bound c
 - The controls and dedicated workspace category appear only for the shipped Finance preset; user-authored and other system presets do not receive them.
 - The ordinary Web page can use the feature only from loopback. Remote LAN browsers cannot read full client detail or change staged context.
 - The Client starts controlled import but does not decide whether a later work file is a draft, formal output, or archive; the Finance Host context and `finance_files` tool own that decision.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-xiaojing-semantic-automation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-xiaojing-semantic-automation.md
-2026-08-21-xiaojing-semantic-automation.md: e7a84dde56a87d4adfb140669d2feacd54853fd6
-2026-08-21-xiaojing-semantic-automation.zh.md: 428326332734a2ed1c8f65323ac2cece90eaf69e
+/agent-note-xiaojing-semantic-browser-and-windows-automation:
+  en: ce9d145f972868b2
+  zh: 6e7e71af4c092ccc
+/agent-note-xiaojing-semantic-browser-and-windows-automation/problem:
+  en: 2c22e28bb99093ce
+  zh: e80f14ef14c880b4
+/agent-note-xiaojing-semantic-browser-and-windows-automation/decision:
+  en: a28f7e3e14bf0c51
+  zh: f60025d8652d707e
+/agent-note-xiaojing-semantic-browser-and-windows-automation/alternatives-considered:
+  en: b9ff7595341239a5
+  zh: 1d222fe0309fc73e
+/agent-note-xiaojing-semantic-browser-and-windows-automation/verification:
+  en: 115b9c41a311d1c0
+  zh: 7dbd0ceea22700d8
+/agent-note-xiaojing-semantic-browser-and-windows-automation/consequences:
+  en: 3c3b682ce24f4111
+  zh: 2e48a7d6e042115e

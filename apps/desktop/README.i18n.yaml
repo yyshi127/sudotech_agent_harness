@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/desktop/README.md
-README.md: 5ff61b778988b59a2d1a6da324d3be15304915f7
-README.zh.md: c8da1676f9a4b5d7c09300630fb64558dd596463
+/xiaojing-accounting-windows-desktop:
+  en: f7d826ae226cb95d
+  zh: 6a7f55c4cfa7ed14
+/xiaojing-accounting-windows-desktop/permanent-installer-identity:
+  en: 27405e03ecbdc1d6
+  zh: ebb2e3e6525dec80
+/xiaojing-accounting-windows-desktop/permanent-user-data-paths:
+  en: a61d544079ed7938
+  zh: 94c618d5bc8e33fa
+/xiaojing-accounting-windows-desktop/development-preview-isolation:
+  en: 6935c204831d9332
+  zh: 5e02efeb8cc05182
+/xiaojing-accounting-windows-desktop/desktop-companion-and-tray-lifecycle:
+  en: 205795fae43ef5ce
+  zh: 7a5114360af0303f
+/xiaojing-accounting-windows-desktop/built-in-automation-runtimes:
+  en: 5dd939e8a3d87638
+  zh: 47b3ca32f2bbdc9f
+/xiaojing-accounting-windows-desktop/independent-integration-patches:
+  en: 0e41f92d7a20050c
+  zh: c4fb43b8d18fc245
+/xiaojing-accounting-windows-desktop/release-checks:
+  en: fbdc75dd9aa55241
+  zh: 770eadffb7e57857
+/xiaojing-accounting-windows-desktop/known-limitations:
+  en: 1f0746af18b94cc0
+  zh: 1d1859b5d21ebad1
+/xiaojing-accounting-windows-desktop/known-limitations/bundled-workspace-dependencies:
+  en: d5101810c85009c3
+  zh: f3489cb52cac4330
+/xiaojing-accounting-windows-desktop/known-limitations/release-versions:
+  en: 7668dbd1761b9769
+  zh: b0f55c3bcbeb5550
+/xiaojing-accounting-windows-desktop/known-limitations/upload-updates:
+  en: c9439e9b36f94cad
+  zh: 59bf0fdc23b64509
+/xiaojing-accounting-windows-desktop/known-limitations/windows-ev-signing:
+  en: 8b7d344022b07dd7
+  zh: 4af5f7d58ea70439

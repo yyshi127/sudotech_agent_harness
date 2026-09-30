@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-finance-evidence/README.md
-README.md: 4c06a070c05e1af1ca2b3c0728a40aca410d8d64
-README.zh.md: df349fb07f0bf81b0d7daa5e218f72ecb31d973e
+/:
+  en: 5ab1da5d3f4ee164
+  zh: 5ab1da5d3f4ee164
+/deepseek-ai-dsh-xiaojing-finance-evidence:
+  en: 90e8b2f6657fb556
+  zh: 9987e64738cdda81
+/deepseek-ai-dsh-xiaojing-finance-evidence/summary:
+  en: 740c8d635aadba99
+  zh: 60cd1e253cedd1d1
+/deepseek-ai-dsh-xiaojing-finance-evidence/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-finance-evidence/retrieval-and-evidence-semantics:
+  en: 9966b1fec624e41a
+  zh: 5e98313a913f7c8b
+/deepseek-ai-dsh-xiaojing-finance-evidence/persistence-privacy-and-failure-behavior:
+  en: 85f601969d2501a6
+  zh: 9a401f0c4488b177
+/deepseek-ai-dsh-xiaojing-finance-evidence/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-finance-evidence/model-experience/official-evidence-tool:
+  en: fbe8c81b1d1bd67f
+  zh: 5d37e6888a06a169
+/deepseek-ai-dsh-xiaojing-finance-evidence/model-experience/official-evidence-tool/what-the-model-sees:
+  en: 270b2822178108f3
+  zh: 28e94d12e2d5aac1
+/deepseek-ai-dsh-xiaojing-finance-evidence/model-experience/official-evidence-tool/token-effect:
+  en: 0219d976b78b74a9
+  zh: 1dce288c9b07ff0a
+/deepseek-ai-dsh-xiaojing-finance-evidence/model-experience/official-evidence-tool/kv-cache-effect:
+  en: d998dee2a13cec7e
+  zh: d73cab32749b7390
+/deepseek-ai-dsh-xiaojing-finance-evidence/known-limitations-and-deferred-work:
+  en: c2e06caea51843ac
+  zh: 60087e061d4afe9e
+/deepseek-ai-dsh-xiaojing-finance-evidence/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

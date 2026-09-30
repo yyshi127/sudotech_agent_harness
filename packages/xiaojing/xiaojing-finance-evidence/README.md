@@ -1,9 +1,23 @@
+---
+description: "Official-source finance and tax evidence retrieval for Xiaojing Finance mode"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-evidence
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Xiaojing Finance Host capability for date-aware research of Chinese mainland finance and tax rules from configured official sources. The Host plugin owns source admission, bounded page retrieval, evidence parsing, and a structured local cache. The separate Finance-preset consumer registers `finance_evidence`; Standard and other presets receive no tool. Neither entry modifies the Agent Loop.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Retrieval and evidence semantics
 
 The service uses the existing Harness Web search capability only to discover candidate URLs. A private HTTP fetcher then accepts HTTPS pages from the fixed official registry: the National Laws and Regulations Database, China Government Network, State Taxation Administration policy and authority sites, Ministry of Finance sites, and provincial tax-authority sites. Search titles and snippets remain discovery leads and never become evidence unless the official page is fetched.
@@ -43,3 +57,10 @@ Tool output varies by question, date, locality, current official pages, and cach
 - Remove the `xiaojing-finance-evidence` Host row and the Finance preset's `finance-evidence` consumer row to remove the capability. The client domain, controlled files, Standard mode, and official Harness profiles remain independent.
 - This package is not a complete tax-law database, does not reconcile every official catalogue entry, and does not monitor updates in the background.
 - It does not replace professional review for filings, disputes, transactions, or other high-risk conclusions.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

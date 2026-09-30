@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-finance-reference-acceptance.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-07-finance-reference-acceptance.md
-2026-09-07-finance-reference-acceptance.md: 781b0c48c79dbcfd30860b49f2df5c58125fdfed
-2026-09-07-finance-reference-acceptance.zh.md: 7ba88494011e08082f3b395951a0a29ea253efbf
+/agent-note-finance-reference-acceptance-corrections:
+  en: dd85a63f6f186b47
+  zh: 0ffe7be117f6acf7
+/agent-note-finance-reference-acceptance-corrections/problem:
+  en: 019f2c602f89f3e0
+  zh: 53e9f7c5f4420ac7
+/agent-note-finance-reference-acceptance-corrections/decision:
+  en: c4734fa70cb8ed99
+  zh: 278068ba13ee0ef2
+/agent-note-finance-reference-acceptance-corrections/alternatives-considered:
+  en: 0f9d4c66aa6968ef
+  zh: 2c0fa2635dd1a14c
+/agent-note-finance-reference-acceptance-corrections/consequences:
+  en: 2c3ca3a780a8cdbd
+  zh: a200ad484aee4636

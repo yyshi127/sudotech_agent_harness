@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-xiaojing-browser-control/README.md
-README.md: 123c5c80379515db1492a4d8accecf51a395d411
-README.zh.md: 8b3f42ce613dd0a26b9c0c102970948b1d5f6490
+/:
+  en: 5ff24123afa78c7c
+  zh: 5ff24123afa78c7c
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control:
+  en: 37c8f3b9d3f5cebe
+  zh: 21090ac503f1d36b
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/summary:
+  en: e5af643ab3abe6f8
+  zh: d234a66ebf26df9b
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/capabilities:
+  en: 488b61e9f2496863
+  zh: 1058d378fc82e5b4
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/verification:
+  en: 684658a3ceb37c69
+  zh: a0b633f9c2569ef9
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/model-experience:
+  en: c6eead45d7c77bb7
+  zh: 427349095b2d7242
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/model-experience/kv-cache-effect:
+  en: 77e8dd6e0773774e
+  zh: 9ff8e9e51a68ee80
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/known-limitations-and-deferred-work:
+  en: ea919ea1e3262081
+  zh: 79a3a9f11fcbe616
+/deepseek-ai-dsh-client-ui-xiaojing-browser-control/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

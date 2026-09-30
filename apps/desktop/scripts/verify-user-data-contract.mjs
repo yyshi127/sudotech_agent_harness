@@ -330,7 +330,7 @@ try {
   const profileAfter = await hashes(appData)
   const expectedProfileChange = 'harness/profiles/web/package.json'
   assert(JSON.stringify(changedKeys(profileBefore, profileAfter)) === JSON.stringify([expectedProfileChange]),
-    'profile migration changed data beyond the exact installation-owned Web manifest')
+    `profile migration changed data beyond the exact installation-owned Web manifest: ${JSON.stringify(changedKeys(profileBefore, profileAfter))}`)
   const migratedManifest = JSON.parse(await readFile(join(appData, expectedProfileChange), 'utf8'))
   assert(migratedManifest.xiaojingFixture === 'preserve-this-field'
     && JSON.stringify(migratedManifest.dsh?.profile?.bundles) === JSON.stringify(EXPECTED_WEB_BUNDLES),

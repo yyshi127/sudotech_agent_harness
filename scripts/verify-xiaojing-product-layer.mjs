@@ -9,8 +9,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: 'dsh-v0.1.7-rc.1',
-  commit: '46a7f68b0922371ce7144b668b90e377d8e799f4',
+  release: 'dsh-v0.2.0-rc.2',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {
@@ -385,8 +384,8 @@ if (!productClient.includes("id: 'about-xiaojing'") || !productClient.includes('
 const productRelease = await readFile(join(
   root, 'packages', 'client', 'xiaojing-product', 'src', 'client', 'application-info.ts',
 ), 'utf8')
-const desktopPackage = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'package.json'), 'utf8'))
-if (!productRelease.includes(`export const XIAOJING_PRODUCT_VERSION = '${desktopPackage.version}'`)) {
+const desktopIdentity = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'identity.json'), 'utf8'))
+if (!productRelease.includes(`export const XIAOJING_PRODUCT_VERSION = '${desktopIdentity.productVersion}'`)) {
   errors.push('Xiaojing Web fallback version does not match the desktop application version')
 }
 const weixinClient = await readFile(join(root, 'packages', 'client', 'ui-weixin-channel', 'src', 'client', 'index.ts'), 'utf8')
@@ -429,8 +428,10 @@ if (!userDataContract.protectedPaths.includes(financeExtension?.durableRoot)) {
 const desktopMain = await readFile(join(root, 'apps', 'desktop', 'src', 'main.ts'), 'utf8')
 const desktopCompanion = await readFile(join(root, 'apps', 'desktop', 'src', 'xiaojing-companion.ts'), 'utf8')
 if (!desktopMain.includes("window.on('close'")
-  || !desktopMain.includes('companion.hideMainWindow()')
-  || !desktopMain.includes("label: '退出小兢会计'")
+  || !desktopMain.includes('backgroundNotice.close(hide)')
+  || !desktopMain.includes('quitConfirmation.confirm()')
+  || !desktopMain.includes('quitApplication: () => { app.quit() }')
+  || !desktopCompanion.includes("label: '退出小兢会计', click: () => { void this.requestQuit() }")
   || !desktopMain.includes("app.on('window-all-closed'")
   || !desktopCompanion.includes("new URL('/xiaojing-desktop-companion/events', hostUrl)")) {
   errors.push('desktop tray lifecycle no longer keeps close, tray exit, and window-all-closed behavior explicit')

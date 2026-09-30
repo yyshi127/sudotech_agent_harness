@@ -17,9 +17,8 @@ class DeletionAdapter extends LlmAdapter {
   constructor(readonly voucherId: string, readonly changedConfirmation = false) { super() }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls > 0 && this.deletionId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === 'deletion-1')
-      const text = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === 'deletion-1')
+      const text = result?.content.find(block => block.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing actual deletion preview')
       const parsed: unknown = JSON.parse(text.text)
       if (typeof parsed !== 'object' || parsed === null || !('id' in parsed) || typeof parsed.id !== 'string') {

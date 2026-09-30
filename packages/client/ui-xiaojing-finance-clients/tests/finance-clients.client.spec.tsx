@@ -145,7 +145,7 @@ function provideNavigation(ctx: Context): LayoutController {
     selectPanel: vi.fn(), retainMainPanels: vi.fn(),
     setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
     setRightbar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
-  }, () => true)
+  }, () => true, createSnapshotStore({ activePanelId: null }))
   ctx.provide('layout', layout)
   ctx.effect(() => () => { layout.dispose() })
   return layout
@@ -757,11 +757,10 @@ describe('Finance client plugin composition', () => {
     const unmount = vi.fn()
     new DynamicRemoteService(ctx, api, unmount)
     const sessionList = createSnapshotStore<SessionListState>({
-      ids: [], byId: {}, phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {},
+      ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {},
     })
     const workspaceList = createSnapshotStore({
-      items: [], archivedSessionIds: [], state: 'idle' as const, phase: 'ready' as const,
+      items: [], archivedSessionIds: [], pinnedSessionIds: [], state: 'idle' as const, phase: 'ready' as const,
       error: null,
     })
     const noteAgentPreset = vi.fn()
@@ -920,8 +919,7 @@ describe('Finance client plugin composition', () => {
           projectionValues: { agentPreset: 'standard' },
         },
       },
-      phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {},
+      phase: 'ready' as const, projectionsBySession: {},
     })
     sessionContext.mockRejectedValue(new Error('ordinary uploads must not call the Finance Remote'))
     upload.mockClear()
@@ -936,8 +934,7 @@ describe('Finance client plugin composition', () => {
     expect(upload).not.toHaveBeenCalled()
     expect(importUpload).not.toHaveBeenCalled()
     sessionList.set({
-      ids: [], byId: {}, phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {},
+      ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {},
     })
 
     await workspaceCategories.renameWorkspace('finance', 'finance-client' as WorkspaceId, '新客户名称')
@@ -1014,8 +1011,7 @@ describe('Finance client plugin composition', () => {
           projectionValues: { agentPreset: 'finance' },
         },
       },
-      phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {},
+      phase: 'ready' as const, projectionsBySession: {},
     })
     const ordinaryWorkspaceId = 'ordinary-workspace' as WorkspaceId
     const workspaceList = createSnapshotStore<WorkspaceListState>({
@@ -1038,6 +1034,7 @@ describe('Finance client plugin composition', () => {
         },
       ],
       archivedSessionIds: [],
+      pinnedSessionIds: [],
       state: 'idle' as const,
       phase: 'ready' as const,
       error: null,
@@ -1096,8 +1093,7 @@ describe('Finance client plugin composition', () => {
           projectionValues: { agentPreset: 'standard' },
         },
       },
-      phase: 'ready' as const,
-      subagentsByParent: {}, jobsBySession: {},
+      phase: 'ready' as const, projectionsBySession: {},
     })
     workspaceList.set({
       ...workspaceList.getSnapshot(),

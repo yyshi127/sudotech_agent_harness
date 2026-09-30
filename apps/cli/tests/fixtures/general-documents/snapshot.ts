@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
-import { boot, healProfilesModuleFallback, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
+import { boot, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -16,7 +16,6 @@ const dshHome = process.env.DSH_HOME
 if (dshHome === undefined) throw new Error('General document snapshot requires DSH_HOME')
 
 const repoRoot = fileURLToPath(new URL('../../../../../', import.meta.url))
-const installAnchor = fileURLToPath(new URL('../../../package.json', import.meta.url))
 const rootConfig = join(repoRoot, 'packages', 'bundle', 'base', 'tests', 'fixtures', 'root.cordis.yml')
 const basePatch = join(repoRoot, 'packages', 'bundle', 'base', 'cordis.patch.yml')
 const webPatch = join(repoRoot, 'packages', 'bundle', 'web-app', 'cordis.patch.yml')
@@ -46,7 +45,6 @@ await mkdir(uploadRoot, { recursive: true })
 const sourcePath = join(uploadRoot, '普通模式资料.csv')
 await writeFile(sourcePath, '项目,金额\n云服务费,88.00\n')
 
-await healProfilesModuleFallback({ installAnchor, home: dshHome })
 const ctx = await boot('general-document-snapshot', rootConfig, [
   ...loadOverlayPatches('general-document-snapshot', basePatch),
   ...loadOverlayPatches('general-document-snapshot', webPatch),

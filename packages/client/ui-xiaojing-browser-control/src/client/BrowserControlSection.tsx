@@ -21,8 +21,8 @@ export interface BrowserControlSectionInjected {
 /** Complete browser-control section props. */
 export type BrowserControlSectionProps = PropsRuntime<'settings.section'> & InjectFace<BrowserControlSectionInjected>
 
-function EdgeMark(): ReactNode {
-  return <span className={css.mark} aria-hidden="true">e</span>
+function EdgeMark({ t }: { t: BrowserControlSectionInjected['t'] }): ReactNode {
+  return <span className={css.mark} aria-hidden="true">{t('edgeMark')}</span>
 }
 
 function personalStateLabel(view: BrowserControlView, t: BrowserControlSectionInjected['t']): string {
@@ -72,7 +72,7 @@ export function BrowserControlSection({ useBrowserControl, actions, t }: Browser
       <article className={css.card}>
         <div className={css.cardHeader}>
           <div className={css.identity}>
-            <EdgeMark />
+            <EdgeMark t={t} />
             <div><strong>{t('managedTitle')}</strong><span>{t('managedDescription')}</span></div>
           </div>
           <span className={css.readyBadge}><i />{snapshot?.managed.running ? t('running') : t('ready')}</span>
@@ -87,7 +87,7 @@ export function BrowserControlSection({ useBrowserControl, actions, t }: Browser
       <article className={css.card}>
         <div className={css.cardHeader}>
           <div className={css.identity}>
-            <EdgeMark />
+            <EdgeMark t={t} />
             <div><strong>{t('personalTitle')}</strong><span>{t('personalDescription')}</span></div>
           </div>
           <span className={personal?.state === 'connected' ? css.readyBadge : css.badge}>

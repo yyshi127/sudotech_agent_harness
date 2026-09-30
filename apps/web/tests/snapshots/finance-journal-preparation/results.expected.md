@@ -6,93 +6,44 @@
     "results": [
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-1",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.11\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.11\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-3",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-4",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 未获得本次准确版本的确认，没有发送日记账。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 未获得本次准确版本的确认，没有发送日记账。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-5",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\",\"journalId\":\"141053\"},\"readback\":{\"content\":\"matched\",\"associations\":\"matched\",\"complete\":true},\"complete\":true}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"accepted\",\"outcome\":{\"state\":\"accepted\",\"journalId\":\"141053\"},\"readback\":{\"content\":\"matched\",\"associations\":\"matched\",\"complete\":true},\"complete\":true}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-6",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"accepted\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"outcome\":{\"state\":\"accepted\",\"journalId\":\"141053\"},\"readback\":{\"content\":\"matched\",\"associations\":\"matched\",\"complete\":true},\"complete\":true}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"accepted\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"outcome\":{\"state\":\"accepted\",\"journalId\":\"141053\"},\"readback\":{\"content\":\"matched\",\"associations\":\"matched\",\"complete\":true},\"complete\":true}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-7",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
         }
       ]
     ]
@@ -104,93 +55,44 @@
     "results": [
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-1",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"expense\",\"amount\":\"0.07\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578260\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他支出\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"expense\",\"amount\":\"0.07\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578260\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他支出\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"expense\",\"amount\":\"0.08\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578260\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他支出\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"expense\",\"amount\":\"0.08\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578260\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他支出\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-3",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-4",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 未获得本次准确版本的确认，没有发送日记账。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 未获得本次准确版本的确认，没有发送日记账。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-5",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"outcome-unknown\",\"outcome\":{\"state\":\"outcome-unknown\"},\"readback\":{\"content\":\"unavailable\",\"associations\":\"unavailable\",\"complete\":false},\"complete\":false}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"outcome-unknown\",\"outcome\":{\"state\":\"outcome-unknown\"},\"readback\":{\"content\":\"unavailable\",\"associations\":\"unavailable\",\"complete\":false},\"complete\":false}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-6",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"outcome-unknown\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"expense\",\"amount\":\"0.08\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578260\"},\"outcome\":{\"state\":\"outcome-unknown\"},\"readback\":{\"content\":\"unavailable\",\"associations\":\"unavailable\",\"complete\":false},\"complete\":false}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"outcome-unknown\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"expense\",\"amount\":\"0.08\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578260\"},\"outcome\":{\"state\":\"outcome-unknown\"},\"readback\":{\"content\":\"unavailable\",\"associations\":\"unavailable\",\"complete\":false},\"complete\":false}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "expense-7",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
         }
       ]
     ]
@@ -202,80 +104,38 @@
     "results": [
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-1",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.11\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":1,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.11\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-2",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120455\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-3",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 日记账版本已变化或已有发送记录，请查看原记录。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-4",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 未获得本次准确版本的确认，没有发送日记账。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 未获得本次准确版本的确认，没有发送日记账。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-5",
-          "content": [
-            {
-              "type": "text",
-              "text": "Error: 日记账资料或新增位置已变化，请重新预览确认。"
-            }
-          ],
-          "isError": true
+          "type": "text",
+          "text": "Error: 日记账资料或新增位置已变化，请重新预览确认。"
         }
       ],
       [
         {
-          "type": "tool-result",
-          "toolCallId": "income-6",
-          "content": [
-            {
-              "type": "text",
-              "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120456\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
-            }
-          ],
-          "isError": false
+          "type": "text",
+          "text": "{\"id\":\"<prepared-id>\",\"version\":2,\"phase\":\"prepared\",\"account\":{\"id\":\"35616\",\"name\":\"日记账演示账套\"},\"input\":{\"cashAccountId\":\"174622\",\"date\":\"2022-01-01\",\"direction\":\"income\",\"amount\":\"0.12\",\"summary\":\"日记账闭环测试\",\"keeperName\":\"小兢测试\",\"categoryId\":\"578250\"},\"references\":{\"accountId\":\"35616\",\"accountName\":\"日记账演示账套\",\"cashAccountId\":\"174622\",\"cashAccountName\":\"库存现金\",\"cashAccountCode\":\"1001\",\"cashAccountCurrencyId\":\"120456\",\"cashAccountType\":1,\"cashAccountDirectionRaw\":\"0\",\"categoryName\":\"其他收入\"},\"position\":{\"previousId\":\"0\",\"basis\":\"first-position\"}}"
         }
       ]
     ]

@@ -1,6 +1,88 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/xiaojing-product/README.md
-README.md: c72564765b425bbaa4e971f8b02bb0dc40f8c15d
-README.zh.md: 17597c894f301eb74fe93ca3083dc36325d2efc7
+/:
+  en: abcceddc39735064
+  zh: abcceddc39735064
+/deepseek-ai-dsh-client-xiaojing-product:
+  en: ff25d3bf0b1c6188
+  zh: 7db83b27e98484d9
+/deepseek-ai-dsh-client-xiaojing-product/summary:
+  en: b04dbc79515f0858
+  zh: 18ce55f46e243434
+/deepseek-ai-dsh-client-xiaojing-product/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-client-xiaojing-product/product-contributions:
+  en: b44c29dcc992b08a
+  zh: b2265c743697b047
+/deepseek-ai-dsh-client-xiaojing-product/upstream-upgrade-contract:
+  en: 10ac3aad81782d7a
+  zh: d3a52439edbaa36e
+/deepseek-ai-dsh-client-xiaojing-product/official-source-chinese-tax-research:
+  en: 3bd1b72c27fb3da7
+  zh: 4ac9f29fe94fb677
+/deepseek-ai-dsh-client-xiaojing-product/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/product-wide-business-facing-responses:
+  en: 30f50a744675c02f
+  zh: ee98675e6eac9b81
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/product-wide-business-facing-responses/what-the-model-sees:
+  en: b85689ff17ffcbfb
+  zh: a8aa54e1d49976ef
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/product-wide-business-facing-responses/token-effect:
+  en: f716e0ab7789dda1
+  zh: 3545999038f68dd5
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/product-wide-business-facing-responses/kv-cache-effect:
+  en: 77eac6f820352170
+  zh: c1c33cbbb314eff8
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/mandatory-deletion-instruction:
+  en: a4c294f53ddb764a
+  zh: 44c1318151774497
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/mandatory-deletion-instruction/what-the-model-sees:
+  en: 8004a07310b7e3c6
+  zh: 6e76e557bc650572
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/mandatory-deletion-instruction/token-effect:
+  en: c415447377fcd475
+  zh: 8039e79a0f96170a
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/mandatory-deletion-instruction/kv-cache-effect:
+  en: f50df774b4442128
+  zh: 8e2c21f33f704297
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt:
+  en: 3f146ffc4a69c6ee
+  zh: 3f146ffc4a69c6ee
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/what-the-model-sees:
+  en: aa0cc31b1e02fd34
+  zh: f7f251dc9b731c75
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/what-the-model-sees/verbatim-default-persona:
+  en: e2ecd80abe3c841f
+  zh: e2ecd80abe3c841f
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/token-effect:
+  en: e5c3fa8cf33c1e56
+  zh: b1252ca79788bd86
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/kv-cache-effect:
+  en: 8339db7dad4d4ea3
+  zh: 8e7d696dcce64741
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/finance-preset-system-prompt:
+  en: b2324f7946163a8a
+  zh: f8c44021c2104c2b
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/finance-preset-system-prompt/what-the-model-sees:
+  en: 620486f892809a14
+  zh: 127ec876831924a5
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/finance-preset-system-prompt/what-the-model-sees/verbatim-finance-persona:
+  en: 72f3981fb32a618a
+  zh: a5f0ee4d8958e73c
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/finance-preset-system-prompt/token-effect:
+  en: d8536b1260168696
+  zh: a42b8ac4c3de4afd
+/deepseek-ai-dsh-client-xiaojing-product/model-experience/finance-preset-system-prompt/kv-cache-effect:
+  en: cdec52b101421bdf
+  zh: 0c6cee663034bb30
+/deepseek-ai-dsh-client-xiaojing-product/known-limitations-and-deferred-work:
+  en: 2dad58898f24f612
+  zh: 0cbce04b9cba5621
+/deepseek-ai-dsh-client-xiaojing-product/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

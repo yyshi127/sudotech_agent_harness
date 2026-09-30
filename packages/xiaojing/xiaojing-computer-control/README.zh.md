@@ -1,8 +1,24 @@
+---
+description: "Xiaojing semantic Windows computer control through the built-in UI Automation API"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-computer-control
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计的 Windows 语义电脑操控插件。一个 Cordis 插件同时提供 `ctx.xiaojingComputerControl`、注册 `computer_control` 工具，并维护一个有界的换行 JSON 辅助进程；辅助进程只使用 Windows PowerShell 5.1、Windows“开始”应用目录与操作系统自带的 `System.Windows.Automation` API。
+
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
+## 功能说明
 
 辅助进程可以搜索“开始”应用、启动选中的目录项，并返回有界的应用、可见顶层窗口与 UI Automation 控件列表。应用、窗口与目标 ID 只保存在内存中，绑定一个智能体会话，会过期，并在状态变化后替换。每个辅助进程都会在 ID 中加入唯一的实例标识，因此旧 ID 不会与重新启动后的辅助进程发生碰撞。启动操作会消费本次应用列表并返回新的窗口列表。模型看不到 Windows 应用注册 ID 或可执行文件路径。工具不接受坐标、截图、OCR 输入、PowerShell 源码或任意 Shell 命令。
 
@@ -14,11 +30,11 @@
 
 ## 模型体验
 
-### `computer_control` schema
+### `computer_control` 工具定义
 
 #### 模型看到的内容
 
-模型会看到 `computer_control` schema，其中要求仅在任务必须操作原生应用可见界面时使用本工具。应用尚未打开时，先通过 `list_apps` 获取不透明 `appId`，再用 `launch_app` 启动；应用已打开时，从 `list_windows` 开始，选择返回的 `windowId` 后调用 `observe`。模型只能执行目标 `actions` 中列出的操作，每次操作都会返回新的观察。
+模型会看到 `computer_control` schema，其中要求仅在任务必须操作原生应用可见界面时使用本工具。应用尚未打开时，先通过 `list_apps` 获取不透明 `appId`，再用 `launch_app` 启动；应用已打开时，从 `list_windows` 开始，选择返回的 `windowId` 后调用 `observe`。模型只能执行目标 `actions` 中列出的操作，每次操作都会返回新的观察。 生成的[工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-xiaojing-computer-control)记录该定义。
 
 #### Token 影响
 
@@ -34,3 +50,10 @@ schema 在插件生命周期内保持稳定，不会导致不同轮次之间缓�
 - 提供方不能跨越 Windows 权限级别或桌面边界：普通进程无法控制 UAC、登录界面、安全桌面、服务和管理员权限应用。
 - 它不能控制纯像素控件、Canvas 应用、远程桌面或 UI Automation 语义不完整的程序。
 - 本地 OCR 与坐标兜底明确不在当前版本中。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-14-subject-accounting-options.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-14-subject-accounting-options.md
-2026-09-14-subject-accounting-options.md: 99cd28dc6fc33fc00d4e78bdc077062bfe915ca9
-2026-09-14-subject-accounting-options.zh.md: ca62fa81e1f09740030ed793da3a6c663d66665b
+/agent-note-explicit-subject-accounting-options:
+  en: c77ac24b5d6a5f21
+  zh: daa1a2da99373962
+/agent-note-explicit-subject-accounting-options/problem:
+  en: 3646d23e4efbcf57
+  zh: 1f7e91be90e163fc
+/agent-note-explicit-subject-accounting-options/decision:
+  en: 9c7eabde3895c5db
+  zh: 8683fc309438cee5
+/agent-note-explicit-subject-accounting-options/alternatives-considered:
+  en: 56a9d2a275ba2082
+  zh: 96e644e956ebf123
+/agent-note-explicit-subject-accounting-options/consequences:
+  en: 74f7536241bb2ba8
+  zh: 23cfcf1f80da8f3a

@@ -1,6 +1,25 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-10-finance-destructive-maintenance.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-10-finance-destructive-maintenance.md
-2026-09-10-finance-destructive-maintenance.md: 7143eb28a7e6b874f9691141292abf7b6da1f9a5
-2026-09-10-finance-destructive-maintenance.zh.md: 3c708e65d14fbf02ee7521e172b85cd2809248f9
+/agent-note-finance-deletion-and-write-off:
+  en: 6c77c5c0709c0c80
+  zh: f97ee022c72abadd
+/agent-note-finance-deletion-and-write-off/problem:
+  en: 99485bbb1772f501
+  zh: 5706ba2285e0f9af
+/agent-note-finance-deletion-and-write-off/proposal:
+  en: 3c2af383e6eef92a
+  zh: 49bba001ddf31713
+/agent-note-finance-deletion-and-write-off/proposal/earlier-implementation-checkpoints:
+  en: 6bfbb8b7f28c8bee
+  zh: 13d359abe59d66b7
+/agent-note-finance-deletion-and-write-off/alternatives-considered:
+  en: 2bffe2c41871270e
+  zh: 6241a5306dceb060
+/agent-note-finance-deletion-and-write-off/acceptance-criteria:
+  en: 7b54ca5b1b230f2d
+  zh: 54f07747f91d6dc8
+/agent-note-finance-deletion-and-write-off/risks:
+  en: f5d138eaff40eb19
+  zh: 3bc1be31ca24a510

@@ -1,9 +1,23 @@
+---
+description: "Xiaojing Accounting product branding, onboarding, theme, and default persona"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-xiaojing-product
 
 [English](README.md) | 中文
 
+## 概述
+
 构建在 DeepSeek Harness 之上的小兢会计产品层。Host 半侧提供默认部署人格；浏览器半侧通过通用 slot 提供品牌、主题、首页标语、初次使用说明与产品关于页。未加载本插件时，官方 UI 包仍显示默认 DeepSeek 界面。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 产品贡献
 
 产品层会覆盖通用的 `system-prompt` 聊天渲染器，使内部模型指令继续保存在会话中并发送给模型，但不会显示在小兢会计的用户聊天记录里。
@@ -12,7 +26,7 @@
 
 办公搭子和 Finance 会话的新会话欢迎区使用同一张双机器人图片，分别存放为 `xiaojing-office-robot-logo.png` 与 `xiaojing-finance-robot-logo.png`；侧边栏使用透明方形“兢”字图片 `xiaojing-character-logo.png`。两个欢迎区资源别名都从显示区域中排除原图的透明留白。欢迎区 Logo 高度为 145 像素，位于标题上方；侧边栏在透明留白内将字形放大约 15%，保持宿主指定的外框和旁边品牌文字的位置不变。标题独立居中，不受版本角标宽度影响；窄布局中角标移到标题下方。初始 HTML 从 profile 的 `DSH_CLIENT_BOOT_LOGO` 与 `DSH_CLIENT_BOOT_LOGO_ALT` 接收 `dsh-boot-logo` 和 `dsh-boot-logo-alt`，使 SUDO 品牌在客户端插件激活前就可显示。profile 的 `DSH_CLIENT_FAVICON` 在初始 HTML 中为浏览器标签页选用同一张透明“兢”字图片；未配置该值的构建保留通用标签页图标。
 
-浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`onboarding.content` 和 `settings.section`。产品文案、配色覆盖、带版本号的内测标签、按版本倒序排列的增量更新历史和默认人格位于本包。普通工作区的新会话欢迎语是 `小兢会计，您的AI办公搭子`；Finance 会话显示 `小兢会计，您的AI财务助手`。`0.3.1` 同时显示在欢迎区版本角标和“关于小兢”更新历史首项。发布新版本时只在历史首部增加一条记录，旧记录保持不变，防止把旧功能重新归入当前版本。Electron 通过一个受限 preload 方法提供应用实际版本；普通 Web 预览使用必须与 `apps/desktop/package.json` 相同的受检 fallback。测试要求该 fallback 与更新历史首项一致，并拒绝重复版本号。产品层门禁会拒绝版本不一致，也会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。插件生命周期还会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在产品插件卸载时恢复通用值。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 `dsh-v0.1.7-rc.1` 基线及 commit `46a7f68b0922371ce7144b668b90e377d8e799f4`、通用 slot、浏览器资源路径、桌面产品清单和产品自有 `finance` 预设。产品层门禁会解析 Finance 与标准模式的声明式组装，只允许 Finance 人格、已声明的 Finance 消费端和产品 skill 目录不同。
+浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`onboarding.content` 和 `settings.section`。产品文案、配色覆盖、带版本号的内测标签、按版本倒序排列的增量更新历史和默认人格位于本包。普通工作区的新会话欢迎语是 `小兢会计，您的AI办公搭子`；Finance 会话显示 `小兢会计，您的AI财务助手`。`0.3.1` 同时显示在欢迎区版本角标和“关于小兢”更新历史首项。发布新版本时只在历史首部增加一条记录，旧记录保持不变，防止把旧功能重新归入当前版本。Electron 通过一个受限 preload 方法提供应用实际版本；普通 Web 预览使用必须与 `apps/desktop/identity.json.productVersion` 相同的受检 fallback。测试要求该 fallback 与更新历史首项一致，并拒绝重复版本号。产品层门禁会拒绝版本不一致，也会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。插件生命周期还会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在产品插件卸载时恢复通用值。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 `dsh-v0.2.0-rc.2` 基线及 commit `dsh-v0.2.0-rc.2`、通用 slot、浏览器资源路径、桌面产品清单和产品自有 `finance` 预设。产品层门禁会解析 Finance 与标准模式的声明式组装，只允许 Finance 人格、已声明的 Finance 消费端和产品 skill 目录不同。
 
 `finance` 预设是普通 patch，位于 `apps/cli/config/xiaojing-agent-presets/finance/agent.cordis.yml`。它插入由 `@deepseek-ai/dsh-agent-preset` 提供的 `preset-finance`；该声明负责 `finance` id、fallback 显示元数据、顺序和子插件清单。profile 启动只为 `xiaojing` Client 构建加载该 patch，位置在 bundle patches 之后、profile、home 和命令行 overlays 之前。该路径不使用运行时预设根目录发现或 `preset.yml` sidecar。公开的 `AgentPresetDisplayRegistry` 允许本 Client 插件为已登记的 `finance` id 提供当前 locale 文案；未注册提供方时，通用界面回退到声明元数据。`product.json.agentPresets` 记录预期组装路径，`product.json.financeExtension` 登记当前五个 Finance skills 和已实现的 Host／Client 包族，并记录组合行前缀、兼容适配文件名和受保护的 `harness/finance` 持久化根目录。已移除或未来能力不会以占位 skill 清单项保留。
 
@@ -126,8 +140,15 @@ You are 小兢会计, an AI office companion configured for internal use, operat
 
 ## Known Limitations and Deferred Work
 
-- 产品层依赖 `dsh-v0.1.7-rc.1` 集成基线上的八个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
+- 产品层依赖 `dsh-v0.2.0-rc.2` 集成基线上的八个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
 - 浏览器图片仍是由 `product.json` 登记的应用级 public 资源；检查脚本验证其存在，但不会将其嵌入客户端 bundle。
 - Shell 分类会识别显式删除命令，但无法推断无关且不透明的第三方可执行文件内部隐藏的破坏行为；任何新增且能删除用户数据的工具都必须公开并强制执行自己的删除分类。
 - `Finance模式` 现已具备本地客户上下文、专属财务工作区、文档与票据初审、官方财税依据研究、确定性试算、财务成果文件管理，以及已实现的有成查询和受控维护操作。权威能力清单将各业务领域标为已支持、有限支持或暂不支持。总账、明细账、辅助账、资产负债表、利润表、现金流量表、报销、审核、过账、结账、申报和实际支付都不是当前 Finance 对话能力。
 - 受保护的 `harness/finance` 根目录保存带 schema 版本的客户、文档与依据数据；确定性试算不新增独立账本，完整输入与输出保留在会话日志中。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

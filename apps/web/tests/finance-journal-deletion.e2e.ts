@@ -17,9 +17,8 @@ class JournalDeletionAdapter extends LlmAdapter {
   constructor(readonly journalId: string, readonly changedConfirmation = false) { super() }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls > 0 && this.deletionId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === 'journal-deletion-1')
-      const text = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === 'journal-deletion-1')
+      const text = result?.content.find(block => block.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing actual journal deletion preview')
       const value: unknown = JSON.parse(text.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {

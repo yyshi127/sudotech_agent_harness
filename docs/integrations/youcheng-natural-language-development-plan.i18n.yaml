@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-natural-language-development-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-natural-language-development-plan.md
-youcheng-natural-language-development-plan.md: a5c2d62d08b12f7f51c316d074464f222ebc80ca
-youcheng-natural-language-development-plan.zh.md: 1d8047f8fae863d6cf955eb92a38aaf702b91e9c
+/youcheng-finance-development-overview:
+  en: 5f1cd6553bd440ca
+  zh: 8e38c9ab5be61136
+/youcheng-finance-development-overview/decision-and-current-scope:
+  en: d058250b2ada11fd
+  zh: 5193ecf4a5d722cc
+/youcheng-finance-development-overview/document-responsibilities-and-existing-evidence:
+  en: f0889d50c99981cc
+  zh: b782040889fcba92
+/youcheng-finance-development-overview/phases-and-sequence:
+  en: 0a8bb5158918a054
+  zh: 9f2952fc115fbec7
+/youcheng-finance-development-overview/minimal-implementation-principles:
+  en: 1673d19a6b3bd998
+  zh: ce30713c399ea756
+/youcheng-finance-development-overview/acceptance-and-next-action:
+  en: 70916b2836e1ee1b
+  zh: 3b674095054d8f4f

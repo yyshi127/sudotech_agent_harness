@@ -23,5 +23,5 @@
     "liveRecoveryScriptRun": false,
     "liveRecoveryScript": "critique/f3b-lab/voucher-notice-live-recovery.mjs"
   },
-  "limitations": ["Keyless vendor responses do not replace live main-app attachment acceptance.", "Notice changes do not qualify external voucher provenance or remaining F3B actions."]
+  "limitations": ["Keyless vendor responses do not replace live main-app attachment acceptance.", "Notice changes do not qualify external voucher source identity or remaining F3B actions."]
 }

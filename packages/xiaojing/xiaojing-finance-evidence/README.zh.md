@@ -1,9 +1,23 @@
+---
+description: "Official-source finance and tax evidence retrieval for Xiaojing Finance mode"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-evidence
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢 Finance 用于按日期从中国大陆官方来源研究财税规则的 Host 能力。Host 插件负责来源准入、受限页面抓取、依据解析和结构化本地缓存；独立的 Finance 预设消费端注册 `finance_evidence`，Standard 等其他预设不会获得该工具。两个入口均不修改 Agent Loop。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 检索与依据语义
 
 服务只使用 Harness 现有 Web 搜索能力发现候选 URL，再由私有 HTTP 抓取器访问固定官方清单中的 HTTPS 页面，包括国家法律法规数据库、中国政府网、国家税务总局政策法规库及官网、财政部网站和省级税务机关网站。搜索标题和摘要始终只是发现线索，只有取得官方页面正文后才能成为依据。
@@ -43,3 +57,10 @@ Finance 获得 `finance_evidence(query, as_of_date?, locality?)`。结果作为�
 - 删除 `xiaojing-finance-evidence` Host 配置行和 Finance 预设中的 `finance-evidence` 消费端配置行即可移除该能力；客户域、受控文件、Standard 模式和官方 Harness profile 相互独立。
 - 本包不是完整财税法规库，不会对每一项官方目录做全量核对，也不执行后台更新监测。
 - 本包不能替代申报、争议、交易等高风险事项的专业复核。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

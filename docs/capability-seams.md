@@ -7,6 +7,27 @@ A service can be a core spine service, a swappable capability seam, a bundle/com
 
 ```mermaid
 flowchart LR
+  pkg_usage_accounting["usage-accounting"]
+  svc_usageAccounting["ctx.usageAccounting<br/>Local request-time usage accounting"]
+  pkg_client_ui_usage_accounting["client-ui-usage-accounting"]
+  pkg_xiaojing_browser_control["xiaojing-browser-control"]
+  svc_xiaojingBrowserControl["ctx.xiaojingBrowserControl<br/>Product browser automation"]
+  pkg_xiaojing_computer_control["xiaojing-computer-control"]
+  svc_xiaojingComputerControl["ctx.xiaojingComputerControl<br/>Windows desktop automation"]
+  pkg_xiaojing_desktop_companion["xiaojing-desktop-companion"]
+  svc_xiaojingDesktopCompanion["ctx.xiaojingDesktopCompanion<br/>Desktop companion state"]
+  pkg_xiaojing_weixin_channel["xiaojing-weixin-channel"]
+  pkg_xiaojing_finance_calculations["xiaojing-finance-calculations"]
+  svc_xiaojingFinanceCalculations["ctx.xiaojingFinanceCalculations<br/>Exact Finance calculations"]
+  pkg_xiaojing_finance_documents["xiaojing-finance-documents"]
+  svc_xiaojingFinanceDocuments["ctx.xiaojingFinanceDocuments<br/>Bounded document interpretation"]
+  pkg_xiaojing_finance_domain["xiaojing-finance-domain"]
+  svc_xiaojingFinanceDomain["ctx.xiaojingFinanceDomain<br/>Finance records and immutable session context"]
+  pkg_client_ui_xiaojing_finance_clients["client-ui-xiaojing-finance-clients"]
+  pkg_xiaojing_finance_evidence["xiaojing-finance-evidence"]
+  svc_xiaojingFinanceEvidence["ctx.xiaojingFinanceEvidence<br/>Finance evidence research"]
+  svc_xiaojingWeixinChannel["ctx.xiaojingWeixinChannel<br/>Weixin channel lifecycle"]
+  pkg_client_ui_weixin_channel["client-ui-weixin-channel"]
   pkg_hmr["hmr"]
   svc_hmr["ctx.hmr<br/>Serialized module and configuration reloads"]
   pkg_app_boot["app-boot"]
@@ -112,11 +133,15 @@ flowchart LR
   pkg_api_account_controller["api-account-controller"]
   pkg_authorization["authorization"]
   svc_authorization["ctx.authorization<br/>Authorization flow registry"]
+  pkg_client_product_analytics["client-product-analytics"]
+  svc_productAnalytics["ctx.productAnalytics<br/>Desktop interaction collection"]
+  pkg_otel["otel"]
+  svc_otel["ctx.otel<br/>Shared OTel reporting channels"]
   pkg_host_product_telemetry_otel["host-product-telemetry-otel"]
+  pkg_session_telemetry_otel["session-telemetry-otel"]
   svc_productTelemetry["ctx.productTelemetry<br/>Product usage event sender"]
   pkg_session_telemetry["session-telemetry"]
   svc_sessionTelemetry["ctx.sessionTelemetry<br/>Session telemetry seam"]
-  pkg_session_telemetry_otel["session-telemetry-otel"]
   pkg_storage["storage"]
   svc_storage["ctx.storage<br/>Non-session storage hub"]
   pkg_storage_json["storage-json"]
@@ -161,9 +186,9 @@ flowchart LR
   svc_sessionProjections["ctx.sessionProjections<br/>Session projection units"]
   pkg_session_projection_cache["session-projection-cache"]
   svc_sessionProjectionCache["ctx.sessionProjectionCache<br/>Persisted projection cache"]
-  pkg_subagent["subagent"]
   pkg_skill["skill"]
   svc_skills["ctx.skills<br/>Skill provider registry"]
+  pkg_sandbox_windows_acl["sandbox-windows-acl"]
   pkg_skill_badge["skill-badge"]
   pkg_skill_filesystem["skill-filesystem"]
   pkg_skill_office["skill-office"]
@@ -174,6 +199,8 @@ flowchart LR
   svc_agentLoop["ctx.agentLoop<br/>Concrete loop driver"]
   pkg_base["base"]
   pkg_sdk_minimal["sdk-minimal"]
+  pkg_schedule["schedule"]
+  svc_schedule["ctx.schedule<br/>Host scheduled messages"]
   pkg_goal["goal"]
   svc_goals["ctx.goals<br/>Same-session goal domain"]
   pkg_ssh["ssh"]
@@ -220,6 +247,7 @@ flowchart LR
   pkg_fs_observation_policy["fs-observation-policy"]
   pkg_compaction["compaction"]
   svc_compaction["ctx.compaction<br/>Compaction seam"]
+  pkg_subagent["subagent"]
   svc_subagents["ctx.subagents<br/>Subagent provider and continuation service"]
   pkg_subagent_spawn_in_process["subagent-spawn-in-process"]
   pkg_subagent_fork_in_process["subagent-fork-in-process"]
@@ -294,6 +322,7 @@ flowchart LR
   pkg_client_connection --> svc_connection
   pkg_client_file_upload --> svc_fileUploads
   pkg_client_modules --> svc_clientModules
+  pkg_client_product_analytics --> svc_productAnalytics
   pkg_client_ui_plugin_manager --> svc_pluginRegistryProbe
   pkg_command_feedback --> svc_sessionFeedback
   pkg_commands --> svc_commands
@@ -346,6 +375,7 @@ flowchart LR
   pkg_mcp_resources --> svc_mcpResources
   pkg_message_feedback --> svc_messageFeedback
   pkg_office_to_pdf --> svc_officeToPdf
+  pkg_otel --> svc_otel
   pkg_permission_presets --> svc_permissionPresets
   pkg_plan_mode --> svc_planMode
   pkg_plugin_manager --> svc_pluginManager
@@ -357,6 +387,8 @@ flowchart LR
   pkg_sandbox_local --> svc_sandbox
   pkg_sandbox_policy --> svc_sandboxPolicy
   pkg_sandbox_ssh --> svc_sandbox
+  pkg_sandbox_windows_acl --> svc_skills
+  pkg_schedule --> svc_schedule
   pkg_session --> svc_sessions
   pkg_session_log_deepseek --> svc_deepseekLlmApiExtensions
   pkg_session_persistence --> svc_sessionPersistence
@@ -402,6 +434,7 @@ flowchart LR
   pkg_tool_subagent --> svc_subagentModelSelection
   pkg_tools --> svc_tools
   pkg_typert_registry --> svc_typert
+  pkg_usage_accounting --> svc_usageAccounting
   pkg_user_approval --> svc_approval
   pkg_user_questions --> svc_userQuestions
   pkg_web --> svc_web
@@ -414,6 +447,14 @@ flowchart LR
   pkg_workflow_ptc --> svc_workflowEngine
   pkg_workspace --> svc_workspaceRegistry
   pkg_workspace_changes --> svc_workspaceChanges
+  pkg_xiaojing_browser_control --> svc_xiaojingBrowserControl
+  pkg_xiaojing_computer_control --> svc_xiaojingComputerControl
+  pkg_xiaojing_desktop_companion --> svc_xiaojingDesktopCompanion
+  pkg_xiaojing_finance_calculations --> svc_xiaojingFinanceCalculations
+  pkg_xiaojing_finance_documents --> svc_xiaojingFinanceDocuments
+  pkg_xiaojing_finance_domain --> svc_xiaojingFinanceDomain
+  pkg_xiaojing_finance_evidence --> svc_xiaojingFinanceEvidence
+  pkg_xiaojing_weixin_channel --> svc_xiaojingWeixinChannel
   svc_agentDefaultModel --> pkg_api_session_controller
   svc_agentDefaultModel --> pkg_headless
   svc_agentLoop --> pkg_base
@@ -469,6 +510,8 @@ flowchart LR
   svc_lsp --> pkg_tool_lsp
   svc_mcpResources --> pkg_mcp_resources
   svc_officeToPdf --> pkg_client_ui_sidebar_documentpreview
+  svc_otel --> pkg_host_product_telemetry_otel
+  svc_otel --> pkg_session_telemetry_otel
   svc_pluginManager --> pkg_plugin_manager
   svc_pluginManager --> pkg_ui_settings_plugin_inventory
   svc_pluginRegistryProbe --> pkg_client_ui_plugin_manager
@@ -490,7 +533,6 @@ flowchart LR
   svc_sessionProjectionCache --> pkg_api_session_controller
   svc_sessionProjectionCache --> pkg_session_query
   svc_sessionProjectionCache --> pkg_session_reference
-  svc_sessionProjectionCache --> pkg_subagent
   svc_sessionProjections --> pkg_api_session_controller
   svc_sessionProjections --> pkg_session_title
   svc_sessionProjections --> pkg_tool_todo
@@ -550,6 +592,7 @@ flowchart LR
   svc_tools --> pkg_tool_web
   svc_typert --> pkg_api_gateway
   svc_typert --> pkg_typert_loader
+  svc_usageAccounting --> pkg_client_ui_usage_accounting
   svc_userQuestions --> pkg_tool_ask_user
   svc_web --> pkg_tool_web
   svc_webServer --> pkg_client_connection
@@ -560,11 +603,31 @@ flowchart LR
   svc_workflowEngine --> pkg_tool_workflow
   svc_workspaceRegistry --> pkg_api_session_controller
   svc_workspaceRegistry --> pkg_api_workspace_controller
+  svc_xiaojingBrowserControl --> pkg_xiaojing_browser_control
+  svc_xiaojingComputerControl --> pkg_xiaojing_computer_control
+  svc_xiaojingDesktopCompanion --> pkg_xiaojing_weixin_channel
+  svc_xiaojingFinanceCalculations --> pkg_xiaojing_finance_calculations
+  svc_xiaojingFinanceDocuments --> pkg_xiaojing_finance_documents
+  svc_xiaojingFinanceDomain --> pkg_client_ui_xiaojing_finance_clients
+  svc_xiaojingFinanceDomain --> pkg_xiaojing_finance_documents
+  svc_xiaojingFinanceDomain --> pkg_xiaojing_finance_evidence
+  svc_xiaojingFinanceEvidence --> pkg_xiaojing_finance_evidence
+  svc_xiaojingWeixinChannel --> pkg_client_ui_weixin_channel
+  svc_xiaojingWeixinChannel --> pkg_xiaojing_desktop_companion
   svc_fs -. event gate .-> pkg_fs_observation_policy
 ```
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.usageAccounting` | `core` | [`usage-accounting`](../packages/llm/usage-accounting) | - | [`client-ui-usage-accounting`](../packages/client/ui-usage-accounting) | - | Settles provider-reported usage under the actual request credential identity and serves redacted current-key monthly totals. |
+| `ctx.xiaojingBrowserControl` | `core` | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | Owns browser actions and their approval policy over the configured product browser. |
+| `ctx.xiaojingComputerControl` | `core` | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | Owns UI Automation requests and delegates native helper execution to subprocess services. |
+| `ctx.xiaojingDesktopCompanion` | `core` | [`xiaojing-desktop-companion`](../packages/xiaojing/xiaojing-desktop-companion) | - | [`xiaojing-weixin-channel`](../packages/xiaojing/xiaojing-weixin-channel) | - | Tracks product window and channel state without owning Electron tray objects. |
+| `ctx.xiaojingFinanceCalculations` | `core` | [`xiaojing-finance-calculations`](../packages/xiaojing/xiaojing-finance-calculations) | - | [`xiaojing-finance-calculations`](../packages/xiaojing/xiaojing-finance-calculations) | - | Returns deterministic Finance calculations through the product tool consumer. |
+| `ctx.xiaojingFinanceDocuments` | `core` | [`xiaojing-finance-documents`](../packages/xiaojing/xiaojing-finance-documents) | - | [`xiaojing-finance-documents`](../packages/xiaojing/xiaojing-finance-documents) | - | Reads imported Finance documents and retained visuals through document tools. |
+| `ctx.xiaojingFinanceDomain` | `core` | [`xiaojing-finance-domain`](../packages/xiaojing/xiaojing-finance-domain) | - | [`client-ui-xiaojing-finance-clients`](../packages/client/ui-xiaojing-finance-clients), [`xiaojing-finance-documents`](../packages/xiaojing/xiaojing-finance-documents), [`xiaojing-finance-evidence`](../packages/xiaojing/xiaojing-finance-evidence) | - | Owns local Finance records, dedicated workspaces, session bindings, and confirmed external operations. |
+| `ctx.xiaojingFinanceEvidence` | `core` | [`xiaojing-finance-evidence`](../packages/xiaojing/xiaojing-finance-evidence) | - | [`xiaojing-finance-evidence`](../packages/xiaojing/xiaojing-finance-evidence) | - | Coordinates Finance research through configured source providers and its tool consumer. |
+| `ctx.xiaojingWeixinChannel` | `core` | [`xiaojing-weixin-channel`](../packages/xiaojing/xiaojing-weixin-channel) | - | [`xiaojing-desktop-companion`](../packages/xiaojing/xiaojing-desktop-companion), [`client-ui-weixin-channel`](../packages/client/ui-weixin-channel) | - | Owns channel connection, session routing, and redacted status for product consumers. |
 | `ctx.hmr` | `core` | [`hmr`](../packages/boot/hmr) | - | [`app-boot`](../packages/boot/app-boot) | - | Owns module and exact configuration watchers; application mutations share its queue and automatic reloads await the application file lock. |
 | `ctx.pluginRegistryProbe` | `core` | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | [`client-ui-plugin-manager`](../packages/client/ui-plugin-manager) | - | Races public registry responses on the Host; the Client owns the initial registry recommendation. |
 | `ctx.pluginManager` | `core` | [`plugin-manager`](../packages/boot/plugin-manager) | - | [`plugin-manager`](../packages/boot/plugin-manager), `ui-settings-plugin-inventory` | - | Shares profile package operations with the CLI and reports persisted and running state to Web and agent callers. |
@@ -603,6 +666,8 @@ flowchart LR
 | `ctx.credentials` | `seam` | [`credentials`](../packages/credentials/credentials) | [`credentials-local`](../packages/credentials/credentials-local) | [`api-settings-controller`](../packages/api/settings-controller), [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | Configuration carries references to secrets; providers own the values. Consumers resolve per operation, so a rotated credential reaches the very next request; the settings controller exposes value-free views and write-only storage. |
 | `ctx.deepseekAccount` | `seam` | [`deepseek-account`](../packages/credentials/deepseek-account) | [`deepseek-account-platform`](../packages/credentials/deepseek-account-platform) | [`api-account-controller`](../packages/api/account-controller), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The Host owns browser authorization and local credentials; UI consumers receive state without tokens. |
 | `ctx.authorization` | `seam` | [`authorization`](../packages/credentials/authorization) | - | [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | Flows are registered by the plugin that knows how to obtain one credential and keyed by the record they write; the seam owns the conversation and the one-attempt-per-key lifecycle, never the protocol. |
+| `ctx.productAnalytics` | `service` | [`client-product-analytics`](../packages/client/product-analytics) | - | - | - | Accepts selected Desktop events, enriches available login identity, and observes live compaction under the live Host collection policy. |
+| `ctx.otel` | `service` | [`otel`](../packages/telemetry/otel) | - | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel), [`session-telemetry-otel`](../packages/session/session-telemetry-otel) | - | Product analytics and Session feedback adapters create independent reporting channels through one injected service. |
 | `ctx.productTelemetry` | `service` | [`host-product-telemetry-otel`](../packages/host/product-telemetry-otel) | - | - | - | Exports explicitly submitted analytics events through OTLP/HTTP; mounting alone collects nothing. |
 | `ctx.sessionTelemetry` | `seam` | [`session-telemetry`](../packages/session/session-telemetry) | [`session-telemetry-otel`](../packages/session/session-telemetry-otel) | - | - | The seam captures, redacts, and hands session records to one backend; nothing else consumes the service — its output leaves the process. |
 | `ctx.storage` | `seam` | [`storage`](../packages/storage/storage) | [`storage-json`](../packages/storage/storage-json), [`storage-sqlite`](../packages/storage/storage-sqlite) | [`storage-domain`](../packages/storage/storage-domain) | - | Backends register side by side under names; data forms (domain first) mount on the hub and translate typed operations into opaque KV-unit primitives. |
@@ -621,11 +686,12 @@ flowchart LR
 | `ctx.agentPresets` | `core` | [`agent-preset-registry`](../packages/preset/agent-preset-registry) | - | - | - | Eagerly mounts YAML-declared preset revisions, binds Agents and cold readers to scoped contributions, and retains retired revisions until their last user releases them. |
 | `ctx.commands` | `core` | [`commands`](../packages/interaction/commands) | - | - | - | Plugins register direct human commands without sending invocations to the model. |
 | `ctx.sessionProjections` | `core` | [`session-projection`](../packages/session/session-projection) | - | [`api-session-controller`](../packages/api/session-controller), [`tool-todo`](../packages/todo/tool-todo), [`session-title`](../packages/session/session-title) | - | Domains register state-driven fold units; the eager drive keeps per-session watermark states and the Session controller serves baselines and pushes changed values. |
-| `ctx.sessionProjectionCache` | `core` | [`session-projection-cache`](../packages/session/session-projection-cache) | - | [`api-session-controller`](../packages/api/session-controller), [`session-query`](../packages/session-query/session-query), [`session-reference`](../packages/context/session-reference), [`subagent`](../packages/subagent/subagent) | - | Durably checkpoints projection unit states per session (throttled + turn/end/detach mandatory points) and serves the cold-read ladder: cache row + persistence tail replay, so listings never load full logs. |
-| `ctx.skills` | `seam` | [`skill`](../packages/skill/skill) | [`skill-badge`](../packages/skill/skill-badge), [`skill-filesystem`](../packages/skill/skill-filesystem), [`skill-office`](../packages/skill/skill-office) | [`tool-skill`](../packages/skill/tool-skill) | - | Merges provider skill catalogs; tool-skill renders the session-prefix catalog and loads complete skill bodies. |
+| `ctx.sessionProjectionCache` | `core` | [`session-projection-cache`](../packages/session/session-projection-cache) | - | [`api-session-controller`](../packages/api/session-controller), [`session-query`](../packages/session-query/session-query), [`session-reference`](../packages/context/session-reference) | - | Durably checkpoints projection unit states per session (throttled + turn/end/detach mandatory points), serves cached projection views, and accelerates prepared-Session projection hydration. |
+| `ctx.skills` | `seam` | [`skill`](../packages/skill/skill) | [`sandbox-windows-acl`](../packages/sandbox/sandbox-windows-acl), [`skill-badge`](../packages/skill/skill-badge), [`skill-filesystem`](../packages/skill/skill-filesystem), [`skill-office`](../packages/skill/skill-office) | [`tool-skill`](../packages/skill/tool-skill) | - | Merges provider skill catalogs; tool-skill renders the session-prefix catalog and loads complete skill bodies. |
 | `ctx.agents` | `core` | [`agent`](../packages/core/agent) | - | [`agent-loop`](../packages/core/agent-loop), [`acp`](../packages/acp/acp), [`subagent-in-process-driver`](../packages/subagent/subagent-in-process-driver) | - | Owns live Agent handles, the create/resume factory seam, and process-local initiator propagation. |
 | `ctx.agentDefaultModel` | `core` | [`agent-default-model`](../packages/core/agent-default-model) | - | [`api-session-controller`](../packages/api/session-controller), [`headless`](../packages/bundle/headless) | - | Reads the default ModelSelection from volatile Config and saves selections through the profile editor. |
 | `ctx.agentLoop` | `bundle` | [`agent-loop`](../packages/core/agent-loop) | - | [`base`](../packages/bundle/base), [`sdk-minimal`](../packages/bundle/sdk-minimal) | - | The one concrete loop plugin; extension packages depend on dsh-agent events and services, not on this package. |
+| `ctx.schedule` | `core` | [`schedule`](../packages/schedule/schedule) | - | - | - | Stores tasks independently of Session activation and queues due messages in the original Session. |
 | `ctx.goals` | `core` | [`goal`](../packages/goal/goal) | - | - | - | Folds revisioned objective state from the session log and keeps live continuation activation process-local. |
 | `ctx.ssh` | `core` | [`ssh`](../packages/ssh/ssh) | - | [`fs-ssh`](../packages/ssh/fs-ssh), [`subprocess-ssh`](../packages/ssh/subprocess-ssh), [`sandbox-ssh`](../packages/ssh/sandbox-ssh) | - | Owns one authenticated OpenSSH connection, installed helper identity, independent program streams and disconnect cleanup for the paired remote providers. |
 | `ctx.subprocess` | `seam` | [`subprocess`](../packages/subprocess/subprocess) | [`subprocess-local`](../packages/subprocess/subprocess-local), [`subprocess-ssh`](../packages/ssh/subprocess-ssh) | [`bash-local`](../packages/shell/bash-local), [`bash-sandbox`](../packages/shell/bash-sandbox), [`terminal-bash`](../packages/terminal/terminal-bash), [`lsp-stdio`](../packages/lsp/lsp-stdio), [`subagent-acp`](../packages/subagent/subagent-acp), [`subagent-codex`](../packages/subagent/subagent-codex), [`subagent-claude-code`](../packages/subagent/subagent-claude-code) | - | The bash executors, the PTY shell backend, the LSP host, and the out-of-process ACP, Codex, and Claude Code subagent backends spawn through ctx.subprocess; the service owns process coordinates, tree/session lifetime, stdio dispositions, terminal mechanics, and kill escalation. |

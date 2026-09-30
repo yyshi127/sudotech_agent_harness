@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-finance-f3-closeout.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-f3-closeout.md
-youcheng-finance-f3-closeout.md: e41b36177b788b1a42fd2f151e586f3f51ab9cba
-youcheng-finance-f3-closeout.zh.md: 71e24ff960ba8496f1f3033b3a56f5cb3e410850
+/youcheng-finance-f3-closeout:
+  en: ed4f0e709623c2c2
+  zh: cf8d81c750c53fa4
+/youcheng-finance-f3-closeout/disposition:
+  en: e85aabf88de24ded
+  zh: 652f4899bec7a5f3
+/youcheng-finance-f3-closeout/capability-checklist:
+  en: 25d090bbea7cf916
+  zh: e57cac74216cfd15
+/youcheng-finance-f3-closeout/current-acceptance-and-recovery:
+  en: ddce74a6bfb11ba9
+  zh: 68173379e5c7f00b
+/youcheng-finance-f3-closeout/deferred-and-unsupported-scope:
+  en: 8d8e78e6d176c85f
+  zh: d7d582dcf4d1facc
+/youcheng-finance-f3-closeout/engineering-handoff:
+  en: 9aff7332652fa68d
+  zh: 16f94c14f35257cd

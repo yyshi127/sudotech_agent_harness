@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.3.1 / dsh-v0.1.7-rc.1）
+# 小兢会计产品开发基线（0.3.1 / dsh-v0.2.0-rc.2）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.7-rc.1` 的当前 0.3.1 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.2.0-rc.2` 的当前 0.3.1 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
 
 需要快速理解官方核心、小兢插件、Electron 外壳和源码目录之间关系时，先阅读[模块架构与源码结构图](xiaojing-module-architecture.zh.md)。
 
@@ -19,10 +19,10 @@
 
 | 项目 | 当前值 | 真源 |
 |---|---|---|
-| 桌面产品版本 | `0.3.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| 官方 Harness 基线 | `dsh-v0.1.7-rc.1` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 官方基线 commit | `46a7f68b0922371ce7144b668b90e377d8e799f4` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 产品集成基准 | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 桌面产品版本 | `0.3.1` | [`apps/desktop/identity.json.productVersion`](../apps/desktop/package.json) |
+| 官方 Harness 基线 | `dsh-v0.2.0-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 官方基线 commit | `dsh-v0.2.0-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 产品集成基准 | `xiaojing-history-20260930-4` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 源码仓库 | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
 `product.json` 显式记录上游基线，不能根据内容相似的源码推断基线。`@deepseek-ai/dsh-*` 包作用域继续遵循仓库级工作区约定，桌面包使用 `@deepseek-ai/dsh-desktop`。产品文案和来源说明必须继续准确表述：小兢会计基于 DeepSeek Harness 进行内部品牌和配置定制，不能声称底层框架由数豆科技开发。
@@ -31,7 +31,7 @@
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream dsh-v0.1.7-rc.1 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream dsh-v0.2.0-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Finance["Finance product extension boundary"]
   Adapters --> Usage["Usage host and client plugins"]
@@ -195,7 +195,7 @@ Finance skill 目录只包含五个产品 skills：`finance-tax-research-cn`、`
 
 `@deepseek-ai/dsh-client-ui-desktop-companion` 提供接近设置导航底部、仅限小兢产品的“桌面小兢”栏目，并校验受限 Electron preload bridge 返回的每一份宠物状态。在普通浏览器中，它只显示 Windows 桌面版可用提示，不渲染无效操作。Electron 独立拥有透明宠物 BrowserWindow、关键姿态动画、50% 默认视觉尺寸、30%–100% 大小偏好、邻近状态提示、拖动与多屏恢复、主窗口内部的默认及重置位置、托盘菜单、主窗口隐藏、单实例恢复、整个应用真正退出和 `preferences-v1.json` 原子写入。收起桌面小兢只销毁其 renderer；Host、活动任务和微信频道继续运行。
 
-小兢产品插件在“桌面小兢”之后提供最终的“关于小兢”设置栏目，显示当前版本和功能清单；空会话首页的内测标签使用同一个版本号。Electron 通过只读 preload 调用返回打包应用版本；Web 预览使用受检 fallback，产品层门禁要求它与 `apps/desktop/package.json` 一致。
+小兢产品插件在“桌面小兢”之后提供最终的“关于小兢”设置栏目，显示当前版本和功能清单；空会话首页的内测标签使用同一个版本号。Electron 通过只读 preload 调用返回打包应用版本；Web 预览使用受检 fallback，产品层门禁要求它与 `apps/desktop/identity.json.productVersion` 一致。
 
 该功能由三项显式组合保持可移除：Host 配置行、Client 配置行和 Electron 素材／生命周期。移除两个 Cordis 配置行即可移除任务状态观察和设置栏目，不需要修改 Harness 核心。Electron bridge 不向任一 renderer 暴露 Node、文件系统、任意 IPC 或 BrowserWindow 对象。
 
@@ -261,7 +261,7 @@ Finance skill 目录只包含五个产品 skills：`finance-tax-research-cn`、`
 
 [`identity.json`](../apps/desktop/identity.json) 是 package name、App ID/AppUserModelId、NSIS GUID、安装目录名、可执行文件名、产品名、当前用户安装范围、快捷方式名和用户数据路径段的唯一真源。普通发布必须把所有字段视为不可变值。`verify-desktop-identity.mjs` 会把 manifest、Electron 入口和 NSIS 配置与固定值比较，并拒绝身份漂移。
 
-每个对外安装包都必须递增 `apps/desktop/package.json` 中的版本。身份不变时，NSIS 会识别现有安装、沿用 `InstallLocation`、跳过目录页面、替换应用文件并刷新快捷方式。迁移安装目录仍需卸载重装；修改身份会产生第二套应用，而不是完成升级。
+每个对外安装包都必须递增 `apps/desktop/identity.json.productVersion` 中的版本。身份不变时，NSIS 会识别现有安装、沿用 `InstallLocation`、跳过目录页面、替换应用文件并刷新快捷方式。迁移安装目录仍需卸载重装；修改身份会产生第二套应用，而不是完成升级。
 
 ### 持久格式变化
 

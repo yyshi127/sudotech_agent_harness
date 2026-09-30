@@ -378,12 +378,12 @@
   "deferred": [
     "001 first AR/AP account discovery",
     "002 public auxiliary enable-state",
-    "004 manual/external voucher provenance"
+    "004 manual/external voucher source identity"
   ],
   "repositoryReleaseChecks": "Existing generated-declaration lint and catalog/API-replica documentation failures remain tracked separately",
   "codeCheckpoint": {
     "branch": "codex/finance-f1-2",
-    "head": "4a0fa71329ee40646477adb9f13befb17d1502ee",
+    "head": "xiaojing-history-20260930-6",
     "sourceHashes": [
       {
         "path": "packages/xiaojing/xiaojing-finance-domain/src/index.ts",

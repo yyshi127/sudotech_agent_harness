@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-15-native-finance-report-apis.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-15-native-finance-report-apis.md
-2026-09-15-native-finance-report-apis.md: 2ff4c1aa6b9d87ae1ceb4dc36fb56f4488df2304
-2026-09-15-native-finance-report-apis.zh.md: 390863cbb9491ef5b541fc06f16ac6a4ada612c9
+/agent-note-native-finance-reports-through-supported-server-apis:
+  en: 26deaf8f2da2665d
+  zh: 2cb02f64b648f672
+/agent-note-native-finance-reports-through-supported-server-apis/problem:
+  en: 5a3865ad30b3155e
+  zh: 3a9d4851ffe40cc3
+/agent-note-native-finance-reports-through-supported-server-apis/proposal:
+  en: 5fdb7e2565a7b23e
+  zh: ea4c255bb9552c1d
+/agent-note-native-finance-reports-through-supported-server-apis/alternatives-considered:
+  en: 3fd35d2814d4edaa
+  zh: d77ecc751584bc04
+/agent-note-native-finance-reports-through-supported-server-apis/acceptance-criteria:
+  en: 3d3c46d22ca012e0
+  zh: 7e682fa00c585bc2
+/agent-note-native-finance-reports-through-supported-server-apis/risks:
+  en: 0e520e091f3fe27f
+  zh: d96d5a4b0d8788c8

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-capability-implementation-matrix.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-capability-implementation-matrix.md
-youcheng-capability-implementation-matrix.md: 3a1dd18b97c1cd756b0efa31909b350394563839
-youcheng-capability-implementation-matrix.zh.md: 3d5436396295a1bbdfff51ebfe92f2037ff07861
+/youcheng-capability-scope-and-api-qualification-matrix:
+  en: f462b07f79559931
+  zh: 6bfe8db4e34be5d4
+/youcheng-capability-scope-and-api-qualification-matrix/sources-and-use:
+  en: b67581cd0a7a7a47
+  zh: e4fc92c442624fd8
+/youcheng-capability-scope-and-api-qualification-matrix/business-coverage-and-delivery-order:
+  en: 1eeb3a9193b879f6
+  zh: dbe7d29c56201611
+/youcheng-capability-scope-and-api-qualification-matrix/api-semantics-requiring-correction:
+  en: 1668da1ce4b68105
+  zh: 961b34f53aa1f232
+/youcheng-capability-scope-and-api-qualification-matrix/first-batch-qualification-records:
+  en: 6d2ec5509bab063c
+  zh: 5a1aae258bcaf612

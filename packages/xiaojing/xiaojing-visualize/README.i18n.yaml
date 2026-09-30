@@ -1,6 +1,52 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-visualize/README.md
-README.md: 76b3e08e6cab9fb3fde17523dcfb4b8dc30784bf
-README.zh.md: c4d5a55b7c1f81ed8cdba3821760f438198d32ff
+/:
+  en: 07cb2c083fd497f5
+  zh: 07cb2c083fd497f5
+/deepseek-ai-dsh-xiaojing-visualize:
+  en: 777b35f092aa5f4b
+  zh: ca2526b549d20240
+/deepseek-ai-dsh-xiaojing-visualize/summary:
+  en: 300294dc520eca83
+  zh: 28df8a7fcda7318c
+/deepseek-ai-dsh-xiaojing-visualize/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-visualize/composition:
+  en: 5801f49e46def021
+  zh: 824a586196a45b62
+/deepseek-ai-dsh-xiaojing-visualize/configuration:
+  en: 51fdd2b2cd4a29ae
+  zh: ce4d8ad16ee76dcb
+/deepseek-ai-dsh-xiaojing-visualize/operation:
+  en: 1400778e2dcb292c
+  zh: f0c934fc7dde159e
+/deepseek-ai-dsh-xiaojing-visualize/security:
+  en: 0e50f78669f5f6f6
+  zh: df4e6838e49e72eb
+/deepseek-ai-dsh-xiaojing-visualize/source-and-license:
+  en: 644a32a73004da27
+  zh: 0674d7860777b0ac
+/deepseek-ai-dsh-xiaojing-visualize/model-experience:
+  en: 215e7ba838619b7b
+  zh: 215e7ba838619b7b
+/deepseek-ai-dsh-xiaojing-visualize/model-experience/visualize-tool-and-bundled-skill:
+  en: c656cf7605bfb5dc
+  zh: ba84568d8bb547b2
+/deepseek-ai-dsh-xiaojing-visualize/model-experience/visualize-tool-and-bundled-skill/what-the-model-sees:
+  en: 852ef4c04170b6a6
+  zh: 134c0177e4e0ade2
+/deepseek-ai-dsh-xiaojing-visualize/model-experience/visualize-tool-and-bundled-skill/token-effect:
+  en: b2be205f6e0eeb1a
+  zh: 37445f32fc34cb08
+/deepseek-ai-dsh-xiaojing-visualize/model-experience/visualize-tool-and-bundled-skill/kv-cache-effect:
+  en: 1db990bca2703285
+  zh: 9970832cdfa263c4
+/deepseek-ai-dsh-xiaojing-visualize/known-limitations-and-deferred-work:
+  en: 9f38f1b10048c6fb
+  zh: 27a2a1dac4383e1c
+/deepseek-ai-dsh-xiaojing-visualize/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

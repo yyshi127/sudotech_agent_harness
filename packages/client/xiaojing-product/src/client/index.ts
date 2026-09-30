@@ -58,7 +58,10 @@ export function apply(ctx: ClientContext): void {
   }, 'xiaojing-product: build profile witness')
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'xiaojing-product: dictionaries')
   const t = ctx.locale.bind(NS)
-  ctx.effect(() => ctx.agentPresetDisplay.register('finance', () => ({
+  ctx.effect(() => ctx.agentPresetDisplay.register('finance', preset => preset.name !== undefined && preset.name !== 'Finance模式' ? ({
+    name: preset.name ?? preset.id,
+    ...preset.description === undefined ? {} : { description: preset.description },
+  }) : ({
     name: t('financePresetName'),
     description: t('financePresetDescription'),
   })), 'xiaojing-product: Finance preset copy')

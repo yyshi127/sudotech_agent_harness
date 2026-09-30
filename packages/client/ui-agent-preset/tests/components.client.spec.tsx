@@ -19,6 +19,7 @@ import type { AgentPresetSeatProps } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSettingsState } from '../src/client/settings-store.ts'
 import type { AgentPresetSeatState } from '../src/client/seat-store.ts'
 import { en } from '../src/client/locales.ts'
+import { AgentPresetDisplayRegistry } from '../src/client/display-registry.ts'
 
 afterEach(cleanup)
 
@@ -29,7 +30,6 @@ const ROSTER_READY: AgentPresetSettingsState = {
 }
 
 const SEAT_READY: AgentPresetSeatState = {
-  showPicker: true,
   current: 'standard',
   options: [
     { id: 'standard' },
@@ -54,20 +54,22 @@ function renderSeat(
   state: Partial<AgentPresetSeatState> = {},
   select: () => Promise<string | undefined> = () => Promise.resolve(undefined),
   session?: { id: string; retainInfo: SessionRetainInfo | undefined },
+  enabled = true,
 ) {
   const store = createSnapshotStore<AgentPresetSeatState>({ ...SEAT_READY, ...state })
-  const developerTools = createSnapshotStore(true)
+  const developerTools = createSnapshotStore(enabled)
   const actions = { load: vi.fn(() => Promise.resolve()), select: vi.fn(select), introduced: vi.fn() }
-  render(<AgentPresetSeat {...({
+  const props = {
     ...actions,
     sessionId: session === undefined ? undefined : SessionId(session.id),
-    useShowPresetPicker: bindSnapshotSelector(developerTools),
+    useDeveloperTools: bindSnapshotSelector(developerTools),
     useAgentPresetSeat: bindSnapshotSelector(store),
     useSessionRetainInfo: session === undefined
       ? useSessionRetainInfo
       : <Selected,>(selector: (value: SessionRetainInfo | undefined) => Selected) => selector(session.retainInfo),
     t: translate,
-  } as unknown as AgentPresetSeatProps)} />)
+  } as AgentPresetSeatProps
+  render(<AgentPresetSeat {...props} />)
   return { ...actions, developerTools }
 }
 
@@ -86,14 +88,15 @@ function renderLabel(
     sessionId: 's1',
     useSessions: bindSnapshotSelector(sessions),
     useAgentPresets: bindSnapshotSelector(store),
+    displayPreset: (preset: Parameters<AgentPresetDisplayRegistry['resolve']>[0]) => new AgentPresetDisplayRegistry().resolve(preset, translate),
     t: (key: keyof typeof en) => en[key],
-  } as unknown as AgentPresetLabelProps)} />)
+  } as AgentPresetLabelProps)} />)
   return { load, view }
 }
 
 describe('the new-session chip', () => {
-  it('renders nothing while the picker is disabled', () => {
-    renderSeat({ showPicker: false })
+  it('renders nothing while Developer tools are off', () => {
+    renderSeat({}, undefined, undefined, false)
 
     expect(screen.queryByRole('button')).toBeNull()
   })

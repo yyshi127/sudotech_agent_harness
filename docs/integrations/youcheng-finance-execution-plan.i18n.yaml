@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-finance-execution-plan.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-execution-plan.md
-youcheng-finance-execution-plan.md: eb34de27e7a6f5ee1294e821427bc8552ca4c5ab
-youcheng-finance-execution-plan.zh.md: 02149e432cf37525aca65a5c86803c0f15d40854
+/youcheng-finance-feature-inventory-and-executable-goals:
+  en: 1e89c5ed9dac62b7
+  zh: c20347c61eddaf6f
+/youcheng-finance-feature-inventory-and-executable-goals/scope-and-use:
+  en: 2a2222a8eb0dc105
+  zh: f42d55b323fdc807
+/youcheng-finance-feature-inventory-and-executable-goals/core-feature-inventory:
+  en: 99537e8f89201047
+  zh: dc04e99bdc4ee4a6
+/youcheng-finance-feature-inventory-and-executable-goals/conditional-requirements-not-claimed-support:
+  en: 124476210d016d62
+  zh: 9353174378de3d22
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals:
+  en: 51215f30ca6145cb
+  zh: 7fe8a55314e3f86d
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals/f0-scope-and-recoverable-baseline:
+  en: 1477ddf356e38532
+  zh: 1bad0e00e3926e36
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals/f1-connection-queries-and-output:
+  en: a6ab7b257db0343c
+  zh: 132a34798e4fd910
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals/f2-voucher-creation-loop:
+  en: b1e870652da4f44b
+  zh: 2c0d65eab055bf39
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals/f3a-other-creation-features:
+  en: adbe705b092fb727
+  zh: 3f323c1327df6ea3
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals/f3b-high-risk-maintenance-accepted-separately:
+  en: 0d9ddf88f3960bdb
+  zh: 4254272e179e9782
+/youcheng-finance-feature-inventory-and-executable-goals/execution-order-and-redefined-goals/f4-full-finance-acceptance:
+  en: 644ea9198be4d1c6
+  zh: 3c75dba63c4f45f0
+/youcheng-finance-feature-inventory-and-executable-goals/execution-agreement-for-each-goal:
+  en: 14239a20fa85635b
+  zh: 22e3814bc32fd023
+/youcheng-finance-feature-inventory-and-executable-goals/recommended-starting-point:
+  en: f37a064da95766ba
+  zh: 73006224563ae435

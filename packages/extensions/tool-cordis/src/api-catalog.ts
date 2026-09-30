@@ -94,7 +94,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async saveSelection(next: ModelSelection): Promise<void>',
-        description: 'Save the complete default model selection. A deployment without a configuration editor keeps its composition entry.',
+        description: 'Save the complete default model selection. A deployment without a configuration editor keeps its composition entry. Saves commit in submission order; a failed save rejects its caller without blocking later saves.',
         parameters: [{ name: 'next', description: 'resolved selection accepted by an entry point.' }],
         returns: 'fulfillment after the optional profile write settles.',
       },
@@ -149,9 +149,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote(\'list\') async remoteExportList(): Promise<AgentPresetRoster>',
-        description: 'Read the selection roster and chooser policy.',
+        description: 'Read the selection roster.',
         parameters: [],
-        returns: 'Current presets, default and chooser policy.',
+        returns: 'Current presets, each marked when it is the default.',
       },
       {
         signature: 'async resolve(id?: string): Promise<AgentPreset>',
@@ -398,6 +398,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'async request(req: ApprovalRequest): Promise<ApprovalOutcome>',
         description: 'Ask the composed answerers to decide one readonly same-process request. The service borrows the request, agent, session, and live signal directly. The request requires an open turn because the audit pair must be enclosed by the durable log\'s commit/replay boundary; an idle ask rejects before appending anything. The answerer phase always produces an outcome: an aborted signal yields `\'cancelled\'`, a missing or throwing answerer yields `\'unavailable\'` (fail closed), and a rogue non-vocabulary return value is normalized to `\'unavailable\'`. A failure that prevents either audit append from committing still rejects because returning an unlogged decision would violate the pair. Session contains post-commit observer failures, so an authoritative append cannot reject the request or suppress its matching audit event.',
         parameters: [{ name: 'req', description: 'the pending decision (agent, tool identity, reason, signal).' }],
+        returns: 'the closed outcome; `\'allowed-once\'` is the only grant.',
+        throws: ['when no turn is open or either audit event fails before the session append commit point.'],
+      },
+      {
+        signature: 'async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>',
+        description: 'Ask for a security confirmation that the session\'s ordinary approval policy cannot suppress. This method is reserved for product security invariants such as deletion confirmation; it does not grant the action and still fails closed when no answerer is available, the user rejects, or the request is cancelled. Audit and turn-enclosure behavior are the same as request.',
+        parameters: [{ name: 'req', description: 'the mandatory decision (agent, tool identity, reason, signal).' }],
         returns: 'the closed outcome; `\'allowed-once\'` is the only grant.',
         throws: ['when no turn is open or either audit event fails before the session append commit point.'],
       },
@@ -854,21 +861,33 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'a snapshot without credentials or PKCE secrets.',
       },
       {
-        signature: 'abstract getProfile(): Promise<AccountDetails[\'profile\'] | null>',
-        description: 'Query Platform profile independently of wallet balances.',
-        parameters: [],
+        signature: 'abstract getProfile(client: AccountClientMetadata): Promise<AccountDetails[\'profile\'] | null>',
+        description: 'Query Platform profile independently of wallet balances. A ready result whose stable profile ID first becomes available or changes notifies watch consumers, so identity consumers re-read getPlatformSession; repeated IDs stay silent.',
+        parameters: [{ name: 'client', description: 'identity of the requesting UI for this call.' }],
         returns: 'profile outcome, or null if signed out or the grant changed during the query.',
       },
       {
-        signature: 'abstract getBalance(): Promise<AccountDetails[\'balance\'] | null>',
+        signature: 'abstract getBalance(client: AccountClientMetadata): Promise<AccountDetails[\'balance\'] | null>',
         description: 'Query Platform recharge and bonus wallet balances independently of profile data.',
-        parameters: [],
+        parameters: [{ name: 'client', description: 'identity of the requesting UI for this call.' }],
         returns: 'balance outcome, or null if signed out or the grant changed during the query.',
       },
       {
-        signature: 'abstract startSignIn(locale: string, callbackOrigin: string, loginSource: \'web\' | \'desktop\'): Promise<AccountView>',
+        signature: 'abstract getUnnotifiedBonuses(client: AccountClientMetadata): Promise<AccountBonusBatch | null>',
+        description: 'Query the granted bonuses Platform has not yet recorded as displayed.',
+        parameters: [{ name: 'client', description: 'identity of the requesting UI for this call; its language selects the server-authored message.' }],
+        returns: 'bonuses with their account, or null if signed out or the grant changed during the query.',
+      },
+      {
+        signature: 'abstract ackBonusNotified(accountId: AccountUserId, orderId: AccountBonusOrderId, client: AccountClientMetadata): Promise<boolean>',
+        description: 'Record one displayed bonus as notified for the account it belongs to.',
+        parameters: [{ name: 'accountId', description: 'account the notification was read for; a different current account is never acknowledged.' }, { name: 'orderId', description: 'granted bonus order the user saw.' }, { name: 'client', description: 'identity of the requesting UI for this call.' }],
+        returns: 'true once Platform records the acknowledgement; false if signed out or the account changed.',
+      },
+      {
+        signature: 'abstract startSignIn(client: AccountClientMetadata, callbackOrigin: string, loginSource: \'web\' | \'desktop\'): Promise<AccountView>',
         description: 'Join an active attempt or start browser authorization.',
-        parameters: [{ name: 'locale', description: 'active UI language for a new attempt; joining retains its original language.' }, { name: 'callbackOrigin', description: 'browser-accessible loopback HTTP origin, including any SSH local port.' }, { name: 'loginSource', description: 'initiating UI, used to return from a failed exchange.' }],
+        parameters: [{ name: 'client', description: 'identity of the requesting UI; a new attempt captures it, and joining retains the original attempt\'s identity.' }, { name: 'callbackOrigin', description: 'browser-accessible loopback HTTP origin, including any SSH local port.' }, { name: 'loginSource', description: 'initiating UI, used to return from a failed exchange.' }],
         returns: 'the initial snapshot without waiting for browser approval.',
       },
       {
@@ -878,9 +897,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'state after cancellation or an already-started commit.',
       },
       {
-        signature: 'abstract signOut(): Promise<AccountView>',
-        description: 'Remove the local grant while retaining API keys and tasks; the provider revokes it in the background.',
-        parameters: [],
+        signature: 'abstract signOut(client: AccountClientMetadata): Promise<AccountView>',
+        description: 'Remove the local grant while retaining API keys; the provider revokes it in the background.',
+        parameters: [{ name: 'client', description: 'identity of the requesting UI, captured for the background revocation retries.' }],
         returns: 'the signed-out state after local removal; remote failures never restore the grant.',
       },
       {
@@ -896,10 +915,22 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'stored token, or undefined for other origins or a signed-out account.',
       },
       {
+        signature: 'abstract rejectToken(token: string): Promise<void>',
+        description: 'Remove an inference-rejected token only while it still matches the stored login.',
+        parameters: [{ name: 'token', description: 'token captured by the rejected inference request.' }],
+        returns: 'after matching credentials are removed and the expiry notification is emitted.',
+      },
+      {
         signature: 'abstract getPlatformSession(): Promise<PlatformSession | null>',
-        description: 'Read credentials for the configured Platform origin, bound to their issuing environment.',
+        description: 'Read credentials for the configured Platform origin, bound to their issuing environment, and pair them with the account ID from the last successful profile read; no profile request is made.',
         parameters: [],
-        returns: 'a Host-only snapshot, or null while signed out.',
+        returns: 'a Host-only snapshot, or null while signed out or when the credential changed during the read.',
+      },
+      {
+        signature: 'abstract getDeviceIdentity(): Promise<{ deviceId?: string; userId?: AccountUserId; osVersion: string }>',
+        description: 'Read existing login identity without creating a device or returning credentials.',
+        parameters: [],
+        returns: 'optional device/account identifiers and the provider\'s OS version string.',
       },
     ],
   },
@@ -941,9 +972,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Host service backing the generated `ctx.remote.directoryPicker` namespace. The seam it exports is abstract and therefore never a Loader entry of its own, so this controller carries the wire verbs: one composed backend serves either the native chooser or the browse primitives, and a verb the composition cannot serve is refused rather than approximated.',
     methods: [
       {
-        signature: '@Remote(\'pick\') async pick(signal: AbortSignal): Promise<string | null>',
+        signature: '@Remote(\'pick\') async pick(initialPath: string | undefined, signal: AbortSignal): Promise<string | null>',
         description: 'Open the host\'s OS chooser for a Remote caller.',
-        parameters: [{ name: 'signal', description: 'caller lifetime; abort terminates the chooser.' }],
+        parameters: [{ name: 'initialPath', description: 'optional absolute directory shown when the chooser opens.' }, { name: 'signal', description: 'caller lifetime; abort terminates the chooser.' }],
         returns: 'the chosen absolute path, or null when the operator cancels.',
       },
       {
@@ -1405,7 +1436,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async listModels(provider: string): Promise<LlmModelInfo[]>',
-        description: 'Discover models advertised by one registered provider. Catalog membership is advisory and never changes routing or request validation.',
+        description: 'Discover models advertised by one registered provider. Catalog membership does not constrain core routing. Catalog-driven entry points may restrict selection and submission to the advertised models.',
         parameters: [{ name: 'provider', description: 'registered provider route to inspect.' }],
         returns: 'detached model metadata in adapter-preferred order.',
       },
@@ -1524,6 +1555,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'otel',
+    summary: 'Shared transport provider.',
+    description: 'Shared transport provider. Mounting creates no queue, identity, or network connection.',
+    methods: [
+      {
+        signature: 'createEventReporter(options: EventLogOptions): EventLogReporter',
+        description: 'Create an independent ordinary-event channel with count-based batching. The injected consumer must drain it during its fiber disposal.',
+        parameters: [{ name: 'options', description: 'transport, scope, resource, queue, and diagnostic settings selected by the consumer.' }],
+        returns: 'the caller-owned channel; no state is shared with other channels.',
+      },
+      {
+        signature: 'createSessionLogReporter(options: SessionLogOptions): SessionLogReporter',
+        description: 'Create an independent byte-bounded Session-log channel. Authorization and redaction precede reporting; the consumer owns shutdown and its outer deadline.',
+        parameters: [{ name: 'options', description: 'transport, scope, resource, queue, and diagnostic settings selected by the consumer.' }],
+        returns: 'the caller-owned channel, preserving complete accepted events within the request byte ceiling.',
+      },
+    ],
+  },
+  {
     key: 'permissionPresets',
     summary: 'Owns the deployment\'s configured permission presets, the fixed Auto integration hook, and their write path.',
     description: 'Owns the deployment\'s configured permission presets, the fixed Auto integration hook, and their write path. Requires a confining `ctx.shell` executor and `ctx.approval`; unmatched knob values are reported as CUSTOM_PRESET, not an error.',
@@ -1542,7 +1592,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'current(session: Session): string',
-        description: 'Resolve the preset matching the effective knob values. A still-matching last selection wins shared-bundle ties; otherwise the first configured match wins. Returns CUSTOM_PRESET when no available preset matches.',
+        description: 'Resolve the preset matching the effective knob values. A still-matching last selection wins shared-bundle ties, and a still-selected Auto also matches the `never` approval policy; otherwise the first configured match wins. Returns CUSTOM_PRESET when no available preset matches.',
         parameters: [{ name: 'session', description: 'the session whose knob state is read.' }],
         returns: 'the effective preset name, or `custom` when nothing matches.',
       },
@@ -1680,6 +1730,31 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'productAnalytics',
+    summary: 'Authenticated event intake; disabled instances do not inspect identity or accept new events.',
+    description: 'Authenticated event intake; disabled instances do not inspect identity or accept new events.',
+    methods: [
+      {
+        signature: '@Remote enabled(): boolean',
+        description: 'Read the collection policy.',
+        parameters: [],
+        returns: 'whether this Host currently accepts Desktop analytics.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *watchPolicy(signal: AbortSignal): AsyncIterable<boolean>',
+        description: 'Stream the effective policy initially and after live configuration edits.',
+        parameters: [{ name: 'signal', description: 'subscriber lifetime.' }],
+        returns: 'current policy values until cancellation or service disposal.',
+      },
+      {
+        signature: '@Remote async report(event: ProductEvent): Promise<void>',
+        description: 'Submit selected Desktop fields; missing identity is omitted and never generated.',
+        parameters: [{ name: 'event', description: 'typed product event without message contents or credentials.' }],
+        returns: 'after local submission; no delivery or warehouse acknowledgement.',
+      },
+    ],
+  },
+  {
     key: 'productTelemetry',
     summary: 'Host analytics sender.',
     description: 'Host analytics sender. Mounting alone sends nothing; the owning fiber drains it on unload.',
@@ -1704,6 +1779,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'readonly startedBundles: readonly string[]',
         description: 'Bundle packages used to start this process, before any persisted edits.',
+        parameters: [],
+      },
+      {
+        signature: 'readonly deploymentPatches?: readonly PatchOptions[]',
+        description: 'Launcher-owned deployment patches, applied after bundles and before user layers on every reload.',
         parameters: [],
       },
       {
@@ -1791,6 +1871,50 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'schedule',
+    summary: 'Shared management service; reads, deletion, and timing edits never activate a Session.',
+    description: 'Shared management service; reads, deletion, and timing edits never activate a Session.\n\n`sessionPersistence` is a load-order requirement rather than a directly called service: a delivery commits only when `ctx.sessions.flush()` reports that a `session/flush` listener participated, and the persistence backend providing this service is the plugin that registers that listener.',
+    methods: [
+      {
+        signature: 'async create(sessionId: SessionId, request: ScheduleCreateRequest, signal?: AbortSignal): Promise<ScheduleRecord>',
+        description: 'Create a reminder bound to the caller-selected Session without activating it.\n\nThe request must supply a title; a missing, blank-after-trim, or over-long title rejects with `invalid_prompt` instead of deriving one from the prompt. The record is built from the clock reading taken before the request joins the serialized queue, so a create that waits behind a longer operation keeps its request-time anchor and may already be due when the queue reaches it.',
+        parameters: [{ name: 'sessionId', description: 'Original Session receiving the reminder.' }, { name: 'request', description: 'Validated tool selector, required title, and reminder content.' }, { name: 'signal', description: 'Optional cancellation checked before persistence begins, including after FIFO waits.' }],
+        returns: 'The durably stored schedule. Cancellation does not roll back an in-flight write.',
+      },
+      {
+        signature: '@Remote(\'list\') async list(request: ScheduleListRequest): Promise<ScheduleRecord[]>',
+        description: 'Read the selected Session\'s active tasks without resuming its Agent.',
+        parameters: [{ name: 'request', description: 'Session whose task list is requested.' }],
+        returns: 'Persisted reminders in storage order.',
+      },
+      {
+        signature: '@Remote(\'catalog\') async catalog(): Promise<ScheduleCatalogEntry[]>',
+        description: 'Read all active and inactive Host reminders with their original Session bindings. A deleted reminder has no row, so it is absent here. Does not activate Sessions or read Session history.',
+        parameters: [],
+        returns: 'Reminders ordered by scheduledAt ascending, then lexicographically by id.',
+      },
+      {
+        signature: '@Remote(\'history\') async history(request: ScheduleDeliveryHistoryRequest): Promise<ScheduleDeliveryHistoryResult>',
+        description: 'Read saved inbox deliveries without activating or reading the original Session. The task\'s own row supplies its binding, so its records stay readable through this lookup.',
+        parameters: [{ name: 'request', description: 'Session binding, task identity, explicit limit, and optional exclusive message cursor.' }],
+        returns: 'Newest-first deliveries in append order, or a task/cursor lookup failure.',
+        throws: ['ScheduleInputError when limit is not a safe integer from 1 through 100.'],
+      },
+      {
+        signature: '@Remote(\'delete\') async delete(request: ScheduleDeleteRequest, signal?: AbortSignal): Promise<ScheduleDeleteResult>',
+        description: 'Delete one task belonging to the selected Session, leaving queued messages intact.\n\nThe row is removed: the task no longer schedules, leaves `list` and `catalog`, and its saved delivery records go with it.',
+        parameters: [{ name: 'request', description: 'Session and exact task identity.' }, { name: 'signal', description: 'Optional cancellation checked before persistence begins, including after FIFO waits.' }],
+        returns: 'Whether that Session owned a deleted task. Cancellation does not roll back an in-flight write.',
+      },
+      {
+        signature: '@Remote(\'update\') async update(request: ScheduleUpdateRequest, signal?: AbortSignal): Promise<ScheduleUpdateResult>',
+        description: 'Update the name, instruction, and timing of an active task within the original Session binding without activating the Session or changing saved deliveries.\n\nEach supplied field replaces its stored value; an omitted field keeps it. A name or instruction change alone does not reset the committed target.',
+        parameters: [{ name: 'request', description: 'Task binding, complete observed record, and any combination of timing, name, and instruction.' }, { name: 'signal', description: 'Cancellation checked after domain readiness and FIFO waits, before persistence begins.' }],
+        returns: 'The committed record, unchanged record for a no-op, or a non-mutating input/lookup/conflict result. Storage and lifecycle failures reject; cancellation after a write starts does not roll it back.',
+      },
+    ],
+  },
+  {
     key: 'sessionController',
     summary: 'Host service backing the generated `ctx.remote.session` namespace.',
     description: 'Host service backing the generated `ctx.remote.session` namespace.',
@@ -1827,9 +1951,15 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote(\'selectModel\') selectModel(request: SessionSelectModelRequest): Promise<SessionSelectModelValue>',
-        description: 'Select one Session-local model after explicitly resuming the Session.',
+        description: 'Select one Session-local model after explicitly resuming the Session; save the default in the background.',
         parameters: [{ name: 'request', description: 'Session identity and requested model selection.' }],
-        returns: 'the normalized selection installed for the Session.',
+        returns: 'the normalized selection installed for the Session, without waiting for default persistence.',
+      },
+      {
+        signature: '@Remote async initializeDefaultModel(): Promise<void>',
+        description: 'Select the first available account model after login when no provider API key is configured.',
+        parameters: [],
+        returns: 'after saving the first available model or retaining the existing default.',
       },
       {
         signature: '@Remote(\'modelCatalog\') modelCatalog(): Promise<ModelCatalog>',
@@ -2797,10 +2927,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>',
-        description: 'Enumerate the root\'s complete session-backed subagent tree in stable pre-order from one live-preferred corpus, without loading or resuming an Agent. Ordinary sessions and one-shot children remain traversal nodes so continuable descendants below them are discovered; each returned entry adds its durable `parentId` and root-relative `depth`. Identity resolution, diagnostics, optional persistence, and cancellation use the registered child identity projection and complete Session corpus.',
-        parameters: [{ name: 'rootSessionId', description: 'session whose complete descendant tree is listed.' }, { name: 'signal', description: 'caller-owned cancellation forwarded to persistence reads and observed around every read await.' }],
-        returns: 'children and per-candidate diagnostics with tree position, in stable pre-order.',
-        throws: ['{@link SubagentError} when listing dependencies are unavailable or the caller cancels.'],
+        description: 'Recursively list reachable parent catalogs in stable pre-order, preserving each catalog\'s event order. Each row carries its catalog parent and depth; one-shot and unknown-mode children remain traversal nodes. Unknown modes produce unsupported diagnostics. Unreadable child catalogs produce corrupt or unavailable diagnostics and stop only that branch. Root read failures, missing services or projections, and cancellation reject the whole listing. Each catalog is observed once and released before the next read. No Agent is loaded or resumed; Sessions absent from reachable catalogs are omitted.',
+        parameters: [{ name: 'rootSessionId', description: 'session whose catalog starts descendant discovery.' }, { name: 'signal', description: 'cancellation forwarded to and checked around each catalog read.' }],
+        returns: 'children and branch diagnostics in parent-catalog pre-order.',
+        throws: ['{@link SubagentError} when listing dependencies are unavailable or the caller cancels.', 'SessionQueryError when the root catalog cannot be read.'],
       },
       {
         signature: '@Remote(\'prompt\') async prompt(request: SubagentPromptRequest, signal: AbortSignal): Promise<SubagentPromptReceipt>',
@@ -3259,6 +3389,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [],
       },
       {
+        signature: 'hasLiveClient(): boolean',
+        description: 'Check for an active Client event stream.',
+        parameters: [],
+        returns: 'whether a stream is open and has not been cancelled.',
+      },
+      {
         signature: 'registerRemoteEvents( source: TypertRemoteEventSource, host: RemoteEventHostInfo, ): () => Promise<void>',
         description: 'Register the sole application-selected forwarded-event source.',
         parameters: [{ name: 'source', description: 'stream factory installed by the Remote assembly.' }, { name: 'host', description: 'stable Host facts included in each Client generation\'s opening frame.' }],
@@ -3280,10 +3416,43 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'usageAccounting',
+    summary: 'Host service owning the ledger, built-in pricing, Remote, and stream observer.',
+    description: 'Host service owning the ledger, built-in pricing, Remote, and stream observer.',
+    methods: [
+      {
+        signature: '@Remote(\'snapshot\') async snapshot(): Promise<UsageAccountingSnapshot>',
+        description: 'Return only the current API key\'s current-month usage.',
+        parameters: [],
+        returns: 'current Beijing-month snapshot without credential material.',
+      },
+    ],
+  },
+  {
     key: 'userQuestions',
     summary: '`ctx.userQuestions`: validation plus the scoped answerer waterfall.',
     description: '`ctx.userQuestions`: validation plus the scoped answerer waterfall.',
     methods: [
+      {
+        signature: '@Remote answer(agent: Agent, callId: ToolCallId, answer: AskUserQuestionAnswer): boolean',
+        description: 'Answer a continued question. The reply is steered into the agent as a user message whose source names the call; that message is also the record that closes the question in the projection.',
+        parameters: [{ name: 'agent', description: 'Live root agent for the owning Session.' }, { name: 'callId', description: 'Continued question identity.' }, { name: 'answer', description: 'Complete structured answer batch, one item per question of the call.' }],
+        returns: 'Whether the question is still continued; an accepted reply stays queued until the agent admits its user message.',
+        throws: ['{UserQuestionError} `BAD_ANSWER` when the batch does not name each question of the call exactly once, or `REPLY_QUEUED` when a reply is already waiting for admission.'],
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *attachWait(agent: Agent, callId: ToolCallId, signal: AbortSignal): AsyncIterable<{ remainingMs: number }>',
+        description: 'Let one answer UI hold a live timed wait. Closing the stream releases its claim.',
+        parameters: [{ name: 'agent', description: 'Live root agent owning the question.' }, { name: 'callId', description: 'Foreground tool call to attach to.' }, { name: 'signal', description: 'Remote stream cancellation, including Client disconnect.' }],
+        returns: 'One Host-computed remaining duration, or no frames once the wait ended.',
+      },
+      {
+        signature: 'async askTimed( request: AskUserQuestionRequest & { agent: Agent }, callId: ToolCallId, timeoutMs: number, ): Promise<TimedUserQuestionResult>',
+        description: 'Foreground wait whose first settlement the Client decides: the Client rejects with `ASK_TIMED_OUT` when its countdown ends, and this method maps that code to the pending result.',
+        parameters: [{ name: 'request', description: 'Questions, live owner agent, and abort signal.' }, { name: 'callId', description: 'Tool call identity the Client card is keyed by.' }, { name: 'timeoutMs', description: 'Positive foreground wait in milliseconds.' }],
+        returns: 'The answer when it arrives inside the window, otherwise a pending result, also when no connected Client claimed the request by the deadline.',
+        throws: ['{UserQuestionError} `BAD_TIMEOUT` for a non-integer, non-positive, or oversized wait.'],
+      },
       {
         signature: 'async ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>',
         description: 'Ask the scoped answerer waterfall and wait for the user\'s answer.\n\nWhen a caller supplies an agent, human interaction is valid only for the exact live runtime root. Runtime ownership, not durable session lineage, decides this boundary: an owned child has no human answerer and would block forever, while a lineage-bearing session resumed as a new runtime root may ask normally.',
@@ -3437,9 +3606,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the Workspace and whether this call created it.',
       },
       {
-        signature: '@Remote(\'initializeDefault\') async initializeDefault(request: WorkspaceInitializeDefaultRequest, signal: AbortSignal): Promise<WorkspaceValue | undefined>',
-        description: 'Initialize or reuse the default Workspace during first-use startup.',
-        parameters: [{ name: 'request', description: 'initial directory name and title; never rename an existing default.' }, { name: 'signal', description: 'caller lifetime; cancels native directory lookup.' }],
+        signature: '@Remote(\'initializeDefault\') async initializeDefault(signal: AbortSignal): Promise<WorkspaceValue | undefined>',
+        description: 'Initialize or reuse the default Workspace during first-use startup. The directory name is fixed, so the Host never renames or relocates an existing default; its initial title is that same name, which browser consumers label in the reader\'s language.',
+        parameters: [{ name: 'signal', description: 'caller lifetime; cancels native directory lookup.' }],
         returns: 'the durable Workspace, or undefined when first-use initialization is ineligible; creates no Session or message.',
       },
       {
@@ -3548,9 +3717,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the existing or newly durable workspace.',
       },
       {
-        signature: 'initializeDefault(resolveDirectory: () => Promise<{ path: string; title: string }>): Promise<Workspace | undefined>',
+        signature: 'initializeDefault(resolveDirectory: () => Promise<string>): Promise<Workspace | undefined>',
         description: 'Initialize the default Workspace only while both the registry and Session history are empty. Repeated requests reuse its durable identity; deleting that registration permanently disables automatic creation.',
-        parameters: [{ name: 'resolveDirectory', description: 'resolve the absolute directory and initial title; called only for eligible creation, inside the registry mutation queue. Missing directories are created recursively before registration. After resolution, caller cancellation does not roll back creation or registration.' }],
+        parameters: [{ name: 'resolveDirectory', description: 'resolve the absolute directory; called only for eligible creation, inside the registry mutation queue. Missing directories are created recursively before registration, and the initial title is the requested directory\'s own final segment — not the canonical one, so a symlink at that path does not retitle the Workspace after its target. After resolution, caller cancellation does not roll back creation or registration.' }],
         returns: 'the initialized Workspace, or undefined when automatic creation is ineligible.',
       },
       {
@@ -3606,6 +3775,561 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Resolve by canonical directory path without creating or mutating a workspace. A missing path rejects during `realpath`; an existing unowned directory returns `undefined`.',
         parameters: [{ name: 'path', description: 'Existing directory path in a fully qualified spelling.' }],
         returns: 'the workspace owning the canonical path, when one exists.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingBrowserControl',
+    summary: 'DOM-first Edge automation coordinator and model-facing tool consumer.',
+    description: 'DOM-first Edge automation coordinator and model-facing tool consumer.',
+    methods: [
+      {
+        signature: 'status(): BrowserControlStatus',
+        description: 'Return the current managed and personal Edge status without exposing credentials.',
+        parameters: [],
+        returns: 'Sanitized route and extension state.',
+      },
+      {
+        signature: 'async approvalReason(owner: SessionId, request: BrowserActionRequest): Promise<string | undefined>',
+        description: 'Explain whether one request requires a one-shot user approval.',
+        parameters: [{ name: 'owner', description: 'Agent session making the request.' }, { name: 'request', description: 'Validated semantic browser operation.' }],
+        returns: 'Approval reason, or undefined for a read or low-risk edit.',
+      },
+      {
+        signature: 'async run(owner: SessionId, request: BrowserActionRequest, signal: AbortSignal): Promise<BrowserActionResult>',
+        description: 'Execute one unprotected browser operation for an owning session; protected requests must use the registered tool.',
+        parameters: [{ name: 'owner', description: 'Agent session making the request.' }, { name: 'request', description: 'Browser operation.' }, { name: 'signal', description: 'Cancellation signal.' }],
+        returns: 'Bounded semantic result.',
+      },
+      {
+        signature: 'async close(): Promise<void>',
+        description: 'Close the dedicated Edge process while leaving the optional extension bridge available.',
+        parameters: [],
+      },
+    ],
+  },
+  {
+    key: 'xiaojingComputerControl',
+    summary: 'Semantic Windows UI Automation provider and model-facing tool consumer.',
+    description: 'Semantic Windows UI Automation provider and model-facing tool consumer.',
+    methods: [
+      {
+        signature: 'approvalReason(owner: SessionId, request: ComputerActionRequest): string | undefined',
+        description: 'Explain whether one request requires a one-shot user approval.',
+        parameters: [{ name: 'owner', description: 'Agent session that owns the observed Windows targets.' }, { name: 'request', description: 'Validated Windows operation.' }],
+        returns: 'The approval reason, or undefined when the operation may proceed directly.',
+      },
+      {
+        signature: 'run(owner: SessionId, request: ComputerActionRequest, signal: AbortSignal): Promise<ComputerActionResult>',
+        description: 'Execute one validated Windows operation for an owning session.',
+        parameters: [{ name: 'owner', description: 'Agent session that owns the observed Windows targets.' }, { name: 'request', description: 'Windows operation to execute.' }, { name: 'signal', description: 'Cancellation signal for the operation.' }],
+        returns: 'The bounded application catalog, window list, or UI Automation observation produced by the operation.',
+      },
+      {
+        signature: 'async close(): Promise<void>',
+        description: 'Terminate the helper process tree and reject any pending request.',
+        parameters: [],
+      },
+    ],
+  },
+  {
+    key: 'xiaojingDesktopCompanion',
+    summary: 'Aggregate task lifecycle events and expose a loopback-only snapshot stream.',
+    description: 'Aggregate task lifecycle events and expose a loopback-only snapshot stream.',
+    methods: [
+      {
+        signature: 'snapshot(): CompanionSnapshot',
+        description: 'Return the current content-free aggregate state.',
+        parameters: [],
+        returns: 'The current redacted snapshot.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceCalculations',
+    summary: 'Host service consumed only by the Finance preset\'s calculation tool.',
+    description: 'Host service consumed only by the Finance preset\'s calculation tool.',
+    methods: [
+      {
+        signature: 'calculate(agent: Agent, request: FinanceCalculationRequest): FinanceCalculationResult',
+        description: 'Calculate one Finance trial result using explicit inputs and immutable client assumptions.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'request', description: 'Explicit calculation request.' }],
+        returns: 'Auditable deterministic result.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceDocuments',
+    summary: 'Host service exposed only through the Finance preset\'s document tool.',
+    description: 'Host service exposed only through the Finance preset\'s document tool.',
+    methods: [
+      {
+        signature: 'async listDocuments(agent: Agent, signal?: AbortSignal): Promise<FinanceDocumentListItem[]>',
+        description: 'List and normalize original-material imports in the calling Finance session.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'signal', description: 'Caller cancellation signal; shared warming remains useful after cancellation.' }],
+        returns: 'Imported document states in event order.',
+      },
+      {
+        signature: 'async readDocument( agent: Agent, documentId: FinanceManagedFileId, cursor: number = 0, signal?: AbortSignal, ): Promise<FinanceDocumentReadResult>',
+        description: 'Read one bounded page of normalized content from the calling Finance session.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'documentId', description: 'Session import identity returned by {@link listDocuments}.' }, { name: 'cursor', description: 'Zero-based normalized-unit cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Paginated normalized content.',
+      },
+      {
+        signature: 'async readDocumentVisuals( agent: Agent, documentId: FinanceManagedFileId, cursor: number = 0, signal?: AbortSignal, ): Promise<FinanceDocumentVisualReadResult>',
+        description: 'Read one bounded document-image page from the calling Finance session.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'documentId', description: 'Session import identity returned by {@link listDocuments}.' }, { name: 'cursor', description: 'Zero-based document-image cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Durable native-vision attachments and their slide locations.',
+      },
+      {
+        signature: 'async listGeneralDocuments(agent: Agent, signal?: AbortSignal): Promise<XiaojingDocumentListItem[]>',
+        description: 'List deterministic document states for the calling ordinary session.',
+        parameters: [{ name: 'agent', description: 'Calling non-Finance agent.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Current-session uploads in durable user-message order.',
+      },
+      {
+        signature: 'async readGeneralDocument( agent: Agent, documentId: XiaojingDocumentId, cursor: number = 0, signal?: AbortSignal, ): Promise<XiaojingDocumentReadResult>',
+        description: 'Read normalized text from one upload introduced by the calling ordinary session.',
+        parameters: [{ name: 'agent', description: 'Calling non-Finance agent.' }, { name: 'documentId', description: 'Opaque identity returned by {@link listGeneralDocuments}.' }, { name: 'cursor', description: 'Zero-based normalized-unit cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Paginated normalized content.',
+      },
+      {
+        signature: 'async readGeneralDocumentVisuals( agent: Agent, documentId: XiaojingDocumentId, cursor: number = 0, signal?: AbortSignal, ): Promise<XiaojingDocumentVisualReadResult>',
+        description: 'Read document images from one upload introduced by the calling ordinary session.',
+        parameters: [{ name: 'agent', description: 'Calling non-Finance agent.' }, { name: 'documentId', description: 'Opaque identity returned by {@link listGeneralDocuments}.' }, { name: 'cursor', description: 'Zero-based document-image cursor.' }, { name: 'signal', description: 'Caller cancellation signal.' }],
+        returns: 'Durable native-vision attachments and their slide locations.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceDomain',
+    summary: 'Host service owning local client CRUD, pre-turn staging, and durable session binding.',
+    description: 'Host service owning local client CRUD, pre-turn staging, and durable session binding.',
+    methods: [
+      {
+        signature: '@Remote(\'list\') list(): Promise<FinanceClientListView>',
+        description: 'List local client summaries.',
+        parameters: [],
+        returns: 'Current catalog revision and rows.',
+      },
+      {
+        signature: '@Remote(\'readAttachmentStorage\') readAttachmentStorage(): Promise<AttachmentStorageView>',
+        description: 'Read computer-wide attachment settings.',
+        parameters: [],
+        returns: 'Configuration without AccessKey values.',
+      },
+      {
+        signature: '@Remote(\'readReimbursementConnection\') async readReimbursementConnection(clientId: FinanceClientId): Promise<ReimbursementConnectionView>',
+        description: 'Read the independently saved reimbursement connection.',
+        parameters: [{ name: 'clientId', description: 'Selected account-book.' }],
+        returns: 'Non-secret reimbursement settings.',
+      },
+      {
+        signature: '@Remote(\'saveReimbursementConnection\') async saveReimbursementConnection(request: SaveReimbursementConnectionRequest): Promise<ReimbursementConnectionView>',
+        description: 'Replace reimbursement credentials without changing Finance authorization.',
+        parameters: [{ name: 'request', description: 'Revision-checked reimbursement credentials.' }],
+        returns: 'Saved non-secret settings.',
+      },
+      {
+        signature: '@Remote(\'testReimbursementConnection\') async testReimbursementConnection(clientId: FinanceClientId): Promise<string>',
+        description: 'Verify reimbursement authorization through a read-only department query.',
+        parameters: [{ name: 'clientId', description: 'Account-book whose saved credential is tested.' }],
+        returns: 'Read-only authorization outcome.',
+      },
+      {
+        signature: 'async reimbursement(agent: Agent, input: unknown, signal: AbortSignal): Promise<object>',
+        description: 'Discover reimbursement fields or save an explicitly confirmed, invoice-backed draft.',
+        parameters: [{ name: 'agent', description: 'Bound Finance session; callers cannot override account-book identity.' }, { name: 'input', description: 'Untrusted tool JSON, parsed before authentication.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Credential-free metadata or a durable draft receipt; incomplete writes remain explicit.',
+      },
+      {
+        signature: '@Remote(\'saveAttachmentStorage\') saveAttachmentStorage(request: SaveAttachmentStorageRequest): Promise<AttachmentStorageView>',
+        description: 'Replace computer-wide attachment configuration.',
+        parameters: [{ name: 'request', description: 'Revision-checked settings with optional new key pair.' }],
+        returns: 'Sanitized saved settings.',
+      },
+      {
+        signature: '@Remote(\'testAttachmentStorage\') async testAttachmentStorage(revision: number): Promise<AttachmentStorageTestResult>',
+        description: 'Test a synthetic object without uploading customer documents.',
+        parameters: [{ name: 'revision', description: 'Saved configuration selected for testing.' }],
+        returns: 'Real upload, download, and cleanup outcomes.',
+      },
+      {
+        signature: 'async uploadFinanceAttachment(agent: Agent, sourcePath: string, signal: AbortSignal): Promise<FinanceAttachmentUpload>',
+        description: 'Upload one unchanged original invoice imported into the calling account-book session.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent whose workspace and import log authorize the file.' }, { name: 'sourcePath', description: 'Exact imported path or an unambiguous imported filename.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Host-only receipt; consumers must omit downloadUrl from model-visible output.',
+      },
+      {
+        signature: '@Remote(\'workspaces\') async workspaces(): Promise<FinanceWorkspaceListView>',
+        description: 'List standard and customer Workspaces owned by Finance.',
+        parameters: [],
+        returns: 'Browser-safe Workspace identities in customer-catalog order.',
+      },
+      {
+        signature: '@Remote(\'addConsultationWorkspace\') async addConsultationWorkspace( request: AddFinanceConsultationWorkspaceRequest, ): Promise<FinanceGeneralWorkspaceEntry>',
+        description: 'Register one user-selected Finance consultation Workspace.',
+        parameters: [{ name: 'request', description: 'Directory selected through the local folder picker.' }],
+        returns: 'Browser-safe Finance Workspace entry.',
+      },
+      {
+        signature: '@Remote(\'renameWorkspace\') async renameWorkspace(request: RenameFinanceWorkspaceRequest): Promise<FinanceWorkspaceEntry>',
+        description: 'Rename one Finance-owned Workspace without changing its directory or client record.',
+        parameters: [{ name: 'request', description: 'Workspace identity and new sidebar title.' }],
+        returns: 'Updated browser-safe Workspace entry.',
+      },
+      {
+        signature: '@Remote(\'removeWorkspace\') async removeWorkspace(request: RemoveFinanceWorkspaceRequest): Promise<FinanceWorkspaceEntry>',
+        description: 'Remove one Finance-owned Workspace from product lists without deleting durable data.',
+        parameters: [{ name: 'request', description: 'Workspace selected in the Finance sidebar.' }],
+        returns: 'The detached browser-safe Workspace entry.',
+      },
+      {
+        signature: '@Remote(\'restoreClientWorkspace\') async restoreClientWorkspace( request: RestoreFinanceClientWorkspaceRequest, ): Promise<FinanceClientWorkspaceEntry | null>',
+        description: 'Restore a removed client Workspace when its existing directory is selected again.',
+        parameters: [{ name: 'request', description: 'Directory selected through the local folder picker.' }],
+        returns: 'Restored client Workspace, or null when the directory is not an existing client.',
+      },
+      {
+        signature: '@Remote(\'read\') async read(clientId: FinanceClientId): Promise<FinanceClientReadView>',
+        description: 'Read full local client detail.',
+        parameters: [{ name: 'clientId', description: 'Client identity.' }],
+        returns: 'Full loopback-only record.',
+      },
+      {
+        signature: '@Remote(\'listYouchengAccounts\') async listYouchengAccounts(request: ListFinanceYouchengAccountsRequest): Promise<FinanceYouchengAccountsResult>',
+        description: 'Read available ledgers using unsaved credentials without changing the customer, secret, or badge.',
+        parameters: [{ name: 'request', description: 'Editor revision, application identity, and optional write-only replacement secret.' }],
+        returns: 'Ledger choices or a safe connection failure; rejects stale revisions and archived clients.',
+      },
+      {
+        signature: '@Remote(\'checkConnection\') async checkConnection(clientId: FinanceClientId): Promise<FinanceConnectionStatus>',
+        description: 'Verify the saved Youcheng credentials and exact ledger without any accounting mutation.',
+        parameters: [{ name: 'clientId', description: 'Local customer owning the saved connection.' }],
+        returns: 'Sanitized current check; a concurrent edit invalidates the old result.',
+      },
+      {
+        signature: 'async queryVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<VoucherPage>',
+        description: 'Query vouchers using the owning Finance session\'s saved ledger and Host credential.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent; consultation and other workspaces are rejected.' }, { name: 'query', description: 'Month and page, with no customer, ledger, URL, or credential overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'One bounded read-only page; concurrent record edits discard its result.',
+      },
+      {
+        signature: 'async queryVoucherDetail(agent: Agent, voucherId: string, signal: AbortSignal): Promise<VoucherDetail>',
+        description: 'Read a specified voucher using the bound session\'s saved connection.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance agent in its own workspace.' }, { name: 'voucherId', description: 'ID from the list or user, not a voucher display number.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Verified detail; changed configuration or credentials discard the result.',
+      },
+      {
+        signature: 'async queryBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<BalanceResult>',
+        description: 'Query balances using only the bound Finance session\'s saved connection.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance agent in its own workspace.' }, { name: 'query', description: 'Inclusive accounting periods without ledger overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded report; changed configuration or credentials discard the result.',
+      },
+      {
+        signature: 'async analyzeBalances(agent: Agent, query: BalanceAnalysisQuery, signal: AbortSignal): Promise<BalanceAnalysisResult>',
+        description: 'Compare explicit single-level base-currency balances under one saved-client revision.',
+        parameters: [{ name: 'agent', description: 'Bound Finance session.' }, { name: 'query', description: 'Months and one subject level.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Exact differences with original rows and unverified coverage retained.',
+      },
+      {
+        signature: 'async exportBalanceAnalysis(agent: Agent, query: BalanceAnalysisQuery, signal: AbortSignal): Promise<{ report: BalanceAnalysisResult file: FinanceManagedFile }>',
+        description: 'Publish a freshly read balance analysis with source rows and exact-text amounts.',
+        parameters: [{ name: 'agent', description: 'Bound Finance session.' }, { name: 'query', description: 'Months and one subject level, not caller-authored rows.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'The analyzed report and committed local workbook.',
+      },
+      {
+        signature: 'async queryJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<JournalResult>',
+        description: 'Query journals using the session-bound client\'s saved connection.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Single-month date range, page and optional cash-account selection.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded read; concurrent client or credential changes discard the result.',
+      },
+      {
+        signature: 'async analyzeJournals(agent: Agent, query: JournalAnalysisQuery, signal: AbortSignal): Promise<JournalAnalysisResult>',
+        description: 'Reconcile one cash account\'s journals and compare same-currency periods.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Explicit account and date ranges without connection overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Reconciled totals; concurrent client or credential changes discard the entire report.',
+      },
+      {
+        signature: 'async exportJournalAnalysis(agent: Agent, query: JournalAnalysisQuery, signal: AbortSignal): Promise<{ report: JournalAnalysisResult file: FinanceManagedFile }>',
+        description: 'Query and publish a reconciled journal comparison with exact source rows.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Account and date ranges, not a previous-result snapshot.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication starts.' }],
+        returns: 'Exact report and committed local workbook; no publication follows failed reconciliation.',
+      },
+      {
+        signature: 'async queryOpenItems(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<OpenItemResult>',
+        description: 'Query receivables or payables using the session-bound saved connection.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Direction, accounting periods and page without connection overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded page; changed client configuration or credentials discard the result.',
+      },
+      {
+        signature: 'async analyzeOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<OpenItemAnalysisResult>',
+        description: 'Aggregate or compare complete vendor-count-reconciled open-item pages.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent in its own workspace.' }, { name: 'query', description: 'Direction, periods and grouping; no model-supplied records.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Exact same-currency groups; concurrent configuration changes discard the entire report.',
+      },
+      {
+        signature: 'async exportOpenItems(agent: Agent, query: OpenItemAnalysisQuery, signal: AbortSignal): Promise<{ report: OpenItemAnalysisResult file: FinanceManagedFile }>',
+        description: 'Query and publish a local XLSX of this invocation\'s open-item analysis.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Query criteria, not a previous-result snapshot or caller-authored rows.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication begins.' }],
+        returns: 'Published file and the exact report serialized; publication commits preserve the work copy.',
+      },
+      {
+        signature: 'async exportVouchers(agent: Agent, query: VoucherQuery, signal: AbortSignal): Promise<{ report: VoucherPage file: FinanceManagedFile }>',
+        description: 'Query every count-reconciled voucher page and publish the business rows as XLSX.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Filters; caller page settings do not limit the export.' }, { name: 'signal', description: 'Cancellation checked during reads, before writing, and before publication starts.' }],
+        returns: 'Complete count-reconciled report and committed local file; the work copy is preserved.',
+      },
+      {
+        signature: 'async exportBalances(agent: Agent, query: BalanceQuery, signal: AbortSignal): Promise<{ report: BalanceResult file: FinanceManagedFile }>',
+        description: 'Query and publish balance source columns with their unverified coverage notice intact.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Inclusive accounting periods.' }, { name: 'signal', description: 'Cancellation checked before writing and before publication starts.' }],
+        returns: 'Exact queried report and committed local workbook; no inferred totals or currency.',
+      },
+      {
+        signature: 'async exportJournals(agent: Agent, query: JournalQuery, signal: AbortSignal): Promise<{ report: JournalResult file: FinanceManagedFile }>',
+        description: 'Query journal pages through the first empty page and publish the business rows as XLSX.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Dates and account selector; caller page settings do not limit the export.' }, { name: 'signal', description: 'Cancellation checked during reads, before writing, and before publication.' }],
+        returns: 'Collected report and committed workbook, with vendor summaries separated.',
+      },
+      {
+        signature: 'async exportOpenItemPage(agent: Agent, query: OpenItemQuery, signal: AbortSignal): Promise<{ report: OpenItemResult file: FinanceManagedFile }>',
+        description: 'Query every count-reconciled receivable or payable page and publish the business rows as XLSX.',
+        parameters: [{ name: 'agent', description: 'Owning bound Finance session.' }, { name: 'query', description: 'Direction and periods; caller page settings do not limit the export.' }, { name: 'signal', description: 'Cancellation checked during reads, before writing, and before publication.' }],
+        returns: 'Complete count-reconciled report and committed workbook; settlement is not a bank payment claim.',
+      },
+      {
+        signature: 'async prepareMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Prepare/revise local subject or auxiliary values, or inspect the original submission without sending.',
+        parameters: [{ name: 'agent', description: 'Owning client-bound Finance session.' }, { name: 'input', description: 'Explicit proposal or original local ID/version.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'maxBytes', description: 'Complete preview and durable record limit.' }],
+        returns: 'Exact preview or persisted outcome with an independent content comparison.',
+      },
+      {
+        signature: 'async createMasterData(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Confirm and reserve an exact subject/auxiliary proposal before one public API write.',
+        parameters: [{ name: 'agent', description: 'Owning Finance agent for mandatory approval.' }, { name: 'input', description: 'Existing preparation ID and exact version only.' }, { name: 'signal', description: 'Caller cancellation; no cancellation after dispatch grants retry authority.' }, { name: 'maxBytes', description: 'Complete preview, persistent record and response limit.' }],
+        returns: 'Durable transport result followed by a separate, possibly unavailable readback.',
+      },
+      {
+        signature: 'async queryObservedOpenItemAccounts(agent: Agent, input: unknown, signal: AbortSignal): Promise<OpenItemAccountReferences>',
+        description: 'Read account observations on one explicit existing-open-item page, not a complete account directory.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance session in its own workspace.' }, { name: 'input', description: 'Direction, period range and page selected for this read.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Returned account identities, attributes and source coverage; missing accounts remain unresolved.',
+      },
+      {
+        signature: 'async prepareOpenItem(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Prepare/revise a local open item or inspect its original durable submission without resending.',
+        parameters: [{ name: 'agent', description: 'Owning client-bound Finance session.' }, { name: 'input', description: 'Complete sourced proposal or original local operation ID.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'maxBytes', description: 'Complete local record and result limit.' }],
+        returns: 'Local preview or durable outcome and independent readback; neither proves receipt or payment.',
+      },
+      {
+        signature: 'async createOpenItem(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Confirm one exact open-item version, reserve durably, send once and independently compare its returned ID.',
+        parameters: [{ name: 'agent', description: 'Owning Finance session and mandatory-approval context.' }, { name: 'input', description: 'Persisted local ID and version only.' }, { name: 'signal', description: 'Cancellation; received transport outcomes remain durable after cancellation.' }, { name: 'maxBytes', description: 'Complete record, request and result cap.' }],
+        returns: 'Durable outcome plus content/association/balance checks, not settlement or payment execution.',
+      },
+      {
+        signature: 'async prepareJournal(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Prepare or revise a local journal, or inspect the original accepted/unknown submission without resending.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance session in its own workspace.' }, { name: 'input', description: 'Preparation command or original local operation ID.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'maxBytes', description: 'Deployment record/result byte cap.' }],
+        returns: 'Exact local preview or durable transport state with independent readback.',
+      },
+      {
+        signature: 'async createJournal(agent: Agent, input: unknown, signal: AbortSignal, maxBytes: number): Promise<object>',
+        description: 'Confirm an exact journal version, durably reserve it, send once and inspect the original result.',
+        parameters: [{ name: 'agent', description: 'Owning Finance agent, supplying mandatory approval context.' }, { name: 'input', description: 'Existing local ID and version only.' }, { name: 'signal', description: 'Caller cancellation; a received ID persists even if cancellation follows dispatch.' }, { name: 'maxBytes', description: 'Deployment record/request/result byte limit.' }],
+        returns: 'Sanitized durable transport and readback states, never a retry instruction.',
+      },
+      {
+        signature: 'async prepareVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number }): Promise<object>',
+        description: 'Prepare/revise an unsent voucher, or inspect its durable submission record in the owning Finance session.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent; identity and credentials cannot be supplied in the request.' }, { name: 'input', description: 'Preparation-only command, including proposed entries or a prior local ID/version.' }, { name: 'signal', description: 'Cancellation before publication.' }, { name: 'limits', description: 'Deployment-controlled maximum entries and complete input/result size.' }],
+        returns: 'Local preview or submission observation with pending checks; accepted IDs receive read-only basic accounting comparison, never resubmission.',
+      },
+      {
+        signature: 'async createVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number }): Promise<object>',
+        description: 'Confirm and send an exact saved version once; acceptance remains distinct from verified completion.',
+        parameters: [{ name: 'agent', description: 'Owning Finance session; supplies the account and mandatory approval context.' }, { name: 'input', description: 'Local proposal ID and version only, with no destination or approval overrides.' }, { name: 'signal', description: 'Cancellation; observations after dispatch are persisted even when cancelled.' }, { name: 'limits', description: 'Maximum entries and complete record/response bytes.' }],
+        returns: 'Durable transport outcome and optional basic readback, never an automatic resend.',
+      },
+      {
+        signature: 'async prepareVoucherDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number; maxPages: number }): Promise<object>',
+        description: 'Prepare or inspect a deletion using a fresh voucher detail within the currently bound client.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance session owning the request.' }, { name: 'input', description: 'Preparation/revision references or an existing deletion record ID; no credentials or consent overrides.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'limits', description: 'Complete record/input limits and maximum pages per absence-verification pass.' }],
+        returns: 'Saved exact preview or read-only recovery result; never sends a deletion.',
+      },
+      {
+        signature: 'async deleteVoucher(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxEntries: number; maxBytes: number; maxPages: number }): Promise<object>',
+        description: 'Force confirmation of an exact deletion version and persist the shared target claim before dispatch.',
+        parameters: [{ name: 'agent', description: 'Initiating client-bound session.' }, { name: 'input', description: 'Local deletion ID and version only.' }, { name: 'signal', description: 'Caller cancellation; transport observations remain durable after dispatch.' }, { name: 'limits', description: 'Full record/result bounds and maximum pages per readback pass.' }],
+        returns: 'Transport observation and independent readback; never automatically resends an uncertain operation.',
+      },
+      {
+        signature: 'async prepareJournalDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Prepare or recover one journal deletion within an explicit cash account and month.',
+        parameters: [{ name: 'agent', description: 'Session bound to the current Finance client.' }, { name: 'input', description: 'Exact target/month/account for preparation or a local operation ID for read-only recovery.' }, { name: 'signal', description: 'Caller cancellation.' }, { name: 'limits', description: 'Complete record/output and independent inventory bounds.' }],
+        returns: 'Versioned target preview or scoped readback; never sends a business write or claims global absence.',
+      },
+      {
+        signature: 'async deleteJournal(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Enforce exact journal/version approval and reserve a shared target before a single dispatch.',
+        parameters: [{ name: 'agent', description: 'Initiating bound Finance session.' }, { name: 'input', description: 'Local prepared operation ID and exact version, without consent or destination overrides.' }, { name: 'signal', description: 'Caller cancellation; a received transport outcome remains durable.' }, { name: 'limits', description: 'Record, result and two-pass inventory bounds.' }],
+        returns: 'Persisted transport outcome and separate scoped target/content/balance observations, never an automatic retry.',
+      },
+      {
+        signature: 'async prepareOpenItemDeletion(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Prepare or inspect AR/AP deletion evidence without exposing the internal sender.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to its current client and workspace.' }, { name: 'input', description: 'Exact target/direction/periods, or an owned local operation ID for recovery.' }, { name: 'signal', description: 'Caller cancellation, combined with Host disposal.' }, { name: 'limits', description: 'Complete persisted/output byte cap and counted inventory bounds.' }],
+        returns: 'Versioned restrictions and scoped observations; known blockers prevent execution and unknown effects require explicit confirmation.',
+      },
+      {
+        signature: 'async prepareOpenItemWriteOff(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxRows: number }): Promise<object>',
+        description: 'Prepare full-settlement evidence or inspect an original operation without granting write authority.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to its own client workspace.' }, { name: 'input', description: 'Complete local intent for preparation/revision, or saved local ID for inspection.' }, { name: 'signal', description: 'Caller cancellation combined with Host disposal.' }, { name: 'limits', description: 'Complete record/output cap and source/reference row bounds.' }],
+        returns: 'Original preview and transport state, with independent balance and receipt-linked journal observations; no execution.',
+      },
+      {
+        signature: 'async deleteOpenItem(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxPages: number; maxRows: number; pageSize: number }): Promise<object>',
+        description: 'Confirm and reserve an exact receivable/payable deletion before one business request.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to the owning saved client and workspace.' }, { name: 'input', description: 'Prepared local ID and exact version, without consent or target overrides.' }, { name: 'signal', description: 'Caller cancellation combined with Host disposal.' }, { name: 'limits', description: 'Complete record/result and counted two-pass inventory bounds.' }],
+        returns: 'Durable transport outcome and separate scoped recovery; unknown results are never retried.',
+      },
+      {
+        signature: 'async writeOffOpenItem(agent: Agent, input: unknown, signal: AbortSignal, limits: { maxBytes: number; maxRows: number }): Promise<object>',
+        description: 'Confirm and reserve an exact full-settlement version before one business request.',
+        parameters: [{ name: 'agent', description: 'Finance session bound to the owning saved client and workspace.' }, { name: 'input', description: 'Prepared local ID and exact version, without consent or account overrides.' }, { name: 'signal', description: 'Caller cancellation combined with Host disposal.' }, { name: 'limits', description: 'Complete record/output and reference row bounds.' }],
+        returns: 'Durable transport outcome and independent recovery; unavailable period status is disclosed, not certified.',
+      },
+      {
+        signature: 'async queryReferences(agent: Agent, query: ReferenceQuery, signal: AbortSignal): Promise<ReferenceResult>',
+        description: 'Query reference data using only the owning session\'s current saved ledger.',
+        parameters: [{ name: 'agent', description: 'Client-bound Finance agent in its own workspace.' }, { name: 'query', description: 'Reference kind and exact filters, without connection overrides.' }, { name: 'signal', description: 'Caller cancellation.' }],
+        returns: 'Bounded reference rows; stale configuration or credentials discard the result.',
+      },
+      {
+        signature: '@Remote(\'create\') async create(request: CreateFinanceClientRequest): Promise<FinanceClientMutationResult>',
+        description: 'Create one client.',
+        parameters: [{ name: 'request', description: 'Expected revision and fields.' }],
+        returns: 'Mutation result.',
+      },
+      {
+        signature: '@Remote(\'update\') async update(request: UpdateFinanceClientRequest): Promise<FinanceClientMutationResult>',
+        description: 'Replace one active client.',
+        parameters: [{ name: 'request', description: 'Client, revision, and fields.' }],
+        returns: 'Mutation result.',
+      },
+      {
+        signature: '@Remote(\'archive\') async archive(request: ArchiveFinanceClientRequest): Promise<FinanceClientMutationResult>',
+        description: 'Archive one active client.',
+        parameters: [{ name: 'request', description: 'Client and expected revision.' }],
+        returns: 'Mutation result.',
+      },
+      {
+        signature: '@Remote(\'stage\') async stage(agent: Agent, request: StageFinanceClientRequest): Promise<FinanceSessionContextView>',
+        description: 'Stage a general or client-specific context before the first turn.',
+        parameters: [{ name: 'agent', description: 'Target live agent.' }, { name: 'request', description: 'Selection.' }],
+        returns: 'Current UI state.',
+      },
+      {
+        signature: '@Remote(\'sessionContext\') async sessionContext(agent: Agent): Promise<FinanceSessionContextView>',
+        description: 'Read the sanitized Finance context state for one session.',
+        parameters: [{ name: 'agent', description: 'Target live agent.' }],
+        returns: 'UI state.',
+      },
+      {
+        signature: 'async promptContext(agent: Agent): Promise<string>',
+        description: 'Resolve and durably bind the model-visible Finance context for one request.',
+        parameters: [{ name: 'agent', description: 'Finance agent addressing a model.' }],
+        returns: 'Logged context text.',
+      },
+      {
+        signature: '@Remote(\'importUpload\') async importUpload(agent: Agent, request: ImportFinanceUploadRequest): Promise<FinanceImportedFile>',
+        description: 'Register one completed local upload in the current Finance context.',
+        parameters: [{ name: 'agent', description: 'Finance agent whose consultation session or client selection owns the upload.' }, { name: 'request', description: 'Upload-service path and browser filename.' }],
+        returns: 'Session-scoped consultation record or committed client original-material record.',
+      },
+      {
+        signature: 'localUploadRoot(): string',
+        description: 'Return the Host-configured directory that owns general-consultation uploads.',
+        parameters: [],
+        returns: 'Absolute local upload directory.',
+      },
+      {
+        signature: 'async publishFile(agent: Agent, request: PublishFinanceFileRequest): Promise<FinanceManagedFile>',
+        description: 'Publish one file from the current session work directory.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent.' }, { name: 'request', description: 'Session-work path and optional output name.' }],
+        returns: 'Committed formal-output record.',
+      },
+      {
+        signature: 'async archiveFile(agent: Agent, request: ArchiveFinanceFileRequest): Promise<FinanceManagedFile>',
+        description: 'Archive one managed client file without removing its source.',
+        parameters: [{ name: 'agent', description: 'Bound Finance agent.' }, { name: 'request', description: 'Managed source and optional archive name.' }],
+        returns: 'Committed archive record.',
+      },
+      {
+        signature: 'requireBoundClient(agent: Agent): FinanceClientBinding',
+        description: 'Require an immutable bound client for a client-specific Finance service.',
+        parameters: [{ name: 'agent', description: 'Finance agent.' }],
+        returns: 'Durable binding.',
+      },
+      {
+        signature: 'currentClientBinding(agent: Agent): FinanceClientBinding | undefined',
+        description: 'Read the immutable client binding when the Finance session has one.',
+        parameters: [{ name: 'agent', description: 'Finance agent.' }],
+        returns: 'Detached binding, or undefined for consultation sessions.',
+      },
+      {
+        signature: 'async requireBoundClientWorkspace(agent: Agent): Promise<{ binding: FinanceClientBinding workspace: FinanceClientWorkspace }>',
+        description: 'Require a bound client and ensure its workspace directories exist.',
+        parameters: [{ name: 'agent', description: 'Finance agent.' }],
+        returns: 'Immutable binding and client workspace paths.',
+      },
+      {
+        signature: 'isFinanceAgent(agent: Agent): boolean',
+        description: 'Whether a live agent is composed from Finance.',
+        parameters: [{ name: 'agent', description: 'Agent to inspect.' }],
+        returns: 'Finance membership.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingFinanceEvidence',
+    summary: 'Host service used only by the Finance preset\'s evidence tool.',
+    description: 'Host service used only by the Finance preset\'s evidence tool.',
+    methods: [
+      {
+        signature: 'research(agent: Agent, request: FinanceEvidenceRequest, signal?: AbortSignal): Promise<FinanceEvidenceResult>',
+        description: 'Research official evidence for one Finance agent.',
+        parameters: [{ name: 'agent', description: 'Calling Finance agent.' }, { name: 'request', description: 'Research request.' }, { name: 'signal', description: 'Cancellation signal.' }],
+        returns: 'Auditable evidence result.',
+      },
+    ],
+  },
+  {
+    key: 'xiaojingWeixinChannel',
+    summary: 'Stateful Host adapter; exported for assembled integration tests.',
+    description: 'Stateful Host adapter; exported for assembled integration tests.',
+    methods: [
+      {
+        signature: 'async start(): Promise<void>',
+        description: 'Load private state, acquire the single-consumer lease, and auto-reconnect.',
+        parameters: [],
+      },
+      {
+        signature: 'install(): void',
+        description: 'Register the loopback RPC surface and session/approval correlations.',
+        parameters: [],
+      },
+      {
+        signature: 'async dispose(): Promise<void>',
+        description: 'Stop network work, fail pending approvals closed, and release process ownership.',
+        parameters: [],
+      },
+      {
+        signature: 'snapshot(): WeixinChannelStatus',
+        description: 'Sanitized state suitable for the local settings page.',
+        parameters: [],
+        returns: 'connection state without the bot token or message context values.',
       },
     ],
   },
@@ -3878,6 +4602,30 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'ref', description: 'the reference whose stored value changed.' }],
   },
   {
+    name: 'deepseek-account/model-sign-in-required',
+    mode: 'emit',
+    signature: '\'deepseek-account/model-sign-in-required\'(): void',
+    summary: 'An account model request requires the user to sign in.',
+    description: 'An account model request requires the user to sign in.',
+    parameters: [],
+  },
+  {
+    name: 'deepseek-account/session-expired',
+    mode: 'emit',
+    signature: '\'deepseek-account/session-expired\'(): void',
+    summary: 'Server rejection removed the current account credential; this notification is not replayed.',
+    description: 'Server rejection removed the current account credential; this notification is not replayed.',
+    parameters: [],
+  },
+  {
+    name: 'deepseek-account/signed-out',
+    mode: 'emit',
+    signature: '\'deepseek-account/signed-out\'(): void',
+    summary: 'Local grant removal has completed.',
+    description: 'Local grant removal has completed.',
+    parameters: [],
+  },
+  {
     name: 'domain/changed',
     mode: 'emit',
     signature: '\'domain/changed\'(change: DomainChanged): void',
@@ -3950,6 +4698,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'reloads', description: 'Replaced plugins and their module locations.' }],
   },
   {
+    name: 'llm-deepseek/request-identity',
+    mode: 'emit',
+    signature: '\'llm-deepseek/request-identity\'(identity: DeepSeekRequestIdentity): void',
+    summary: 'Reports the endpoint and non-secret authentication identity selected for a DeepSeek API-key request.',
+    description: 'Reports the endpoint and non-secret authentication identity selected for a DeepSeek API-key request.',
+    parameters: [{ name: 'identity', description: 'facts captured when resolving the request authentication.' }],
+  },
+  {
     name: 'llm/adapters-updated',
     mode: 'emit',
     signature: '\'llm/adapters-updated\'(): void',
@@ -3996,6 +4752,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'An installation moved between its Host phases.',
     description: 'An installation moved between its Host phases. `installing` is announced once per registry the installation asks, with the attempt\'s registry and position; `cancelling` and `applying` once.',
     parameters: [{ name: 'progress', description: 'the installation\'s request id and phase, with the attempt while installing.' }],
+  },
+  {
+    name: 'schedule/changed',
+    mode: 'emit',
+    signature: '\'schedule/changed\'(): void',
+    summary: 'Durable task set changed; clients refetch global task and Session-active catalogs.',
+    description: 'Durable task set changed; clients refetch global task and Session-active catalogs.',
+    parameters: [],
   },
   {
     name: 'session-telemetry/record',
@@ -4150,6 +4914,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'exec', description: 'the execution object that traversed the pipeline.' }, { name: 'result', description: 'a deep-frozen snapshot of the final returned result.' }],
   },
   {
+    name: 'usage-accounting/updated',
+    mode: 'emit',
+    signature: '\'usage-accounting/updated\'(revision: number): void',
+    summary: 'A durable local usage record committed; clients should refresh the snapshot.',
+    description: 'A durable local usage record committed; clients should refresh the snapshot.',
+    parameters: [{ name: 'revision', description: 'process-local committed revision.' }],
+  },
+  {
     name: 'user-questions/request',
     mode: 'waterfall',
     signature: '\'user-questions/request\'( this: Scoped<Agent>, request: AskUserQuestionRequestEvent, next: () => Promise<AskUserQuestionAnswer>, ): Promise<AskUserQuestionAnswer>',
@@ -4229,10 +5001,34 @@ export const EVENT_API: readonly EventApiEntry[] = [
     description: 'Stop a session\'s running work because the caller archived it with `stopActivity`; the archive set is durable when this dispatches. Each provider stops its own families — cancelling a turn, its subagent descendants, owned jobs, or active schedules — through the same cancel paths the user\'s own stop actions use, so the session log ends every open turn regularly and a later unarchive can continue the conversation. Listeners issue their stop requests without waiting for running work to settle; a listener may await its own durability barrier. A rejection is logged by the registry and does not undo the archive.',
     parameters: [{ name: 'request', description: 'the session being archived.' }],
   },
+  {
+    name: 'xiaojing-weixin/status',
+    mode: 'emit',
+    signature: '\'xiaojing-weixin/status\'(status: WeixinChannelStatus): void',
+    summary: 'Publishes the sanitized iLink connection status after each transition.',
+    description: 'Publishes the sanitized iLink connection status after each transition.',
+    parameters: [{ name: 'status', description: 'Browser-safe connection state without credentials or message content.' }],
+  },
 ]
 
 /** Shapes of every exported type the Service and Event signatures reference (transitively), sorted by name. */
 export const TYPE_API: readonly TypeApiEntry[] = [
+  {
+    name: 'AccountBonusBatch',
+    declaration: 'export interface AccountBonusBatch {\n    readonly accountId: AccountUserId;\n    readonly bonuses: readonly AccountBonusNotification[];\n}',
+  },
+  {
+    name: 'AccountBonusNotification',
+    declaration: 'export interface AccountBonusNotification {\n    readonly orderId: AccountBonusOrderId;\n    readonly campaign: string;\n    readonly amount: string;\n    readonly currency: \'CNY\' | \'USD\';\n    readonly grantedAt: string;\n    readonly expiresAt: string;\n    readonly message: string;\n}',
+  },
+  {
+    name: 'AccountBonusOrderId',
+    declaration: 'export type AccountBonusOrderId = Branded<\'AccountBonusOrderId\'>;',
+  },
+  {
+    name: 'AccountClientMetadata',
+    declaration: 'export interface AccountClientMetadata {\n    readonly version: string;\n    readonly locale: string;\n    readonly timezoneOffsetSeconds: number;\n}',
+  },
   {
     name: 'AccountDetails',
     declaration: 'export interface AccountDetails {\n    readonly profile: {\n        readonly status: \'ready\';\n        readonly value: AccountProfile;\n    } | {\n        readonly status: \'failed\';\n    };\n    readonly balance: {\n        readonly status: \'ready\';\n        readonly value: readonly AccountWallet[];\n        readonly bonusWallets: readonly AccountWallet[];\n    } | {\n        readonly status: \'failed\';\n    };\n}',
@@ -4262,8 +5058,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AdapterRegistrationHandle {\n    (): void;\n    replace(providers: string[]): void;\n}',
   },
   {
+    name: 'AddFinanceConsultationWorkspaceRequest',
+    declaration: 'export interface AddFinanceConsultationWorkspaceRequest {\n    path: string;\n}',
+  },
+  {
     name: 'AdmittedPromptContentPart',
     declaration: 'export type AdmittedPromptContentPart = {\n    readonly type: \'text\';\n    readonly text: string;\n} | {\n    readonly type: \'image\';\n    readonly attachment: ImageAttachmentRef;\n} | {\n    readonly type: \'file\';\n    readonly attachment: FileAttachmentRef;\n};',
+  },
+  {
+    name: 'AfterScheduleRecord',
+    declaration: 'export interface AfterScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'after\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly afterSeconds: number;\n    readonly scheduledAt: string;\n}',
   },
   {
     name: 'Agent',
@@ -4299,7 +5103,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AgentPresetRoster',
-    declaration: 'export interface AgentPresetRoster {\n    readonly presets: readonly AgentPresetRow[];\n    readonly modeSelectionEnabled: boolean;\n}',
+    declaration: 'export interface AgentPresetRoster {\n    readonly presets: readonly AgentPresetRow[];\n}',
   },
   {
     name: 'AgentPresetRow',
@@ -4347,7 +5151,15 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ApprovalRequestEvent',
-    declaration: 'export interface ApprovalRequestEvent {\n    readonly agent: Agent;\n    readonly toolName: string;\n    readonly callId?: ToolCallId;\n    readonly reason?: string;\n    readonly signal?: AbortSignal;\n}',
+    declaration: 'export interface ApprovalRequestEvent {\n    readonly agent: Agent;\n    readonly toolName: string;\n    readonly callId?: ToolCallId;\n    readonly reason?: string;\n    readonly displayReason?: {\n        readonly en: string;\n        readonly [locale: string]: string;\n    };\n    readonly signal?: AbortSignal;\n}',
+  },
+  {
+    name: 'ArchiveFinanceClientRequest',
+    declaration: 'export interface ArchiveFinanceClientRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n}',
+  },
+  {
+    name: 'ArchiveFinanceFileRequest',
+    declaration: 'export interface ArchiveFinanceFileRequest {\n    sourcePath: string;\n    archiveFolder?: string;\n    preferredName?: string;\n}',
   },
   {
     name: 'ArchiveSessionOptions',
@@ -4379,7 +5191,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AskUserQuestionRequestEvent',
-    declaration: 'export interface AskUserQuestionRequestEvent {\n    questions: AskUserQuestionItem[];\n    agent?: Agent;\n    signal?: AbortSignal;\n}',
+    declaration: 'export interface AskUserQuestionRequestEvent {\n    questions: AskUserQuestionItem[];\n    agent?: Agent;\n    signal?: AbortSignal;\n    wait?: {\n        callId: ToolCallId;\n        timed?: boolean;\n    };\n}',
   },
   {
     name: 'AssembleContext',
@@ -4410,6 +5222,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AssistantStreamRecord = {\n    readonly type: \'text-chunks\';\n    readonly time0: number;\n    readonly index: number;\n    readonly dt: readonly number[];\n    readonly texts: readonly string[];\n} | {\n    readonly type: \'reasoning-chunks\';\n    readonly time0: number;\n    readonly index: number;\n    readonly dt: readonly number[];\n    readonly texts: readonly string[];\n} | {\n    readonly type: \'tool-call-chunks\';\n    readonly time0: number;\n    readonly index: number;\n    readonly dt: readonly number[];\n    readonly id: ToolCallId;\n    readonly name?: string;\n    readonly args: readonly string[];\n} | {\n    readonly type: \'chunk\';\n    readonly time: number;\n    readonly chunk: StreamChunk;\n};',
   },
   {
+    name: 'AtInput',
+    declaration: 'export type AtInput = string | LocalAtInput;',
+  },
+  {
+    name: 'AtScheduleRecord',
+    declaration: 'export interface AtScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'at\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly scheduledAt: string;\n}',
+  },
+  {
     name: 'AttachmentAdmissionPart',
     declaration: 'export type AttachmentAdmissionPart = PromptContentPart | {\n    readonly type: \'file\';\n    readonly attachment: FileAttachmentRef;\n};',
   },
@@ -4424,6 +5244,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AttachmentId',
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
+  },
+  {
+    name: 'AttachmentStorageConfig',
+    declaration: 'export interface AttachmentStorageConfig {\n    bucket: string;\n    region: string;\n    endpoint: string;\n    prefix: string;\n}',
+  },
+  {
+    name: 'AttachmentStorageTestResult',
+    declaration: 'export interface AttachmentStorageTestResult {\n    revision: number;\n    uploaded: boolean;\n    downloaded: boolean;\n    deleted: boolean;\n    message: string;\n}',
+  },
+  {
+    name: 'AttachmentStorageView',
+    declaration: 'export interface AttachmentStorageView {\n    revision: number;\n    config: AttachmentStorageConfig;\n    configured: boolean;\n    writable: boolean;\n}',
   },
   {
     name: 'AuthorizationEntry',
@@ -4478,6 +5310,30 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
   },
   {
+    name: 'BalanceAnalysisQuery',
+    declaration: 'export type BalanceAnalysisQuery = z.infer<typeof balanceAnalysisSchema>;',
+  },
+  {
+    name: 'BalanceAnalysisResult',
+    declaration: 'export interface BalanceAnalysisResult {\n    accountId: string;\n    accountName: string;\n    selection: BalanceAnalysisQuery;\n    currencyBasis: \'ledger-base\';\n    coverage: \'unverified\';\n    current: BalanceResult;\n    baseline?: BalanceResult;\n    returnedRowSums: {\n        current: Amounts;\n        baseline?: Amounts;\n    };\n    reconciliation: {\n        current: Reconciliation;\n        baseline?: Reconciliation;\n    };\n    reconciliationCounts: {\n        current: ReconciliationCounts;\n        baseline?: ReconciliationCounts;\n    };\n    reconciliationNotice: string;\n    differences?: {\n        subjectInfoId: number;\n        subjectCode: string;\n        subjectName: string;\n        presence: \'both\' | \'current-only\' | \'baseline-only\';\n        amounts: Amounts;\n    }[];\n    notice: string;\n}',
+  },
+  {
+    name: 'BalanceQuery',
+    declaration: 'export type BalanceQuery = z.infer<typeof balanceQuerySchema>;',
+  },
+  {
+    name: 'BalanceQueryReconciliation',
+    declaration: 'export interface BalanceQueryReconciliation {\n    verificationOwner: \'xiaojing\';\n    columns: Reconciliation;\n    counts: ReconciliationCounts;\n    notice: string;\n}',
+  },
+  {
+    name: 'BalanceResult',
+    declaration: 'export interface BalanceResult {\n    accountId: string;\n    accountName: string;\n    month: string;\n    monthEnd: string;\n    subjectLevel?: number;\n    subjectLevelEnd?: number;\n    rows: BalanceRow[];\n    summaries: BalanceRow[];\n    coverage: \'unverified\';\n    reconciliation?: BalanceQueryReconciliation;\n    notice: string;\n}',
+  },
+  {
+    name: 'BalanceRow',
+    declaration: 'export type BalanceRow = z.infer<typeof rowSchema>;',
+  },
+  {
     name: 'BashEnvContributor',
     declaration: 'export interface BashEnvContributor {\n    name: string;\n    variables: Readonly<Record<DshEnvironmentKey, BashEnvVariable>>;\n    resolve(execution: ToolExecution): Readonly<Partial<Record<DshEnvironmentKey, string>>>;\n}',
   },
@@ -4498,8 +5354,76 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type BrandedNumber<B extends string> = number & {\n    readonly [BRAND]: B;\n};',
   },
   {
+    name: 'BrowserAction',
+    declaration: 'export type BrowserAction = typeof BROWSER_ACTIONS[number];',
+  },
+  {
+    name: 'BrowserActionRequest',
+    declaration: 'export interface BrowserActionRequest {\n    readonly action: BrowserAction;\n    readonly url?: string;\n    readonly surface?: BrowserSurfacePreference;\n    readonly disposition?: BrowserDisposition;\n    readonly observationId?: BrowserObservationId;\n    readonly targetId?: BrowserTargetId;\n    readonly target?: BrowserSemanticTarget;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly pageId?: BrowserPageId;\n    readonly steps?: readonly BrowserActStep[];\n    readonly expectedText?: string;\n    readonly timeoutMs?: number;\n}',
+  },
+  {
+    name: 'BrowserActionResult',
+    declaration: 'export interface BrowserActionResult {\n    readonly action: BrowserAction;\n    readonly summary: string;\n    readonly surface?: BrowserSurface;\n    readonly pageId?: BrowserPageId;\n    readonly windowId?: BrowserWindowId;\n    readonly url?: string;\n    readonly title?: string;\n    readonly observationId?: BrowserObservationId;\n    readonly text?: string;\n    readonly targets?: BrowserTarget[];\n    readonly tabs?: BrowserPageSummary[];\n    readonly completedSteps?: number;\n    readonly failedStep?: BrowserFailedStep;\n    readonly truncated?: boolean;\n}',
+  },
+  {
+    name: 'BrowserActStep',
+    declaration: 'export interface BrowserActStep {\n    readonly action: BrowserStepAction;\n    readonly targetId?: BrowserTargetId;\n    readonly target?: BrowserSemanticTarget;\n    readonly value?: string;\n    readonly key?: string;\n    readonly deltaY?: number;\n    readonly paths?: readonly string[];\n    readonly expectedUrl?: string;\n    readonly expectedText?: string;\n    readonly timeoutMs?: number;\n}',
+  },
+  {
+    name: 'BrowserControlStatus',
+    declaration: 'export interface BrowserControlStatus {\n    readonly managed: {\n        readonly enabled: true;\n        readonly running: boolean;\n    };\n    readonly personal: {\n        readonly state: PersonalEdgeState;\n        readonly extensionId: string;\n        readonly connected: boolean;\n        readonly paired: boolean;\n        readonly version?: string;\n        readonly pairingCode?: string;\n        readonly pairingExpiresAt?: number;\n        readonly error?: string;\n    };\n}',
+  },
+  {
+    name: 'BrowserDisposition',
+    declaration: 'export type BrowserDisposition = \'reuse\' | \'new_window\';',
+  },
+  {
+    name: 'BrowserFailedStep',
+    declaration: 'export interface BrowserFailedStep {\n    readonly index: number;\n    readonly action: BrowserStepAction;\n    readonly error: string;\n}',
+  },
+  {
+    name: 'BrowserObservationId',
+    declaration: 'export type BrowserObservationId = Branded<\'BrowserObservationId\'>;',
+  },
+  {
+    name: 'BrowserPageId',
+    declaration: 'export type BrowserPageId = Branded<\'BrowserPageId\'>;',
+  },
+  {
+    name: 'BrowserPageSummary',
+    declaration: 'export interface BrowserPageSummary {\n    readonly id: BrowserPageId;\n    readonly surface: BrowserSurface;\n    readonly windowId: BrowserWindowId;\n    readonly url: string;\n    readonly title: string;\n    readonly active: boolean;\n}',
+  },
+  {
+    name: 'BrowserSemanticTarget',
+    declaration: 'export interface BrowserSemanticTarget {\n    readonly role?: string;\n    readonly name?: string;\n    readonly context?: string;\n}',
+  },
+  {
+    name: 'BrowserStepAction',
+    declaration: 'export type BrowserStepAction = typeof BROWSER_STEP_ACTIONS[number];',
+  },
+  {
+    name: 'BrowserSurface',
+    declaration: 'export type BrowserSurface = \'managed\' | \'personal\';',
+  },
+  {
+    name: 'BrowserSurfacePreference',
+    declaration: 'export type BrowserSurfacePreference = \'auto\' | BrowserSurface;',
+  },
+  {
+    name: 'BrowserTarget',
+    declaration: 'export interface BrowserTarget {\n    readonly id: BrowserTargetId;\n    readonly role: string;\n    readonly name: string;\n    readonly context?: string;\n    readonly value?: string;\n    readonly disabled: boolean;\n    readonly checked?: boolean;\n    readonly actions: BrowserStepAction[];\n}',
+  },
+  {
+    name: 'BrowserTargetId',
+    declaration: 'export type BrowserTargetId = Branded<\'BrowserTargetId\'>;',
+  },
+  {
     name: 'BrowserUseProviderName',
     declaration: 'export type BrowserUseProviderName = Branded<\'BrowserUseProviderName\'>;',
+  },
+  {
+    name: 'BrowserWindowId',
+    declaration: 'export type BrowserWindowId = Branded<\'BrowserWindowId\'>;',
   },
   {
     name: 'BundleInfo',
@@ -4578,12 +5502,60 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type CompactionTrigger = \'pressure\' | \'context-overflow\';',
   },
   {
+    name: 'CompanionSnapshot',
+    declaration: 'export interface CompanionSnapshot {\n    state: CompanionState;\n    activeTaskCount: number;\n    approvalCount: number;\n    weixinOnline: boolean;\n    revision: number;\n}',
+  },
+  {
+    name: 'CompanionState',
+    declaration: 'export type CompanionState = \'idle\' | \'thinking\' | \'executing\' | \'approval\' | \'success\' | \'failure\';',
+  },
+  {
     name: 'CompositionRowEnablement',
     declaration: 'export type CompositionRowEnablement = boolean | \'conditional\';',
   },
   {
+    name: 'ComputerAction',
+    declaration: 'export type ComputerAction = typeof COMPUTER_ACTIONS[number];',
+  },
+  {
+    name: 'ComputerActionRequest',
+    declaration: 'export interface ComputerActionRequest {\n    readonly action: ComputerAction;\n    readonly query?: string;\n    readonly appId?: ComputerAppId;\n    readonly windowId?: ComputerWindowId;\n    readonly observationId?: ComputerObservationId;\n    readonly targetId?: ComputerTargetId;\n    readonly value?: string;\n    readonly key?: string;\n    readonly direction?: \'up\' | \'down\' | \'left\' | \'right\';\n    readonly text?: string;\n    readonly timeoutMs?: number;\n}',
+  },
+  {
+    name: 'ComputerActionResult',
+    declaration: 'export interface ComputerActionResult {\n    readonly action: ComputerAction;\n    readonly summary: string;\n    readonly appName?: string;\n    readonly apps?: ComputerApp[];\n    readonly windowId?: ComputerWindowId;\n    readonly windowTitle?: string;\n    readonly observationId?: ComputerObservationId;\n    readonly windows?: ComputerWindow[];\n    readonly targets?: ComputerTarget[];\n    readonly truncated?: boolean;\n}',
+  },
+  {
+    name: 'ComputerApp',
+    declaration: 'export interface ComputerApp {\n    readonly id: ComputerAppId;\n    readonly name: string;\n}',
+  },
+  {
+    name: 'ComputerAppId',
+    declaration: 'export type ComputerAppId = Branded<\'ComputerAppId\'>;',
+  },
+  {
+    name: 'ComputerObservationId',
+    declaration: 'export type ComputerObservationId = Branded<\'ComputerObservationId\'>;',
+  },
+  {
+    name: 'ComputerTarget',
+    declaration: 'export interface ComputerTarget {\n    readonly id: ComputerTargetId;\n    readonly controlType: string;\n    readonly name: string;\n    readonly value?: string;\n    readonly enabled: boolean;\n    readonly actions: string[];\n}',
+  },
+  {
+    name: 'ComputerTargetId',
+    declaration: 'export type ComputerTargetId = Branded<\'ComputerTargetId\'>;',
+  },
+  {
     name: 'ComputerUseProviderName',
     declaration: 'export type ComputerUseProviderName = Branded<\'ComputerUseProviderName\'>;',
+  },
+  {
+    name: 'ComputerWindow',
+    declaration: 'export interface ComputerWindow {\n    readonly id: ComputerWindowId;\n    readonly title: string;\n    readonly processId: number;\n}',
+  },
+  {
+    name: 'ComputerWindowId',
+    declaration: 'export type ComputerWindowId = Branded<\'ComputerWindowId\'>;',
   },
   {
     name: 'ConfinedArgv',
@@ -4750,6 +5722,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CreateAgentOptions {\n    readonly sessionId: SessionId;\n    readonly parentAgent?: Agent;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly isSeeded?: boolean;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly seed?: readonly SessionEvent[];\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
+    name: 'CreateFinanceClientRequest',
+    declaration: 'export interface CreateFinanceClientRequest {\n    expectedRevision: number;\n    client: FinanceClientDraft;\n    workspacePath: string;\n    credentialInput?: FinanceClientCredentialInput;\n}',
+  },
+  {
     name: 'CreateGoalRequest',
     declaration: 'export interface CreateGoalRequest {\n    readonly objective: string;\n    readonly maxGoalRounds?: number;\n}',
   },
@@ -4790,6 +5766,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type CredentialRef = Branded<\'CredentialRef\'>;',
   },
   {
+    name: 'CronInput',
+    declaration: 'export interface CronInput {\n    readonly expression: string;\n    readonly time_zone: string;\n}',
+  },
+  {
+    name: 'CronScheduleRecord',
+    declaration: 'export interface CronScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'cron\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly expression: string;\n    readonly timeZone: string;\n    readonly scheduledAt: string;\n}',
+  },
+  {
+    name: 'DailyInput',
+    declaration: 'export interface DailyInput {\n    readonly time: string;\n    readonly time_zone: string;\n}',
+  },
+  {
+    name: 'DailyScheduleRecord',
+    declaration: 'export interface DailyScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'daily\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly time: string;\n    readonly timeZone: string;\n    readonly scheduledAt: string;\n}',
+  },
+  {
     name: 'DeepSeekLlmApiExtensionMap',
     declaration: 'export interface DeepSeekLlmApiExtensionMap {\n}',
   },
@@ -4804,6 +5796,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DeepSeekLlmApiJson',
     declaration: 'export type DeepSeekLlmApiJson = null | boolean | number | string | DeepSeekLlmApiJson[] | {\n    [key: string]: DeepSeekLlmApiJson;\n};',
+  },
+  {
+    name: 'DeepSeekRequestIdentity',
+    declaration: 'export interface DeepSeekRequestIdentity {\n    baseURL: string;\n    authentication: {\n        kind: \'api-key\';\n        keyFingerprint: string;\n    };\n}',
+  },
+  {
+    name: 'DeliveryRetentionBounds',
+    declaration: 'export interface DeliveryRetentionBounds {\n    readonly days: number;\n    readonly records: number;\n}',
   },
   {
     name: 'DeveloperMessage',
@@ -4839,11 +5839,27 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'DirectoryPickerNativeCapability',
-    declaration: 'export interface DirectoryPickerNativeCapability {\n    kind: \'native\';\n    pick(signal: AbortSignal): Promise<string | null>;\n}',
+    declaration: 'export interface DirectoryPickerNativeCapability {\n    kind: \'native\';\n    pick(signal: AbortSignal, initialPath?: string): Promise<string | null>;\n}',
   },
   {
     name: 'DirectoryRegistrationHandle',
     declaration: 'export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}',
+  },
+  {
+    name: 'DocumentListItem',
+    declaration: 'export interface DocumentListItem<TId extends string> {\n    documentId: TId;\n    name: string;\n    kind: FinanceDocumentKind;\n    status: FinanceDocumentStatus;\n    summary: FinanceDocumentSummary;\n    warnings: string[];\n}',
+  },
+  {
+    name: 'DocumentReadResult',
+    declaration: 'export interface DocumentReadResult<TId extends string> extends DocumentListItem<TId> {\n    cursor: number;\n    units: FinanceDocumentUnit[];\n    nextCursor?: number;\n}',
+  },
+  {
+    name: 'DocumentVisualItem',
+    declaration: 'export interface DocumentVisualItem {\n    attachment: ImageAttachmentRef;\n    locator: string;\n}',
+  },
+  {
+    name: 'DocumentVisualReadResult',
+    declaration: 'export interface DocumentVisualReadResult<TId extends string> extends DocumentListItem<TId> {\n    cursor: number;\n    visuals: DocumentVisualItem[];\n    nextCursor?: number;\n}',
   },
   {
     name: 'Domain',
@@ -4934,6 +5950,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface EpochHeader {\n    config: LlmCallConfig;\n    adapterDefaults?: LlmCallConfigAdapterDefaults;\n    tools?: ToolSchema[];\n    system?: never;\n}',
   },
   {
+    name: 'EventLogOptions',
+    declaration: 'export interface EventLogOptions {\n    exporter: SessionLogOptions[\'exporter\'];\n    resourceAttributes: Attributes;\n    scope: {\n        name: string;\n        version?: string;\n    };\n    processor: Omit<BatchLogRecordProcessorOptions, \'exporter\'>;\n    onFailure: SessionLogOptions[\'onFailure\'];\n}',
+  },
+  {
+    name: 'EventLogReporter',
+    declaration: 'export class EventLogReporter {\n    constructor(options: EventLogOptions);\n    emit(record: OTelEventRecord): void;\n    async shutdown(signal?: AbortSignal): Promise<void>;\n}',
+  },
+  {
+    name: 'EveryScheduleRecord',
+    declaration: 'export interface EveryScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'every\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly everySeconds: number;\n    readonly scheduledAt: string;\n}',
+  },
+  {
     name: 'FeedbackCategory',
     declaration: 'export type FeedbackCategory = \'task-result\' | \'instruction-following\' | \'product-interaction\' | \'service-stability\' | \'resource-cost\' | \'security-privacy-permission\' | \'other\';',
   },
@@ -4970,12 +5998,276 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface FileUploadValue {\n    readonly receiptId: FileUploadReceiptId;\n    readonly file: FileAttachmentRef;\n}',
   },
   {
+    name: 'FinanceAccountingStandard',
+    declaration: 'export type FinanceAccountingStandard = \'enterprise\' | \'small-enterprise\' | \'government\' | \'nonprofit\' | \'other\';',
+  },
+  {
+    name: 'FinanceAttachmentUpload',
+    declaration: 'export interface FinanceAttachmentUpload {\n    name: string;\n    objectKey: string;\n    size: number;\n    expiresAt: number;\n    downloadUrl: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationKind',
+    declaration: 'export type FinanceCalculationKind = \'vat\' | \'vat-surcharges\' | \'enterprise-income-tax\' | \'salary-iit\';',
+  },
+  {
+    name: 'FinanceCalculationRequest',
+    declaration: 'export interface FinanceCalculationRequest {\n    calculation: FinanceCalculationKind;\n    asOfDate: string;\n    taxpayerType?: FinanceTaxpayerType;\n    taxExclusiveSales?: string;\n    vatRatePercent?: \'13\' | \'9\' | \'6\';\n    deductibleInputVat?: string;\n    priorVatCredit?: string;\n    filingFrequency?: FinanceFilingFrequency;\n    mandatoryTaxableSales?: string;\n    applySmallScaleOnePercent?: boolean;\n    paidVat?: string;\n    paidConsumptionTax?: string;\n    urbanMaintenanceTaxRatePercent?: \'7\' | \'5\' | \'1\';\n    applySixTaxTwoFeeHalfReduction?: boolean;\n    cumulativeTaxableIncome?: string;\n    priorPrepaidEnterpriseIncomeTax?: string;\n    smallLowProfitEnterprise?: boolean;\n    restrictedOrProhibitedIndustry?: boolean;\n    employeeCount?: number;\n    totalAssets?: string;\n    cumulativeIncome?: string;\n    cumulativeTaxExemptIncome?: string;\n    monthsEmployed?: number;\n    cumulativeSpecialDeductions?: string;\n    cumulativeAdditionalDeductions?: string;\n    cumulativeOtherDeductions?: string;\n    cumulativeTaxRelief?: string;\n    cumulativeTaxWithheld?: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationResult',
+    declaration: 'export interface FinanceCalculationResult {\n    status: \'complete\' | \'needs-input\' | \'unsupported\';\n    calculation: FinanceCalculationKind;\n    asOfDate: string;\n    ruleSetVersion: string;\n    taxpayerType?: FinanceTaxpayerType;\n    taxpayerTypeSource: \'request\' | \'client\' | \'none\';\n    inputs: FinanceCalculationValue[];\n    steps: FinanceCalculationStep[];\n    outputs: FinanceCalculationValue[];\n    missingInputs: string[];\n    invalidInputs: string[];\n    assumptions: string[];\n    warnings: string[];\n    rounding: string;\n    rules: FinanceCalculationRuleReference[];\n    disclaimer: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationRuleReference',
+    declaration: 'export interface FinanceCalculationRuleReference {\n    id: string;\n    title: string;\n    documentNumber?: string;\n    effectiveFrom: string;\n    effectiveTo?: string;\n    url: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationStep',
+    declaration: 'export interface FinanceCalculationStep {\n    label: string;\n    expression: string;\n    result: string;\n}',
+  },
+  {
+    name: 'FinanceCalculationValue',
+    declaration: 'export interface FinanceCalculationValue {\n    name: string;\n    label: string;\n    value: string;\n    unit: \'元\' | \'%\' | \'月\' | \'人\' | \'布尔\' | \'文本\';\n    source: \'request\' | \'client\' | \'rule\';\n}',
+  },
+  {
+    name: 'FinanceChartMapping',
+    declaration: 'export interface FinanceChartMapping {\n    localAccountCode: string;\n    externalAccountCode: string;\n}',
+  },
+  {
+    name: 'FinanceClientBinding',
+    declaration: 'export interface FinanceClientBinding {\n    schemaVersion: 1;\n    clientVersion: number;\n    client: FinanceClientSnapshot;\n    workspacePath: string;\n}',
+  },
+  {
+    name: 'FinanceClientCredentialInput',
+    declaration: 'export interface FinanceClientCredentialInput {\n    youchengAppSecret?: string;\n}',
+  },
+  {
+    name: 'FinanceClientCredentialStatus',
+    declaration: 'export interface FinanceClientCredentialStatus {\n    youchengAppSecretConfigured: boolean;\n    youchengAppSecretWritable: boolean;\n}',
+  },
+  {
+    name: 'FinanceClientDraft',
+    declaration: 'export interface FinanceClientDraft {\n    legalName: string;\n    shortName?: string;\n    unifiedSocialCreditCode?: string;\n    taxpayerType: FinanceTaxpayerType;\n    registeredRegion: string;\n    accountingStandard: FinanceAccountingStandard;\n    industry?: string;\n    financePolicyNotes?: string;\n    financeSystem?: FinanceSystemConfig;\n    chartMappings: FinanceChartMapping[];\n    externalSystemRefs: FinanceExternalSystemRef[];\n}',
+  },
+  {
+    name: 'FinanceClientId',
+    declaration: 'export type FinanceClientId = Branded<\'FinanceClientId\'>;',
+  },
+  {
+    name: 'FinanceClientListView',
+    declaration: 'export interface FinanceClientListView {\n    revision: number;\n    clients: FinanceClientSummary[];\n}',
+  },
+  {
+    name: 'FinanceClientMutationResult',
+    declaration: 'export interface FinanceClientMutationResult {\n    revision: number;\n    client: FinanceClientRecord;\n}',
+  },
+  {
+    name: 'FinanceClientReadView',
+    declaration: 'export interface FinanceClientReadView {\n    revision: number;\n    client: FinanceClientRecord;\n    credentialStatus: FinanceClientCredentialStatus;\n    youchengApiUrls: FinanceYouchengApiUrls;\n}',
+  },
+  {
+    name: 'FinanceClientRecord',
+    declaration: 'export interface FinanceClientRecord extends FinanceClientDraft {\n    id: FinanceClientId;\n    version: number;\n    status: \'active\' | \'archived\';\n    workspacePath: string;\n    createdAt: number;\n    updatedAt: number;\n    archivedAt?: number;\n}',
+  },
+  {
+    name: 'FinanceClientSnapshot',
+    declaration: 'export type FinanceClientSnapshot = Readonly<Omit<FinanceClientDraft, \'financeSystem\'> & {\n    id: FinanceClientId;\n}>;',
+  },
+  {
+    name: 'FinanceClientSummary',
+    declaration: 'export interface FinanceClientSummary {\n    id: FinanceClientId;\n    legalName: string;\n    shortName?: string;\n    taxpayerType: FinanceTaxpayerType;\n    registeredRegion: string;\n    accountingStandard: FinanceAccountingStandard;\n    version: number;\n    status: \'active\' | \'archived\';\n}',
+  },
+  {
+    name: 'FinanceClientWorkspace',
+    declaration: 'export interface FinanceClientWorkspace {\n    clientRoot: string;\n    profileDirectory: string;\n    policyDirectory: string;\n    sourceDirectory: string;\n    sessionWorkDirectory: string;\n    outputDirectory: string;\n    archiveDirectory: string;\n}',
+  },
+  {
+    name: 'FinanceClientWorkspaceEntry',
+    declaration: 'export type FinanceClientWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'client\';\n    clientId: FinanceClientId;\n    connection?: FinanceConnectionStatus;\n};',
+  },
+  {
+    name: 'FinanceConnectionFailure',
+    declaration: 'export type FinanceConnectionFailure = \'credentials-missing\' | \'authentication\' | \'ip-not-allowed\' | \'account-query\' | \'account-unavailable\' | \'network\' | \'timeout\' | \'access-denied\' | \'invalid-response\';',
+  },
+  {
+    name: 'FinanceConnectionStatus',
+    declaration: 'export interface FinanceConnectionStatus {\n    state: \'unverified\' | \'checking\' | \'connected\' | \'failed\';\n    accountId: string;\n    accountName?: string;\n    checkedAt?: number;\n    failure?: FinanceConnectionFailure;\n}',
+  },
+  {
+    name: 'FinanceConsultationFile',
+    declaration: 'export interface FinanceConsultationFile {\n    id: FinanceManagedFileId;\n    sessionId: string;\n    path: string;\n    name: string;\n    sha256: string;\n    size: number;\n    createdAt: number;\n}',
+  },
+  {
+    name: 'FinanceConsultationWorkspaceEntry',
+    declaration: 'export type FinanceConsultationWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'consultation\';\n};',
+  },
+  {
+    name: 'FinanceDeferredSystemConfig',
+    declaration: 'export interface FinanceDeferredSystemConfig {\n    system: Exclude<FinanceSystemKind, \'youcheng\'>;\n}',
+  },
+  {
+    name: 'FinanceDocumentKind',
+    declaration: 'export type FinanceDocumentKind = \'pdf\' | \'docx\' | \'xlsx\' | \'pptx\' | \'xml\' | \'ofd\' | \'csv\' | \'txt\' | \'image\' | \'unsupported\';',
+  },
+  {
+    name: 'FinanceDocumentListItem',
+    declaration: 'export type FinanceDocumentListItem = DocumentListItem<FinanceManagedFileId>;',
+  },
+  {
+    name: 'FinanceDocumentReadResult',
+    declaration: 'export type FinanceDocumentReadResult = DocumentReadResult<FinanceManagedFileId>;',
+  },
+  {
+    name: 'FinanceDocumentStatus',
+    declaration: 'export type FinanceDocumentStatus = \'parsed\' | \'vision-required\' | \'native-vision\' | \'unsupported\' | \'failed\';',
+  },
+  {
+    name: 'FinanceDocumentSummary',
+    declaration: 'export interface FinanceDocumentSummary {\n    pageCount?: number;\n    slideCount?: number;\n    visualCount?: number;\n    sheetNames?: string[];\n    rowCount?: number;\n    unitCount: number;\n    charCount: number;\n}',
+  },
+  {
+    name: 'FinanceDocumentUnit',
+    declaration: 'export interface FinanceDocumentUnit {\n    index: number;\n    kind: \'text\' | \'row\';\n    locator: string;\n    text: string;\n}',
+  },
+  {
+    name: 'FinanceDocumentVisualReadResult',
+    declaration: 'export type FinanceDocumentVisualReadResult = DocumentVisualReadResult<FinanceManagedFileId>;',
+  },
+  {
+    name: 'FinanceEvidenceApplicability',
+    declaration: 'export type FinanceEvidenceApplicability = \'national-conditional\' | \'local-conditional\' | \'background-only\' | \'unverified\';',
+  },
+  {
+    name: 'FinanceEvidenceAuthorityLevel',
+    declaration: 'export type FinanceEvidenceAuthorityLevel = \'L0\' | \'L1\' | \'L2\' | \'L3\';',
+  },
+  {
+    name: 'FinanceEvidenceItem',
+    declaration: 'export interface FinanceEvidenceItem {\n    sourceId: FinanceEvidenceSourceId;\n    authority: string;\n    authorityLevel: FinanceEvidenceAuthorityLevel;\n    title: string;\n    documentNumber?: string;\n    publicationDate?: string;\n    effectiveFrom?: string;\n    effectiveTo?: string;\n    lifecycle: FinanceEvidenceLifecycle;\n    legalEffect: FinanceEvidenceLegalEffect;\n    applicability: FinanceEvidenceApplicability;\n    role: FinanceEvidenceRole;\n    url: string;\n    retrievedAt?: string;\n    sha256?: string;\n    excerpt?: string;\n    retrieval: \'network\' | \'cache\' | \'not-fetched\';\n    rightsStatus: \'terms-review-pending\';\n    limitations: string[];\n}',
+  },
+  {
+    name: 'FinanceEvidenceLegalEffect',
+    declaration: 'export type FinanceEvidenceLegalEffect = \'law\' | \'administrative-regulation\' | \'departmental-rule\' | \'normative-document\' | \'official-guidance\' | \'unknown\';',
+  },
+  {
+    name: 'FinanceEvidenceLifecycle',
+    declaration: 'export type FinanceEvidenceLifecycle = \'current\' | \'historical\' | \'future\' | \'repealed\' | \'draft\' | \'amended\' | \'transitional\' | \'unverified\';',
+  },
+  {
+    name: 'FinanceEvidenceRequest',
+    declaration: 'export interface FinanceEvidenceRequest {\n    query: string;\n    asOfDate?: string;\n    locality?: string;\n}',
+  },
+  {
+    name: 'FinanceEvidenceResult',
+    declaration: 'export interface FinanceEvidenceResult {\n    status: FinanceEvidenceStatus;\n    query: string;\n    asOfDate: string;\n    jurisdiction: \'中国大陆\';\n    locality?: string;\n    localitySource: \'request\' | \'client\' | \'none\';\n    checkedAt: string;\n    evidence: FinanceEvidenceItem[];\n    assumptions: string[];\n    warnings: string[];\n}',
+  },
+  {
+    name: 'FinanceEvidenceRole',
+    declaration: 'export type FinanceEvidenceRole = \'official-text\' | \'discovery-only\';',
+  },
+  {
+    name: 'FinanceEvidenceSourceId',
+    declaration: 'export type FinanceEvidenceSourceId = Branded<\'FinanceEvidenceSourceId\'>;',
+  },
+  {
+    name: 'FinanceEvidenceStatus',
+    declaration: 'export type FinanceEvidenceStatus = \'verified\' | \'partial\' | \'pending\' | \'out-of-scope\';',
+  },
+  {
+    name: 'FinanceExternalSystemRef',
+    declaration: 'export interface FinanceExternalSystemRef {\n    system: \'youcheng\' | \'sdoo\';\n    tenantId?: string;\n    companyId?: string;\n    accountSetId?: string;\n}',
+  },
+  {
+    name: 'FinanceFileAction',
+    declaration: 'export type FinanceFileAction = \'import\' | \'publish\' | \'archive\';',
+  },
+  {
+    name: 'FinanceFileStage',
+    declaration: 'export type FinanceFileStage = \'source\' | \'output\' | \'archive\';',
+  },
+  {
+    name: 'FinanceFilingFrequency',
+    declaration: 'export type FinanceFilingFrequency = \'monthly\' | \'quarterly\';',
+  },
+  {
+    name: 'FinanceGeneralWorkspaceEntry',
+    declaration: 'export type FinanceGeneralWorkspaceEntry = FinanceStandardWorkspaceEntry | FinanceConsultationWorkspaceEntry;',
+  },
+  {
+    name: 'FinanceImportedFile',
+    declaration: 'export type FinanceImportedFile = FinanceManagedFile | FinanceConsultationFile;',
+  },
+  {
+    name: 'FinanceManagedFile',
+    declaration: 'export interface FinanceManagedFile {\n    id: FinanceManagedFileId;\n    clientId: FinanceClientId;\n    sessionId: string;\n    action: FinanceFileAction;\n    stage: FinanceFileStage;\n    path: string;\n    name: string;\n    sha256: string;\n    size: number;\n    createdAt: number;\n    sourceFileId?: FinanceManagedFileId;\n}',
+  },
+  {
+    name: 'FinanceManagedFileId',
+    declaration: 'export type FinanceManagedFileId = Branded<\'FinanceManagedFileId\'>;',
+  },
+  {
+    name: 'FinanceSessionContextView',
+    declaration: 'export type FinanceSessionContextView = {\n    state: \'not-finance\';\n    locked: true;\n} | {\n    state: \'general\';\n    locked: false;\n} | {\n    state: \'ready\';\n    locked: false;\n    clientId: FinanceClientId;\n    clientName: string;\n} | {\n    state: \'bound\';\n    locked: true;\n    clientName: string;\n};',
+  },
+  {
+    name: 'FinanceStandardWorkspaceEntry',
+    declaration: 'export type FinanceStandardWorkspaceEntry = FinanceWorkspaceBase & {\n    kind: \'standard\';\n};',
+  },
+  {
+    name: 'FinanceSystemConfig',
+    declaration: 'export type FinanceSystemConfig = FinanceYouchengSystemConfig | FinanceDeferredSystemConfig;',
+  },
+  {
+    name: 'FinanceSystemKind',
+    declaration: 'export type FinanceSystemKind = \'youcheng\' | \'sdoo\' | \'yonyou\' | \'kingdee\';',
+  },
+  {
+    name: 'FinanceTaxpayerType',
+    declaration: 'export type FinanceTaxpayerType = \'general-vat\' | \'small-scale-vat\' | \'other\';',
+  },
+  {
+    name: 'FinanceWorkspaceEntry',
+    declaration: 'export type FinanceWorkspaceEntry = FinanceStandardWorkspaceEntry | FinanceConsultationWorkspaceEntry | FinanceClientWorkspaceEntry;',
+  },
+  {
+    name: 'FinanceWorkspaceId',
+    declaration: 'export type FinanceWorkspaceId = Branded<\'WorkspaceId\'>;',
+  },
+  {
+    name: 'FinanceWorkspaceListView',
+    declaration: 'export interface FinanceWorkspaceListView {\n    workspaceRoot: string;\n    standard: FinanceStandardWorkspaceEntry;\n    consultations: FinanceConsultationWorkspaceEntry[];\n    clients: FinanceClientWorkspaceEntry[];\n    listedWorkspaceIds: FinanceWorkspaceId[];\n}',
+  },
+  {
+    name: 'FinanceYouchengAccount',
+    declaration: 'export interface FinanceYouchengAccount {\n    id: string;\n    name: string;\n}',
+  },
+  {
+    name: 'FinanceYouchengAccountsResult',
+    declaration: 'export type FinanceYouchengAccountsResult = {\n    state: \'ready\';\n    accounts: FinanceYouchengAccount[];\n} | {\n    state: \'failed\';\n    failure: FinanceConnectionFailure;\n};',
+  },
+  {
+    name: 'FinanceYouchengApiUrls',
+    declaration: 'export type FinanceYouchengApiUrls = Record<FinanceYouchengEnvironment, string>;',
+  },
+  {
+    name: 'FinanceYouchengEnvironment',
+    declaration: 'export type FinanceYouchengEnvironment = \'test\' | \'production\';',
+  },
+  {
+    name: 'FinanceYouchengSystemConfig',
+    declaration: 'export interface FinanceYouchengSystemConfig {\n    system: \'youcheng\';\n    environment: FinanceYouchengEnvironment;\n    appKey: string;\n    accountCode: string;\n    accountName?: string;\n}',
+  },
+  {
     name: 'FinishReason',
     declaration: 'export type FinishReason = FinishReasonMap[keyof FinishReasonMap];',
   },
   {
     name: 'FinishReasonMap',
     declaration: 'export interface FinishReasonMap {\n    \'stop\': {\n        kind: \'stop\';\n    };\n    \'tool-calls\': {\n        kind: \'tool-calls\';\n    };\n    \'max-tokens\': {\n        kind: \'max-tokens\';\n    };\n    \'aborted\': {\n        kind: \'aborted\';\n        failure: LlmFailure;\n    };\n    \'error\': {\n        kind: \'error\';\n        failure: LlmFailure;\n    };\n}',
+  },
+  {
+    name: 'FrequencyTooHighError',
+    declaration: 'export interface FrequencyTooHighError {\n    readonly code: \'frequency_too_high\';\n    readonly message: string;\n}',
   },
   {
     name: 'FsDirEntry',
@@ -5023,7 +6315,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'GenerateOptions',
-    declaration: 'export interface GenerateOptions {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n    messages: RequestMessage[];\n    system?: string;\n    tools?: ToolSchema[];\n    temperature?: number;\n    maxTokens?: number;\n    stop?: string[];\n    signal?: AbortSignal;\n    sessionId?: Branded<\'SessionId\'>;\n    purpose?: \'compaction\' | \'session-title\';\n}',
+    declaration: 'export interface GenerateOptions {\n    provider: string;\n    model: string;\n    reasoningEffort?: ReasoningEffortId;\n    messages: RequestMessage[];\n    system?: string;\n    tools?: ToolSchema[];\n    toolHistory?: ToolHistory;\n    temperature?: number;\n    maxTokens?: number;\n    stop?: string[];\n    signal?: AbortSignal;\n    sessionId?: Branded<\'SessionId\'>;\n    purpose?: \'compaction\' | \'session-title\';\n}',
   },
   {
     name: 'GenericCallView',
@@ -5110,6 +6402,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ImageVariantId = Branded<\'ImageVariantId\'>;',
   },
   {
+    name: 'ImportFinanceUploadRequest',
+    declaration: 'export interface ImportFinanceUploadRequest {\n    path: string;\n    originalName: string;\n}',
+  },
+  {
     name: 'IncompatiblePlugin',
     declaration: 'export interface IncompatiblePlugin {\n    name: string;\n    version: string;\n    runtimeVersion: string;\n    peers: Record<string, string>;\n}',
   },
@@ -5148,6 +6444,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'InstallSpecKind',
     declaration: 'export type InstallSpecKind = \'registry\' | \'path\' | \'git\' | \'tarball\';',
+  },
+  {
+    name: 'InternalScheduleError',
+    declaration: 'export interface InternalScheduleError {\n    readonly code: \'internal_error\';\n    readonly message: string;\n}',
+  },
+  {
+    name: 'InvalidPromptError',
+    declaration: 'export interface InvalidPromptError {\n    readonly code: \'invalid_prompt\';\n    readonly message: string;\n}',
+  },
+  {
+    name: 'InvalidRuleError',
+    declaration: 'export interface InvalidRuleError {\n    readonly code: \'invalid_rule\';\n    readonly message: string;\n}',
+  },
+  {
+    name: 'InvalidSelectorError',
+    declaration: 'export interface InvalidSelectorError {\n    readonly code: \'invalid_selector\';\n    readonly message: string;\n}',
+  },
+  {
+    name: 'InvalidTimeZoneError',
+    declaration: 'export interface InvalidTimeZoneError {\n    readonly code: \'invalid_time_zone\';\n    readonly message: string;\n}',
   },
   {
     name: 'InvariantFailure',
@@ -5282,6 +6598,42 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface JobView {\n    readonly id: JobId;\n    readonly kind: string;\n    readonly label: string;\n    readonly owner?: SessionId;\n    readonly outputLimitBytes?: number;\n    readonly status: JobStatus;\n    readonly progress?: string;\n    readonly detail?: string;\n    readonly startedAt: number;\n    readonly finishedAt?: number;\n    readonly output: {\n        readonly total: number;\n        readonly earliest: number;\n        readonly spillPaths?: readonly string[];\n    };\n}',
   },
   {
+    name: 'JournalAggregate',
+    declaration: 'export interface JournalAggregate {\n    month: string;\n    dateStart: string;\n    dateEnd: string;\n    pagesRead: number;\n    rows: JournalRow[];\n    currencyCode: string | null;\n    income: string;\n    expense: string;\n    incomeMissingValueCount: number;\n    expenseMissingValueCount: number;\n}',
+  },
+  {
+    name: 'JournalAnalysisQuery',
+    declaration: 'export type JournalAnalysisQuery = z.infer<typeof journalAnalysisSchema>;',
+  },
+  {
+    name: 'JournalAnalysisResult',
+    declaration: 'export interface JournalAnalysisResult {\n    accountId: string;\n    accountName: string;\n    selection: JournalAnalysisQuery;\n    current: JournalAggregate;\n    baseline?: JournalAggregate;\n    differences?: {\n        currencyCode: string | null;\n        income: string;\n        expense: string;\n    };\n    verificationOwner: \'xiaojing\';\n    coverage: \'empty-page-and-totals-reconciled\';\n    notice: string;\n}',
+  },
+  {
+    name: 'JournalEntryId',
+    declaration: 'export type JournalEntryId = Branded<\'FinanceJournalEntryId\'>;',
+  },
+  {
+    name: 'JournalQuery',
+    declaration: 'export type JournalQuery = z.infer<typeof journalQuerySchema>;',
+  },
+  {
+    name: 'JournalResult',
+    declaration: 'export interface JournalResult {\n    accountId: string;\n    accountName: string;\n    selection: JournalSelection;\n    rows: JournalRow[];\n    summaries: JournalSummary[];\n    pagesRead?: number;\n    coverage: \'unverified\';\n    notice: string;\n}',
+  },
+  {
+    name: 'JournalRow',
+    declaration: 'export interface JournalRow {\n    id: JournalEntryId;\n    date: string;\n    summary: string;\n    accountCode: string;\n    accountName: string;\n    currencyCode: string;\n    baseCurrencyCode: string;\n    income: string | null;\n    expense: string | null;\n    balance: string | null;\n    baseIncome: string | null;\n    baseExpense: string | null;\n    baseBalance: string | null;\n    categoryName: string;\n    keeperName: string;\n}',
+  },
+  {
+    name: 'JournalSelection',
+    declaration: 'export type JournalSelection = JournalQuery & {\n    dateStart: string;\n    dateEnd: string;\n};',
+  },
+  {
+    name: 'JournalSummary',
+    declaration: 'export type JournalSummary = Omit<JournalRow, \'id\' | \'date\'> & {\n    kind: \'opening\' | \'total\';\n};',
+  },
+  {
     name: 'JsonSchemaNode',
     declaration: 'export interface JsonSchemaNode {\n    type?: JsonSchemaType;\n    oneOf?: JsonSchemaNode[];\n    properties?: Record<string, JsonSchemaNode>;\n    required?: string[];\n    additionalProperties?: boolean;\n    items?: JsonSchemaNode;\n    enum?: JsonSchemaScalar[];\n    const?: JsonSchemaScalar;\n    description?: string;\n    title?: string;\n    default?: JsonValue;\n    examples?: JsonValue;\n}',
   },
@@ -5312,6 +6664,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'KvUnitDescriptor',
     declaration: 'export interface KvUnitDescriptor {\n    readonly name: string;\n    readonly version: number;\n    readonly tables: readonly string[];\n    readonly hasGlobal: boolean;\n    readonly layout?: \'single\' | \'per-record\';\n    readonly compatibleVersions?: readonly number[];\n}',
+  },
+  {
+    name: 'ListFinanceYouchengAccountsRequest',
+    declaration: 'export interface ListFinanceYouchengAccountsRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    environment: FinanceYouchengEnvironment;\n    appKey: string;\n    youchengAppSecret?: string;\n}',
   },
   {
     name: 'LlmAdapter',
@@ -5375,11 +6731,15 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'LlmResolvedModelInfo',
-    declaration: 'export interface LlmResolvedModelInfo extends LlmModelInfo {\n    context?: LlmModelContext;\n    defaultMaxTokens?: number;\n    reasoning?: LlmModelReasoningInfo;\n    systemPromptUpdate?: SystemPromptUpdate;\n}',
+    declaration: 'export interface LlmResolvedModelInfo extends LlmModelInfo {\n    context?: LlmModelContext;\n    defaultMaxTokens?: number;\n    reasoning?: LlmModelReasoningInfo;\n    systemPromptUpdate?: SystemPromptUpdate;\n    toolUpdate?: ToolUpdate;\n}',
   },
   {
     name: 'LlmRuntime',
     declaration: 'export class LlmRuntime extends TypertRemoteService {\n    constructor(ctx: Context);\n    registerAdapter(providers: string[], adapter: LlmAdapter): AdapterRegistrationHandle;\n    @Remote\n    listProviders(): LlmProviderInfo[];\n    registerConfigurableProviders(entries: readonly LlmConfigurableProvider[]): DirectoryRegistrationHandle;\n    @Remote\n    listConfigurableProviders(): LlmConfigurableProvider[];\n    registerModelDiscovery(settingsNs: string, discover: (request: LlmModelDiscoveryRequest, signal?: AbortSignal) => Promise<readonly LlmDiscoveredModel[]>): () => void;\n    async discoverModels(settingsNs: string, request: LlmModelDiscoveryRequest, signal?: AbortSignal): Promise<LlmDiscoveredModel[]>;\n    @Remote(\'discoverModels\')\n    async remoteDiscoverModels(settingsNs: string, request: LlmModelDiscoveryRequest, signal: AbortSignal): Promise<LlmDiscoveredModel[]>;\n    providerRetryPolicy(provider: string): ResolvedRetryPolicy;\n    imageRequestPricing(provider: string, model: string): LlmImageRequestPricing | undefined;\n    fileRequestText(ref: FileAttachmentRef): string;\n    async listModels(provider: string): Promise<LlmModelInfo[]>;\n    async resolveModelInfo(provider: string, model: string, signal?: AbortSignal): Promise<LlmResolvedModelInfo>;\n    async resolveCallConfig(config: LlmCallConfig, signal?: AbortSignal): Promise<LlmCallConfig>;\n    async prepareCall(config: LlmCallConfig, signal?: AbortSignal): Promise<PreparedLlmCall>;\n    stream(options: GenerateOptions) /* …truncated — full shape in source */',
+  },
+  {
+    name: 'LocalAtInput',
+    declaration: 'export interface LocalAtInput {\n    readonly date: string;\n    readonly time: string;\n    readonly time_zone: string;\n}',
   },
   {
     name: 'LocalizedText',
@@ -5574,6 +6934,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface NativeFileApplication {\n    readonly id: string;\n    readonly name: string;\n    readonly default: boolean;\n    readonly icon: string | null;\n}',
   },
   {
+    name: 'NotFutureError',
+    declaration: 'export interface NotFutureError {\n    readonly code: \'not_future\';\n    readonly message: string;\n}',
+  },
+  {
     name: 'ObjectJsonSchema',
     declaration: 'export type ObjectJsonSchema = JsonSchemaNode & {\n    type: \'object\';\n};',
   },
@@ -5606,12 +6970,80 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface OfficeToPdfResult {\n    readonly pdf: Uint8Array;\n    readonly missingFonts: string[];\n    readonly cacheKey: OfficeToPdfKey;\n    readonly generation: OfficeToPdfGeneration;\n}',
   },
   {
+    name: 'OnboardingPage',
+    declaration: 'export type OnboardingPage = \'onboarding_welcome\' | \'onboarding_recharge\' | \'onboarding_use_case\' | \'onboarding_process\';',
+  },
+  {
+    name: 'OneShotScheduleRecord',
+    declaration: 'export type OneShotScheduleRecord = AfterScheduleRecord | AtScheduleRecord;',
+  },
+  {
     name: 'OneShotSubagentDescriptorData',
     declaration: 'export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}',
   },
   {
+    name: 'OpenItemAccountObservation',
+    declaration: 'export interface OpenItemAccountObservation {\n    sourceRecordId: OpenItemId;\n    id: Branded<\'FinanceReferenceId\'> | null;\n    name: string;\n    status: \'enabled\' | \'disabled\' | \'unknown\';\n    foreignCurrency: boolean | null;\n    currencyCode: string;\n    baseCurrencyCode: string;\n}',
+  },
+  {
+    name: 'OpenItemAccountReferences',
+    declaration: 'export interface OpenItemAccountReferences {\n    ledgerId: string;\n    ledgerName: string;\n    query: OpenItemQuery;\n    source: \'existing-open-item-page\';\n    coverage: \'returned-page-only\';\n    observations: OpenItemAccountObservation[];\n}',
+  },
+  {
+    name: 'OpenItemAggregate',
+    declaration: 'export interface OpenItemAggregate {\n    periodStart: string;\n    periodEnd: string;\n    recordCount: number;\n    pagesRead: number;\n    groups: OpenItemGroup[];\n}',
+  },
+  {
+    name: 'OpenItemAmounts',
+    declaration: 'export interface OpenItemAmounts {\n    amount: string | null;\n    balance: string | null;\n    baseAmount: string | null;\n    baseBalance: string | null;\n    settledAmount: string | null;\n    badDebtAmount: string | null;\n    offsetAmount: string | null;\n    returnAmount: string | null;\n}',
+  },
+  {
+    name: 'OpenItemAnalysisQuery',
+    declaration: 'export type OpenItemAnalysisQuery = z.infer<typeof openItemAnalysisSchema>;',
+  },
+  {
+    name: 'OpenItemAnalysisResult',
+    declaration: 'export interface OpenItemAnalysisResult {\n    accountId: string;\n    accountName: string;\n    selection: OpenItemAnalysisQuery;\n    current: OpenItemAggregate;\n    baseline?: OpenItemAggregate;\n    differences?: OpenItemDifference[];\n    coverage: \'vendor-count-reconciled\';\n    notice: string;\n}',
+  },
+  {
+    name: 'OpenItemDifference',
+    declaration: 'export interface OpenItemDifference {\n    currencyCode: string;\n    dimensionId: string;\n    presence: \'both\' | \'current-only\' | \'baseline-only\';\n    amount: string;\n    balance: string;\n}',
+  },
+  {
+    name: 'OpenItemGroup',
+    declaration: 'export interface OpenItemGroup {\n    currencyCode: string;\n    dimensionId: string;\n    dimensionName: string;\n    recordIds: OpenItemId[];\n    amount: string;\n    balance: string;\n}',
+  },
+  {
+    name: 'OpenItemId',
+    declaration: 'export type OpenItemId = Branded<\'FinanceOpenItemId\'>;',
+  },
+  {
+    name: 'OpenItemQuery',
+    declaration: 'export type OpenItemQuery = z.infer<typeof openItemQuerySchema>;',
+  },
+  {
+    name: 'OpenItemResult',
+    declaration: 'export interface OpenItemResult {\n    accountId: string;\n    accountName: string;\n    selection: OpenItemQuery;\n    totalCount: number;\n    rows: OpenItemRow[];\n    summaries: OpenItemSummary[];\n    pagesRead?: number;\n    coverage: \'unverified\' | \'vendor-count-reconciled\';\n    notice: string;\n}',
+  },
+  {
+    name: 'OpenItemRow',
+    declaration: 'export interface OpenItemRow extends OpenItemAmounts {\n    id: OpenItemId;\n    date: string;\n    summary: string;\n    subjectCode: string;\n    subjectName: string;\n    auxiliaryItemIds: string;\n    auxiliaryItemName: string;\n    currencyCode: string;\n    baseCurrencyCode: string;\n    initialBalance: boolean | null;\n    finished: boolean | null;\n    categoryName: string;\n    remark: string;\n}',
+  },
+  {
+    name: 'OpenItemSummary',
+    declaration: 'export interface OpenItemSummary extends OpenItemAmounts {\n    kind: \'total\' | \'previous-page\';\n    currencyCode: string;\n    baseCurrencyCode: string;\n}',
+  },
+  {
     name: 'OptionalSessionSeq',
     declaration: 'export type OptionalSessionSeq = SessionSeq | null;',
+  },
+  {
+    name: 'OTelEventRecord',
+    declaration: 'export interface OTelEventRecord {\n    eventName: string;\n    body: string;\n    timestamp: number;\n    severityNumber?: SeverityNumber;\n    attributes?: Record<string, OTelEventScalar | Record<string, OTelEventScalar>>;\n}',
+  },
+  {
+    name: 'OTelEventScalar',
+    declaration: 'export type OTelEventScalar = string | number | boolean;',
   },
   {
     name: 'PackageResult',
@@ -5634,8 +7066,12 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PermissionCatalog {\n    options: PresetOption[];\n    defaultOptions: PresetOption[];\n    defaultPreset: string;\n}',
   },
   {
+    name: 'PersonalEdgeState',
+    declaration: 'export type PersonalEdgeState = \'not-connected\' | \'pairing\' | \'connected\' | \'incompatible\' | \'error\';',
+  },
+  {
     name: 'PlatformSession',
-    declaration: 'export interface PlatformSession {\n    readonly origin: string;\n    readonly token: string;\n    readonly embeddedPageDist?: string;\n    readonly requestHeaders?: Readonly<Record<string, string>>;\n}',
+    declaration: 'export interface PlatformSession {\n    readonly origin: string;\n    readonly token: string;\n    readonly userId: AccountUserId | null;\n    readonly embeddedPageDist?: string;\n    readonly requestHeaders?: Readonly<Record<string, string>>;\n}',
   },
   {
     name: 'PluginChange',
@@ -5711,7 +7147,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PreparedLlmCall',
-    declaration: 'export interface PreparedLlmCall {\n    readonly config: LlmCallConfig;\n    readonly retryPolicy: ResolvedRetryPolicy;\n    readonly context?: LlmModelContext;\n    readonly inputModalities?: readonly ModelModality[];\n    readonly systemPromptUpdate?: SystemPromptUpdate;\n    readonly adapterDefaults: LlmCallConfigAdapterDefaults;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
+    declaration: 'export interface PreparedLlmCall {\n    readonly config: LlmCallConfig;\n    readonly retryPolicy: ResolvedRetryPolicy;\n    readonly context?: LlmModelContext;\n    readonly inputModalities?: readonly ModelModality[];\n    readonly systemPromptUpdate?: SystemPromptUpdate;\n    readonly toolUpdate?: ToolUpdate;\n    readonly adapterDefaults: LlmCallConfigAdapterDefaults;\n    stream(options: GenerateOptions): AsyncIterable<StreamChunk>;\n}',
   },
   {
     name: 'PreparedReferencedMessage',
@@ -5739,15 +7175,19 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'PreToolDecision',
-    declaration: 'export type PreToolDecision = {\n    kind: \'allow\';\n} | {\n    kind: \'deny\';\n    reason: string;\n    info?: ToolErrorInfo;\n} | {\n    kind: \'cancel\';\n} | {\n    kind: \'ask\';\n    reason?: string;\n};',
+    declaration: 'export type PreToolDecision = {\n    kind: \'allow\';\n} | {\n    kind: \'deny\';\n    reason: string;\n    info?: ToolErrorInfo;\n} | {\n    kind: \'cancel\';\n} | {\n    kind: \'ask\';\n    reason?: string;\n    displayReason?: {\n        readonly en: string;\n        readonly [locale: string]: string;\n    };\n};',
+  },
+  {
+    name: 'ProductEvent',
+    declaration: 'export type ProductEvent = {\n    [K in keyof ProductEventMap]: {\n        eventName: K;\n        attributes: ProductEventMap[K];\n        timestamp: number;\n    };\n}[keyof ProductEventMap];',
+  },
+  {
+    name: 'ProductEventMap',
+    declaration: 'export interface ProductEventMap {\n    desktop_app_launch: Record<string, never>;\n    auth_page_view: Record<string, never>;\n    auth_page_click: {\n        button_name: \'sign_in\' | \'api-key\';\n    };\n    api_key_save_click: Record<string, never>;\n    onboarding_page_view: {\n        page_name: OnboardingPage;\n    };\n    onboarding_page_click: {\n        page_name: OnboardingPage;\n        button_name: \'next\' | \'back\' | \'skip\' | \'charge\' | \'later\' | \'continue\';\n        selected_content?: \'office\' | \'code\' | \'code_office\' | \'focus_result\' | \'key_detail\' | \'full_process\';\n    };\n    onboarding_popup_view: {\n        popup_name: \'skip_charge\' | \'skip_setting\';\n    };\n    onboarding_popup_click: {\n        popup_name: \'skip_charge\' | \'skip_setting\';\n        button_name: \'charge\' | \'know\' | \'enter\' | \'setting\' | \'close\';\n    };\n    desktop_upgrade_click: Record<string, never>;\n    desktop_upgrade_download_result: {\n        is_success: boolean;\n        error_reason?: string;\n    };\n    desktop_upgrade_install_restart_click: Record<string, never>;\n    send_button_click: {\n        session_id?: SessionId;\n        model_name?: string;\n        thinking_effort?: string;\n        run_mode: \'plan\' | \'goal\' | \'default\';\n        msg_type: \'default\' | \'steer\' | \'queue\';\n    };\n    model_switch: {\n        session_id?: SessionId;\n        switch_from: string;\n        switch_to: string;\n    };\n    thinking_level_switch: {\n        session_id?: SessionId;\n        switch_from: string;\n        switch_to: str /* …truncated — full shape in source */',
   },
   {
     name: 'ProductTelemetryRecord',
-    declaration: 'export interface ProductTelemetryRecord {\n    eventName: string;\n    body: string;\n    timestamp: number;\n    severityNumber?: SeverityNumber;\n    attributes?: Record<string, ProductTelemetryScalar | Record<string, ProductTelemetryScalar>>;\n}',
-  },
-  {
-    name: 'ProductTelemetryScalar',
-    declaration: 'export type ProductTelemetryScalar = string | number | boolean;',
+    declaration: 'export type ProductTelemetryRecord = OTelEventRecord;',
   },
   {
     name: 'ProfilePnpmInvocation',
@@ -5850,6 +7290,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PtcRunSpec extends PtcRunRequest {\n    cwd: string;\n    timeoutMs: number | null;\n}',
   },
   {
+    name: 'PublishFinanceFileRequest',
+    declaration: 'export interface PublishFinanceFileRequest {\n    sourcePath: string;\n    preferredName?: string;\n}',
+  },
+  {
     name: 'QueueAction',
     declaration: 'export type QueueAction = {\n    readonly kind: \'edit\';\n    readonly content: readonly TextBlock[];\n} | {\n    readonly kind: \'remove\';\n} | {\n    readonly kind: \'steer\';\n};',
   },
@@ -5874,12 +7318,32 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ReasoningEffortId = Branded<\'ReasoningEffortId\'>;',
   },
   {
+    name: 'RecurringScheduleRecord',
+    declaration: 'export type RecurringScheduleRecord = EveryScheduleRecord | DailyScheduleRecord | WeeklyScheduleRecord | CronScheduleRecord;',
+  },
+  {
     name: 'RedactedSecret',
     declaration: 'export interface RedactedSecret {\n    path: string[];\n    set: boolean;\n}',
   },
   {
+    name: 'ReferenceQuery',
+    declaration: 'export type ReferenceQuery = z.infer<typeof referenceQuerySchema>;',
+  },
+  {
+    name: 'ReferenceResult',
+    declaration: 'export interface ReferenceResult {\n    accountId: string;\n    accountName: string;\n    kind: ReferenceQuery[\'kind\'];\n    categoryCode?: string;\n    subjectTreeRootCode?: string;\n    requestedLimit: number;\n    returnedCount: number;\n    coverage: \'unverified\';\n    selection: \'not-requested\' | \'unique-returned\' | \'ambiguous\' | \'not-found-in-returned\' | \'tree-returned\';\n    rows: ReferenceRow[];\n    notice: string;\n}',
+  },
+  {
+    name: 'ReferenceRow',
+    declaration: 'export interface ReferenceRow {\n    id: Branded<\'FinanceReferenceId\'>;\n    code: string;\n    name: string;\n    status: \'enabled\' | \'disabled\' | \'unknown\';\n    parentCode?: string;\n    subjectType?: string;\n    hasChildren?: boolean;\n    directionRaw?: string;\n    auxiliaryCodes?: string[];\n    currencyCodes?: string[];\n    currencyId?: string;\n    subjectCode?: string;\n    cashierSubjectCode?: string;\n    accountType?: number;\n}',
+  },
+  {
     name: 'Registry',
     declaration: 'export type Registry = string | null;',
+  },
+  {
+    name: 'ReimbursementConnectionView',
+    declaration: 'export interface ReimbursementConnectionView {\n    revision: number;\n    apiUrl: string;\n    appKey: string;\n    configured: boolean;\n    writable: boolean;\n}',
   },
   {
     name: 'Reload',
@@ -5900,6 +7364,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RemoteEventHostInfo',
     declaration: 'export interface RemoteEventHostInfo {\n    readonly home: string;\n}',
+  },
+  {
+    name: 'RemoveFinanceWorkspaceRequest',
+    declaration: 'export interface RemoveFinanceWorkspaceRequest {\n    workspaceId: FinanceWorkspaceId;\n}',
+  },
+  {
+    name: 'RenameFinanceWorkspaceRequest',
+    declaration: 'export interface RenameFinanceWorkspaceRequest {\n    workspaceId: FinanceWorkspaceId;\n    title: string;\n}',
   },
   {
     name: 'RenderedDocumentBytes',
@@ -5966,6 +7438,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface RestoredSessionOptions {\n    readonly seed: SessionEvent[];\n    readonly meta: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    readonly eventState: SessionSeedEventState;\n}',
   },
   {
+    name: 'RestoreFinanceClientWorkspaceRequest',
+    declaration: 'export interface RestoreFinanceClientWorkspaceRequest {\n    path: string;\n}',
+  },
+  {
     name: 'ResumeAgentOptions',
     declaration: 'export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly parentAgent?: Agent;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
@@ -5998,6 +7474,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SandboxPolicyRequest {\n    session?: Session;\n    mode?: SandboxMode;\n}',
   },
   {
+    name: 'SaveAttachmentStorageRequest',
+    declaration: 'export interface SaveAttachmentStorageRequest {\n    expectedRevision: number;\n    config: AttachmentStorageConfig;\n    accessKeyId?: string;\n    accessKeySecret?: string;\n}',
+  },
+  {
     name: 'SaveFileAttachment',
     declaration: 'export interface SaveFileAttachment {\n    data: Uint8Array;\n    name?: string;\n}',
   },
@@ -6010,8 +7490,44 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SaveImageAttachment {\n    data: Uint8Array;\n    mediaType: ImageMediaType;\n    name?: string;\n}',
   },
   {
+    name: 'SaveReimbursementConnectionRequest',
+    declaration: 'export interface SaveReimbursementConnectionRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    apiUrl: string;\n    appKey: string;\n    appSecret?: string;\n}',
+  },
+  {
     name: 'SaveTextSpill',
     declaration: 'export interface SaveTextSpill {\n    owner: SpillOwner;\n    source: SpillSource;\n    suggestedName: string;\n    content: string;\n}',
+  },
+  {
+    name: 'ScheduleCatalogEntry',
+    declaration: 'export type ScheduleCatalogEntry = ScheduleRecord & {\n    readonly sessionId: SessionId;\n    readonly status: \'active\' | \'inactive\';\n    readonly lastDelivery?: ScheduleDeliveryReceipt;\n};',
+  },
+  {
+    name: 'ScheduleCreateRequest',
+    declaration: 'export interface ScheduleCreateRequest {\n    prompt: string;\n    title: string;\n    after_seconds?: number;\n    at?: AtInput;\n    every_seconds?: number;\n    daily?: DailyInput;\n    weekly?: WeeklyInput;\n    cron?: CronInput;\n}',
+  },
+  {
+    name: 'ScheduleDeleteRequest',
+    declaration: 'export interface ScheduleDeleteRequest extends ScheduleListRequest {\n    id: ScheduleId;\n}',
+  },
+  {
+    name: 'ScheduleDeleteResult',
+    declaration: 'export type ScheduleDeleteResult = {\n    readonly id: ScheduleId;\n    readonly deleted: true;\n} | {\n    readonly id: ScheduleId;\n    readonly deleted: false;\n    readonly code: \'schedule_not_found\';\n};',
+  },
+  {
+    name: 'ScheduleDeliveryHistoryRequest',
+    declaration: 'export interface ScheduleDeliveryHistoryRequest extends ScheduleDeleteRequest {\n    limit: number;\n    before?: MessageId;\n}',
+  },
+  {
+    name: 'ScheduleDeliveryHistoryResult',
+    declaration: 'export type ScheduleDeliveryHistoryResult = {\n    readonly id: ScheduleId;\n    readonly records: ScheduleDeliveryRecord[];\n    readonly earlierRecordsUnavailable: boolean;\n    readonly earlierRecordsPruned: boolean;\n    readonly retention: DeliveryRetentionBounds;\n    readonly nextBefore?: MessageId;\n} | {\n    readonly id: ScheduleId;\n    readonly code: \'schedule_not_found\' | \'delivery_cursor_not_found\';\n};',
+  },
+  {
+    name: 'ScheduleDeliveryReceipt',
+    declaration: 'export interface ScheduleDeliveryReceipt {\n    readonly scheduledAt: string;\n    readonly deliveredAt: string;\n    readonly messageId: MessageId;\n}',
+  },
+  {
+    name: 'ScheduleDeliveryRecord',
+    declaration: 'export interface ScheduleDeliveryRecord extends ScheduleDeliveryReceipt {\n    readonly prompt?: string;\n}',
   },
   {
     name: 'ScheduledToolDispatch',
@@ -6020,6 +7536,42 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ScheduledToolPreparation',
     declaration: 'export type ScheduledToolPreparation = {\n    kind: \'dispatch\';\n    exec: ToolRunContext;\n} | {\n    kind: \'post-result\';\n    exec: ToolRunContext;\n    result: ToolExecutionResult;\n} | {\n    kind: \'final-result\';\n    exec: ToolRunContext;\n    result: ToolExecutionResult;\n};',
+  },
+  {
+    name: 'ScheduleId',
+    declaration: 'export type ScheduleId = Branded<\'ScheduleId\'>;',
+  },
+  {
+    name: 'ScheduleListRequest',
+    declaration: 'export interface ScheduleListRequest {\n    sessionId: SessionId;\n}',
+  },
+  {
+    name: 'ScheduleRecord',
+    declaration: 'export type ScheduleRecord = OneShotScheduleRecord | RecurringScheduleRecord;',
+  },
+  {
+    name: 'ScheduleTimingChange',
+    declaration: 'export type ScheduleTimingChange = {\n    readonly kind: \'at\';\n    readonly at: AtInput;\n} | {\n    readonly kind: \'every\';\n    readonly every_seconds: number;\n} | {\n    readonly kind: \'daily\';\n    readonly daily: DailyInput;\n} | {\n    readonly kind: \'weekly\';\n    readonly weekly: WeeklyInput;\n} | {\n    readonly kind: \'cron\';\n    readonly cron: CronInput;\n};',
+  },
+  {
+    name: 'ScheduleToolError',
+    declaration: 'export type ScheduleToolError = InvalidPromptError | InvalidSelectorError | InvalidRuleError | InvalidTimeZoneError | NotFutureError | TimeOutOfRangeError | FrequencyTooHighError | InternalScheduleError;',
+  },
+  {
+    name: 'ScheduleUpdateContent',
+    declaration: 'export interface ScheduleUpdateContent {\n    readonly title?: string;\n    readonly prompt?: string;\n}',
+  },
+  {
+    name: 'ScheduleUpdateMiss',
+    declaration: 'export interface ScheduleUpdateMiss {\n    readonly id: ScheduleId;\n    readonly updated: false;\n    readonly code: \'schedule_not_found\' | \'schedule_ended\' | \'schedule_conflict\';\n}',
+  },
+  {
+    name: 'ScheduleUpdateRequest',
+    declaration: 'export interface ScheduleUpdateRequest extends ScheduleDeleteRequest, ScheduleUpdateContent {\n    readonly expected: ScheduleRecord;\n    readonly change?: ScheduleTimingChange;\n}',
+  },
+  {
+    name: 'ScheduleUpdateResult',
+    declaration: 'export type ScheduleUpdateResult = {\n    readonly id: ScheduleId;\n    readonly updated: boolean;\n    readonly record: ScheduleRecord;\n} | ScheduleUpdateMiss | ScheduleToolError;',
   },
   {
     name: 'Scoped',
@@ -6063,7 +7615,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'Session',
-    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    readonly firstLifecycleSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
+    declaration: 'export class Session {\n    get surface(): SessionSurface;\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffset;\n    get id(): SessionId;\n    readonly firstLiveSeq: SessionLogOffset;\n    readonly firstLifecycleSeq: SessionLogOffset;\n    static create(id: SessionId, seed?: readonly SessionEvent[], header?: SessionHeader, inheritedEventCount?: SessionLogOffset, projections?: readonly SessionMessageProjection[]): Session;\n    static fromRestore(id: SessionId, seed: readonly SessionEvent[], header: SessionHeader, inheritedEventCount: SessionLogOffset, eventState: SessionSeedEventState, projections?: readonly SessionMessageProjection[]): Session;\n    eventAt(seq: SessionSeq): SessionEvent | undefined;\n    snapshotEvents(fromSeq: SessionLogOffset = SessionLogOffset(0), toSeqExclusive: SessionLogOffset = this.seq): readonly SessionEvent[];\n    ownEvents(): readonly SessionEvent[];\n    isOwnSeq(seq: SessionSeq): boolean;\n    get seq(): SessionLogOffset;\n    append<T extends SessionEventType>(type: T, data: SessionEventMap[T], ...opts: T extends SurfaceEventType ? [\n        opts: SurfaceIntent<T>\n    ] : [\n    ]): SessionEvent<T>;\n    requestHeader(): EpochHeader | undefined;\n    requestContext(): RequestContext | undefined;\n    toolHistory(): ToolHistory;\n    deriveMessages(): Message[];\n    deriveEventMessage(event: SessionEvent): Message | null;\n}',
   },
   {
     name: 'SessionAccess',
@@ -6302,6 +7854,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SessionLogOffset = BrandedNumber<\'SessionLogOffset\'>;',
   },
   {
+    name: 'SessionLogOptions',
+    declaration: 'export interface SessionLogOptions {\n    exporter: OTLPExporterNodeConfigBase & {\n        url: string;\n    };\n    processor?: Omit<BatchLogRecordProcessorOptions, \'exporter\'>;\n    maxRequestBytes?: number;\n    scope: {\n        name: string;\n        version?: string;\n    };\n    resourceAttributes: Attributes;\n    onFailure: (message: string, error?: Error) => void;\n}',
+  },
+  {
+    name: 'SessionLogRecord',
+    declaration: 'export interface SessionLogRecord {\n    sessionId: SessionId;\n    event: Omit<SessionEvent, \'data\'> & {\n        data: unknown;\n    };\n    attributes?: Attributes;\n    severityNumber?: SeverityNumber;\n}',
+  },
+  {
+    name: 'SessionLogReporter',
+    declaration: 'export class SessionLogReporter {\n    constructor(options: SessionLogOptions);\n    reportSessionLog(record: SessionLogRecord): void;\n    stopPending(): void;\n    shutdown(): Promise<void>;\n}',
+  },
+  {
     name: 'SessionLogSnapshot',
     declaration: 'export interface SessionLogSnapshot {\n    session: SessionHeader;\n    inheritedEventCount: SessionLogOffset;\n    events: SessionEvent[];\n}',
   },
@@ -6507,7 +8071,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionTelemetryRecord',
-    declaration: 'export interface SessionTelemetryRecord {\n    channel: \'ledger\' | \'ops\';\n    time: number;\n    severity: SessionTelemetrySeverity;\n    attributes: Record<string, string | number>;\n    body: unknown;\n}',
+    declaration: 'export interface SessionTelemetryRecord {\n    sourceEvent?: {\n        sessionId: SessionId;\n        envelope: Omit<SessionEvent, \'data\'>;\n    };\n    channel: \'ledger\' | \'ops\';\n    time: number;\n    severity: SessionTelemetrySeverity;\n    attributes: Record<string, string | number>;\n    body: unknown;\n}',
   },
   {
     name: 'SessionTelemetrySeverity',
@@ -6832,6 +8396,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SshStreamEndpoint',
     declaration: 'export type SshStreamEndpoint = z.infer<typeof streamEndpointSchema>;',
+  },
+  {
+    name: 'StageFinanceClientRequest',
+    declaration: 'export type StageFinanceClientRequest = {\n    mode: \'general\';\n} | {\n    mode: \'client\';\n    clientId: FinanceClientId;\n};',
   },
   {
     name: 'StorageBackend',
@@ -7182,6 +8750,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type TerminalWaitReason = \'stdin_read\' | \'inferred_idle\' | \'timeout\' | \'session_exit\';',
   },
   {
+    name: 'TimedUserQuestionResult',
+    declaration: 'export type TimedUserQuestionResult = AskUserQuestionAnswer | {\n    pending: true;\n    callId: ToolCallId;\n};',
+  },
+  {
+    name: 'TimeOutOfRangeError',
+    declaration: 'export interface TimeOutOfRangeError {\n    readonly code: \'time_out_of_range\';\n    readonly message: string;\n}',
+  },
+  {
     name: 'TokenMeasurement',
     declaration: 'export interface TokenMeasurement {\n    readonly logRevision: SessionLogOffset;\n    readonly baseline: TokenMeasurementBaseline;\n    readonly surfaceDeltaTokens: number;\n    readonly totalTokens: number;\n    readonly surfaceTokens: number;\n    readonly nodes: readonly TokenSurfaceNode[];\n}',
   },
@@ -7266,6 +8842,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ToolGuard = (execution: Readonly<ToolExecution>) => string | undefined;',
   },
   {
+    name: 'ToolHistory',
+    declaration: 'export interface ToolHistory {\n    readonly tools: readonly ToolSchema[];\n    readonly updates: readonly {\n        readonly messageId: MessageId;\n        readonly additions: readonly ToolSchema[];\n    }[];\n}',
+  },
+  {
     name: 'ToolMessageSource',
     declaration: 'export interface ToolMessageSource {\n    kind: \'tool\';\n    callId: ToolCallId;\n}',
   },
@@ -7316,6 +8896,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ToolSchema',
     declaration: 'export interface ToolSchema {\n    deferLoading?: true;\n    name: string;\n    description: string;\n    parameters: Record<string, unknown>;\n}',
+  },
+  {
+    name: 'ToolUpdate',
+    declaration: 'export type ToolUpdate = \'in-history\' | \'addition-only\';',
   },
   {
     name: 'Transcript',
@@ -7442,8 +9026,20 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TypertTypeModel {\n    readonly name: string;\n    readonly declaration: string;\n}',
   },
   {
+    name: 'UpdateFinanceClientRequest',
+    declaration: 'export interface UpdateFinanceClientRequest {\n    clientId: FinanceClientId;\n    expectedRevision: number;\n    client: FinanceClientDraft;\n    credentialInput?: FinanceClientCredentialInput;\n}',
+  },
+  {
     name: 'UpdateTeamTaskRequest',
     declaration: 'export interface UpdateTeamTaskRequest {\n    readonly taskId: TeamTaskId;\n    readonly expectedRevision: number;\n    readonly action: TeamTaskAction;\n    readonly subject?: string;\n    readonly description?: string;\n    readonly blockedBy?: readonly TeamTaskId[];\n    readonly writeScopes?: readonly string[];\n    readonly owner?: string;\n}',
+  },
+  {
+    name: 'UsageAccountingDay',
+    declaration: 'export interface UsageAccountingDay {\n    date: string;\n    cacheHitInputTokens: number;\n    cacheMissInputTokens: number;\n    outputTokens: number;\n    totalTokens: number;\n    cacheHitInputCostNanoyuan: string | null;\n    cacheMissInputCostNanoyuan: string | null;\n    outputCostNanoyuan: string | null;\n    costNanoyuan: string;\n    unpricedTokens: number;\n}',
+  },
+  {
+    name: 'UsageAccountingSnapshot',
+    declaration: 'export interface UsageAccountingSnapshot {\n    revision: number;\n    month: string;\n    today: string;\n    trackingSince: string;\n    keyConfigured: boolean;\n    days: UsageAccountingDay[];\n    total: UsageAccountingDay;\n}',
   },
   {
     name: 'UserMessage',
@@ -7452,6 +9048,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'VerifiedWebhookDelivery',
     declaration: 'export interface VerifiedWebhookDelivery<K extends string = string> {\n    readonly kind: K;\n    readonly source: WebhookSourceId;\n    readonly deliveryId: WebhookDeliveryId;\n    readonly event: WebhookEventOf<K>;\n    readonly receivedAt: number;\n}',
+  },
+  {
+    name: 'VoucherDetail',
+    declaration: 'export interface VoucherDetail {\n    accountId: string;\n    accountName: string;\n    voucherId: string;\n    date: string;\n    number: string;\n    period: string;\n    audited: boolean;\n    settled: boolean;\n    documentMaker: string;\n    rows: VoucherRow[];\n    notice: string;\n}',
+  },
+  {
+    name: 'VoucherPage',
+    declaration: 'export interface VoucherPage {\n    accountId: string;\n    accountName: string;\n    month: string;\n    monthEnd?: string;\n    summary?: string;\n    page: number;\n    pageSize: number;\n    total: number;\n    hasMore: boolean;\n    voucherCount: number;\n    pagesRead?: number;\n    notice: string;\n    rows: VoucherRow[];\n}',
+  },
+  {
+    name: 'VoucherQuery',
+    declaration: 'export interface VoucherQuery {\n    month?: string;\n    monthEnd?: string;\n    summary?: string;\n    page: number;\n    pageSize: number;\n}',
+  },
+  {
+    name: 'VoucherRow',
+    declaration: 'export interface VoucherRow {\n    voucherId: string;\n    date: string;\n    number: string;\n    summary: string;\n    subjectCode: string;\n    subjectName: string;\n    debit: string;\n    credit: string;\n}',
   },
   {
     name: 'WebBootBatch',
@@ -7568,6 +9180,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WebUpgradeRoute',
     declaration: 'export interface WebUpgradeRoute {\n    path: string;\n    handler: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>;\n}',
+  },
+  {
+    name: 'WeeklyInput',
+    declaration: 'export interface WeeklyInput {\n    readonly time: string;\n    readonly time_zone: string;\n    readonly weekdays: number[];\n}',
+  },
+  {
+    name: 'WeeklyScheduleRecord',
+    declaration: 'export interface WeeklyScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'weekly\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly time: string;\n    readonly timeZone: string;\n    readonly weekdays: number[];\n    readonly scheduledAt: string;\n}',
+  },
+  {
+    name: 'WeixinChannelStatus',
+    declaration: 'export interface WeixinChannelStatus {\n    state: WeixinConnectionState;\n    online: boolean;\n    accountLabel?: string;\n    qrCodeDataUrl?: string;\n    qrExpiresAt?: number;\n    verificationRequired: boolean;\n    error?: string;\n}',
+  },
+  {
+    name: 'WeixinConnectionState',
+    declaration: 'export type WeixinConnectionState = \'disconnected\' | \'pairing\' | \'scanned\' | \'verification-required\' | \'connected\' | \'reconnecting\' | \'expired\' | \'token-expired\' | \'instance-busy\' | \'error\';',
   },
   {
     name: 'WorkflowAgentEndInfo',
@@ -7718,10 +9346,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type WorkspaceFollowIncrement = {\n    readonly type: \'upsert\';\n    readonly workspace: WorkspaceView;\n} | {\n    readonly type: \'remove\';\n    readonly workspaceId: WorkspaceId;\n} | {\n    readonly type: \'order\';\n    readonly workspaceIds: readonly WorkspaceId[];\n} | {\n    readonly type: \'archived\';\n    readonly archivedSessionIds: readonly SessionId[];\n} | {\n    readonly type: \'pinned\';\n    readonly pinnedSessionIds: readonly SessionId[];\n};',
   },
   {
-    name: 'WorkspaceInitializeDefaultRequest',
-    declaration: 'export interface WorkspaceInitializeDefaultRequest {\n    readonly directoryName: string;\n    readonly title: string;\n}',
-  },
-  {
     name: 'WorkspaceInsertBeforeRequest',
     declaration: 'export interface WorkspaceInsertBeforeRequest {\n    readonly workspaceId: WorkspaceId;\n    readonly beforeWorkspaceId?: WorkspaceId;\n}',
   },
@@ -7760,6 +9384,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkspaceView',
     declaration: 'export interface WorkspaceView {\n    readonly workspaceId: WorkspaceId;\n    readonly path: string;\n    readonly title: string;\n    readonly sessionIds: readonly SessionId[];\n    readonly createdAt: string;\n    readonly updatedAt: string;\n}',
+  },
+  {
+    name: 'XiaojingDocumentId',
+    declaration: 'export type XiaojingDocumentId = Branded<\'XiaojingDocumentId\'>;',
+  },
+  {
+    name: 'XiaojingDocumentListItem',
+    declaration: 'export type XiaojingDocumentListItem = DocumentListItem<XiaojingDocumentId>;',
+  },
+  {
+    name: 'XiaojingDocumentReadResult',
+    declaration: 'export type XiaojingDocumentReadResult = DocumentReadResult<XiaojingDocumentId>;',
+  },
+  {
+    name: 'XiaojingDocumentVisualReadResult',
+    declaration: 'export type XiaojingDocumentVisualReadResult = DocumentVisualReadResult<XiaojingDocumentId>;',
   },
 ]
 

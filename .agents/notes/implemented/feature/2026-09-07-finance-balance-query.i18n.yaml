@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-finance-balance-query.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-finance-balance-query.md
-2026-09-07-finance-balance-query.md: 89828c6850a3ca52a40d5295f41e193c20852cde
-2026-09-07-finance-balance-query.zh.md: 8504e07b341f29d4675dfd25c8156c81422e37dd
+/agent-note-finance-balance-report-evidence:
+  en: 525943204886bc44
+  zh: fb780868ee84f338
+/agent-note-finance-balance-report-evidence/problem:
+  en: 16978273fba51623
+  zh: bf7f72c424c9eb96
+/agent-note-finance-balance-report-evidence/decision:
+  en: 72b3acc44393dfd7
+  zh: 8ea07161865791c0
+/agent-note-finance-balance-report-evidence/alternatives-considered:
+  en: 3468359420c5f4a0
+  zh: 655afad1388a5d37
+/agent-note-finance-balance-report-evidence/consequences:
+  en: 75a45455ebd376db
+  zh: 78f0bc5d35620354

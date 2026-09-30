@@ -14,7 +14,7 @@ The installed Web profile also contained ModLens. Version 0.2.0 must remove that
 
 ### Upstream merge
 
-The upgrade branch starts at Xiaojing stable commit `8d7ded5a542a8fe99394e27b27e69cd3472838a3` and merges official tag `dsh-v0.1.0-rc.8` at commit `141eb6fef83422698aef7a981029e843e8161534`. A detached pure-rc.8 worktree is the conflict-resolution reference. Generated conflicts are resolved by the rc.8 generator or source of truth instead of hand-combining generated output. The resulting merge commit retains both histories and [`product.json`](../../../../packages/client/xiaojing-product/product.json) records the exact upstream and product integration bases.
+The upgrade branch starts at Xiaojing stable commit `xiaojing-history-20260930-1` and merges official tag `dsh-v0.1.0-rc.8` at commit `dsh-v0.1.0-rc.8`. A detached pure-rc.8 worktree is the conflict-resolution reference. Generated conflicts are resolved by the rc.8 generator or source of truth instead of hand-combining generated output. The resulting merge commit retains both histories and [`product.json`](../../../../packages/client/xiaojing-product/product.json) records the exact upstream and product integration bases.
 
 The rc.8 Web renderer, shell, settings surfaces, and Client build environment are authoritative. Superseded rc.5 UI assembly and the custom writable API-key UI patch are removed. Electron still clears inherited `DEEPSEEK_API_KEY` values before Host startup, while rc.8 owns credential creation and replacement.
 
@@ -42,7 +42,7 @@ Focused tests cover the Client build profiles, product registration gating and s
 
 ## Alternatives considered
 
-- **Copy a clean rc.8 tree and reapply visible Xiaojing files.** This appears simpler because it avoids textual merge conflicts, but it discards merge ancestry, makes missed behavior difficult to audit, and encourages product code to follow file locations instead of extension points. A recorded merge plus a pure reference worktree preserves provenance and exposes every compatibility decision.
+- **Copy a clean rc.8 tree and reapply visible Xiaojing files.** This appears simpler because it avoids textual merge conflicts, but it discards merge ancestry, makes missed behavior difficult to audit, and encourages product code to follow file locations instead of extension points. A recorded merge plus a pure reference worktree preserves source identity and exposes every compatibility decision.
 - **Keep the rc.5 renderer on top of the rc.8 Host.** This would reduce immediate visual change but retain replaced assembly code and create an unsupported mixed version. The product instead adopts rc.8 layout and keeps only neutral slots and isolated product renderers.
 - **Rewrite every profile containing ModLens.** This would remove more copies but could silently destroy user plugin choices. Exact installation-owned tuple migration removes only state whose origin is known.
 - **Retain ModLens as an optional bundled dependency.** Version 0.2.0 has no visual-bridge requirement, and retaining the dependency would preserve startup and compatibility paths that are not exercised by the product. Users' unrelated custom profile content remains outside the migration.

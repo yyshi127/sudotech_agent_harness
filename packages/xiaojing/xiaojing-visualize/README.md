@@ -1,10 +1,26 @@
+---
+description: "Xiaojing isolated visualization cards with the original dsh-visualize palette."
+kind: "package-bundle"
+---
+
 # @deepseek-ai/dsh-xiaojing-visualize
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Xiaojing's removable adaptation of `Nagi-ovo/dsh-visualize`. The plugin lets the model render interactive simulations, charts, comparisons, and interface mockups as cards inside the Web conversation.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Composition
+
+Rendering status, error fallback, and streaming-preview titles use typed Chinese and English dictionaries. Saved visualization titles and tool-result text remain the values recorded by their producers.
 
 The Host face registers the `visualize` tool and its bundled authoring skill. The Client face registers the settled tool view and streaming preview. Xiaojing's Web composition loads both faces only when `DSH_CLIENT_BUILD_PROFILE=xiaojing`; the official Harness profile is unchanged.
 
@@ -56,3 +72,10 @@ The tool schema and skill catalog entry are prefix-stable while the plugin confi
 - Cards use a fixed light palette and do not follow dark-mode changes.
 - Controls inside a card cannot send a follow-up message to the parent conversation.
 - Static CDN resources require network access even though runtime connection APIs inside the card are blocked.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

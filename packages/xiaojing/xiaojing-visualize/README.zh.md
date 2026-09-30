@@ -1,10 +1,26 @@
+---
+description: "Xiaojing isolated visualization cards with the original dsh-visualize palette."
+kind: "package-bundle"
+---
+
 # @deepseek-ai/dsh-xiaojing-visualize
 
 [English](README.md) | 中文
 
+## 概述
+
 本包是小兢会计对 `Nagi-ovo/dsh-visualize` 的可移除适配。模型可以在 Web 对话中把交互式模拟器、图表、对比内容和界面 mockup 渲染成卡片。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 组合方式
+
+渲染状态、错误后备文案及实时预览标题使用带类型的中英文字典。已保存的可视化标题及工具结果文本保留写入方记录的值。
 
 Host 半侧注册 `visualize` 工具及其内置创作 skill，Client 半侧注册完成态工具视图和流式预览。小兢会计 Web 组合只在 `DSH_CLIENT_BUILD_PROFILE=xiaojing` 时加载这两个半侧，官方 Harness profile 保持不变。
 
@@ -56,3 +72,10 @@ Host 半侧注册 `visualize` 工具及其内置创作 skill，Client 半侧注�
 - 卡片固定使用浅色配色，不跟随深色模式变化。
 - 卡片内部控件暂时不能向主对话发送后续消息。
 - 虽然卡片内部的运行时网络连接 API 被禁止，但加载静态 CDN 资源仍需要网络。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

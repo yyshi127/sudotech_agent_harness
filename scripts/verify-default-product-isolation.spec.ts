@@ -95,7 +95,8 @@ describe('default product isolation', () => {
     const root = fixture()
     const layer = '@deepseek-ai/dsh-experimental-layer'
     write(root, 'packages/experimental/layer/package.json', {
-      name: layer, dependencies: { [experimental]: 'workspace:^' }, dsh: { bundle: { patch: './cordis.patch.yml' } },
+      name: layer, icon: './icon.svg', exports: { './locale/*.json': './locale/*.json' },
+      dependencies: { [experimental]: 'workspace:^' }, dsh: { bundle: { patch: './cordis.patch.yml' } },
     })
     write(root, 'packages/experimental/layer/cordis.patch.yml', [{ insert: [{ name: experimental }] }])
     manifest(root, 'apps/cli/package.json', { dependencies: { [core]: 'workspace:^', [layer]: 'workspace:^' } })
@@ -114,7 +115,7 @@ describe('default product isolation', () => {
     expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`optional bundle ${layer} must not be a default bundle`)
   })
 
-  it('requires each optional bundle to be a runtime dependency that declares a bundle patch', () => {
+  it('requires each optional bundle to be a runtime dependency that declares a bundle patch, an icon, and locale metadata', () => {
     const root = fixture()
     write(root, profile, `export const PROFILE_TEMPLATES = { web: { bundles: ['${base}'] } }\n`
       + `export const DEFAULT_PROFILE_BUNDLES = ['${base}']\n`
@@ -122,6 +123,8 @@ describe('default product isolation', () => {
     const failures = verifyDefaultProductIsolation(root).failures.join('\n')
     expect(failures).toContain(`optional bundle ${experimental} must be a runtime dependency of apps/cli`)
     expect(failures).toContain(`optional bundle ${experimental} must declare dsh.bundle.patch`)
+    expect(failures).toContain(`optional bundle ${experimental} must declare an icon`)
+    expect(failures).toContain(`optional bundle ${experimental} must export ./locale/*.json display metadata`)
 
     // An experimental runtime dependency the list does not name is still a product requirement.
     write(root, profile, `export const PROFILE_TEMPLATES = { web: { bundles: ['${base}'] } }\n`
@@ -411,6 +414,17 @@ describe('default product isolation', () => {
     write(root, profile, `${source}\nconst INSTALLATION_OWNED_PROFILE_TUPLES = { headless: ['${experimental}'] }\n`)
 
     expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(experimental)
+  })
+
+  it('accepts retired non-bundle migration inputs but requires bundle metadata for current defaults', () => {
+    const root = fixture()
+    const source = readFileSync(join(root, profile), 'utf8')
+    const retired = '@fixture/retired-plugin'
+    write(root, profile, `${source}\nconst INSTALLATION_OWNED_PROFILE_TUPLES = { web: [['${base}', '${retired}']] }\n`)
+    expect(verifyDefaultProductIsolation(root).failures).toEqual([])
+    write(root, profile, `export const PROFILE_TEMPLATES = { web: { bundles: ['${base}', '${retired}'] } }\n`
+      + `export const DEFAULT_PROFILE_BUNDLES = ['${base}']\n`)
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`default bundle ${retired} must declare dsh.bundle.patch`)
   })
 
   it('checks inline modules alongside the default Web script', () => {

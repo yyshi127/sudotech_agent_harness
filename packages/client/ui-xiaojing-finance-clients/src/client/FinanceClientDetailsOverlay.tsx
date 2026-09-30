@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconCloseOutline16, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { FinanceClientId } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
 import type { FinanceClientsView } from './controller.ts'
 import { ClientEditor, type ClientEditorProps, type EditorState } from './FinanceClientsSection.tsx'
@@ -58,7 +58,7 @@ export function FinanceClientDetailsOverlay(props: FinanceClientDetailsOverlayPr
     <header className={css.header}>
       <h2>{props.t('editTitle')}</h2>
       <button type="button" className={css.close} aria-label={props.t('cancel')} disabled={saving} onClick={close}>
-        <IconCloseOutline16 />
+        <IconCloseOutlineRegular />
       </button>
     </header>
     {error === null && editor === null ? <p className={css.message} role="status">{props.t('loading')}</p> : null}

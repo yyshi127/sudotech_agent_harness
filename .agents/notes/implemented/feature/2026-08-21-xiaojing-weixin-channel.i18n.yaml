@@ -1,6 +1,31 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-21-xiaojing-weixin-channel.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-xiaojing-weixin-channel.md
-2026-08-21-xiaojing-weixin-channel.md: fd24547f2e10b5c3bb833bd58025c48ed9fedfac
-2026-08-21-xiaojing-weixin-channel.zh.md: 95922f9bd865855a576db6b75d92273399fada26
+/agent-note-xiaojing-weixin-channel:
+  en: e4d9604e4e2782a2
+  zh: 6666b92eac950bff
+/agent-note-xiaojing-weixin-channel/problem:
+  en: f3715d8e55c667bd
+  zh: 07613741c2a31141
+/agent-note-xiaojing-weixin-channel/decision:
+  en: 1d0a858a95143a40
+  zh: e631e4ae99cd5a8f
+/agent-note-xiaojing-weixin-channel/protocol-and-state:
+  en: afeb70268438a324
+  zh: ca703745cfc82da0
+/agent-note-xiaojing-weixin-channel/remote-execution-and-approval:
+  en: 66eaab65548febaf
+  zh: 0921fcd50c090c9f
+/agent-note-xiaojing-weixin-channel/mobile-text-presentation:
+  en: 336a486db1abf528
+  zh: 6d21fe5c9b03d0d0
+/agent-note-xiaojing-weixin-channel/alternatives-considered:
+  en: 52a7f57d4c9ca691
+  zh: ee39954afebf23aa
+/agent-note-xiaojing-weixin-channel/verification:
+  en: 0b82e7060b141260
+  zh: 084faa010d65bd08
+/agent-note-xiaojing-weixin-channel/consequences:
+  en: 22c20f8a072dfb9c
+  zh: 8944aecb8c20190e

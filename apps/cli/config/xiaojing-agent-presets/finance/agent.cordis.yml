@@ -128,8 +128,8 @@
           # The skill REGISTRY lives in the host composition and is layered per scope:
           # these rows register into THIS preset's layer of it, so they need no realm.
           # `skill-filesystem` contributes local-root discovery for agents on this preset,
-          # including the product-owned finance skills beside this composition. `baseUrl`
-          # keeps that root valid after installation or relocation. `tool-skill` gives the
+          # including the product-owned finance skills beside this composition. The
+          # Xiaojing launcher anchors this root to the shipped patch. `tool-skill` gives the
           # agent the catalog and loader; global deployment skills remain visible too.
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'

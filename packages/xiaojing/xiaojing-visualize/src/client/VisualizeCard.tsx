@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import { visualizeMetaFrom, type VisualizeMeta } from '../fragment.ts'
 import { buildFrameDoc, HEIGHT_MESSAGE_TYPE } from '../shell.ts'
@@ -44,14 +45,14 @@ const frameStyle: CSSProperties = {
 }
 
 /** First text line of the durable result content, for the error row. */
-function firstResultLine(content: readonly { type: string; text?: string }[]): string {
+function firstResultLine(content: readonly { type: string; text?: string }[], fallback: string): string {
   for (const block of content) {
     if (block.type === 'text' && typeof block.text === 'string' && block.text.length > 0) {
       const newline = block.text.indexOf('\n')
       return newline === -1 ? block.text : block.text.slice(0, newline)
     }
   }
-  return 'visualization failed'
+  return fallback
 }
 
 /**
@@ -108,18 +109,18 @@ export function VisualizeFrame({ meta, callId }: { meta: VisualizeMeta; callId: 
  * failed results stay quiet single lines; only a well-formed persisted meta
  * mounts the frame.
  */
-export function VisualizeCard({ callId, block }: ToolCallViewProps) {
+export function VisualizeCard({ callId, block, t }: ToolCallViewProps & PropsLocale<'xiaojing.visualize'>) {
   if (!('kind' in block)) {
-    return <div style={headerStyle}>Visualize · rendering…</div>
+    return <div style={headerStyle}>{t('rendering')}</div>
   }
   if (block.isError) {
-    return <div style={headerStyle}>Visualize · {firstResultLine(block.content)}</div>
+    return <div style={headerStyle}>{t('errorPrefix')}{firstResultLine(block.content, t('failed'))}</div>
   }
   const meta = visualizeMetaFrom(block.meta)
   if (meta === undefined) {
     // An older or foreign log without the descriptor: show the durable result
     // text instead of guessing at markup.
-    return <div style={headerStyle}>{firstResultLine(block.content)}</div>
+    return <div style={headerStyle}>{firstResultLine(block.content, t('failed'))}</div>
   }
   return <VisualizeFrame meta={meta} callId={callId} />
 }

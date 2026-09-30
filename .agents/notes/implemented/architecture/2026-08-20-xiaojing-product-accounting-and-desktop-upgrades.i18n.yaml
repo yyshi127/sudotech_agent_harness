@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md
-2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.md: 0c8e519699c3735fd11a4699f6431a2b52a3596b
-2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md: c50cacb491f4dab6014436146d1539891de38a2f
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades:
+  en: 8405300f41fc33ce
+  zh: f62d80ea9d9d161e
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/problem:
+  en: 0f208dbf69a87bd4
+  zh: d834fe133acdb00b
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/decision:
+  en: a15c7c13f167e5ac
+  zh: a15c7c13f167e5ac
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/decision/product-layer:
+  en: 75361aa77821499f
+  zh: df8b3d2e0862f242
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/decision/usage-settlement-and-pricing:
+  en: d4332f2e151550c8
+  zh: 3804b0565a29fd5e
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/decision/desktop-identity-and-data:
+  en: 302bf507137f3986
+  zh: 19027dbf567877f3
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/decision/upstream-integration:
+  en: cf3097ffe6718177
+  zh: 765485f2bf8776b9
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/verification:
+  en: 8bea9679168ce372
+  zh: ae9cd90253797e49
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/alternatives-considered:
+  en: 456681f7e98e9e8b
+  zh: 9ced0b937fba43bf
+/agent-note-xiaojing-product-isolation-local-accounting-and-desktop-upgrades/consequences:
+  en: d02b488fe69cd7ba
+  zh: 8bca90d38f8ac353

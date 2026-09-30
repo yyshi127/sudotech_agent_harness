@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-16-xiaojing-business-facing-model-results.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-16-xiaojing-business-facing-model-results.md
-2026-09-16-xiaojing-business-facing-model-results.md: a7a237411edc3efb90f8a7c496dcfdba057ce76c
-2026-09-16-xiaojing-business-facing-model-results.zh.md: 68adc806c572bc056b40dfd721a55bb29f46ca10
+/agent-note-business-facing-model-results:
+  en: c34f0c2b6e7ad6a2
+  zh: bee5494f772c3c5e
+/agent-note-business-facing-model-results/problem:
+  en: 6575313ac3f95e95
+  zh: a41660938f55ef8e
+/agent-note-business-facing-model-results/decision:
+  en: 2880b00e22e927cf
+  zh: e4719d5f54a493f2
+/agent-note-business-facing-model-results/alternatives-considered:
+  en: 3015aac57c867ab3
+  zh: a4d389a3de9019cb
+/agent-note-business-facing-model-results/consequences:
+  en: 4c52c61ead233f10
+  zh: f41751ef579fb8b8
+/agent-note-business-facing-model-results/verification:
+  en: 3ebc502ce9f71092
+  zh: dc12f6b9e8501cd4

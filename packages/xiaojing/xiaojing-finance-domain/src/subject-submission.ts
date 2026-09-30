@@ -32,7 +32,7 @@ export function buildSubjectSubmission(input: SubjectPreparationInput, selection
     ...input.numberUnit === null ? {} : { numberUnit: input.numberUnit } }
 }
 
-/** Field comparison does not prove request provenance, historical preservation or exhaustive reference coverage. */
+/** Field comparison does not prove request source identity, historical preservation or exhaustive reference coverage. */
 export interface SubjectReadback {
   content: 'matched' | 'mismatch' | 'unavailable'
   configuration: 'matched' | 'mismatch' | 'unavailable'

@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-14-finance-maintenance-confirmation-identity.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-14-finance-maintenance-confirmation-identity.md
-2026-09-14-finance-maintenance-confirmation-identity.md: d24cc038e9b19d027ae6e2219e69c9f2a236fffa
-2026-09-14-finance-maintenance-confirmation-identity.zh.md: b386f6b9fefb2708e745a17fdd27efd9cec4346a
+/agent-note-finance-maintenance-confirmation-identity:
+  en: 9516779947651ae3
+  zh: 5036c06328fabaa5
+/agent-note-finance-maintenance-confirmation-identity/problem:
+  en: 63a50d97a9dcf4ba
+  zh: aa93e650ab23afe8
+/agent-note-finance-maintenance-confirmation-identity/decision:
+  en: f907072c12316d02
+  zh: 3eb62b9fb477c710
+/agent-note-finance-maintenance-confirmation-identity/alternatives-considered:
+  en: 7bba9e5d5f61013e
+  zh: e6ac3b1cb93594b4
+/agent-note-finance-maintenance-confirmation-identity/verification:
+  en: 256372669b642c6c
+  zh: c7ccfee19b1f1f20
+/agent-note-finance-maintenance-confirmation-identity/consequences:
+  en: 2e708156c0646e2e
+  zh: 3e24016ed47cd3cb

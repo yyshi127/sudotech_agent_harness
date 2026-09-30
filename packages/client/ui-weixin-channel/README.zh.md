@@ -1,9 +1,23 @@
+---
+description: "Xiaojing settings page for the local Weixin iLink channel"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-weixin-channel
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计微信频道的浏览器展示插件。它会在设置中增加“频道”，默认展开微信卡片，并显示绑定、验证、连接、重连、过期和错误状态，但不拥有凭据或传输状态。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 组合与展示
 
 Client 插件只在 `xiaojing` 构建 profile 且来源为 loopback 时注册 id 为 `channels`、order 为 `25` 的 `settings.section`。其可观察控制器调用 Host 的 `/xiaojing-weixin` RPC 端点，并在页面挂载期间刷新状态。用户操作进行时会暂停定时刷新，避免过期状态响应覆盖绑定、验证或断开反馈。
@@ -27,3 +41,10 @@ Client 插件只在 `xiaojing` 构建 profile 且来源为 loopback 时注册 id
 - 该页面只管理一个预装微信频道，不提供任意频道或账号插件管理。
 - 状态只在设置组件挂载期间刷新；Host 会独立继续轮询。
 - V1 展示单聊文字、图片和文档支持；语音、视频、普通群聊、OCR 和图片内容理解仍不可用。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

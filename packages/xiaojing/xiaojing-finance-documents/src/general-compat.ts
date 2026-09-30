@@ -41,6 +41,7 @@ async function digest(filename: string): Promise<string> {
 
 function referencedPaths(agent: Agent): Array<{ path: string; createdAt: number }> {
   const result: Array<{ path: string; createdAt: number }> = []
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
   for (const event of agent.session.snapshotEvents()) {
     if (event.type !== 'user/message' || event.data.source.kind !== 'user') continue
     for (const block of event.data.content) {

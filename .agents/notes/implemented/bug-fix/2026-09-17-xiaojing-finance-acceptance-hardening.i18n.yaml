@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-17-xiaojing-finance-acceptance-hardening.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-17-xiaojing-finance-acceptance-hardening.md
-2026-09-17-xiaojing-finance-acceptance-hardening.md: 68180146c4318666d460880670d1f522bc298d90
-2026-09-17-xiaojing-finance-acceptance-hardening.zh.md: 249e3a3c1e66e16e22b563d2e76701861d13b186
+/agent-note-xiaojing-finance-acceptance-hardening:
+  en: 28b35c0dcbb80a7f
+  zh: 4baed9d697aff1d0
+/agent-note-xiaojing-finance-acceptance-hardening/problem:
+  en: bcb771c39e5d3c00
+  zh: 1daba346558931f3
+/agent-note-xiaojing-finance-acceptance-hardening/decision:
+  en: ec816d0cdf444c21
+  zh: ad5a13a9f3bef0f4
+/agent-note-xiaojing-finance-acceptance-hardening/alternatives-considered:
+  en: 5755b53ace52f193
+  zh: 5c266ad7c27c4944
+/agent-note-xiaojing-finance-acceptance-hardening/verification:
+  en: 365a86763bb0ee50
+  zh: 56838336a95c502c
+/agent-note-xiaojing-finance-acceptance-hardening/consequences:
+  en: bba45fce5ebcb8fb
+  zh: 3b05459ff6033ea7

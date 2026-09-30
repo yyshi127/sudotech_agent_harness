@@ -1,15 +1,8 @@
 [
   [
     {
-      "type": "tool-result",
-      "toolCallId": "journal-query",
-      "content": [
-        {
-          "type": "text",
-          "text": "Error: 日记账汇总未通过核验：已提供业务金额与接口合计不一致；可查询原始分页，不返回不完整合计。"
-        }
-      ],
-      "isError": true
+      "type": "text",
+      "text": "Error: 日记账汇总未通过核验：已提供业务金额与接口合计不一致；可查询原始分页，不返回不完整合计。"
     }
   ]
 ]

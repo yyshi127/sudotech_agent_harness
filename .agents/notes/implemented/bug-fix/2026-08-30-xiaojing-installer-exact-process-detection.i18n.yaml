@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-xiaojing-installer-exact-process-detection.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-xiaojing-installer-exact-process-detection.md
-2026-08-30-xiaojing-installer-exact-process-detection.md: b0b9b3c95bc1839072a18a21c5cabfb21936dbbc
-2026-08-30-xiaojing-installer-exact-process-detection.zh.md: e9133420a3b47334ca7870b8567131765258dff7
+/agent-note-xiaojing-installer-upgrade-preflight:
+  en: ec9ef0ee0c5be4fd
+  zh: f4a865408f80ca15
+/agent-note-xiaojing-installer-upgrade-preflight/problem:
+  en: 3eee1a4c4044be77
+  zh: f65f72763d131623
+/agent-note-xiaojing-installer-upgrade-preflight/decision:
+  en: cb7b4b45b11bd3a5
+  zh: c83e5eb633478e92
+/agent-note-xiaojing-installer-upgrade-preflight/alternatives-considered:
+  en: 45bbe867bc2f6c0a
+  zh: a07b44500d06d47b
+/agent-note-xiaojing-installer-upgrade-preflight/consequences:
+  en: 130cb31d350fc752
+  zh: d6280bc3620900f5

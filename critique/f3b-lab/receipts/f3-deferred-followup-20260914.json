@@ -1,6 +1,6 @@
 {
   "date": "2026-09-14",
-  "userDecision": "Record manual/external voucher deletion provenance as desktop issue004, defer without marking solved, continue independent work.",
+  "userDecision": "Record manual/external voucher deletion source identity as desktop issue004, defer without marking solved, continue independent work.",
   "issueFile": "C:/Users/Administrator/Desktop/小兢会计-暂未解决问题清单.md",
   "scope": "F3 combination regression after subject accounting changes; no F4, reimbursement or arbitrary-origin deletion",
   "command": "$env:DSH_CLIENT_BUILD_PROFILE='xiaojing'; $env:DSH_SNAPSHOT='replay'; pnpm.cmd exec vitest run --config vitest.web.config.ts apps/web/tests/finance-journal-preparation.e2e.ts apps/web/tests/finance-open-item-preparation.e2e.ts apps/web/tests/finance-voucher-deletion.e2e.ts apps/web/tests/finance-journal-deletion.e2e.ts apps/web/tests/finance-open-item-deletion.e2e.ts",
@@ -20,6 +20,6 @@
   "remainingDeferrals": [
     "first AR/AP business-account discovery",
     "auxiliary item enable-state",
-    "manual/external voucher provenance"
+    "manual/external voucher source identity"
   ]
 }

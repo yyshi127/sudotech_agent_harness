@@ -40,6 +40,6 @@
     "Resolve or explicitly retain repository-wide release-check failures",
     "Explicit user acceptance"
   ],
-  "deferredVendorIssues": ["001 complete business-account discovery", "002 auxiliary enable state", "004 manual/external voucher provenance"],
+  "deferredVendorIssues": ["001 complete business-account discovery", "002 auxiliary enable state", "004 manual/external voucher source identity"],
   "notClaimed": ["All 28 capabilities unrestricted", "F4 complete", "Production release ready", "Control of the user's existing Chrome tabs", "Permanent attachment retention", "A new Codex Goal was created"]
 }

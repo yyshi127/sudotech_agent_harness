@@ -1,9 +1,23 @@
+---
+description: "Xiaojing Finance client management and immutable session-context surfaces"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-xiaojing-finance-clients
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计 Finance 本地客户档案与会话上下文选择的可移除 Client 展示插件。该包只在 `DSH_CLIENT_BUILD_PROFILE=xiaojing` 时编译；从 Web 组合中删除对应行即可移除全部 Finance 客户界面，不会修改 Host 服务、其他预设或官方 Harness UI。界面将这些记录称为“账套”；持久化、Remote 标识和 Workspace 路径仍使用 Finance 客户模型。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 帐套信息
 
 空白会话的账套选择器按“客户简称-账套名称-ID 值”显示选项和选中标签；历史记录缺少简称时临时回退主体全称。有成账套名称与 ID 一起保存，重启后不会把已知名称替换为通用标签；历史记录缺少已保存名称时继续显示通用标签，重新选择并保存绑定后即可补齐。标签被截断时，悬停仍可查看完整内容。选择仍使用本地客户 ID，不使用显示文案。
@@ -70,3 +84,10 @@ loopback 小兢页面的设置提供“附件存储”，编辑本机全局的�
 - 控件和专属工作区类别只出现在随产品提供的 Finance 预设中；用户自建预设和其他系统预设不会显示。
 - 普通 Web 页面只有在 loopback 下才能使用完整功能；局域网浏览器不能读取客户详情或修改暂存上下文。
 - Client 只负责启动受控导入，不判断后续作业文件属于草稿、正式成果还是归档；该判断由 Finance Host 上下文和 `finance_files` 工具负责。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

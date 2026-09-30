@@ -14,7 +14,7 @@ Status: implemented
 
 ### 保留记录的上游合并
 
-升级分支从小兢提交 `578ecb3359a91234181772639a4743d58aaad155` 开始，正式合并官方 tag `dsh-v0.1.1-rc.1` 对应提交 `528c682e061696f5a160f363f236ecbf53cbd006`。合并提交 `5ce7719b5c3c4e2aa612d4c190e1a62c66024104` 保留双方历史。[`product.json`](../../../../packages/client/xiaojing-product/product.json) 记录官方 tag、commit 和产品集成基准；官方 rc.1 shell、renderer、附件、凭据和提供方实现继续作为真源。
+升级分支从小兢提交 `xiaojing-history-20260930-2` 开始，正式合并官方 tag `dsh-v0.1.1-rc.1` 对应提交 `dsh-v0.1.1-rc.1`。合并提交 `xiaojing-history-20260930-3` 保留双方历史。[`product.json`](../../../../packages/client/xiaojing-product/product.json) 记录官方 tag、commit 和产品集成基准；官方 rc.1 shell、renderer、附件、凭据和提供方实现继续作为真源。
 
 rc.1 已删除过时的 `packages/util/home` Knip 配置，因此对应且已不再适用的 vendor-rescope 精确编辑被正式退休，而不是重新创建无效目录。保留的中文 vendoring cookbook 后置文本沿用官方文档生成器已经输出的本地化 `rescope.zh.md` 链接。
 

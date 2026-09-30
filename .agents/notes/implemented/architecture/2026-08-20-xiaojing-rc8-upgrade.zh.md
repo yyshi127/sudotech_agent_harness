@@ -14,7 +14,7 @@ Status: implemented
 
 ### 上游合并
 
-升级分支从小兢稳定提交 `8d7ded5a542a8fe99394e27b27e69cd3472838a3` 开始，合并官方 tag `dsh-v0.1.0-rc.8` 对应提交 `141eb6fef83422698aef7a981029e843e8161534`。一个 detached 的纯 rc.8 工作树作为冲突解决对照。生成文件冲突由 rc.8 的生成命令或真源解决，不手工拼接生成结果。最终 merge commit 保留双方历史，[`product.json`](../../../../packages/client/xiaojing-product/product.json) 记录准确的上游和产品集成基准。
+升级分支从小兢稳定提交 `xiaojing-history-20260930-1` 开始，合并官方 tag `dsh-v0.1.0-rc.8` 对应提交 `dsh-v0.1.0-rc.8`。一个 detached 的纯 rc.8 工作树作为冲突解决对照。生成文件冲突由 rc.8 的生成命令或真源解决，不手工拼接生成结果。最终 merge commit 保留双方历史，[`product.json`](../../../../packages/client/xiaojing-product/product.json) 记录准确的上游和产品集成基准。
 
 rc.8 Web renderer、shell、设置界面和 Client 构建环境是当前真源。已经被替代的 rc.5 UI 组装和自定义可写 API Key 界面补丁被移除。Electron 仍在 Host 启动前清除继承的 `DEEPSEEK_API_KEY`，凭据创建和替换由 rc.8 原生界面负责。
 

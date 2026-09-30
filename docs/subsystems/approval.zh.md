@@ -50,7 +50,7 @@ type ApprovalPolicy = 'ask' | 'never'
 
 ## 审批请求
 
-`ApprovalRequest` 以足够精确的方式标识 agent 和工具操作，以便路由和审计该问题。它有意省略工具参数：应答者通过 `callId` 将提示附加到已流式输出的工具调用上，而非渲染另一份可能漂移的副本。
+`ApprovalRequest` 以足够精确的方式标识 agent 和工具操作，以便路由和审计该问题。它有意省略工具参数：应答者通过 `callId` 将提示附加到已流式输出的工具调用上，而非渲染另一份可能漂移的副本。可选的 `displayReason` 向界面传递请求方提供的本地化字符串；`reason` 仍是审计文本。
 
 ```ts type-equiv
 /**
@@ -130,6 +130,20 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  *   append commit point.
  */
 async request(req: ApprovalRequest): Promise<ApprovalOutcome>
+
+/**
+ * Ask for a security confirmation that the session's ordinary approval
+ * policy cannot suppress. This method is reserved for product security
+ * invariants such as deletion confirmation; it does not grant the action
+ * and still fails closed when no answerer is available, the user rejects,
+ * or the request is cancelled. Audit and turn-enclosure behavior are the
+ * same as {@link request}.
+ * @param req - the mandatory decision (agent, tool identity, reason, signal).
+ * @returns the closed outcome; `'allowed-once'` is the only grant.
+ * @throws when no turn is open or either audit event fails before the session
+ *   append commit point.
+ */
+async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
  * Read the session override without applying the configured default.

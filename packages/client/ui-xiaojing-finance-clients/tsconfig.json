@@ -8,19 +8,44 @@
     "src"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../api/remotes/tsconfig.client.json" },
-    { "path": "../../runtime-diagnostics/invariants" },
-    { "path": "../../xiaojing/xiaojing-finance-domain" },
-    { "path": "../connection/tsconfig.client.json" },
-    { "path": "../locale" },
-    { "path": "../ui-agent-preset" },
-    { "path": "../ui-chat" },
-    { "path": "../ui-conversation" },
-    { "path": "../ui-renderer" },
-    { "path": "../ui-settings" },
-    { "path": "../ui-tool" },
-    { "path": "../ui-slots" },
-    { "path": "../ui-workspace" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../api/remotes/tsconfig.client.json"
+    },
+    {
+      "path": "../../xiaojing/xiaojing-finance-domain"
+    },
+    {
+      "path": "../connection/tsconfig.client.json"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-agent-preset"
+    },
+    {
+      "path": "../ui-chat/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-tool"
+    },
+    {
+      "path": "../ui-slots"
+    },
+    {
+      "path": "../ui-workspace"
+    }
   ]
 }

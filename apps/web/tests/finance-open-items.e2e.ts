@@ -113,7 +113,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
         expect(bytes.subarray(0, 2).toString()).toBe('PK')
         expect(bytes.length).toBe(file.size)
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256)
-        const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
+        const blocks = results.flat()
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing page export receipt')
         const receipt = JSON.parse(text.text) as {
@@ -131,6 +131,8 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
       const page = await browser.newPage({ locale: 'zh-CN' })
       await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, handle.agent.session.id)
       await page.goto(scaffold.authenticatedUrl)
+      const selector = '[data-chat-call-id="open-item-query"]'
+      await revealToolCallCard(page, selector)
       if (scenario === 'export') {
         const file = events.find(event => event.type === 'finance/file-published')!.data.file
         const delivery = page.locator('[data-finance-published-file]').getByRole('button')
@@ -141,11 +143,10 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
         await compareOrRefreshGolden(fileURLToPath(new URL('./snapshots/finance-open-items/export-delivery.expected.md', import.meta.url)),
           (await captureStableAria(page, '[data-finance-published-file]', scaffold.workspaceCwd)).replaceAll(file.name, '<published-xlsx>'), webSnapshotMode())
         await page.reload()
+        await revealToolCallCard(page, selector)
         await delivery.waitFor()
         expect(await delivery.count()).toBe(1)
       }
-      const selector = '[data-chat-call-id="open-item-query"]'
-      await revealToolCallCard(page, selector)
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-open-items/${scenario}-card.expected.md`, import.meta.url)), await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
       const standard = await ctx.agents.create({ sessionId: SessionId('open-item-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })
       try { expect(ctx.tools.schemas(standard.agent).some(tool => tool.name === 'finance_open_items')).toBe(false) }

@@ -67,7 +67,7 @@ export async function pickNativeDirectory(
           '-e', 'POSIX path of selectedFolder',
           '-e', 'end run',
           '--', initialPath,
-        ], signal)
+        ], signal, 'hidden')
       return outputPath(result.stdout)
     } catch (error: unknown) {
       if (!signal.aborted && errorCode(error) === 1
@@ -91,7 +91,7 @@ export async function pickNativeDirectory(
       const result = await run('zenity', [
         '--file-selection', '--directory', '--title=Select Workspace Directory',
         ...(initialPath === undefined ? [] : [`--filename=${initialPath}${initialPath.endsWith('/') ? '' : '/'}`]),
-      ], signal)
+      ], signal, 'hidden')
       return outputPath(result.stdout)
     } catch (error: unknown) {
       rethrowIfAborted(signal, error)
@@ -102,7 +102,7 @@ export async function pickNativeDirectory(
     try {
       const result = await run('kdialog', [
         '--getexistingdirectory', initialPath ?? '.', '--title', 'Select Workspace Directory',
-      ], signal)
+      ], signal, 'hidden')
       return outputPath(result.stdout)
     } catch (error: unknown) {
       rethrowIfAborted(signal, error)

@@ -50,6 +50,6 @@
     "Missing foreign-currency base balances or currency codes remain unavailable; no exchange-rate estimate or zero fill",
     "Changed current inventory must not be treated as a matching historical deletion",
     "No repeat of consumed deletion intents or alteration of historical receipts",
-    "Deferred F3 account IDs, auxiliary enable-state and manual/external voucher provenance are not fixed by this change"
+    "Deferred F3 account IDs, auxiliary enable-state and manual/external voucher source identity are not fixed by this change"
   ]
 }

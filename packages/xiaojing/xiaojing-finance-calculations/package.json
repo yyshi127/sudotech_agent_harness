@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-finance-calculations",
   "description": "Versioned deterministic trial calculations for Xiaojing Finance mode",
-  "version": "0.1.1-rc.2",
+  "version": "0.2.0-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -22,10 +22,6 @@
       "types": "./lib/types/tool.d.ts",
       "default": "./lib/tool.js"
     },
-    "./invariant": {
-      "types": "./lib/types/invariant.d.ts",
-      "default": "./lib/invariant.js"
-    },
     "./types": {
       "types": "./lib/types/types.d.ts",
       "default": "./lib/types/types.js"
@@ -35,7 +31,6 @@
   },
   "files": [
     "lib/index.js",
-    "lib/invariant.js",
     "lib/tool.js",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts"
@@ -45,17 +40,15 @@
     "decimal.js": "^10.6.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/dsh-xiaojing-finance-domain": "workspace:^"
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/dsh-xiaojing-finance-domain": "workspace:*"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-agent": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-tools": "workspace:^",
-    "@deepseek-ai/dsh-xiaojing-finance-domain": "workspace:^"
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/dsh-xiaojing-finance-domain": "workspace:*"
   }
 }

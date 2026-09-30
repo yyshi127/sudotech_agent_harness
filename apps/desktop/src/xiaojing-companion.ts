@@ -6,7 +6,6 @@ import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import {
   app,
   BrowserWindow,
-  dialog,
   ipcMain,
   Menu,
   nativeImage,
@@ -35,7 +34,7 @@ const PREFERENCES_DIRECTORY_MODE = 0o700
 
 interface ScreenPoint { readonly x: number; readonly y: number }
 
-/** Main-window and lifecycle operations supplied by the RC1 Desktop shell. */
+/** Main-window and lifecycle operations supplied by the Desktop shell. */
 export interface XiaojingCompanionOptions {
   readonly getMainWindow: () => BrowserWindow | undefined
   readonly showMainWindow: () => void
@@ -119,28 +118,15 @@ export class XiaojingDesktopCompanion {
     })
   }
 
-  /** Ask before terminating live work or an unreadable backend, then invoke the shell-owned quit path. */
-  async requestQuit(): Promise<void> {
-    const risk = !this.stateReadable || this.snapshot.activeTaskCount > 0 || this.snapshot.weixinOnline
-    if (risk) {
-      const reasons = [
-        ...(!this.stateReadable ? ['无法确认当前任务状态'] : []),
-        ...(this.snapshot.activeTaskCount > 0 ? [`仍有 ${String(this.snapshot.activeTaskCount)} 项任务在执行`] : []),
-        ...(this.snapshot.weixinOnline ? ['微信频道仍在线'] : []),
-      ]
-      const result = await dialog.showMessageBox({
-        type: 'warning',
-        title: '退出小兢会计',
-        message: '退出会停止后台任务和微信连接。',
-        detail: reasons.join('；'),
-        buttons: ['取消', '仍然退出'],
-        defaultId: 0,
-        cancelId: 0,
-        noLink: true,
-      })
-      if (result.response !== 1) return
-    }
+  /** Report an online or unreadable Weixin connection for the shell quit inspection. */
+  hasActiveConnection(): boolean {
+    return !this.stateReadable || this.snapshot.weixinOnline
+  }
+
+  /** Request the shell-owned quit path, which inspects work and owns the confirmation. */
+  requestQuit(): Promise<void> {
     this.options.quitApplication()
+    return Promise.resolve()
   }
 
   /** Release display listeners, stream, companion window, tray, and pending preference writes. */
@@ -302,7 +288,7 @@ export class XiaojingDesktopCompanion {
   private registerIpc(): void {
     ipcMain.handle(XIAOJING_DESKTOP_IPC.applicationInfo, (event) => {
       this.assertMainSender(event)
-      return { version: app.getVersion() }
+      return { version: app.isPackaged ? app.getVersion() : XIAOJING_IDENTITY.productVersion }
     })
     ipcMain.handle(XIAOJING_DESKTOP_IPC.companionState, (event) => {
       this.assertProductSender(event)
@@ -353,7 +339,8 @@ export class XiaojingDesktopCompanion {
     })
     ipcMain.on(XIAOJING_DESKTOP_IPC.companionContextMenu, (event) => {
       if (!this.isCompanionSender(event)) return
-      this.companionContextMenu().popup({ window: this.window })
+      const window = this.window
+      this.companionContextMenu().popup(window === undefined ? {} : { window })
     })
   }
 
@@ -449,6 +436,7 @@ export class XiaojingDesktopCompanion {
           }
         }
       } catch (error) {
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- The signal can abort while fetch or reader.read awaits.
         if (signal.aborted) return
         console.error('desktop companion: state stream disconnected', error)
       }

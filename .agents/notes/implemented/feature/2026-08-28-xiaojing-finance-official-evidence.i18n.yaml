@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-28-xiaojing-finance-official-evidence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-28-xiaojing-finance-official-evidence.md
-2026-08-28-xiaojing-finance-official-evidence.md: 0501c368cbe152fc00ef71d1bc8f4d5f399c1295
-2026-08-28-xiaojing-finance-official-evidence.zh.md: 72d350fda0ab8eb9394d350db5db2807a2e61cab
+/agent-note-xiaojing-finance-official-source-evidence-service:
+  en: 1a8a1ff09602aae8
+  zh: 2bd7bfea1b39e448
+/agent-note-xiaojing-finance-official-source-evidence-service/problem:
+  en: 4c3ea2fcc785fcbe
+  zh: 672beeb71c9b71c1
+/agent-note-xiaojing-finance-official-source-evidence-service/decision:
+  en: 3b2dafc45225cac3
+  zh: ed7e7709555f716a
+/agent-note-xiaojing-finance-official-source-evidence-service/alternatives-considered:
+  en: 6784a43a673c7387
+  zh: 932f8ceb4431fb97
+/agent-note-xiaojing-finance-official-source-evidence-service/verification:
+  en: 40c59db8ceb1a387
+  zh: a654c6d5526249cb
+/agent-note-xiaojing-finance-official-source-evidence-service/consequences:
+  en: 8ed54e375b4ad428
+  zh: e34e032aac53106c

@@ -1,9 +1,23 @@
+---
+description: "Sidebar daily usage summary and current-month usage calendar"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-usage-accounting
 
 [English](README.md) | 中文
 
+## 概述
+
 本机用量 Remote 的小兢产品浏览器展示插件。它在 `sidebar.footer.action` 增加当日摘要，在 `settings.section` 增加本月日历，但不拥有计费数据或凭据值。官方和本地 Harness 客户端构建都不会注册这两个入口。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 组合
 
 插件依赖通用侧边栏与设置 slot、locale、生成的 `remote.usageAccounting` 客户端以及 Host 转发事件。两个入口共享同一个可观察控制器。slot renderer 将该可观察源绑定为 `useUsage`；组件只接收框架生成的 hook、刷新回调和本地化文字。
@@ -28,3 +42,10 @@ No direct effect; opening or refreshing either view does not alter a model reque
 
 - 页面有意只公开当前月份和当前 API Key，不提供月份切换、图表、导出、余额或云同步。
 - Remote 断开或失败时显示不可用状态，浏览器端不维护另一份独立计费账本。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

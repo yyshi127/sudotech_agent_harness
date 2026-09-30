@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-29-xiaojing-shared-document-reading.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-29-xiaojing-shared-document-reading.md
-2026-08-29-xiaojing-shared-document-reading.md: 0abfab569523fb416bcc841bd6b296f868e4280f
-2026-08-29-xiaojing-shared-document-reading.zh.md: a77196e871d5c0e7831f166d6046f32853d95a8a
+/agent-note-xiaojing-shared-document-reading:
+  en: 40e548a6a579dbac
+  zh: c164ab068ee96ada
+/agent-note-xiaojing-shared-document-reading/problem:
+  en: 4d47b99f1dca23b7
+  zh: b00dd33cc4a64d6b
+/agent-note-xiaojing-shared-document-reading/decision:
+  en: baeb7ce4aabae591
+  zh: 72f602b23c6ea67b
+/agent-note-xiaojing-shared-document-reading/alternatives-considered:
+  en: 8d37a26ba8079227
+  zh: 87d7d96f2fd34acf
+/agent-note-xiaojing-shared-document-reading/verification:
+  en: 20355bcb2ce0e79f
+  zh: ee07278ddb92b69e
+/agent-note-xiaojing-shared-document-reading/consequences:
+  en: a749a206c8fa5a5d
+  zh: 49f0089e78ba02fc

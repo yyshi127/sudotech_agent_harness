@@ -27,19 +27,22 @@ import { withMacOSNotarizationProxy } from './macos-notarization-proxy.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
-const productIdentityValue: unknown = JSON.parse(readFileSync(join(APP_ROOT, 'identity.json'), 'utf8'))
-if (typeof productIdentityValue !== 'object' || productIdentityValue === null || Array.isArray(productIdentityValue)) {
-  throw new Error('desktop package: identity.json must contain an object')
-}
-const PRODUCT_IDENTITY = productIdentityValue as Record<string, unknown>
-const PRODUCT_APP_ID = PRODUCT_IDENTITY.appId
-const PRODUCT_NAME = PRODUCT_IDENTITY.productName
-const PRODUCT_VERSION = PRODUCT_IDENTITY.productVersion
-if (typeof PRODUCT_APP_ID !== 'string' || PRODUCT_APP_ID === ''
-  || typeof PRODUCT_NAME !== 'string' || PRODUCT_NAME === ''
-  || typeof PRODUCT_VERSION !== 'string' || PRODUCT_VERSION === '') {
-  throw new Error('desktop package: identity.json must declare appId, productName, and productVersion')
-}
+const { appId: PRODUCT_APP_ID, productName: PRODUCT_NAME, productVersion: PRODUCT_VERSION } = (() => {
+  const productIdentityValue: unknown = JSON.parse(readFileSync(join(APP_ROOT, 'identity.json'), 'utf8'))
+  if (typeof productIdentityValue !== 'object' || productIdentityValue === null || Array.isArray(productIdentityValue)) {
+    throw new Error('desktop package: identity.json must contain an object')
+  }
+  const PRODUCT_IDENTITY = productIdentityValue as Record<string, unknown>
+  const appId = PRODUCT_IDENTITY.appId
+  const productName = PRODUCT_IDENTITY.productName
+  const productVersion = PRODUCT_IDENTITY.productVersion
+  if (typeof appId !== 'string' || appId === ''
+    || typeof productName !== 'string' || productName === ''
+    || typeof productVersion !== 'string' || productVersion === '') {
+    throw new Error('desktop package: identity.json must declare appId, productName, and productVersion')
+  }
+  return { appId, productName, productVersion }
+})()
 const WINDOWS_SIGNING_ENV_PREFIX = 'DSH_DESKTOP_WINDOWS_'
 const WINDOWS_SIGNING_ENV_NAMES = [
   'DSH_DESKTOP_WINDOWS_CER_FILE',
@@ -136,14 +139,6 @@ export function withoutDesktopUploadCredentials(environment: NodeJS.ProcessEnv):
 
 function isTargetName(value: string): value is DesktopPackageTargetName {
   return Object.hasOwn(TARGETS, value)
-}
-
-function packageVersion(path: string, label: string): string {
-  const manifest = JSON.parse(readFileSync(path, 'utf8')) as { version?: unknown }
-  if (typeof manifest.version !== 'string' || manifest.version === '') {
-    throw new Error(`desktop package: ${label} has no version`)
-  }
-  return manifest.version
 }
 
 function writeReleaseRecord(

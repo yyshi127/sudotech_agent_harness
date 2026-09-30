@@ -18,7 +18,7 @@
  * a missing regeneration.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import {
   projectCordisCatalog,
@@ -31,11 +31,7 @@ import type { CordisCatalogPolicy } from '@deepseek-ai/dsh-typert-generator'
 import { renderCordisCoreApiPages } from './cordis-core-api.ts'
 import { contextKeyMap, contextMergeFiles, eventNameList } from './cordis-walk.ts'
 import {
-  blobHash,
-  parsePairMeta,
   parseTranslationPairingManifest,
-  partitionGeneratedRegions,
-  renderPairMeta,
   translationPairSourcePredicate,
 } from './translation-pairing.ts'
 import { rewriteTranslationLinkLocales } from './translation-links.ts'
@@ -54,9 +50,20 @@ export { REGION_BEGIN, REGION_END }
  * errors, so the partition can never silently drift from the service API.
  */
 export const SERVICE_PAGE: Record<string, string> = {
+  usageAccounting: 'usage-accounting.md',
+  xiaojingBrowserControl: 'xiaojing.md',
+  xiaojingComputerControl: 'xiaojing.md',
+  xiaojingDesktopCompanion: 'xiaojing.md',
+  xiaojingFinanceCalculations: 'xiaojing.md',
+  xiaojingFinanceDocuments: 'xiaojing.md',
+  xiaojingFinanceDomain: 'xiaojing.md',
+  xiaojingFinanceEvidence: 'xiaojing.md',
+  xiaojingWeixinChannel: 'xiaojing.md',
   speechToText: 'voice-input.md',
   speechController: 'voice-input.md',
+  otel: 'otel.md',
   productTelemetry: 'product-telemetry.md',
+  productAnalytics: 'product-telemetry.md',
   connection: 'web-server.md',
   pluginManager: 'boot.md',
   pluginRegistryProbe: 'boot.md',
@@ -92,6 +99,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   fileReferences: 'session-reference.md',
   fs: 'filesystem.md',
   goals: 'goal.md',
+  schedule: 'schedule.md',
   inspector: 'extensions.md',
   webServer: 'web-server.md',
   invariants: 'invariants.md',
@@ -164,6 +172,8 @@ export const SERVICE_PAGE: Record<string, string> = {
  * to a model as `cordis_runtime_inspect what:"client"`).
  */
 export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
+  agentPresetDisplay: 'Client-only localized preset labels are owned by packages/client/ui-agent-preset/README.md',
+  workspaceCategories: 'Client-only product workspace categories are owned by packages/client/ui-workspace/README.md',
   invocation: 'not a service: per-call accessor (RemoteInvocation | undefined) the Gateway derives for each Remote call — packages/api/gateway/README.md owns the contract',
   webTerminals: 'client-side terminal view models — packages/api/terminal-controller/README.md owns the API',
   appReady: 'not a service: launcher-provided successful-startup signal — packages/boot/cmdline/README.md owns the launcher contract',
@@ -182,10 +192,13 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   settingsSchema: 'client-side schema introspection service — packages/client/ui-settings/README.md owns the API',
   configForms: 'client-side shared entry forms — packages/client/ui-settings/README.md owns the API',
   chatFileMentions: 'client-side slot-contract accessor (ChatFileMentions) — packages/client/ui-chat/README.md owns the API',
+  shortcuts: 'client-side interface-typed keyboard service — packages/client/shortcuts/README.md owns the API',
+  userQuestionPanels: 'client-side slot-contract accessor (UserQuestionPanels) — packages/client/ui-tool/README.md owns the API',
   commandUi: 'client-side interface-typed browser service — packages/client/ui-commands/README.md owns the API',
   feedbackUi: 'client-side feedback dialog service — packages/client/ui-message-feedback/README.md owns the API',
   conversation: 'client-side interface-typed browser service — packages/client/ui-conversation/README.md owns the API',
   layout: 'client-side interface-typed browser service — packages/client/ui-layout/README.md owns the API',
+  pluginNavigation: 'client-side bundle navigation — packages/client/ui-plugin-manager/README.md owns the API',
   locale: 'client-side interface-typed browser service — packages/client/locale/README.md owns the API',
   modelDirectories: 'client-side interface-typed browser service — packages/client/ui-model-selection/README.md owns the API',
   modules: 'client-side interface-typed browser service — packages/client/modules/README.md owns the API',
@@ -210,6 +223,9 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
  * {@link EVENT_WALK_EXEMPTIONS} names each one with its documentation owner.
  */
 export const EVENT_SCOPE_PAGE: Record<string, string> = {
+  'llm-deepseek': 'llm-streaming.md',
+  'usage-accounting': 'usage-accounting.md',
+  'xiaojing-weixin': 'xiaojing.md',
   'app-boot': 'boot.md',
   hmr: 'boot.md',
   'plugin-manager': 'boot.md',
@@ -224,9 +240,11 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'cordis': 'extensions.md',
   'authorization': 'credentials.md',
   'credentials': 'credentials.md',
+  'deepseek-account': 'credentials.md',
   'domain': 'storage.md',
   'fs': 'filesystem.md',
   'goal': 'goal.md',
+  'schedule': 'schedule.md',
   'llm': 'llm-streaming.md',
   'permission-presets': 'permission-presets.md',
   'session': 'session.md',
@@ -254,6 +272,8 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
  * exemption cannot mask another declaration in that scope.
  */
 export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
+  'agent-preset/staged': 'Client-only blank-session preset selection is owned by packages/client/ui-agent-preset/README.md',
+  'xiaojing-finance/local-file-prepare': 'Client-only local attachment selection is owned by packages/client/ui-xiaojing-finance-clients/README.md',
   'command/executed': 'client-face local command acknowledgment — packages/client/ui-commands/README.md owns the API',
   'connection/reset': 'client-face transport signal — packages/api/session-controller/README.md owns the API',
   'locale/change': 'client-face locale switch signal — packages/client/locale/README.md owns the API',
@@ -272,6 +292,82 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
  * appear on more than one page.
  */
 export const LINK_MAP: Readonly<Record<string, string>> = {
+  AddFinanceConsultationWorkspaceRequest: 'xiaojing.md',
+  ArchiveFinanceClientRequest: 'xiaojing.md',
+  ArchiveFinanceFileRequest: 'xiaojing.md',
+  AttachmentStorageTestResult: 'xiaojing.md',
+  AttachmentStorageView: 'xiaojing.md',
+  BalanceAnalysisQuery: 'xiaojing.md',
+  BalanceAnalysisResult: 'xiaojing.md',
+  BalanceQuery: 'xiaojing.md',
+  BalanceResult: 'xiaojing.md',
+  BrowserActionRequest: 'xiaojing.md',
+  BrowserActionResult: 'xiaojing.md',
+  BrowserControlStatus: 'xiaojing.md',
+  CompanionSnapshot: 'xiaojing.md',
+  ComputerActionRequest: 'xiaojing.md',
+  ComputerActionResult: 'xiaojing.md',
+  CreateFinanceClientRequest: 'xiaojing.md',
+  FinanceAttachmentUpload: 'xiaojing.md',
+  FinanceCalculationRequest: 'xiaojing.md',
+  FinanceCalculationResult: 'xiaojing.md',
+  FinanceClientBinding: 'xiaojing.md',
+  FinanceClientId: 'xiaojing.md',
+  FinanceClientListView: 'xiaojing.md',
+  FinanceClientMutationResult: 'xiaojing.md',
+  FinanceClientReadView: 'xiaojing.md',
+  FinanceClientWorkspace: 'xiaojing.md',
+  FinanceClientWorkspaceEntry: 'xiaojing.md',
+  FinanceConnectionStatus: 'xiaojing.md',
+  FinanceDocumentListItem: 'xiaojing.md',
+  FinanceDocumentReadResult: 'xiaojing.md',
+  FinanceDocumentVisualReadResult: 'xiaojing.md',
+  FinanceEvidenceRequest: 'xiaojing.md',
+  FinanceEvidenceResult: 'xiaojing.md',
+  FinanceGeneralWorkspaceEntry: 'xiaojing.md',
+  FinanceImportedFile: 'xiaojing.md',
+  FinanceManagedFile: 'xiaojing.md',
+  FinanceManagedFileId: 'xiaojing.md',
+  FinanceSessionContextView: 'xiaojing.md',
+  FinanceWorkspaceEntry: 'xiaojing.md',
+  FinanceWorkspaceListView: 'xiaojing.md',
+  FinanceYouchengAccountsResult: 'xiaojing.md',
+  ImportFinanceUploadRequest: 'xiaojing.md',
+  JournalAnalysisQuery: 'xiaojing.md',
+  JournalAnalysisResult: 'xiaojing.md',
+  JournalQuery: 'xiaojing.md',
+  JournalResult: 'xiaojing.md',
+  ListFinanceYouchengAccountsRequest: 'xiaojing.md',
+  OpenItemAccountReferences: 'xiaojing.md',
+  OpenItemAnalysisQuery: 'xiaojing.md',
+  OpenItemAnalysisResult: 'xiaojing.md',
+  OpenItemQuery: 'xiaojing.md',
+  OpenItemResult: 'xiaojing.md',
+  PublishFinanceFileRequest: 'xiaojing.md',
+  ReferenceQuery: 'xiaojing.md',
+  ReferenceResult: 'xiaojing.md',
+  ReimbursementConnectionView: 'xiaojing.md',
+  RemoveFinanceWorkspaceRequest: 'xiaojing.md',
+  RenameFinanceWorkspaceRequest: 'xiaojing.md',
+  RestoreFinanceClientWorkspaceRequest: 'xiaojing.md',
+  SaveAttachmentStorageRequest: 'xiaojing.md',
+  SaveReimbursementConnectionRequest: 'xiaojing.md',
+  StageFinanceClientRequest: 'xiaojing.md',
+  UpdateFinanceClientRequest: 'xiaojing.md',
+  UsageAccountingSnapshot: 'usage-accounting.md',
+  VoucherDetail: 'xiaojing.md',
+  VoucherPage: 'xiaojing.md',
+  VoucherQuery: 'xiaojing.md',
+  XiaojingDocumentId: 'xiaojing.md',
+  XiaojingDocumentListItem: 'xiaojing.md',
+  XiaojingDocumentReadResult: 'xiaojing.md',
+  XiaojingDocumentVisualReadResult: 'xiaojing.md',
+  EventLogOptions: 'otel.md',
+  EventLogReporter: 'otel.md',
+  SessionLogOptions: 'otel.md',
+  SessionLogReporter: 'otel.md',
+  OTelEventRecord: 'otel.md',
+  OTelEventScalar: 'otel.md',
   ProductTelemetryRecord: 'product-telemetry.md',
   ProductTelemetryScalar: 'product-telemetry.md',
   WorkspaceChangesSummary: 'deliverables.md',
@@ -415,6 +511,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   FileUploadReceiptId: 'attachment.md',
   FileUploadValue: 'attachment.md',
   SessionStartSource: 'core.md',
+  ToolCallId: 'core.md',
   SessionLogSnapshot: 'session-query.md',
   SessionSurfaceSnapshot: 'session-query.md',
   ApprovalOutcome: 'approval.md',
@@ -480,6 +577,23 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   GoalChanged: 'goal.md',
   GoalRef: 'goal.md',
   GoalView: 'goal.md',
+  ScheduleCatalogEntry: 'schedule.md',
+  ScheduleDeliveryReceipt: 'schedule.md',
+  ScheduleDeliveryRecord: 'schedule.md',
+  ScheduleDeliveryHistoryRequest: 'schedule.md',
+  ScheduleDeliveryHistoryResult: 'schedule.md',
+  ScheduleCreateRequest: 'schedule.md',
+  ScheduleListRequest: 'schedule.md',
+  ScheduleDeleteRequest: 'schedule.md',
+  ScheduleDeleteResult: 'schedule.md',
+  ScheduleTimingChange: 'schedule.md',
+  ScheduleUpdateRequest: 'schedule.md',
+  ScheduleUpdateResult: 'schedule.md',
+  ScheduleRecord: 'schedule.md',
+  DailyInput: 'schedule.md',
+  DailyScheduleRecord: 'schedule.md',
+  RecurringScheduleRecord: 'schedule.md',
+  LegacyScheduleRecord: 'schedule.md',
   CreateGoalResult: 'goal.md',
   CommandDefinition: 'commands.md',
   CommandDescriptor: 'commands.md',
@@ -691,6 +805,10 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   AuthorizationOutcome: 'credentials.md',
   AccountView: 'credentials.md',
   AccountDetails: 'credentials.md',
+  AccountClientMetadata: 'credentials.md',
+  AccountBonusBatch: 'credentials.md',
+  AccountBonusOrderId: 'credentials.md',
+  AccountUserId: 'credentials.md',
   PlatformSession: 'credentials.md',
   SignInAttemptId: 'credentials.md',
   AuthorizationPrompt: 'credentials.md',
@@ -707,6 +825,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   ResolvedCredential: 'credentials.md',
   AskUserQuestionAnswer: 'user-questions.md',
   AskUserQuestionRequest: 'user-questions.md',
+  TimedUserQuestionResult: 'user-questions.md',
   UserQuestionProvider: 'user-questions.md',
   WebFetchProvider: 'web.md',
   WebFetchRequest: 'web.md',
@@ -736,7 +855,6 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   WorkspaceArchiveSessionRequest: 'workspace.md',
   WorkspaceArchiveValue: 'workspace.md',
   WorkspaceCreateRequest: 'workspace.md',
-  WorkspaceInitializeDefaultRequest: 'workspace.md',
   WorkspaceCreateValue: 'workspace.md',
   WorkspaceDeleteRequest: 'workspace.md',
   WorkspaceDeleteValue: 'workspace.md',
@@ -806,6 +924,9 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  DeepSeekRequestIdentity: 'API-key request attribution is owned by packages/llm/llm-deepseek-api-key/README.md and src/request-identity.ts',
+  WeixinChannelStatus: 'Xiaojing channel status fields are owned by packages/xiaojing/xiaojing-weixin-channel/README.md and src/types.ts',
+  ProductEvent: 'Desktop event fields are owned by packages/client/product-analytics/README.md and src/events.ts',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',
   ConnectionTrustRequest: 'transport authentication input is owned by packages/client/connection/src/rpc.ts',
@@ -1188,51 +1309,6 @@ export function computeOutputs(): [string, string][] {
   return outputs
 }
 
-/**
- * Re-record a pair's `.i18n.yaml` after a region write ONLY when the write is
- * region-confined: both sides' region-stripped content must be byte-equal to
- * the region-stripped previous content whose hashes the record holds. The
- * caller supplies the previous bytes (read before writing); human-content
- * drift leaves the record untouched so the pairing gate still demands the
- * normal translation flow.
- * @param pageRel - repo-relative English page path (`docs/subsystems/x.md`).
- * @param before - pre-write bytes per repo-relative path.
- * @param scanRoot - repository root override for tests.
- * @returns true when the record was refreshed.
- */
-export function maybeRecordPair(pageRel: string, before: Map<string, Buffer>, scanRoot: string = root): boolean {
-  const zhRel = pageRel.replace(/\.md$/, '.zh.md')
-  const metaRel = pageRel.replace(/\.md$/, '.i18n.yaml')
-  const metaAbs = resolve(scanRoot, metaRel)
-  let meta: string
-  try {
-    meta = readFileSync(metaAbs, 'utf8')
-  } catch {
-    // No record yet: a brand-new pair is recorded by the author's --write
-    // after review, never silently by regeneration.
-    return false
-  }
-  // The record must contain exactly the two valid entries for THIS pair;
-  // a malformed or renamed-key sidecar is the pairing gate's problem to
-  // report, never something regeneration silently repairs into validity.
-  const recorded = parsePairMeta(meta)
-  const names = [pageRel, zhRel].map(rel => rel.split('/').at(-1) ?? rel)
-  if (!recorded || recorded.size !== 2 || !names.every(name => recorded.has(name))) return false
-  for (const rel of [pageRel, zhRel]) {
-    const previous = before.get(rel)
-    if (!previous) return false
-    if (recorded.get(rel.split('/').at(-1) ?? rel) !== blobHash(previous)) return false
-    const current = readFileSync(resolve(scanRoot, rel))
-    const strippedBefore = partitionGeneratedRegions(previous.toString('utf8')).stripped
-    const strippedAfter = partitionGeneratedRegions(current.toString('utf8')).stripped
-    if (strippedBefore !== strippedAfter) return false
-  }
-  const source = readFileSync(resolve(scanRoot, pageRel))
-  const zh = readFileSync(resolve(scanRoot, zhRel))
-  writeFileSync(metaAbs, renderPairMeta(pageRel, blobHash(source), zhRel, blobHash(zh)))
-  return true
-}
-
 /** CLI entry: default regenerates every artifact, `--check` fails if any is
  * stale. Guarded behind an entry-point check so importing this module for
  * tests neither regenerates the committed files nor calls process.exit.
@@ -1265,33 +1341,15 @@ export function main(): void {
     process.exit(1)
   }
 
-  const before = new Map<string, Buffer>()
-  for (const [out] of outputs) {
-    try {
-      before.set(out, readFileSync(resolve(root, out)))
-    } catch {
-      // First generation of this artifact; nothing to guard, nothing to record.
-    }
-  }
   let changedPages = 0
-  let recorded = 0
   for (const [out, content] of outputs) {
     const destination = resolve(root, out)
-    if (before.get(out)?.toString('utf8') === content) continue
+    if (existsSync(destination) && readFileSync(destination, 'utf8') === content) continue
     mkdirSync(dirname(destination), { recursive: true })
     writeFileSync(destination, content)
     changedPages++
   }
-  for (const page of [...new Set([...Object.values(SERVICE_PAGE), ...Object.values(EVENT_SCOPE_PAGE)])]) {
-    const rel = `${SUBSYSTEMS_DIR}/${page}`
-    const zhRel = rel.replace(/\.md$/, '.zh.md')
-    const wroteEither = [rel, zhRel].some((side) => {
-      const previous = before.get(side)
-      return previous !== undefined && previous.toString('utf8') !== readFileSync(resolve(root, side), 'utf8')
-    })
-    if (wroteEither && maybeRecordPair(rel, before)) recorded++
-  }
-  console.log(`gen-cordis-catalog: ${outputs.length} artifact(s) computed, ${changedPages} written, ${recorded} pair record(s) refreshed.`)
+  console.log(`gen-cordis-catalog: ${outputs.length} artifact(s) computed, ${changedPages} written.`)
 }
 
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {

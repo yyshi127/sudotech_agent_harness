@@ -1,6 +1,46 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-finance-documents/README.md
-README.md: 0566cd789e5aa109b1d57e29e7ee2aa6006ae1cc
-README.zh.md: 77f80e6b5213788e635d010457ac1b9d36635a0e
+/:
+  en: 39f60fe752d648c1
+  zh: 39f60fe752d648c1
+/deepseek-ai-dsh-xiaojing-finance-documents:
+  en: d38cd5648a4d2c08
+  zh: e12c494375bca11c
+/deepseek-ai-dsh-xiaojing-finance-documents/summary:
+  en: ec46af9b35400048
+  zh: 4bd12c43c28a03cc
+/deepseek-ai-dsh-xiaojing-finance-documents/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-finance-documents/source-authorization-and-normalization:
+  en: d9ac99056d5a54fd
+  zh: 4c117c97303390fd
+/deepseek-ai-dsh-xiaojing-finance-documents/tools-and-mode-isolation:
+  en: 9928d77d6636df02
+  zh: b4035405e790bb10
+/deepseek-ai-dsh-xiaojing-finance-documents/persistence-and-removal:
+  en: 6bcca3f808d2ee48
+  zh: 36dad05f06ffcb87
+/deepseek-ai-dsh-xiaojing-finance-documents/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-finance-documents/model-experience/shared-deterministic-document-reader:
+  en: f3ad909f36324fff
+  zh: 9ecac282dcabd36b
+/deepseek-ai-dsh-xiaojing-finance-documents/model-experience/shared-deterministic-document-reader/what-the-model-sees:
+  en: 32ac97d4ff9c5ac3
+  zh: fc525572c67ab3d2
+/deepseek-ai-dsh-xiaojing-finance-documents/model-experience/shared-deterministic-document-reader/token-effect:
+  en: 08dc61caf13e7271
+  zh: e29e70588debb182
+/deepseek-ai-dsh-xiaojing-finance-documents/model-experience/shared-deterministic-document-reader/kv-cache-effect:
+  en: 5aaf9e16b95ac552
+  zh: 0e46f6b4720f166f
+/deepseek-ai-dsh-xiaojing-finance-documents/known-limitations-and-deferred-work:
+  en: 0272cd5a2fb06fa9
+  zh: 5269f198c97d69d1
+/deepseek-ai-dsh-xiaojing-finance-documents/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

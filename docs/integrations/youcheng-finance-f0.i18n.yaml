@@ -1,6 +1,31 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-finance-f0.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-f0.md
-youcheng-finance-f0.md: 0d23e3d53c6032436e243cc8cc9935881d1a82c8
-youcheng-finance-f0.zh.md: 0e4148d6ab1fd3bc13dce625a3e6c61109d8c4d2
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation:
+  en: d26bd6c43253f633
+  zh: 31c44f2486a5c795
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/status-and-authority:
+  en: bd23ac5b8212400c
+  zh: e9aac8c49f83e1b8
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/local-baseline:
+  en: 2ccc7866c051f8e7
+  zh: bd851e419cbccc93
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/sources-and-evidence-levels:
+  en: 95905d5f7d707c2c
+  zh: 5977765a03c4721d
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/actual-read-only-results:
+  en: a1589103ec998d33
+  zh: c3ac578953ae09cd
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/candidate-finance-scope-and-endpoint-evidence:
+  en: 79fca81968ff6edc
+  zh: fe5d8abf464aae8f
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/phased-goals-and-acceptance:
+  en: a4de699f97be2eaf
+  zh: d59aaa4bf2c647f7
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/simulated-data-proposal-not-written:
+  en: 580731f7318d1291
+  zh: b7431020d44e077c
+/youcheng-finance-f0-scope-read-only-checks-and-test-preparation/outstanding-confirmations-and-next-action:
+  en: 0c44ccecbbe22109
+  zh: be572acb57b7dd6a

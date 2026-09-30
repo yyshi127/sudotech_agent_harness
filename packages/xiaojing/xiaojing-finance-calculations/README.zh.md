@@ -1,9 +1,23 @@
+---
+description: "Versioned deterministic trial calculations for Xiaojing Finance mode"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-calculations
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢 Finance 的版本化确定性财税试算能力。Host 服务负责纯十进制计算和客户上下文适配，独立的 Finance 预设消费端注册 `finance_calculation`；Standard 等其他预设不会获得该工具，两个入口均不修改 Agent Loop。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 支持的规则包
 
 规则集 `cn-mainland-2026-v1` 支持 2026-01-01 至 2027-12-31 的依据日期，首版限定为四类试算：
@@ -44,3 +58,10 @@ Finance 获得 `finance_calculation`。工具说明列出各试算类型所需�
 - 首版明确不处理混合税率、简易计税、特殊行业、多数税收优惠、企业所得税汇算清缴、非工资薪金个税、消费税本身及除输入附加税率外的地方规则。
 - 本包只执行试算，不生成或提交申报表，不过账、不付款，也不修改外部系统。
 - 删除 `xiaojing-finance-calculations` Host 配置行和 Finance 预设中的 `finance-calculations` 消费端配置行即可移除该能力，不影响客户档案、文档、Standard 模式或官方 Harness profile。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

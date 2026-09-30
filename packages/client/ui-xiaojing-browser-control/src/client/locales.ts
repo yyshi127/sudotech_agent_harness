@@ -1,5 +1,6 @@
 /** Chinese browser-control settings copy. */
 export const zh = {
+  edgeMark: 'e',
   nav: '浏览器控制',
   title: '浏览器控制',
   description: '专用 Edge 开箱即用；安装可选连接器后，还能接管你手动打开的个人 Edge 网页。',
@@ -41,6 +42,7 @@ export const zh = {
 
 /** English browser-control settings copy. */
 export const en: typeof zh = {
+  edgeMark: 'e',
   nav: 'Browser Control',
   title: 'Browser Control',
   description: 'Dedicated Edge works out of the box. The optional connector can also control pages opened in your personal Edge.',

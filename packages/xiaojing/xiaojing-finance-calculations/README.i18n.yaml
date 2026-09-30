@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-finance-calculations/README.md
-README.md: 01775bd80891ada889a7921b67c649c77fdb83cb
-README.zh.md: 05351df690e74a430132da5636a0fcdb98ffec94
+/:
+  en: ddcdf91375f055f3
+  zh: ddcdf91375f055f3
+/deepseek-ai-dsh-xiaojing-finance-calculations:
+  en: 505bca044b7ac6fe
+  zh: 0f2accd1cb69073d
+/deepseek-ai-dsh-xiaojing-finance-calculations/summary:
+  en: a5e062eebdaa0302
+  zh: 7f0bb14fddd4fff3
+/deepseek-ai-dsh-xiaojing-finance-calculations/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-finance-calculations/supported-rule-pack:
+  en: 1b9ab1c39f830be9
+  zh: f14e1cdd0d9edb12
+/deepseek-ai-dsh-xiaojing-finance-calculations/client-context-and-failure-behavior:
+  en: e20d69ae72f9ad4a
+  zh: 517423eefcf6368d
+/deepseek-ai-dsh-xiaojing-finance-calculations/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-finance-calculations/model-experience/deterministic-finance-calculation:
+  en: 9f76f2b22b837afa
+  zh: a9b607c4b9982031
+/deepseek-ai-dsh-xiaojing-finance-calculations/model-experience/deterministic-finance-calculation/what-the-model-sees:
+  en: cf3af5eebe081c38
+  zh: 4a65cc9a14ce62dc
+/deepseek-ai-dsh-xiaojing-finance-calculations/model-experience/deterministic-finance-calculation/token-effect:
+  en: 7cafbb711dfca3f0
+  zh: e6ace3aa59a2d8b7
+/deepseek-ai-dsh-xiaojing-finance-calculations/model-experience/deterministic-finance-calculation/kv-cache-effect:
+  en: b903b4ce893f65ae
+  zh: e336641fc72312f6
+/deepseek-ai-dsh-xiaojing-finance-calculations/known-limitations-and-deferred-work:
+  en: 9c9c3ee351132acd
+  zh: 1d0677097b6ed0d1
+/deepseek-ai-dsh-xiaojing-finance-calculations/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

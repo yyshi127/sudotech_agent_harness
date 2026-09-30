@@ -1,6 +1,43 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-computer-control/README.md
-README.md: 338fc8303e97d6eca55086a2cba450f93c21358b
-README.zh.md: ff77abff16f4cd4121ac8a97485f8fe859b64211
+/:
+  en: 7f3f2bcff33312b4
+  zh: 7f3f2bcff33312b4
+/deepseek-ai-dsh-xiaojing-computer-control:
+  en: af5e5257ef8c871c
+  zh: 3b95a1d7b2b48d18
+/deepseek-ai-dsh-xiaojing-computer-control/summary:
+  en: aba64600fb234315
+  zh: 83ddd79870c1ef2e
+/deepseek-ai-dsh-xiaojing-computer-control/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-computer-control/capabilities:
+  en: d494531686c0bead
+  zh: 89242df5d121a71c
+/deepseek-ai-dsh-xiaojing-computer-control/configuration:
+  en: 09db1c96419d59d4
+  zh: 5072dc5cfbbd575f
+/deepseek-ai-dsh-xiaojing-computer-control/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-computer-control/model-experience/computer-control-schema:
+  en: ea2279c7d1e297b7
+  zh: add27ac110015038
+/deepseek-ai-dsh-xiaojing-computer-control/model-experience/computer-control-schema/what-the-model-sees:
+  en: 6b0fbe863169ae99
+  zh: 3ec9ed25aaa56330
+/deepseek-ai-dsh-xiaojing-computer-control/model-experience/computer-control-schema/token-effect:
+  en: a161c036838802d5
+  zh: 878122a47f605081
+/deepseek-ai-dsh-xiaojing-computer-control/model-experience/computer-control-schema/kv-cache-effect:
+  en: 5b4cb8b55d33be43
+  zh: cb74c506d31840cb
+/deepseek-ai-dsh-xiaojing-computer-control/known-limitations-and-deferred-work:
+  en: 1b932de17907ea46
+  zh: 49eddbdb2c3d49e1
+/deepseek-ai-dsh-xiaojing-computer-control/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

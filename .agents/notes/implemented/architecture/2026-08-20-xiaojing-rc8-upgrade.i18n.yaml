@@ -1,6 +1,34 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-20-xiaojing-rc8-upgrade.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.md
-2026-08-20-xiaojing-rc8-upgrade.md: 3dc832dac007f5b48ce0b24d3c50e4e7726e9aeb
-2026-08-20-xiaojing-rc8-upgrade.zh.md: 30fbc75c334467a8767b70e1b68f5084fdf96ced
+/agent-note-xiaojing-accounting-rc-8-upstream-integration:
+  en: d5fb2ac923dbeffb
+  zh: 44d1b900dde77ecb
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/problem:
+  en: 6c971dd26278f78b
+  zh: 8093fc7447bfd6ac
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/decision:
+  en: a15c7c13f167e5ac
+  zh: a15c7c13f167e5ac
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/decision/upstream-merge:
+  en: ddbb0dd07edbeea1
+  zh: b35f7bcb843a0184
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/decision/product-build-and-ui-ownership:
+  en: c3d5ca9c3d73819c
+  zh: 774dade22ef9bf7e
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/decision/function-plugins:
+  en: 61853adff02deeac
+  zh: 8ef77dda0c3ee7bf
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/decision/desktop-identity-and-durable-data:
+  en: c7990928ce60d498
+  zh: b694e8712e9c4a8d
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/verification:
+  en: 373ad45ff770e9dc
+  zh: 06921fe2fb5868a1
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/alternatives-considered:
+  en: 7d13fc29f59b61e7
+  zh: bfb25f37a8f7298e
+/agent-note-xiaojing-accounting-rc-8-upstream-integration/consequences:
+  en: d818d21360e163bf
+  zh: ad4188ab6a695052

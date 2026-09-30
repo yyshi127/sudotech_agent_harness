@@ -1,0 +1,915 @@
+{
+  "formatVersion": 2,
+  "roots": [
+    {
+      "key": "event:finance/client-bound",
+      "kind": "event",
+      "event": "finance/client-bound",
+      "surface": false,
+      "digest": "4bceb77c2d8f71452bfc9e8553dc01a01b420db4448850559dfdebbb043871fc",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 22,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 23,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "client",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "clientVersion",
+                "type": 20,
+                "optional": false
+              },
+              {
+                "name": "schemaVersion",
+                "type": 21,
+                "optional": false
+              },
+              {
+                "name": "workspacePath",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "accountingStandard",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "chartMappings",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "externalSystemRefs",
+                "type": 12,
+                "optional": false
+              },
+              {
+                "name": "financePolicyNotes",
+                "type": 11,
+                "optional": true
+              },
+              {
+                "name": "id",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "industry",
+                "type": 11,
+                "optional": true
+              },
+              {
+                "name": "legalName",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "registeredRegion",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "shortName",
+                "type": 11,
+                "optional": true
+              },
+              {
+                "name": "taxpayerType",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "unifiedSocialCreditCode",
+                "type": 11,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "government"
+          },
+          {
+            "kind": "literal",
+            "value": "nonprofit"
+          },
+          {
+            "kind": "literal",
+            "value": "enterprise"
+          },
+          {
+            "kind": "literal",
+            "value": "other"
+          },
+          {
+            "kind": "literal",
+            "value": "small-enterprise"
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "externalAccountCode",
+                "type": 11,
+                "optional": false
+              },
+              {
+                "name": "localAccountCode",
+                "type": 11,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "array",
+            "element": 13
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "accountSetId",
+                "type": 11,
+                "optional": true
+              },
+              {
+                "name": "companyId",
+                "type": 11,
+                "optional": true
+              },
+              {
+                "name": "system",
+                "type": 14,
+                "optional": false
+              },
+              {
+                "name": "tenantId",
+                "type": 11,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              15,
+              16
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "sdoo"
+          },
+          {
+            "kind": "literal",
+            "value": "youcheng"
+          },
+          {
+            "kind": "union",
+            "types": [
+              7,
+              18,
+              19
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "general-vat"
+          },
+          {
+            "kind": "literal",
+            "value": "small-scale-vat"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "finance/client-bound"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:finance/consultation-file-imported",
+      "kind": "event",
+      "event": "finance/consultation-file-imported",
+      "surface": false,
+      "digest": "1f00f2e604e8825c99b6bfbc82639f853153632af1e782a1d3ef170ac0d3485a",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 6,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "file",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "schemaVersion",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "createdAt",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "path",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "sessionId",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "size",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "finance/consultation-file-imported"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:finance/file-archived",
+      "kind": "event",
+      "event": "finance/file-archived",
+      "surface": false,
+      "digest": "ced60f250857daa57c76493125bd680b1bf04515f68e78037e70c6f3bd644dd6",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 13,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 14,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "file",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "schemaVersion",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "action",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "clientId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "path",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sessionId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "size",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "sourceFileId",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "stage",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "archive"
+          },
+          {
+            "kind": "literal",
+            "value": "import"
+          },
+          {
+            "kind": "literal",
+            "value": "publish"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "source"
+          },
+          {
+            "kind": "literal",
+            "value": "output"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "finance/file-archived"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:finance/file-imported",
+      "kind": "event",
+      "event": "finance/file-imported",
+      "surface": false,
+      "digest": "2a6e99d971a77f4f026b78e3b999a131f5525f03b5f4b8ce2fff636672973b83",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 13,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 14,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "file",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "schemaVersion",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "action",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "clientId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "path",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sessionId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "size",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "sourceFileId",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "stage",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "archive"
+          },
+          {
+            "kind": "literal",
+            "value": "import"
+          },
+          {
+            "kind": "literal",
+            "value": "publish"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "source"
+          },
+          {
+            "kind": "literal",
+            "value": "output"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "finance/file-imported"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:finance/file-published",
+      "kind": "event",
+      "event": "finance/file-published",
+      "surface": false,
+      "digest": "ba4b06e4dc224e5fbf89ef28483756fdd150d59a9557812251a291eae639c9c2",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 13,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 14,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "file",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "schemaVersion",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "action",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "clientId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "createdAt",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "id",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "path",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sessionId",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "size",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "sourceFileId",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "stage",
+                "type": 9,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "archive"
+          },
+          {
+            "kind": "literal",
+            "value": "import"
+          },
+          {
+            "kind": "literal",
+            "value": "publish"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              10,
+              11
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "source"
+          },
+          {
+            "kind": "literal",
+            "value": "output"
+          },
+          {
+            "kind": "literal",
+            "value": 1
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "finance/file-published"
+          }
+        ]
+      }
+    }
+  ],
+  "types": []
+}

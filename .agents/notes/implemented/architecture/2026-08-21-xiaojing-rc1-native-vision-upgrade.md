@@ -14,7 +14,7 @@ The upgrade also changes the local credential document format from the pre-relea
 
 ### Recorded upstream merge
 
-The upgrade branch starts from Xiaojing commit `578ecb3359a91234181772639a4743d58aaad155` and formally merges official tag `dsh-v0.1.1-rc.1` at commit `528c682e061696f5a160f363f236ecbf53cbd006`. Merge commit `5ce7719b5c3c4e2aa612d4c190e1a62c66024104` retains both histories. [`product.json`](../../../../packages/client/xiaojing-product/product.json) records the official tag, commit, and product integration base; official rc.1 shell, renderer, attachment, credential, and provider implementations remain authoritative.
+The upgrade branch starts from Xiaojing commit `xiaojing-history-20260930-2` and formally merges official tag `dsh-v0.1.1-rc.1` at commit `dsh-v0.1.1-rc.1`. Merge commit `xiaojing-history-20260930-3` retains both histories. [`product.json`](../../../../packages/client/xiaojing-product/product.json) records the official tag, commit, and product integration base; official rc.1 shell, renderer, attachment, credential, and provider implementations remain authoritative.
 
 The rc.1 tree removed the obsolete `packages/util/home` Knip stanza, so its now-inapplicable vendor-rescope exact edit is retired rather than recreated. The remaining Chinese vendoring-cookbook postimage follows the localized `rescope.zh.md` link already emitted by the official documentation generator.
 

@@ -32,7 +32,7 @@
     "Real main-app acceptance of both directions after deployment",
     "Broader currency/link eligibility and cross-operation concurrency qualification",
     "AR/AP deletion execution integration and linked-deletion constraints",
-    "Remaining voucher/journal provenance, attachment/link and confirmation UX acceptance"
+    "Remaining voucher/journal source identity, attachment/link and confirmation UX acceptance"
   ],
   "f3bComplete": false
 }

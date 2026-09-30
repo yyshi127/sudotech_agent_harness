@@ -1,9 +1,25 @@
+---
+description: "Shared deterministic local document normalization for Xiaojing sessions"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-documents
+
+XML 内容先通过 `fast-xml-validator` 检查语法，再交由 `fast-xml-parser` 解析；实体展开仍受解析器配置限制。
 
 [English](README.md) | 中文
 
+## 概述
+
 该小兢 Host 能力为已上传的 PDF、DOCX、XLSX、PPTX、数电发票 XML、OFD、CSV 和文本文件提供同一套确定性本地解析核心。两个会话适配器在不复制解析逻辑的前提下分别授权来源：Finance 会话通过 `finance_document` 消费不可变 Finance 导入事件，Standard、Goal、Plan 等非 Finance 小兢会话通过 `document_reader` 消费持久化的人类上传记录。本包不修改 Agent Loop，也不增加第二个上传按钮。
 
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
 ## 来源授权与标准化
 
 现有小兢上传按钮仍是唯一文件入口。Finance 客户上传由 `xiaojing-finance-domain` 提交到绑定客户的 `02-原始资料` 目录，并记录 `finance/file-imported`；Finance 咨询上传记录为 `finance/consultation-file-imported`。Finance 适配器只接受当前会话中的这些不可变记录，并维持客户或咨询会话隔离。
@@ -64,3 +80,10 @@
 - XLSX 公式不会执行，只保留工作表绘图中的栅格图片；视觉布局、隐藏状态、宏、图表和嵌入对象需要单独处理。
 - PPTX 视觉检查只覆盖幻灯片引用的 PNG、JPEG、WebP 和 GIF；图表、SmartArt、矢量图、媒体、切换效果和嵌入对象仍需结合原文件或未来渲染器。
 - 加密、损坏、超过安全上限或不支持的文件会明确失败，不进入临时工具反复试错流程。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

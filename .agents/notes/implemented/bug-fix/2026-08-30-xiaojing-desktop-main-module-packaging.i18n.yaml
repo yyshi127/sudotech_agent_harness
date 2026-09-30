@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-xiaojing-desktop-main-module-packaging.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-xiaojing-desktop-main-module-packaging.md
-2026-08-30-xiaojing-desktop-main-module-packaging.md: bd179f5f35ef7672a290f0099ef16974d8d1c03b
-2026-08-30-xiaojing-desktop-main-module-packaging.zh.md: b5a2c3e86ec6ca00f5faf4cf57e873c69c7b42de
+/agent-note-xiaojing-desktop-main-module-packaging:
+  en: ee36e11459fed199
+  zh: 7b78e88273eeb598
+/agent-note-xiaojing-desktop-main-module-packaging/problem:
+  en: a4ed1c08a0c03262
+  zh: f610501f8bca7552
+/agent-note-xiaojing-desktop-main-module-packaging/decision:
+  en: 6886e956a1f5aac0
+  zh: 9c9876b8be7c9440
+/agent-note-xiaojing-desktop-main-module-packaging/alternatives-considered:
+  en: 653ffd88dab0c39e
+  zh: 7cc19d5a23cfc711
+/agent-note-xiaojing-desktop-main-module-packaging/consequences:
+  en: 7f26dd35f41e0b4c
+  zh: e3e6ea51f4c034f0

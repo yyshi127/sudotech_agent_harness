@@ -6,7 +6,7 @@ import { strToU8, zipSync } from 'fflate'
 import type { Context } from '@deepseek-ai/cordis'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { assembleContextFor, type Agent } from '@deepseek-ai/dsh-agent'
-import { boot, healProfilesModuleFallback, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
+import { boot, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -30,7 +30,6 @@ const dshHome = process.env.DSH_HOME
 if (dshHome === undefined) throw new Error('Finance document snapshot requires DSH_HOME')
 
 const repoRoot = fileURLToPath(new URL('../../../../../', import.meta.url))
-const installAnchor = fileURLToPath(new URL('../../../package.json', import.meta.url))
 const rootConfig = join(repoRoot, 'packages', 'bundle', 'base', 'tests', 'fixtures', 'root.cordis.yml')
 const basePatch = join(repoRoot, 'packages', 'bundle', 'base', 'cordis.patch.yml')
 const webPatch = join(repoRoot, 'packages', 'bundle', 'web-app', 'cordis.patch.yml')
@@ -331,7 +330,6 @@ async function runStage1Acceptance(ctx: Context): Promise<void> {
 
 await mkdir(dshHome, { recursive: true })
 await writeFile(join(dshHome, 'settings.yaml'), '{}\n')
-await healProfilesModuleFallback({ installAnchor, home: dshHome })
 const ctx = await boot('finance-document-snapshot', rootConfig, [
   ...loadOverlayPatches('finance-document-snapshot', basePatch),
   ...loadOverlayPatches('finance-document-snapshot', webPatch),

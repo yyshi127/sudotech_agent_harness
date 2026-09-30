@@ -29,7 +29,7 @@ export function AboutSection({ t }: AboutSectionProps): ReactNode {
             <p className={css.subtitle}>{t('heroTitle')}</p>
           </div>
         </div>
-        <span className={css.version}>{t('version')} v{version}</span>
+        <span className={css.version}>{t('version')} {t('versionPrefix')}{version}</span>
       </header>
 
       {XIAOJING_RELEASE_HISTORY.map((release, releaseIndex) => (
@@ -37,7 +37,7 @@ export function AboutSection({ t }: AboutSectionProps): ReactNode {
           <div className={css.releaseHeading}>
             <div>
               <p>{t(releaseIndex === 0 ? 'releaseEyebrow' : 'historyEyebrow')}</p>
-              <h3>v{release.version} {t('releaseTitle')}</h3>
+              <h3>{t('versionPrefix')}{release.version} {t('releaseTitle')}</h3>
             </div>
             <span>{release.features.length} {t('features')}</span>
           </div>

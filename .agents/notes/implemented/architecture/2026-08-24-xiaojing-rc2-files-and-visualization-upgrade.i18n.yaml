@@ -1,6 +1,37 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md
-2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.md: 56bf665020cee19d5b3a0d0e5d1c117d0a9e0b17
-2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md: d16f1df6b781b04d1a2e4fa98721d554b387297e
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization:
+  en: 8e7a859457bab48e
+  zh: 826e93bd07b13a28
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/problem:
+  en: bdb3468eca29f6c7
+  zh: abbe54b815e56d32
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/decision:
+  en: a15c7c13f167e5ac
+  zh: a15c7c13f167e5ac
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/decision/recorded-upstream-merge:
+  en: 2fdccb1180e7aa8e
+  zh: 9c515515db46d429
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/decision/canonical-native-image-ownership:
+  en: ff316180c1b090a1
+  zh: d2097f57ed37c2f1
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/decision/product-presentation-and-theme-metadata:
+  en: d8998269f978d90e
+  zh: 3f5d18360f9d1db8
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/decision/isolated-visualization-plugin:
+  en: 9d3e137d86e43c20
+  zh: 9b88c14fdad62573
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/decision/data-and-release-compatibility:
+  en: c820ae2ada4ea6ce
+  zh: 470972368e154d37
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/verification:
+  en: 72493d94bf78f33d
+  zh: 379890d73a0bc363
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/alternatives-considered:
+  en: db6b55dcc3714299
+  zh: d98fb438be236b0d
+/agent-note-xiaojing-rc-2-files-pipeline-and-isolated-visualization/consequences:
+  en: 11dc5014ab9cbb02
+  zh: 471b7a0fc6789286

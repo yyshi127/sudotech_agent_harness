@@ -160,6 +160,7 @@ export function createElectronBuilderConfig(
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
       { from: fileURLToPath(new URL('../build/app-icon.png', import.meta.url)), to: 'icon.png' },
+      ...(packagesWindows ? [{ from: fileURLToPath(new URL('../build/installer-runtime-icon.ico', import.meta.url)), to: 'tray.ico' }] : []),
       { from: fileURLToPath(new URL('../../../packages/xiaojing/xiaojing-browser-control/extension', import.meta.url)), to: 'xiaojing-edge-extension' },
       { from: fileURLToPath(new URL('../../../LICENSE', import.meta.url)), to: 'legal/DeepSeek-Harness-LICENSE.txt' },
       { from: fileURLToPath(new URL('../../../THIRD_PARTY_NOTICES.md', import.meta.url)), to: 'legal/THIRD_PARTY_NOTICES.md' },
@@ -176,6 +177,8 @@ export function createElectronBuilderConfig(
       identity: macOSSigning?.signingIdentity,
       forceCodeSigning: true,
       hardenedRuntime: true,
+      entitlements: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
+      entitlementsInherit: fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)),
       // ASAR-unpacked native runtime files are pre-signed; PAK resources are sealed by their enclosing bundle.
       signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
       notarize: true,

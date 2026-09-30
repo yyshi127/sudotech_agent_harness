@@ -16,9 +16,8 @@ class DeletionPreviewAdapter extends LlmAdapter {
   constructor(readonly direction: 'receivable' | 'payable', readonly openItemId: number, readonly execution = false) { super() }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls > 0 && this.operationId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === 'open-deletion-1')
-      const text = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === 'open-deletion-1')
+      const text = result?.content.find(block => block.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing actual AR/AP deletion preview')
       const value: unknown = JSON.parse(text.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
@@ -174,8 +173,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('shows direction-specific deletion 
           expect(JSON.stringify(results[3])).toContain('未获得')
           expect(JSON.stringify(results[5])).toContain('不得重发')
           for (const index of [4, 6]) {
-            const block = results[index]?.find(value => value.type === 'tool-result')
-            const text = block?.type === 'tool-result' ? block.content.find(value => value.type === 'text') : undefined
+            const text = results[index]?.find(value => value.type === 'text')
             if (text?.type !== 'text') throw new Error('Missing AR/AP deletion execution or recovery result')
             expect(JSON.parse(text.text)).toMatchObject({ phase: lost ? 'outcome-unknown' : 'accepted',
               readback: { target: 'not-observed', content: 'matched',

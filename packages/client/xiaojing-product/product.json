@@ -3,10 +3,9 @@
   "product": "xiaojing-accounting",
   "upstream": {
     "remote": "https://github.com/deepseek-ai/deepseek-harness.git",
-    "release": "dsh-v0.1.7-rc.1",
-    "commit": "46a7f68b0922371ce7144b668b90e377d8e799f4"
+    "release": "dsh-v0.2.0-rc.2"
   },
-  "integrationBase": "48f0c4f9fc5ecb17cd8460639089ae976ea80a79",
+  "integrationBase": "xiaojing-history-20260930-4",
   "slots": [
     "sidebar.brand.mark",
     "sidebar.brand.name",

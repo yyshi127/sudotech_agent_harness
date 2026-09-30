@@ -1,18 +1,18 @@
-/** Harness 0.1.7-rc.1 compatibility adapter for DeepSeek request observation. */
+/** Harness 0.2.0-rc.2 compatibility adapter for DeepSeek request observation. */
 
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { GenerateOptions, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
-import type { DeepSeekRequestIdentity, Options as DeepSeekOptions } from '@deepseek-ai/dsh-llm-deepseek'
-import { PUBLIC_BASE_URL, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
-import type {} from '@deepseek-ai/dsh-deepseek-account'
+import type { DeepSeekRequestIdentity, Options as DeepSeekOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import { PUBLIC_BASE_URL } from '@deepseek-ai/dsh-llm-deepseek'
+import { resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import type {} from '@deepseek-ai/dsh-settings'
 import type { UsageBuckets } from './pricing.ts'
 
 const PROVIDER = 'deepseek-official'
-const SETTINGS_NS = 'llm-deepseek'
+const SETTINGS_NS = 'llm-deepseek-api-key'
 const BASE_URL_ENV = 'DEEPSEEK_BASE_URL'
 const publicEndpoint = new URL(PUBLIC_BASE_URL)
 const OFFICIAL_ENDPOINT = {
@@ -88,7 +88,6 @@ async function currentIdentityOf(ctx: Context): Promise<CurrentUsageIdentity | u
     : {}
   const environment = launchEnvironmentOf(ctx)
   const connection = resolveAdapterOptions(raw, environment)
-  if (await ctx.get('deepseekAccount')?.resolveToken(connection.baseURL) !== undefined) return undefined
   const resolved = await ctx.credentials.resolve(connection.apiKeyEnv)
   if (resolved === undefined) return undefined
   return {
@@ -130,7 +129,7 @@ async function* observe(
         const identity = capture.identity
         if (identity === undefined) {
           callbacks.fail(new Error('usage-accounting: DeepSeek request did not report its authentication identity'))
-        } else if (identity.authentication.kind === 'api-key') {
+        } else {
           try {
             await callbacks.settle({
               keyFingerprint: identity.authentication.keyFingerprint,

@@ -1,8 +1,24 @@
+---
+description: "Xiaojing settings page for Microsoft Edge automation"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-xiaojing-browser-control
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计的可移除 Microsoft Edge 自动化 Client 设置插件。只有 `DSH_CLIENT_BUILD_PROFILE=xiaojing` 且 Client 连接属于 loopback 时，插件才会注册一个 `settings.section`。删除 Web 组合中的配置项即可移除该页面，不需要修改 Host 工具或官方设置 owner。
+
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
+## 功能说明
 
 页面展示两条路线：
 
@@ -30,3 +46,10 @@
 - 个人 Edge 需要用户手动加载一次解压扩展并完成配对；普通未受管理的 Windows 安装不能静默安装该扩展。
 - 设置页不能代替用户在真实网站上执行验收。连接状态只证明本地桥接已完成认证，任务执行过程仍在所属会话中展示。
 - Edge Add-ons 或企业策略分发延后处理。移除 Client 包只会移除本设置分区，不会自动撤销 Host 已保存的凭据。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

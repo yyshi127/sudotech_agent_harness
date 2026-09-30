@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-15-profile-runtime-shadow-rollback.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-15-profile-runtime-shadow-rollback.md
-2026-08-15-profile-runtime-shadow-rollback.md: ca3d41beeaed9d201d2b12c562bda4f2f62ae406
-2026-08-15-profile-runtime-shadow-rollback.zh.md: 708350b64ff9aac1421c8b9978dee8eb360c9fed
+/agent-note-reject-profile-local-runtime-shadows-and-roll-back-plugin-changes:
+  en: d353b847788c83b4
+  zh: 3ee56d2c16ea05a8
+/agent-note-reject-profile-local-runtime-shadows-and-roll-back-plugin-changes/problem:
+  en: 3bd82c8c2dfc2640
+  zh: 81dd9a7ef2d858c9
+/agent-note-reject-profile-local-runtime-shadows-and-roll-back-plugin-changes/decision:
+  en: 2518852aab5153ab
+  zh: e676cb2207b20624
+/agent-note-reject-profile-local-runtime-shadows-and-roll-back-plugin-changes/verification:
+  en: af2f27c09205fdb4
+  zh: 1f2c5d66433f9c74
+/agent-note-reject-profile-local-runtime-shadows-and-roll-back-plugin-changes/alternatives-considered:
+  en: ee3f8ceb2566bd28
+  zh: e66480f640756d0b
+/agent-note-reject-profile-local-runtime-shadows-and-roll-back-plugin-changes/consequences:
+  en: be5abc113b70ec13
+  zh: a5eeaac9586230bd

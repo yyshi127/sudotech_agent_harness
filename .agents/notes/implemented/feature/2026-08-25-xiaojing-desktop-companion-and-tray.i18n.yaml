@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-25-xiaojing-desktop-companion-and-tray.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.md
-2026-08-25-xiaojing-desktop-companion-and-tray.md: 644dd60fb63c3c7490446d842a628faf2dad9513
-2026-08-25-xiaojing-desktop-companion-and-tray.zh.md: 024bd46a657f414e67648759f1574f0ff0fe5ee2
+/agent-note-xiaojing-desktop-companion-and-tray-lifecycle:
+  en: decf6d34ad56a260
+  zh: 13ebbb2a72c16e6c
+/agent-note-xiaojing-desktop-companion-and-tray-lifecycle/problem:
+  en: 72c1c17f6117a856
+  zh: b394bac562f38c17
+/agent-note-xiaojing-desktop-companion-and-tray-lifecycle/decision:
+  en: cab68387e3b933f5
+  zh: e21c99d77087bcab
+/agent-note-xiaojing-desktop-companion-and-tray-lifecycle/alternatives-considered:
+  en: a9caeeb44d43eb19
+  zh: 9fad84e2ef0e647f
+/agent-note-xiaojing-desktop-companion-and-tray-lifecycle/verification:
+  en: bf7224ad04ec28fc
+  zh: e1792d0093239cfd
+/agent-note-xiaojing-desktop-companion-and-tray-lifecycle/consequences:
+  en: 4c8e555eaf554b77
+  zh: 2d7e0595be50df28

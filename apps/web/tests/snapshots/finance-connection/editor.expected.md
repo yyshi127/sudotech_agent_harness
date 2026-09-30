@@ -1,8 +1,7 @@
 - dialog "编辑帐套信息":
   - banner:
     - heading "编辑帐套信息" [level=2]
-    - button "取消":
-      - img
+    - button "取消"
   - region "帐套信息内容":
     - group "主体基本资料":
       - text: 主体基本资料 主体全称

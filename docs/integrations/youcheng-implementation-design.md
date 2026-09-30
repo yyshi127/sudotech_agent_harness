@@ -29,7 +29,7 @@ Finance sessions, queries, materials, credentials, confirmations, and tasks bind
 
 ## Finance flow and data: first implementation
 
-Finance uses its own executor: resolve ledger and permitted reference data → prepare a voucher or other confirmed finance operation → deterministic validation → preview/confirmation → persist finance task → call finance API → read back → report verified and unresolved outcomes. Source and confirmation provenance may reuse utility code, not reimbursement business execution.
+Finance uses its own executor: resolve ledger and permitted reference data → prepare a voucher or other confirmed finance operation → deterministic validation → preview/confirmation → persist finance task → call finance API → read back → report verified and unresolved outcomes. Source and confirmation source identity may reuse utility code, not reimbursement business execution.
 
 | Finance data | Minimum fields |
 |---|---|

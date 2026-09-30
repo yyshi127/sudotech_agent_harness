@@ -1251,12 +1251,13 @@ export class XiaojingWeixinChannel {
     return controller.signal.aborted || this.monitor !== controller
   }
 
-  private async cancelSession(agent: Agent): Promise<void> {
+  private cancelSession(agent: Agent): Promise<void> {
     try {
       this.ctx.sessionController.cancel({ sessionId: agent.session.id })
     } catch {
       // The suspended channel already blocks remote delivery; cancellation is best effort until agent quiescence.
     }
+    return Promise.resolve()
   }
 
   private async stopActive(message: string): Promise<void> {
@@ -1300,7 +1301,7 @@ export class XiaojingWeixinChannel {
       try {
         await this.ctx.sessionController.prompt({
           requestId: task.rpcId as SessionRequestId,
-          sessionId: SessionId(this.state.sessionId as string),
+          sessionId: agent.session.id,
           mode: 'queue',
           content,
           clientTimeZone: 'Asia/Shanghai',
@@ -1308,7 +1309,7 @@ export class XiaojingWeixinChannel {
       } catch (error) {
         const remote = remoteErrorOf(error)
         if (remote?.code === 'session/attachment-invalid') {
-          return `⚠️ 图片未能提交：${imageAdmissionReason(String(remote.details.reason))}`
+          return `⚠️ 图片未能提交：${imageAdmissionReason(remote.details.reason)}`
         }
         throw error
       }

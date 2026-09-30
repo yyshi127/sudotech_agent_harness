@@ -14,7 +14,7 @@ Status: implemented
 
 ### 保留记录的上游合并
 
-升级分支从小兢产品集成基准 `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` 开始，正式合并官方 tag `dsh-v0.1.1-rc.2` 对应提交 `b150a551b8d465e31e418e1b2eaf5e79bbb7d28`。合并提交 `9314d9526c949fb8884f4ddc380deb7f242775ce` 保留双方历史。[`product.json`](../../../../packages/client/xiaojing-product/product.json) 记录官方 release、commit 和产品集成基准。包版本与 rc.2 对齐，桌面产品版本继续保持 `0.2.0`。
+升级分支从小兢产品集成基准 `xiaojing-history-20260930-4` 开始，正式合并官方 tag `dsh-v0.1.1-rc.2` 对应提交 `dsh-v0.1.1-rc.2`。合并提交 `xiaojing-history-20260930-5` 保留双方历史。[`product.json`](../../../../packages/client/xiaojing-product/product.json) 记录官方 release、commit 和产品集成基准。包版本与 rc.2 对齐，桌面产品版本继续保持 `0.2.0`。
 
 ### 规范化原生图片归属
 

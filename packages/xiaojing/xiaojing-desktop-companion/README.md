@@ -1,9 +1,23 @@
+---
+description: "Sanitized task-state aggregation for the Xiaojing Windows desktop companion"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-desktop-companion
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Host-side task-state aggregation for the Xiaojing Windows desktop companion. This Cordis plugin observes Harness session, approval, and sanitized Weixin status events and publishes one content-free global snapshot for the Electron desktop. It does not modify the Agent Loop, task execution, model prompts, or user sessions.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Composition and State
 
 The plugin is loaded only by the Xiaojing product composition. It tracks open turns, unfinished tools, unresolved approvals, recent terminal results, and the sanitized Weixin online flag. The global state priority is approval, failure, execution, thinking, success, then idle. Completed turns retain success for 2.5 seconds, while failed, blocked, max-token, and interrupted turns retain failure for 5 seconds. Concurrent active turns contribute only a count. Tool completion reads the call id from the tool message source, including results with empty content.
@@ -29,3 +43,10 @@ No direct effect; companion state and Weixin connectivity never change a model r
 - The Host reports semantic task lifecycle state, not progress percentage or task content.
 - Desktop display, animation, drag behavior, and system-tray lifecycle are Windows Electron responsibilities and are not available in an ordinary Web browser.
 - A process restart clears transient success and failure timers; active state is rebuilt from new lifecycle events rather than historical animation playback.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

@@ -13,6 +13,7 @@ export const FINANCE_PRESET_ID = 'finance'
  */
 export function isFinanceSession(session: Session): boolean {
   let preset = session.header.agentPreset
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
   for (const event of session.snapshotEvents()) {
     if (event.type === 'agent-preset/selected') preset = event.data.agentPreset
   }
@@ -25,5 +26,6 @@ export function isFinanceSession(session: Session): boolean {
  * @returns Whether context may still be staged.
  */
 export function isBlankFinanceSession(session: Session): boolean {
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
   return !session.snapshotEvents().some(event => event.type === 'turn/start')
 }

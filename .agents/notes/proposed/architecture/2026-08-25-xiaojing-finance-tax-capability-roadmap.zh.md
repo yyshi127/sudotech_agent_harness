@@ -66,7 +66,7 @@ flowchart LR
 |---|---|---|
 | `xiaojing-finance-domain` | Client identity, finance service definitions, operation and audit types | Website scraping, React, vendor fields |
 | `xiaojing-finance-evidence` | Official source registry, retrieval, authority and applicability metadata, bounded cache | Final professional judgment or client private policy |
-| `xiaojing-finance-documents` | Local extraction, normalized document facts and provenance | External-system submission |
+| `xiaojing-finance-documents` | Local extraction, normalized document facts and source identity | External-system submission |
 | `xiaojing-finance-workflows` | Finance Skills, deterministic workflow definitions and resumable state | Browser selectors or raw Odoo calls |
 | `xiaojing-finance-youcheng` | Youcheng capability discovery, API/DOM adapters and vendor compatibility | General browser automation or professional rule interpretation |
 | `xiaojing-finance-sdoo` | Typed SDOO domain API client and compatibility adapter | Arbitrary ORM, SQL or UI automation |
@@ -79,9 +79,9 @@ These are target owners, not a requirement to create empty packages before their
 
 `FinanceClientContext` identifies the client, legal entity, tax registration type, accounting standard, industry, region, active tax/accounting period, ledger and external-system mappings. A client-specific query or mutation fails before model execution when this context is absent or ambiguous. General learning questions may run without a client but must state that no client facts were applied.
 
-`FinanceEvidenceService` accepts a question, jurisdiction, effective date and source policy, then returns evidence records with issuing authority, document number, legal-effect class, publication/effective/expiry dates, geographic scope, source URL, retrieval time, content hash, excerpt provenance and rights state. Unknown usage rights fail closed: the system may keep metadata and a short task-bound excerpt but cannot silently build a reusable commercial full-text corpus.
+`FinanceEvidenceService` accepts a question, jurisdiction, effective date and source policy, then returns evidence records with issuing authority, document number, legal-effect class, publication/effective/expiry dates, geographic scope, source URL, retrieval time, content hash, excerpt source identity and rights state. Unknown usage rights fail closed: the system may keep metadata and a short task-bound excerpt but cannot silently build a reusable commercial full-text corpus.
 
-`FinanceDocumentService` imports local PDF, image, spreadsheet, Word and text files, records the extraction method and page or cell provenance, and returns normalized facts. It never presents OCR or model inference as source text. Unsupported scans remain marked “未提取” until an approved OCR provider exists.
+`FinanceDocumentService` imports local PDF, image, spreadsheet, Word and text files, records the extraction method and page or cell source identity, and returns normalized facts. It never presents OCR or model inference as source text. Unsupported scans remain marked “未提取” until an approved OCR provider exists.
 
 `FinanceWorkflowService` starts, resumes, cancels and inspects versioned workflows. Each workflow carries client ID, business object, current step, required evidence, completed actions, pending approval, idempotency key and connector revision. A model can select a workflow and supply business inputs but cannot skip its required steps.
 
@@ -116,7 +116,7 @@ Deliver a selectable finance preset that answers professional Chinese finance an
 1. **Finance preset.** The fifth system preset retains every standard capability and adds finance prompt sections, Skill discovery and finance services. Existing sessions and user-selected defaults remain unchanged during development; whether a new installation defaults to finance mode is a separate release decision after acceptance.
 2. **Local client portfolio.** The user can create, edit, archive and select clients with tax type, accounting standard, industry, region, periods, chart mapping and policy attachments. Exactly one active client is used for a client-specific task.
 3. **Official evidence retrieval.** The product searches configured official sources, records authority and effective dates, caches only bounded evidence needed for audit, and visibly distinguishes current, historical, local and unverified material.
-4. **Document workspace.** The product extracts structured data from text PDFs, spreadsheets, Word files and supported images, preserving page/cell provenance and extraction confidence. Scanned PDF OCR is not promised until a separate OCR decision is approved.
+4. **Document workspace.** The product extracts structured data from text PDFs, spreadsheets, Word files and supported images, preserving page/cell source identity and extraction confidence. Scanned PDF OCR is not promised until a separate OCR decision is approved.
 5. **Explainable trial calculations.** Initial calculators cover VAT status-sensitive examples, additional taxes derived from VAT, enterprise income tax pre-calculation scenarios and basic payroll/personal-income-tax examples only when the required inputs and official rules are available. Every result exposes formula, inputs, rounding and rule version and is labeled trial calculation, not a filing result.
 6. **Professional outputs.** Research memo, client question list, document checklist, calculation worksheet, accounting treatment memo and follow-up action list use stable templates and can be saved in the client workspace.
 7. **Initial Skill pack.** `finance-tax-research-cn`, `finance-invoice-review`, `finance-voucher-draft`, `finance-data-analysis` and `finance-reimbursement` own task instructions and expected outputs. System mutation remains disabled in Stage 1.
@@ -237,15 +237,15 @@ Scope: versioned storage, atomic writes, Host service, browser-safe Remote, sett
 
 ### F1-3 — Official evidence service
 
-**Goal:** Implement a date-aware and authority-aware Chinese finance-tax evidence service that retrieves only configured official sources, records applicability and provenance, uses a bounded rights-aware cache, and returns “待核验” instead of inventing authority when evidence is unavailable.
+**Goal:** Implement a date-aware and authority-aware Chinese finance-tax evidence service that retrieves only configured official sources, records applicability and source identity, uses a bounded rights-aware cache, and returns “待核验” instead of inventing authority when evidence is unavailable.
 
 Scope: source registry, query planning, fetch/parser adapters, authority and lifecycle fields, hashes, local-jurisdiction rules and evidence rendering. Do not build a bulk full-text corpus or rely on search snippets as final evidence. Complete when fixtures prove current, historical, future, repealed, draft and local guidance behavior.
 
 ### F1-4 — Finance document normalization
 
-**Goal:** Implement local ingestion and normalized fact extraction for supported PDF, image, spreadsheet, Word and text client materials, preserving file hash and page/cell provenance and explicitly marking unsupported or uncertain extraction.
+**Goal:** Implement local ingestion and normalized fact extraction for supported PDF, image, spreadsheet, Word and text client materials, preserving file hash and page/cell source identity and explicitly marking unsupported or uncertain extraction.
 
-Scope: safe parsers, size/type limits, untrusted-content handling, normalized tables and local persistence. Reuse rc.2 attachments and file uploads instead of creating a second upload button. Do not claim scanned-PDF OCR without an approved OCR provider. Complete when mixed-file, malicious-file, restart and provenance tests pass.
+Scope: safe parsers, size/type limits, untrusted-content handling, normalized tables and local persistence. Reuse rc.2 attachments and file uploads instead of creating a second upload button. Do not claim scanned-PDF OCR without an approved OCR provider. Complete when mixed-file, malicious-file, restart and source identity tests pass.
 
 ### F1-5 — Trial calculations and finance Skill pack
 
@@ -376,7 +376,7 @@ Each task ends with focused checks before broad checks. User-visible behavior re
 - The roadmap order remains finance foundation, Youcheng, SDOO, compliance, then proactive management; a later stage cannot silently absorb unfinished earlier work.
 - Finance mode is a mechanically checked strict capability superset of standard mode and does not alter existing preset behavior or running sessions.
 - Client-specific work is impossible without an unambiguous active client, and private facts never cross client boundaries.
-- Professional claims are date-, jurisdiction- and authority-aware and retain official-source provenance; unavailable evidence produces an explicit unverified result.
+- Professional claims are date-, jurisdiction- and authority-aware and retain official-source source identity; unavailable evidence produces an explicit unverified result.
 - Deterministic calculations and workflows are reproducible without relying on hidden model reasoning.
 - Youcheng and SDOO mutations use typed connector operations, approval, idempotency, durable progress and post-read verification.
 - SDOO is integrated through a versioned domain API, not arbitrary ORM, SQL, generic RPC or browser automation.

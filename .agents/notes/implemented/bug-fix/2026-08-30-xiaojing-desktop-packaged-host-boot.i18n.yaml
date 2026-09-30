@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-xiaojing-desktop-packaged-host-boot.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-xiaojing-desktop-packaged-host-boot.md
-2026-08-30-xiaojing-desktop-packaged-host-boot.md: c3565633b7f80c2c64e5145bc092bbe6ffef36af
-2026-08-30-xiaojing-desktop-packaged-host-boot.zh.md: dfb7dd41c75f623df4f6820a0e068ece1f6519f4
+/agent-note-xiaojing-packaged-host-boot-verification:
+  en: 4f6083d1f455684c
+  zh: ca2ab930946e29b4
+/agent-note-xiaojing-packaged-host-boot-verification/problem:
+  en: 56301f0a08580acd
+  zh: ee3b0c510e4c4bb2
+/agent-note-xiaojing-packaged-host-boot-verification/decision:
+  en: 496e2e4b52750481
+  zh: 2533028733227aad
+/agent-note-xiaojing-packaged-host-boot-verification/alternatives-considered:
+  en: c8c03ec094d8dbde
+  zh: ddafce9fabc0b0c4
+/agent-note-xiaojing-packaged-host-boot-verification/consequences:
+  en: 244689e3243941b6
+  zh: 918ff5998869fb44

@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-xiaojing-incremental-release-history.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-30-xiaojing-incremental-release-history.md
-2026-08-30-xiaojing-incremental-release-history.md: 2d32af16538399f2a2a45ee43aa12302b732d9b3
-2026-08-30-xiaojing-incremental-release-history.zh.md: 532f9bd640b403b8072ce008e5e3f4e4d9049a85
+/agent-note-xiaojing-incremental-release-history:
+  en: e6ca93f6e9fd5389
+  zh: 8f128ef5f26e9755
+/agent-note-xiaojing-incremental-release-history/problem:
+  en: e24a7cce0b708ccf
+  zh: a6b7333e40f1a81f
+/agent-note-xiaojing-incremental-release-history/decision:
+  en: 2f8303f489511aa1
+  zh: cb3d229b48a3a171
+/agent-note-xiaojing-incremental-release-history/alternatives-considered:
+  en: f2beb285f053923e
+  zh: 28a63839add041de
+/agent-note-xiaojing-incremental-release-history/consequences:
+  en: 2331c79932ef839a
+  zh: 720c533ce003af07

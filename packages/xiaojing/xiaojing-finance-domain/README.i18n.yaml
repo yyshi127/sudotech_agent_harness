@@ -1,6 +1,88 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-finance-domain/README.md
-README.md: 7127fa333fc560878219eefd7ba2f51ec7a259bc
-README.zh.md: 4d248a4111561681b9e9928556db7c236e92cab6
+/:
+  en: df769ecf53a491d6
+  zh: df769ecf53a491d6
+/deepseek-ai-dsh-xiaojing-finance-domain:
+  en: 8c51e51ae239745a
+  zh: 8ad14e98f73864f5
+/deepseek-ai-dsh-xiaojing-finance-domain/summary:
+  en: 49a4b914bbd9badc
+  zh: 9a7be8cd830588ff
+/deepseek-ai-dsh-xiaojing-finance-domain/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-finance-domain/capabilities:
+  en: 18469d6ed425fcf4
+  zh: 02c34fc5e6e277b7
+/deepseek-ai-dsh-xiaojing-finance-domain/client-records:
+  en: b32a636d35d328a2
+  zh: 639971a014ea38f8
+/deepseek-ai-dsh-xiaojing-finance-domain/youcheng-connection-verification:
+  en: 703f9a494b217ac5
+  zh: 563fd77c5292fa63
+/deepseek-ai-dsh-xiaojing-finance-domain/finance-reference-queries:
+  en: b096b13ce0aae189
+  zh: baea0d75ec2c2f04
+/deepseek-ai-dsh-xiaojing-finance-domain/temporary-voucher-query:
+  en: 6f04039d3db3f84f
+  zh: bdc5d642bd5c9464
+/deepseek-ai-dsh-xiaojing-finance-domain/retained-private-attachments-and-reimbursement-backend:
+  en: 78029bdfd053ec48
+  zh: c48348b171324781
+/deepseek-ai-dsh-xiaojing-finance-domain/dedicated-finance-workspaces:
+  en: b854a4522b60852a
+  zh: 0615c1c95a7e05cd
+/deepseek-ai-dsh-xiaojing-finance-domain/controlled-file-lifecycle:
+  en: 46cd646825c33bd6
+  zh: 005406bdd60577cc
+/deepseek-ai-dsh-xiaojing-finance-domain/session-context:
+  en: 7e8038c126abcdd7
+  zh: 721c9a7b89b85cc6
+/deepseek-ai-dsh-xiaojing-finance-domain/remote-and-privacy:
+  en: 6154ee37e34ec946
+  zh: 1513f156ada255a1
+/deepseek-ai-dsh-xiaojing-finance-domain/balance-queries:
+  en: 7007474fc2e32c5e
+  zh: ce6f5f6d680f6443
+/deepseek-ai-dsh-xiaojing-finance-domain/balance-analysis:
+  en: 69a8c457675d890b
+  zh: d2c414f861926888
+/deepseek-ai-dsh-xiaojing-finance-domain/journal-queries:
+  en: cfb0b5fcfed60c40
+  zh: dc658ffcff4ac5c2
+/deepseek-ai-dsh-xiaojing-finance-domain/journal-reconciliation:
+  en: b18c39d489dff773
+  zh: ca5a0a2d178b39d9
+/deepseek-ai-dsh-xiaojing-finance-domain/receivable-and-payable-queries:
+  en: 21f6d330192b39c2
+  zh: 3ff9f57c0a09d4cf
+/deepseek-ai-dsh-xiaojing-finance-domain/open-item-comparison-and-aggregation:
+  en: 54e688d1aa3d2f18
+  zh: ed152cf060de7a4d
+/deepseek-ai-dsh-xiaojing-finance-domain/open-item-workbook-serialization:
+  en: ae4bd00dee45b09d
+  zh: 31ca27e8be9987f5
+/deepseek-ai-dsh-xiaojing-finance-domain/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-finance-domain/model-experience/finance-client-context:
+  en: b7f32b2d97b12cc3
+  zh: fdf3f9b1b4ca3460
+/deepseek-ai-dsh-xiaojing-finance-domain/model-experience/finance-client-context/what-the-model-sees:
+  en: 4292b3aa24704098
+  zh: 04bbf20f0aa08df6
+/deepseek-ai-dsh-xiaojing-finance-domain/model-experience/finance-client-context/token-effect:
+  en: d0ddd00a4e454e02
+  zh: 2e2ae06fe7c4a4a8
+/deepseek-ai-dsh-xiaojing-finance-domain/model-experience/finance-client-context/kv-cache-effect:
+  en: 9e55534906c2d689
+  zh: 27e7159859cf68c9
+/deepseek-ai-dsh-xiaojing-finance-domain/known-limitations-and-deferred-work:
+  en: 610d79cda6e27d5e
+  zh: 89cc57d33a99cad7
+/deepseek-ai-dsh-xiaojing-finance-domain/known-limitations-and-deferred-work/dev-note:
+  en: 0a1253c6f7b5e8b9
+  zh: 9f56528562c7c914

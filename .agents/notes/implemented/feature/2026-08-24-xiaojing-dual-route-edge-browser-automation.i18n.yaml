@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-24-xiaojing-dual-route-edge-browser-automation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-24-xiaojing-dual-route-edge-browser-automation.md
-2026-08-24-xiaojing-dual-route-edge-browser-automation.md: 7668f613a554c2680bc522757dd5a89c1e2a2dea
-2026-08-24-xiaojing-dual-route-edge-browser-automation.zh.md: 8dbfd639d1ffa0c8a1e040fea10abbae6a2e142c
+/agent-note-xiaojing-dual-route-edge-browser-automation:
+  en: afba9b7e6d75c4f2
+  zh: 95355745edb768fd
+/agent-note-xiaojing-dual-route-edge-browser-automation/problem:
+  en: 5acd6fd6a49b3e9a
+  zh: b2918a20aebe2fa5
+/agent-note-xiaojing-dual-route-edge-browser-automation/decision:
+  en: 0093f0276c18b3ff
+  zh: 0083af003905cda4
+/agent-note-xiaojing-dual-route-edge-browser-automation/alternatives-considered:
+  en: 0e4b16a87319fd29
+  zh: 570ed63cd4f55142
+/agent-note-xiaojing-dual-route-edge-browser-automation/verification:
+  en: 94ae506c5eaf2772
+  zh: 072f6910665bd3c6
+/agent-note-xiaojing-dual-route-edge-browser-automation/consequences:
+  en: a5dd0760c54a9a43
+  zh: f650b90da65af860

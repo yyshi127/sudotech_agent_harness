@@ -1,6 +1,40 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/llm/usage-accounting/README.md
-README.md: e2941617cbbf71ed6ec25676bb85fe861cee6742
-README.zh.md: d32430dc6d5f64eee132ee80ad3a840557240ae6
+/:
+  en: 355692b4410762b9
+  zh: 364521689c589a0b
+/deepseek-ai-dsh-usage-accounting:
+  en: 2823f7c52bb100ab
+  zh: 5e9a816a4070fb20
+/deepseek-ai-dsh-usage-accounting/summary:
+  en: ee365820be4d595e
+  zh: a2b24431d0def54f
+/deepseek-ai-dsh-usage-accounting/table-of-contents:
+  en: 65ccd3e019d0d5f9
+  zh: bba8b3cd6bd2ad8c
+/deepseek-ai-dsh-usage-accounting/configuration:
+  en: 52dd62253fa99faf
+  zh: 6ad1ef83f5e8688f
+/deepseek-ai-dsh-usage-accounting/observation-and-settlement:
+  en: 448f57e49cea59b5
+  zh: 2778de87e43b79c1
+/deepseek-ai-dsh-usage-accounting/pricing:
+  en: 0a5cc322f56cab61
+  zh: 0f79cba36775f78d
+/deepseek-ai-dsh-usage-accounting/persistence-and-remote-api:
+  en: f68ea389d17cee3d
+  zh: e2e238de5203c735
+/deepseek-ai-dsh-usage-accounting/model-experience:
+  en: 43fedc89078d982f
+  zh: 43fedc89078d982f
+/deepseek-ai-dsh-usage-accounting/model-experience/kv-cache-effect:
+  en: 83c0f880821d0ff2
+  zh: 83c0f880821d0ff2
+/deepseek-ai-dsh-usage-accounting/known-limitations-and-deferred-work:
+  en: 99fa23a40b973109
+  zh: 7e22905ae5d603f6
+/deepseek-ai-dsh-usage-accounting/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: bd8a8936229e035e

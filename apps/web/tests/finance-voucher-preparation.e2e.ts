@@ -35,9 +35,8 @@ class PreparationAdapter extends LlmAdapter {
         .some(block => block.type === 'text' && block.text.includes(this.expectedSkill))).toBe(true)
     }
     if (this.calls > 0 && this.preparedId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === (this.creating ? `creation-${this.creating}-1` : 'preparation-1'))
-      const preview = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === (this.creating ? `creation-${this.creating}-1` : 'preparation-1'))
+      const preview = result?.content.find(block => block.type === 'text')
       if (preview?.type !== 'text') throw new Error('Missing actual preparation result')
       const value: unknown = JSON.parse(preview.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') {
@@ -213,14 +212,13 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
       const events = handle.agent.session.snapshotEvents()
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(results).toHaveLength(5)
-      const first = results[0]?.flatMap(block => block.type === 'tool-result' ? block.content : []).find(block => block.type === 'text')
+      const first = results[0]?.find(block => block.type === 'text')
       if (first?.type !== 'text') throw new Error('Missing preview')
       expect(JSON.parse(first.text)).toMatchObject({ id: adapter.preparedId, version: 1, totalDebit: '0.30', phase: 'prepared' })
       expect(JSON.parse(first.text)).toMatchObject({ missingFields: ['certificateCode'] })
       expect(JSON.stringify(results[2])).toContain('版本')
       expect(JSON.stringify(results[3])).toContain('已更正制单人')
-      const inspected = results[3]?.flatMap(block => block.type === 'tool-result' ? block.content : [])
-        .find(block => block.type === 'text')
+      const inspected = results[3]?.find(block => block.type === 'text')
       if (inspected?.type !== 'text') throw new Error('Missing updated preview')
       expect(JSON.parse(inspected.text)).toMatchObject({ version: 2, missingFields: [], input: { certificateCode: 35 } })
       expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)
@@ -255,7 +253,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
         const result = handle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result').at(-1)
         if (result?.type !== 'tool/result') throw new Error('Missing recovery result')
         const content = result.data.message.content
-        const recovered = content.flatMap(block => block.type === 'tool-result' ? block.content : [])
+        const recovered = content
           .find(block => block.type === 'text')
         if (recovered?.type !== 'text') throw new Error('Missing structured recovery output')
         if (state === 'read-failed') {
@@ -395,7 +393,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
           const outputs = creationEvents.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
           expect(JSON.stringify(outputs[1])).toContain('未获得')
           expect(JSON.stringify(outputs[3])).toContain(mode === 'upload-failed' ? 'uploadedOriginals' : '不得重复提交')
-          const submitted = outputs[2]?.flatMap(block => block.type === 'tool-result' ? block.content : []).find(block => block.type === 'text')
+          const submitted = outputs[2]?.find(block => block.type === 'text')
           if (submitted?.type !== 'text') throw new Error('Missing create outcome')
           if (mode === 'accepted' || mode === 'read-failed' || mode === 'originals' || mode === 'foreign') {
             const complete = mode === 'accepted' || mode === 'foreign'

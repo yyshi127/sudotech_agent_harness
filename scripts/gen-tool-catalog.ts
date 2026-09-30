@@ -61,6 +61,8 @@ import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
 import * as ToolJobs from '@deepseek-ai/dsh-tool-jobs'
 import BrowserUseRegistry from '@deepseek-ai/dsh-browser-use'
 import * as StagehandBrowserTools from '@deepseek-ai/dsh-experimental-browser-use-stagehand-native'
+import XiaojingBrowserControl from '../packages/xiaojing/xiaojing-browser-control/src/index.ts'
+import XiaojingComputerControl from '../packages/xiaojing/xiaojing-computer-control/src/index.ts'
 import type TeamService from '@deepseek-ai/dsh-experimental-agent-team'
 import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
 import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
@@ -204,6 +206,37 @@ export interface ToolPackage {
  */
 const TOOL_PACKAGES: ToolPackage[] = [
   {
+    pkg: '@deepseek-ai/dsh-xiaojing-browser-control',
+    dir: 'xiaojing-browser-control',
+    source: 'packages/xiaojing/xiaojing-browser-control/src/index.ts',
+    requires: ['ctx.tools', 'ctx.credentials', 'ctx.connection', 'ctx.webServer'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      // Schema harvesting must not bind the personal Edge bridge or load user credentials.
+      const credentials: Partial<Context['credentials']> = {
+        resolve: () => Promise.reject(new Error('gen-tool-catalog: browser credentials are unavailable during schema harvest')),
+      }
+      const connection: Partial<Context['connection']> = {
+        rpc: { handle: () => async () => {}, intercept: () => async () => {} },
+      }
+      ctx.provide('credentials', credentials as Context['credentials'])
+      ctx.provide('connection', connection as Context['connection'])
+      ctx.provide('webServer', {} as Context['webServer'])
+      await ctx.plugin(XiaojingBrowserControl, { profileDir: 'catalog-only-profile' })
+    },
+  },
+  {
+    pkg: '@deepseek-ai/dsh-xiaojing-computer-control',
+    dir: 'xiaojing-computer-control',
+    source: 'packages/xiaojing/xiaojing-computer-control/src/index.ts',
+    requires: ['ctx.tools', 'ctx.subprocess'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(LocalSubprocessRuntime)
+      await ctx.plugin(XiaojingComputerControl)
+    },
+  },
+  {
     pkg: '@deepseek-ai/dsh-plugin-manager',
     dir: 'plugin-manager',
     source: 'packages/boot/plugin-manager/src/tools.ts',
@@ -248,13 +281,13 @@ const TOOL_PACKAGES: ToolPackage[] = [
     dir: 'tool-ask-user',
     source: 'packages/interaction/tool-ask-user/src/index.ts',
     requires: ['ctx.tools', 'ctx.userQuestions'],
-    writes: ['tool/call', 'tool/result after a UI/provider answers the question'],
+    writes: ['tool/call', 'tool/result after an answer or timeout', 'late user/message'],
     async mount(ctx) {
       await ctx.plugin(UserQuestionService)
       await ctx.plugin(ToolAskUser)
     },
     note:
-      'ask_user_question pauses the tool call until the active UI provider returns a human answer.',
+      'ask_user_question keeps the original blocking behavior by default; set `mode: timed` to opt into a foreground timeout and pending result while the question remains answerable. In timed mode, `timeout: -1` keeps that call blocking indefinitely.',
   },
   {
     pkg: '@deepseek-ai/dsh-tools',
@@ -450,22 +483,22 @@ const TOOL_PACKAGES: ToolPackage[] = [
     pkg: '@deepseek-ai/dsh-schedule',
     dir: 'schedule',
     source: 'packages/schedule/schedule/src/tools.ts',
-    requires: ['ctx.tools', 'ctx.sessions', 'Session persistence', 'a future live root Agent'],
-    writes: ['tool/call', 'schedule/change create or delete', 'tool/result'],
+    requires: ['ctx.tools', 'ctx.schedule', 'a live root Agent'],
+    writes: ['tool/call', 'Schedule storage domain create, update, or delete', 'tool/result'],
     async mount(ctx) {
       await ctx.plugin(SessionStore)
       const session = ctx.sessions.create(SessionId('tool-catalog-schedule'))
       const agent = { id: session.id, session } as Agent
       await mountCatalogChildScope(ctx, (childCtx) => {
-        ToolSchedule.registerScheduleTools(ctx, childCtx, agent, () => {})
+        ToolSchedule.registerScheduleTools(ctx, childCtx, agent)
       }, agent, ['tools', 'systemPrompt'])
     },
     scope: ctx => catalogChildScopes.get(ctx) as Agent,
     note:
-      'Registered only inside live root Agent scopes created after the opt-in Schedule plugin loads. '
-      + 'Version 1 accepts after_seconds, explicit absolute at, and bounded fixed-rate every_seconds, '
-      + 'and discloses session-local delivery; '
-      + 'management reads and mutations require the shared Session persistence barrier.',
+      'Registered in live root Agent scopes while the Schedule service is loaded. '
+      + 'Accepts after_seconds, explicit absolute at, bounded fixed-rate every_seconds, daily and weekly '
+      + 'local times in an explicit IANA zone, and cron as a five-field expression. '
+      + 'Management uses the Host storage domain; due messages resume the original Session.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-lsp',

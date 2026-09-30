@@ -38,7 +38,7 @@ export interface VisualizeMeta {
   title: string
   /** Width intent; `wide` asks the card for the expanded inline surface. */
   mode: VisualizeMode
-  /** Session-relative or absolute source path, kept for provenance display. */
+  /** Session-relative or absolute source path, kept for source identity display. */
   path: string
 }
 

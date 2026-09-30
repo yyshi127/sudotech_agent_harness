@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-08-30-xiaojing-installer-selected-directory-lifecycle.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-30-xiaojing-installer-selected-directory-lifecycle.md
-2026-08-30-xiaojing-installer-selected-directory-lifecycle.md: a49f9a4b2523d1d834c49d0e82beea57c3e375d0
-2026-08-30-xiaojing-installer-selected-directory-lifecycle.zh.md: 33b494e3f9454bf063325722efd4f8e492c08dc6
+/agent-note-xiaojing-installer-selected-directory-lifecycle:
+  en: 04822f3d39eb4ef5
+  zh: 9f6d41e69cf12977
+/agent-note-xiaojing-installer-selected-directory-lifecycle/problem:
+  en: 0194b85b57f54e15
+  zh: ce7ab4445af453d3
+/agent-note-xiaojing-installer-selected-directory-lifecycle/decision:
+  en: 5aa6201a416f2cf0
+  zh: b8daf6a231de8b88
+/agent-note-xiaojing-installer-selected-directory-lifecycle/alternatives-considered:
+  en: dac59f02ba350de0
+  zh: 8232e1a6157db922
+/agent-note-xiaojing-installer-selected-directory-lifecycle/consequences:
+  en: d972ea74eb2b9f8b
+  zh: afbcc390066b1c2a

@@ -3,12 +3,13 @@
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import { Context as ClientContext } from '@deepseek-ai/cordis'
 import { HEIGHT_MESSAGE_TYPE, STREAM_MESSAGE_TYPE } from '../src/shell.ts'
 import { StreamingPreview } from '../src/client/StreamingPreview.tsx'
 import { VisualizeCard } from '../src/client/VisualizeCard.tsx'
 import { VisualizeTurnTail } from '../src/client/VisualizeTurnTail.tsx'
 import { EMPTY_CHAT_SNAPSHOT, type ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
+import { en } from '../src/client/locales.ts'
 import { apply, inject, name } from '../src/client/index.ts'
 import { resolveTheme } from '../src/client/theme.ts'
 
@@ -21,15 +22,16 @@ function streamingProps(blocks: unknown, status = 'running') {
   const assistant = { status, blocks }
   const step = { data: { source: () => ({ getSnapshot: () => assistant, subscribe: () => () => {} }) } }
   return {
+    t: (key: keyof typeof en) => en[key],
     useChat: (selector: (snapshot: unknown) => unknown) => selector({
       ...EMPTY_CHAT_SNAPSHOT,
       timeline: { turnOrder: blocks === undefined ? [] : [1], turns: new Map([[1, { steps: [step] }]]) },
     }),
-  } as unknown as Parameters<typeof StreamingPreview>[0]
+  } as Parameters<typeof StreamingPreview>[0]
 }
 
 function cardProps(block: unknown, callId = 'call-1') {
-  return { block, callId } as unknown as Parameters<typeof VisualizeCard>[0]
+  return { block, callId, t: (key: keyof typeof en) => en[key] } as Parameters<typeof VisualizeCard>[0]
 }
 
 describe('visualize client registration and theme', () => {
@@ -40,10 +42,14 @@ describe('visualize client registration and theme', () => {
       registrations.push([slot, component])
       return vi.fn()
     })
-    const ctx = { slots: { inject: injectSlot, register } } as unknown as ClientContext
+    const ctx = Object.assign(new ClientContext(), {
+      slots: { inject: injectSlot, register },
+      effect: (callback: () => unknown) => callback(),
+      locale: { register: vi.fn() },
+    })
 
     expect(name).toBe('xiaojing-visualize')
-    expect(inject).toEqual(['slots'])
+    expect(inject).toEqual(['slots', 'locale'])
     apply(ctx)
     expect(injectSlot).toHaveBeenCalledTimes(3)
     expect(registrations).toHaveLength(3)
@@ -87,7 +93,7 @@ describe('VisualizeTurnTail', () => {
     } as ChatSnapshot
     const props = (turn: number) => ({
       turn: { turn }, useChat: (selector: (value: ChatSnapshot) => unknown) => selector(snapshot),
-    }) as unknown as Parameters<typeof VisualizeTurnTail>[0]
+    }) as Parameters<typeof VisualizeTurnTail>[0]
     const view = render(<VisualizeTurnTail {...props(1)} />)
     expect(view.container.querySelectorAll('iframe')).toHaveLength(1)
     const frame = screen.getByTitle('Saved chart') as HTMLIFrameElement

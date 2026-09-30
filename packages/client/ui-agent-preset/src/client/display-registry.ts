@@ -43,7 +43,7 @@ export class AgentPresetDisplayRegistry {
     preset: PresetDisplaySource,
     t: (key: AgentPresetSettingsKey) => string,
   ): PresetDisplayText {
-    const provider = preset.trust === 'system' ? this.providers.get(preset.id) : undefined
+    const provider = this.providers.get(preset.id)
     return provider?.(preset) ?? presetDisplayText(preset, t)
   }
 }

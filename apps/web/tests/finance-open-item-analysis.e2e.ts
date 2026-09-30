@@ -116,7 +116,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'payable', 'empty',
         expect(bytes.length).toBe(file.size)
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256)
         expect(file.path).toContain('04-')
-        const blocks = results.flat().filter(block => block.type === 'tool-result').flatMap(block => block.content)
+        const blocks = results.flat()
         const text = blocks.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing export receipt')
         const receipt = JSON.parse(text.text) as {

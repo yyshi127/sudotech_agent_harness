@@ -188,7 +188,7 @@ export function FinanceClientsSection(props: FinanceClientsSectionProps): ReactN
               <div>
                 <strong>{titleOf(client)}</strong>
                 {client.shortName === undefined ? null : <span>{client.legalName}</span>}
-                <small>{`${client.registeredRegion} · v${String(client.version)}`}</small>
+                <small>{t('clientRegionVersion').replace('{region}', client.registeredRegion).replace('{version}', String(client.version))}</small>
               </div>
               <div className={css.cardActions}>
                 <button type="button" onClick={() => { void edit(client.id) }}>{t('edit')}</button>
@@ -441,9 +441,9 @@ export function ClientEditor({
                     }}>
                     <option value="">{t(lookup.state === 'ready' ? 'chooseAccount' : 'fetchAccountsFirst')}</option>
                     {lookup.state === 'ready' ? lookup.accounts.map(account => (
-                      <option key={account.id} value={account.id}>{`${account.name} · ID ${account.id}`}</option>
+                      <option key={account.id} value={account.id}>{t('accountNameId').replace('{name}', account.name).replace('{id}', account.id)}</option>
                     )) : youcheng.accountCode === '' ? null : (
-                      <option value={youcheng.accountCode}>{`${youcheng.accountName ?? savedAccountName ?? t('savedAccount')} · ID ${youcheng.accountCode}`}</option>
+                      <option value={youcheng.accountCode}>{t('accountNameId').replace('{name}', youcheng.accountName ?? savedAccountName ?? t('savedAccount')).replace('{id}', youcheng.accountCode)}</option>
                     )}
                   </select>
                 </label>

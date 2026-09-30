@@ -1,9 +1,23 @@
+---
+description: "Xiaojing settings page for the Windows desktop companion"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-desktop-companion
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Xiaojing-only settings presentation for the Windows desktop companion. The Client plugin registers the “Desktop Xiaojing” settings section and delegates native actions to the restricted Electron preload bridge. It does not create native windows, read files, or own companion task state.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Composition and Presentation
 
 The plugin registers `settings.section` with id `desktop-companion` and order `1000` only for the `xiaojing` build profile, placing it last in the Settings navigation. The section shows the character preview, current sanitized state, active task count, a 30%–100% size control, and controls to wake, tuck, or reset the companion. Missing persisted size preferences default to 50% of the original character size.
@@ -29,3 +43,10 @@ No direct effect; opening the settings section or controlling the companion does
 - Native controls require the Xiaojing Windows Electron preload bridge.
 - The settings page does not provide animation, sound, character customization, autostart, or an input box.
 - Closing the whole application removes the settings page as well; the application must be started again before the companion can be awakened.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

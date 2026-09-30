@@ -31,6 +31,7 @@ const install: InvariantInstaller = Object.assign((ctx: Context, fail: Invariant
   const staged = new WeakMap<SessionEvent, { session: Session; state: FinanceClientProjectionState }>()
   const seed = (session: Session): FinanceClientProjectionState => {
     let state = EMPTY_FINANCE_CLIENT_STATE
+    // oxlint-disable-next-line typescript/no-deprecated -- Existing Finance history read; projection migration is deferred.
     for (const event of session.snapshotEvents()) state = applyChecked(state, event, fail)
     states.set(session, state)
     return state

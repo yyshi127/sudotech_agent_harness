@@ -6,8 +6,8 @@ import { join } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
-import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
-import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
+import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import { PUBLIC_BASE_URL } from '@deepseek-ai/dsh-llm-deepseek'
 import type {} from '@deepseek-ai/dsh-settings'
 import { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type {
@@ -25,6 +25,7 @@ import type { UsageObservation } from '../src/compat.ts'
 import { priceUsage } from '../src/pricing.ts'
 import { EMBEDDED_PRICE_TABLE } from '../src/pricing.ts'
 import { ledgerInput, UsageLedgerStore } from '../src/store.ts'
+import { textEvents } from '../../llm-deepseek/tests/mock-server.ts'
 
 const API_KEY = 'test-secret-api-key'
 const API_KEY_FINGERPRINT = createHash('sha256').update(API_KEY).digest('hex')
@@ -41,7 +42,7 @@ class MemorySettings extends Service {
   configure(): () => void { return () => {} }
 
   describe(): Array<{ ns: string; value: unknown }> {
-    return this.section === undefined ? [] : [{ ns: 'llm-deepseek', value: this.section }]
+    return this.section === undefined ? [] : [{ ns: 'llm-deepseek-api-key', value: this.section }]
   }
 }
 
@@ -113,7 +114,7 @@ async function harness(options: {
         const value = typeof token === 'function' ? token() : token
         return value instanceof Error ? Promise.reject(value) : Promise.resolve(value)
       },
-    } as DeepSeekAccount)
+    })
   }
   await ctx.plugin(LlmRuntime).await()
   await ctx.plugin(LlmDeepSeek, options.baseURL === undefined ? {} : { baseURL: options.baseURL }).await()
@@ -121,7 +122,7 @@ async function harness(options: {
 }
 
 function apiKeyIdentity(
-  baseURL = LlmDeepSeek.PUBLIC_BASE_URL,
+  baseURL = PUBLIC_BASE_URL,
   keyFingerprint = API_KEY_FINGERPRINT,
 ): LlmDeepSeek.DeepSeekRequestIdentity {
   return { baseURL, authentication: { kind: 'api-key', keyFingerprint } }
@@ -153,7 +154,45 @@ afterEach(async () => {
   await Promise.all(homes.splice(0).map(home => rm(home, { recursive: true, force: true })))
 })
 
-describe('Harness 0.1.7-rc.1 usage observer', () => {
+describe('Harness 0.2.0-rc.2 usage observer', () => {
+  it('matches concurrent settlements to the actual request headers while the key changes', async () => {
+    let key = API_KEY
+    const firstFetch = Promise.withResolvers<undefined>()
+    const releaseFirst = Promise.withResolvers<undefined>()
+    const requestKeys: string[] = []
+    const fetchSpy = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      requestKeys.push(new Headers(init?.headers).get('x-api-key') ?? '')
+      if (requestKeys.length === 1) {
+        firstFetch.resolve(undefined)
+        await releaseFirst.promise
+      }
+      return new Response(textEvents.map(event => `data: ${event}\n\n`).join(''), {
+        headers: { 'content-type': 'text/event-stream' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+    const ctx = await harness({ key: () => key, accountToken: 'logged-in-account' })
+    const resolve = vi.spyOn(ctx.credentials, 'resolve')
+    const settle = vi.fn((_observation: UsageObservation) => Promise.resolve())
+    const fail = vi.fn()
+    installUsageObserver(ctx, { settle, fail })
+
+    const first = consume(ctx)
+    await firstFetch.promise
+    key = 'second-request-key'
+    await consume(ctx)
+    releaseFirst.resolve(undefined)
+    await first
+
+    expect(requestKeys).toEqual([API_KEY, 'second-request-key'])
+    expect(resolve).toHaveBeenCalledTimes(2)
+    expect(settle.mock.calls.map(([observation]) => observation)).toEqual([
+      expect.objectContaining({ keyFingerprint: createHash('sha256').update('second-request-key').digest('hex') }),
+      expect.objectContaining({ keyFingerprint: API_KEY_FINGERPRINT }),
+    ])
+    expect(fail).not.toHaveBeenCalled()
+  })
+
   it('resolves the default DeepSeek connection when settings have no provider section', async () => {
     const ctx = new Context()
     contexts.push(ctx)
@@ -274,18 +313,15 @@ describe('Harness 0.1.7-rc.1 usage observer', () => {
     const settle = vi.fn(() => Promise.resolve())
     const fail = vi.fn()
     installUsageObserver(ctx, { settle, fail })
-    ctx.on('llm/stream', usageStream(ctx, {
-      baseURL: LlmDeepSeek.PUBLIC_BASE_URL,
-      authentication: { kind: 'account' },
-    },
-    { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
+    ctx.on('llm/stream', usageStream(ctx, undefined,
+      { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     ))
 
-    await consume(ctx)
+    await consume(ctx, 'deepseek-account')
 
     expect(settle).not.toHaveBeenCalled()
     expect(fail).not.toHaveBeenCalled()
-    await expect(currentUsageIdentity(ctx)).resolves.toBeUndefined()
+    await expect(currentUsageIdentity(ctx)).resolves.toMatchObject({ keyFingerprint: API_KEY_FINGERPRINT })
   })
 
   it('reports missing request identity without guessing from an unconfigured current key', async () => {
@@ -328,7 +364,9 @@ describe('Harness 0.1.7-rc.1 usage observer', () => {
 
     expect(settle).toHaveBeenCalledWith(expect.objectContaining({ keyFingerprint: API_KEY_FINGERPRINT }))
     expect(fail).not.toHaveBeenCalled()
-    await expect(currentUsageIdentity(ctx)).resolves.toBeUndefined()
+    await expect(currentUsageIdentity(ctx)).resolves.toMatchObject({
+      keyFingerprint: createHash('sha256').update('replacement-key').digest('hex'),
+    })
   })
 })
 

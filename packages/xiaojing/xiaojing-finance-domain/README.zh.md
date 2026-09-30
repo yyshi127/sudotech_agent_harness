@@ -1,8 +1,24 @@
+---
+description: "Local finance client records and immutable per-session client context for Xiaojing"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-domain
 
 [English](README.md) | 中文
 
+## 概述
+
 D01–D06原生账簿和报表当前不可用，因为有成尚未提供受支持的AppKey服务端接口。已否决的[浏览器方案](../../../.agents/notes/rejected/architecture/2026-09-14-native-finance-reports.zh.md)不属于本包。后续开发须等待[供应商接口方案](../../../.agents/notes/proposed/feature/2026-09-15-native-finance-report-apis.zh.md)，且不依赖浏览器或手机号SSO。
+
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
+## 功能说明
 
 成功的财务工具通过 `withFinanceCard` 在 `tool/result.meta` 中持久保存精简业务卡片。该投影复用各工具既有的 Host 展示函数，完整结果仍可供模型使用；Web 客户端可以重放业务摘要，而不展示原始参数和内部 JSON。失败调用不会伪装成成功卡片。
 
@@ -278,3 +294,8 @@ Finance 专属 `finance_open_item_analysis` 按往来记录数读取所有声明
 - SDOO、用友和金蝶只有可选占位，尚无连接配置或 API 实现。
 - 通用会话开始第一轮后不能中途补绑客户，用户必须新建 Finance 会话。
 - 受控上传、发布和归档操作会执行上述目录规则，但 Full Access 下的 shell 与文件系统工具仍可在操作系统授予的权限范围内直接写入。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。

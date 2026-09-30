@@ -5,15 +5,15 @@ import { en, type AgentPresetSettingsKey } from '../src/client/locales.ts'
 const t = (key: AgentPresetSettingsKey): string => en[key]
 
 describe('AgentPresetDisplayRegistry', () => {
-  it('uses a product provider only for the matching system preset', () => {
+  it('uses a product provider only for the matching preset id', () => {
     const registry = new AgentPresetDisplayRegistry()
-    registry.register('finance', () => ({ name: 'Finance mode', description: 'Product copy.' }))
+    registry.register('finance', preset => preset.name === 'My finance' ? { name: preset.name } : { name: 'Finance mode', description: 'Product copy.' })
 
-    expect(registry.resolve({ id: 'finance', trust: 'system', name: 'file copy' }, t))
+    expect(registry.resolve({ id: 'finance', name: 'file copy' }, t))
       .toEqual({ name: 'Finance mode', description: 'Product copy.' })
-    expect(registry.resolve({ id: 'finance', trust: 'user', name: 'My finance' }, t))
+    expect(registry.resolve({ id: 'finance', name: 'My finance' }, t))
       .toEqual({ name: 'My finance' })
-    expect(registry.resolve({ id: 'standard', trust: 'system' }, t).name).toBe('Standard mode')
+    expect(registry.resolve({ id: 'standard' }, t).name).toBe('Standard mode')
   })
 
   it('rejects duplicate owners and restores metadata after disposal', () => {
@@ -24,7 +24,7 @@ describe('AgentPresetDisplayRegistry', () => {
       .toThrow('agent preset display provider already registered: finance')
     dispose()
     dispose()
-    expect(registry.resolve({ id: 'finance', trust: 'system', name: 'Finance模式' }, t))
+    expect(registry.resolve({ id: 'finance', name: 'Finance模式' }, t))
       .toEqual({ name: 'Finance模式' })
   })
 })

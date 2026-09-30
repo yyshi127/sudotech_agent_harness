@@ -1,9 +1,25 @@
+---
+description: "Shared deterministic local document normalization for Xiaojing sessions"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-finance-documents
+
+XML syntax is validated with `fast-xml-validator` before parsing with `fast-xml-parser`; entity expansion remains bounded by the parser settings.
 
 English | [中文](README.zh.md)
 
+## Summary
+
 This Xiaojing Host capability provides one deterministic local parser for uploaded PDF, DOCX, XLSX, PPTX, digital-invoice XML, OFD, CSV, and text files. Two session adapters authorize sources without duplicating parsing logic: Finance sessions consume immutable Finance import events through `finance_document`, while Standard, Goal, Plan, and other non-Finance Xiaojing sessions consume durable human-upload references through `document_reader`. The package does not modify the Agent Loop or add another upload control.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Source authorization and normalization
 
 The existing Xiaojing upload button remains the only file entry. Finance customer uploads are committed by `xiaojing-finance-domain` to the bound customer's `02-原始资料` directory and recorded as `finance/file-imported`; Finance consultation uploads are recorded as `finance/consultation-file-imported`. The Finance adapter accepts only those immutable current-session records and preserves customer or consultation isolation.
@@ -64,3 +80,10 @@ Tool output varies by selected document and cursor and appears after the stable 
 - XLSX formulas are not executed; only worksheet drawing rasters are retained, while visual layout, hidden state, macros, charts, and embedded objects require separate handling.
 - PPTX visual review covers only slide-referenced PNG, JPEG, WebP, and GIF files. Charts, SmartArt, vector drawings, media, transitions, and embedded objects require the original presentation or a future renderer.
 - Password-protected, corrupt, over-limit, or unsupported files fail explicitly instead of entering an ad-hoc fallback loop.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

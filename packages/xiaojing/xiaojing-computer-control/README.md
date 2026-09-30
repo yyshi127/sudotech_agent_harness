@@ -1,8 +1,24 @@
+---
+description: "Xiaojing semantic Windows computer control through the built-in UI Automation API"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-computer-control
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Semantic Windows computer control for Xiaojing. One Cordis plugin provides `ctx.xiaojingComputerControl`, registers the `computer_control` consumer, and maintains a bounded newline-delimited helper process over Windows PowerShell 5.1, the Windows Start application catalog, and the operating system's `System.Windows.Automation` API.
+
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
+## Capabilities
 
 The helper searches installed Start applications, launches a selected catalog entry, and returns bounded application, top-level window, and UI Automation control lists. Application, window, and target IDs are held only in memory, scoped to one owning agent session, expire, and are replaced after state changes. Each helper process adds a unique instance component to its IDs, so stale IDs cannot collide with a newly started helper. Launch consumes the application listing and returns a fresh window list. The model never receives a Windows application registration ID or executable path. The tool does not accept coordinates, screenshots, OCR input, PowerShell source, or arbitrary shell commands.
 
@@ -18,7 +34,7 @@ The configuration exposes the PowerShell executable, helper/request deadlines, a
 
 #### What the model sees
 
-The `computer_control` schema tells the model to use this tool only for a required visible native application. A closed application is resolved through `list_apps` and an opaque `appId`, then opened through `launch_app`. An open application starts at `list_windows`; the model selects a returned `windowId` and calls `observe`. The model may invoke only operations included in a target's `actions`, and every operation returns a fresh observation.
+The `computer_control` schema tells the model to use this tool only for a required visible native application. A closed application is resolved through `list_apps` and an opaque `appId`, then opened through `launch_app`. An open application starts at `list_windows`; the model selects a returned `windowId` and calls `observe`. The model may invoke only operations included in a target's `actions`, and every operation returns a fresh observation. The generated [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-xiaojing-computer-control) records this schema.
 
 #### Token effect
 
@@ -34,3 +50,10 @@ The schema is stable for the life of the plugin and does not invalidate the cach
 - The provider cannot cross Windows elevation or desktop boundaries: UAC, sign-in, secure desktop, services, and elevated applications are unavailable from a normal process.
 - It cannot operate pixel-only controls, canvas applications, remote desktops, or applications that publish incomplete UI Automation semantics.
 - Local OCR and coordinate fallback are deliberately excluded.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

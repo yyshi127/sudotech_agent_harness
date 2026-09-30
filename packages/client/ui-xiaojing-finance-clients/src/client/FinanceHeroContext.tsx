@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconChevronDownOutline14, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronDownOutlineRegular, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   FinanceClientId,
   FinanceSessionContextView,
@@ -74,7 +74,7 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
     const name = client.shortName ?? client.legalName
     const connection = catalog.workspaces?.clients.find(entry => entry.clientId === client.id)?.connection
     if (connection === undefined) return name
-    return `${name}-${connection.accountName ?? t('savedAccount')}-ID ${connection.accountId}`
+    return t('clientNameAccountId').replace('{name}', name).replace('{account}', connection.accountName ?? t('savedAccount')).replace('{id}', connection.accountId)
   }
   const selectedLabel = selectedClient === undefined ? undefined : clientLabel(selectedClient)
   const boundClientName = context?.state === 'bound' ? context.clientName : undefined
@@ -144,7 +144,7 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
             onClick={() => { setModeOpen(value => !value) }}
           >
             <span className={css.selectorText}>{mode === 'standard' ? t('generalConsulting') : t('clientMode')}</span>
-            <IconChevronDownOutline14 className={css.chevron} />
+            <IconChevronDownOutlineRegular className={css.chevron} />
           </button>
         )}
       />
@@ -179,7 +179,7 @@ export function FinanceHeroContext(props: FinanceHeroContextProps): ReactNode {
               <span className={css.selectorText}>
                 {selectedLabel ?? boundClientName ?? t('chooseClient')}
               </span>
-              <IconChevronDownOutline14 className={css.chevron} />
+              <IconChevronDownOutlineRegular className={css.chevron} />
             </button>
           )}
         />

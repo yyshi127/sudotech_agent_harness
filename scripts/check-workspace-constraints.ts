@@ -61,9 +61,9 @@ const standardReleaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[
 const desktopApplicationDirectory = 'apps/desktop'
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
-  '@deepseek-ai/dsh': ['lib/*.js', 'lib/types/*.d.ts'],
+  '@deepseek-ai/dsh': ['lib/*.js', 'lib/types/*.d.ts', 'config/xiaojing-agent-presets'],
   '@deepseek-ai/dsh-desktop-host': [
-    'lib/index.js',
+    'lib/index.js', 'lib/cli.js',
   ],
   // Sourcemaps stay out by payload policy; the worker-preview surface
   // (dist/preview.html and dist/preview/) backs opt-in experimental
@@ -174,6 +174,19 @@ export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifes
 }
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
+  // Product tool rows and worker entries are imported separately by Loader and Workers.
+  '@deepseek-ai/dsh-xiaojing-finance-calculations': ['lib/tool.js'],
+  '@deepseek-ai/dsh-xiaojing-finance-documents': ['lib/parser-worker.js', 'lib/tool.js', 'lib/general-tool.js'],
+  '@deepseek-ai/dsh-xiaojing-finance-evidence': ['lib/tool.js'],
+  '@deepseek-ai/dsh-xiaojing-weixin-channel': ['lib/tools.js'],
+  '@deepseek-ai/dsh-xiaojing-finance-domain': [
+    'lib/context.js', 'lib/capabilities.js', 'lib/files-tool.js', 'lib/references-tool.js',
+    'lib/voucher-preparation-tool.js', 'lib/voucher-deletion-tool.js',
+    'lib/open-item-preparation-tool.js', 'lib/open-item-deletion-tool.js', 'lib/open-item-write-off-tool.js',
+    'lib/journal-deletion-tool.js', 'lib/journal-preparation-tool.js', 'lib/master-data-preparation-tool.js',
+    'lib/journals-tool.js', 'lib/vouchers-tool.js', 'lib/open-items-tool.js', 'lib/open-item-analysis-tool.js',
+    'lib/balances-tool.js', 'lib/session-files.js', 'lib/types.js', 'lib/finance-card-*.js',
+  ],
   // Owned Worker bundles import this public bootstrap before their business entry.
   '@deepseek-ai/dsh-app-boot': ['lib/worker/profile-resolution-bootstrap.js'],
   // Statically linked client libraries keep their stylesheets next to the emitted
@@ -187,6 +200,8 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-client-ui-sidebar-terminal': ['lib/client.*.js'],
   '@deepseek-ai/dsh-client-web': ['lib/**/*.css', 'lib/apply-injections.js'],
   '@deepseek-ai/dsh-client-ui-theme': ['lib/styles'],
+  // The physical-key protocol is a public entry usable without the browser service.
+  '@deepseek-ai/dsh-client-shortcuts': ['lib/protocol.js'],
   // The CPython side ships as source .py files, published as-is rather than built.
   '@deepseek-ai/dsh-experimental-ptc-runtime-python': ['py/**/*.py'],
   '@deepseek-ai/dsh-experimental-speech-to-text-sensevoice': ['runtime/assets.json'],
@@ -205,7 +220,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // The argv-prefix runner entry ships beside the lib as its own bundle;
   // sandbox-local resolves it through the package's ./runner export. tsdown
   // also shares its generated FFI code through a hashed runtime chunk.
-  '@deepseek-ai/dsh-sandbox-windows-acl': ['lib/runner.js', 'lib/types-*.js'],
+  '@deepseek-ai/dsh-sandbox-windows-acl': ['lib/runner.js', 'lib/types-*.js', 'assets'],
   '@deepseek-ai/dsh-skill-badge': ['assets'],
   '@deepseek-ai/dsh-skill-office': ['assets'],
   '@deepseek-ai/dsh-subprocess': ['lib/control.js'],

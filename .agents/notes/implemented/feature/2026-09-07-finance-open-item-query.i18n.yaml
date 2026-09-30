@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-finance-open-item-query.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-07-finance-open-item-query.md
-2026-09-07-finance-open-item-query.md: d77cc9397fa67dc9ed73d4ce4ccdd48da0e0b821
-2026-09-07-finance-open-item-query.zh.md: cc83065554981bdb277303a85bfcbba7a5b4be49
+/agent-note-classify-youcheng-open-item-totals-separately:
+  en: 3305328f5525a958
+  zh: 9cefa9c0abb3746e
+/agent-note-classify-youcheng-open-item-totals-separately/problem:
+  en: fc1b8603577c4f76
+  zh: f87513cbf3b8a202
+/agent-note-classify-youcheng-open-item-totals-separately/decision:
+  en: 8e448c55d22e758c
+  zh: 7814d7b25c75a677
+/agent-note-classify-youcheng-open-item-totals-separately/alternatives-considered:
+  en: 7fac85a89ee3cd62
+  zh: c6abdbe209ffd60e
+/agent-note-classify-youcheng-open-item-totals-separately/consequences:
+  en: 761b18561de0400c
+  zh: 58ba70dcb830a9ed

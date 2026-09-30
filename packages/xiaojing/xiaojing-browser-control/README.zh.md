@@ -1,8 +1,24 @@
+---
+description: "Xiaojing semantic browser automation over Microsoft Edge"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-xiaojing-browser-control
 
 [English](README.md) | 中文
 
+## 概述
+
 小兢会计的 DOM 优先 Microsoft Edge 自动化插件。一个可移除 Cordis 插件负责 `browser_control` 工具、全局页面注册表、每轮次页面租约、专用 Playwright Edge 适配器和可选的个人 Edge 扩展适配器。它不修改 `agent-loop`、官方 UI 包或用户的 Edge profile。
+
+
+## 目录
+
+- [功能说明](#capabilities)
+- [开发备注](#dev-note)
+
+<a id="capabilities"></a>
+## 功能说明
 
 个人 Edge 设置 RPC 通过 Connection 注册 Web 路由，因此 Host 插件启动时同时需要 `connection` 和 `webServer`。
 
@@ -54,11 +70,11 @@ Host 会验证固定扩展 ID 和协议版本，然后双方通过与随机 nonc
 
 ## 模型体验
 
-### `browser_control` schema
+### `browser_control` 工具定义
 
 #### 模型看到什么
 
-`browser_control` schema 要求模型创建页面前先复用匹配页面，通过 `act` 批量完成表单和菜单，并让网页工作始终使用 DOM 语义。结果会标明 `managed` 或 `personal` 路线、会话独立的不透明页面和窗口 ID，以及有界语义观察。模型不能安装扩展或绕过其配对状态。
+`browser_control` schema 要求模型创建页面前先复用匹配页面，通过 `act` 批量完成表单和菜单，并让网页工作始终使用 DOM 语义。结果会标明 `managed` 或 `personal` 路线、会话独立的不透明页面和窗口 ID，以及有界语义观察。模型不能安装扩展或绕过其配对状态。 生成的[工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-xiaojing-browser-control)记录该定义。
 
 #### Token 影响
 
@@ -77,3 +93,10 @@ Host 会验证固定扩展 ID 和协议版本，然后双方通过与随机 nonc
 - 关闭的 Shadow DOM、仅 Canvas 页面、验证码、UKey 和证书提示、安全浏览器界面及操作系统对话框需要用户处理。
 - 浏览器或其他 DevTools 客户端可能拒绝 `chrome.debugger` 附加；插件会报告失败，不会切换路线或重复已经完成的动作。
 - 浏览器操控不负责像素理解。模型的视觉能力可以解释用户提供的图片，但不会因此获得坐标点击授权。
+
+<a id="dev-note"></a>
+### 开发备注
+
+无。
+
+不发布运行时不变量伴随插件：注册表和所属服务直接维护这些关系，本包没有需要交叉核对的独立观测。

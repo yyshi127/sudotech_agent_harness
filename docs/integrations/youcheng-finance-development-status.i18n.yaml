@@ -1,6 +1,85 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for youcheng-finance-development-status.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/integrations/youcheng-finance-development-status.md
-youcheng-finance-development-status.md: c7087e288098b937aaf63a3717f1957d25d19a38
-youcheng-finance-development-status.zh.md: 9e0d8ff591816216592f3419bc81af3583e6a57f
+/youcheng-finance-development-status-and-verification:
+  en: 70569c120f118a2e
+  zh: 546cffd378518a05
+/youcheng-finance-development-status-and-verification/authority-and-progress:
+  en: f1ebe3351b54f8f3
+  zh: f15d6c5cfeb70032
+/youcheng-finance-development-status-and-verification/authority-and-progress/f4-non-report-delivery-closeout-2026-09-15:
+  en: 1a0a3f0b1bd77995
+  zh: df5b9feca6153173
+/youcheng-finance-development-status-and-verification/authority-and-progress/cf12-minimal-deletion-request-2026-09-15:
+  en: 5cfe725b8f692904
+  zh: 13465869a3f1027e
+/youcheng-finance-development-status-and-verification/authority-and-progress/f4-native-report-scope-correction-2026-09-15:
+  en: 7c4cdcc5c6fbdca1
+  zh: 737286c1aa33d202
+/youcheng-finance-development-status-and-verification/authority-and-progress/f4-combined-acceptance-2026-09-14:
+  en: 990e0e6f76fbb266
+  zh: 90c3ab6476367559
+/youcheng-finance-development-status-and-verification/authority-and-progress/f3-supported-scope-closeout-2026-09-14:
+  en: 99c6736d3628033d
+  zh: e0bf62501ab7bc3b
+/youcheng-finance-development-status-and-verification/authority-and-progress/ar-ap-deletion-balance-verification-2026-09-14:
+  en: 7ce8723a203386be
+  zh: 66fadfe7af85ba28
+/youcheng-finance-development-status-and-verification/authority-and-progress/f3-remainder-investigation-2026-09-14:
+  en: 511d51977af79710
+  zh: de5467f255b8dd3a
+/youcheng-finance-development-status-and-verification/authority-and-progress/f3b-current-code-acceptance-2026-09-14:
+  en: 257b60d3d970bfb6
+  zh: 778d3b40dc96836e
+/youcheng-finance-development-status-and-verification/authority-and-progress/historical-f3b-checkpoints-2026-09-10:
+  en: 0917fd7432fcdf21
+  zh: a754596bc5c04116
+/youcheng-finance-development-status-and-verification/authority-and-progress/f3a-current-acceptance-scope-and-blockers:
+  en: 03c37c1d00792a30
+  zh: 50f5c59dbd914646
+/youcheng-finance-development-status-and-verification/authority-and-progress/f3a-active-goal-and-initial-checkpoint-september-9-2026:
+  en: ade956a27511fb17
+  zh: 746ca5b6c82bcedc
+/youcheng-finance-development-status-and-verification/authority-and-progress/f2-technical-acceptance-conclusion-september-9-2026:
+  en: ad8db02dc6670058
+  zh: 49937fb87c0755e3
+/youcheng-finance-development-status-and-verification/authority-and-progress/f1-acceptance-conclusion-september-9-2026:
+  en: 6ae1f895d979dc3b
+  zh: dbadf20178578283
+/youcheng-finance-development-status-and-verification/authority-and-progress/f2-preview-checkpoint-september-9-2026:
+  en: f9d1053239a5da34
+  zh: 2bff133e33317c43
+/youcheng-finance-development-status-and-verification/authority-and-progress/f1-acceptance-evidence-history:
+  en: 3221b0db645a45be
+  zh: 031ab8cd6178524c
+/youcheng-finance-development-status-and-verification/authority-and-progress/historical-checkpoints:
+  en: 31abc1a05f65a1e7
+  zh: ce3a79704acd8a4e
+/youcheng-finance-development-status-and-verification/continuous-f1-checkpoint:
+  en: d9a86d5e6004f3fe
+  zh: bbe713b69cd02e28
+/youcheng-finance-development-status-and-verification/f1-4-balance-report-evidence:
+  en: b948a5d44e57cee3
+  zh: 2ebb3a39839c9600
+/youcheng-finance-development-status-and-verification/f1-5-journal-evidence:
+  en: 782976daeafc9bfe
+  zh: 2e118177c05a9843
+/youcheng-finance-development-status-and-verification/f0-3-recoverable-baseline:
+  en: 360991ad82386a20
+  zh: d241331ac39f0d5e
+/youcheng-finance-development-status-and-verification/f1-1-evidence:
+  en: 757a3178e013b819
+  zh: 93862e49a68e10d3
+/youcheng-finance-development-status-and-verification/f1-2-evidence-and-vendor-limits:
+  en: 872fe6417da0107e
+  zh: 70e277855ba47997
+/youcheng-finance-development-status-and-verification/f1-2-browser-verification:
+  en: 76ad82d2a16f176b
+  zh: 46294c94443a6ca3
+/youcheng-finance-development-status-and-verification/f1-3-list-guards-and-acceptance-gaps:
+  en: 6b3550d003d322ae
+  zh: 2adf8f105206e308
+/youcheng-finance-development-status-and-verification/first-batch-test-boundaries:
+  en: 87dabea34a2307a1
+  zh: 6f536d4249c06a2f

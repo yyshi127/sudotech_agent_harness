@@ -9,21 +9,37 @@
     "src/fragment.ts",
     "src/frame-css.ts",
     "src/index.ts",
-    "src/invariant.ts",
     "src/shell.ts",
     "src/skill.ts",
     "src/tool.ts"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../../vendor/schemastery" },
-    { "path": "../../core/session" },
-    { "path": "../../core/tools" },
-    { "path": "../../fs/fs" },
-    { "path": "../../runtime-diagnostics/invariants" },
-    { "path": "../../llm/llm" },
-    { "path": "../../sandbox/sandbox-policy" },
-    { "path": "../../skill/skill" },
-    { "path": "../../util/values" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../fs/fs"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../skill/skill"
+    },
+    {
+      "path": "../../util/values"
+    }
   ]
 }

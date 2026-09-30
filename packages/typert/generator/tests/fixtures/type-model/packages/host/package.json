@@ -19,5 +19,6 @@
   "files": [
     "lib/typert.host.js",
     "lib/typert.host.d.ts"
-  ]
+  ],
+  "version": "0.2.0-rc.2"
 }

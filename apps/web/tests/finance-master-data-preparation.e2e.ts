@@ -32,9 +32,8 @@ class MasterDataAdapter extends LlmAdapter {
   }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     if (this.calls > 0 && this.preparedId === '') {
-      const result = options.messages.flatMap(message => message.content)
-        .find(block => block.type === 'tool-result' && block.toolCallId === `${this.kind}-1`)
-      const text = result?.type === 'tool-result' ? result.content.find(block => block.type === 'text') : undefined
+      const result = options.messages.find(message => message.role === 'tool' && message.source.callId === `${this.kind}-1`)
+      const text = result?.content.find(block => block.type === 'text')
       if (text?.type !== 'text') throw new Error('Missing actual preview')
       const value: unknown = JSON.parse(text.text)
       if (typeof value !== 'object' || value === null || !('id' in value) || typeof value.id !== 'string') throw new Error(text.text)
@@ -193,7 +192,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data preview
         expect(JSON.stringify(results[6])).toContain('发送记录')
         const durable = await records().read(adapter.preparedId as PreparedMasterDataId)
         expect(durable).toMatchObject({ phase: kind === 'subject' ? 'accepted' : 'outcome-unknown', version: 2 })
-        const text = results[5]?.flatMap(block => block.type === 'tool-result' ? block.content : []).find(block => block.type === 'text')
+        const text = results[5]?.find(block => block.type === 'text')
         if (text?.type !== 'text') throw new Error('Missing actual readback')
         expect(JSON.parse(text.text)).toMatchObject({ phase: durable.phase, complete: kind === 'subject', readback: { content: 'matched' } })
         expect(JSON.stringify(results)).not.toMatch(/snapshot-key|snapshot-secret|snapshot-token|configurationDigest/)

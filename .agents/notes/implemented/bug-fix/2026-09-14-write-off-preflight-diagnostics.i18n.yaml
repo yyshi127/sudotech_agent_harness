@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-14-write-off-preflight-diagnostics.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-14-write-off-preflight-diagnostics.md
-2026-09-14-write-off-preflight-diagnostics.md: bf4f4c2a222391cfd83b142fa5e8ff5f17fb914b
-2026-09-14-write-off-preflight-diagnostics.zh.md: e2a7482c3d2a465079eab53d623d50f5378a3180
+/agent-note-write-off-preflight-diagnostics:
+  en: e3f08956b37bdd8f
+  zh: 58b3b4dcc1495046
+/agent-note-write-off-preflight-diagnostics/problem:
+  en: 6db905ed6cbaf58a
+  zh: 448318d7e4c877c4
+/agent-note-write-off-preflight-diagnostics/decision:
+  en: d15619346e82c004
+  zh: 7938115dc689e5d0
+/agent-note-write-off-preflight-diagnostics/alternatives-considered:
+  en: efad04d6f129e21c
+  zh: 15ece0bdf16f265d
+/agent-note-write-off-preflight-diagnostics/consequences:
+  en: 13b6d2de8226a697
+  zh: d108a73673aa918c

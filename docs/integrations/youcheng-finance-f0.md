@@ -8,7 +8,7 @@ Technical F0 findings dated 2026-09-07. The user designated ledger `35601` (数�
 
 ## Local baseline
 
-The branch is `codex/finance-f1-2`, with HEAD `4a0fa71329ee40646477adb9f13befb17d1502ee`. Existing uncommitted changes mean HEAD cannot reproduce the full working state. This investigation did not commit, reset, clean, or copy credential-bearing configuration into the repository. A recoverable checkpoint of uncommitted work remains necessary before code development.
+The branch is `codex/finance-f1-2`, with HEAD `xiaojing-history-20260930-6`. Existing uncommitted changes mean HEAD cannot reproduce the full working state. This investigation did not commit, reset, clean, or copy credential-bearing configuration into the repository. A recoverable checkpoint of uncommitted work remains necessary before code development.
 
 The local client is displayed as 数豆科技, a name shared by other records; exactly one record binds `35601`. The server uniquely matched the ID and returned 数豆测试帐套勿删. Never select the first matching display name or another ledger. Renaming the local test client for clarity is recommended for the user; no rename was performed.
 

@@ -52,8 +52,8 @@ export function ReimbursementConnectionSection(props: {
     <p className={css.systemNotice}>{t('reimbursementIntro')}</p>
     {view === null ? <p>{t('loading')}</p> : <div className={css.grid}>
       <label className={css.wide}><span>{t('reimbursementApiUrl')}</span><select value={view.apiUrl} onChange={(event) => { edit(); setView({ ...view, apiUrl: event.target.value }) }}>
-        <option value="https://yiqbdata.superboss.cc">https://yiqbdata.superboss.cc</option>
-        <option value="https://yiqbdatatest.superboss.cc">https://yiqbdatatest.superboss.cc</option>
+        <option value="https://yiqbdata.superboss.cc">{t('reimbursementProductionUrl')}</option>
+        <option value="https://yiqbdatatest.superboss.cc">{t('reimbursementTestUrl')}</option>
       </select></label>
       <label className={css.wide}><span>{t('reimbursementAppKey')}</span><input value={view.appKey} autoComplete="off" onChange={(event) => { edit(); setView({ ...view, appKey: event.target.value }) }} /></label>
       <label className={css.wide}><span>{t('reimbursementSecret')}</span><input type="password" value={secret} autoComplete="new-password" placeholder={view.configured ? t('appSecretConfiguredPlaceholder') : ''} onChange={(event) => { edit(); setSecret(event.target.value) }} /></label>

@@ -8,13 +8,26 @@
     "src"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../runtime-diagnostics/invariants" },
-    { "path": "../../xiaojing/xiaojing-browser-control" },
-    { "path": "../connection/tsconfig.client.json" },
-    { "path": "../locale" },
-    { "path": "../ui-renderer" },
-    { "path": "../ui-settings" },
-    { "path": "../ui-slots" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../xiaojing/xiaojing-browser-control"
+    },
+    {
+      "path": "../connection/tsconfig.client.json"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-slots"
+    }
   ]
 }

@@ -6,7 +6,7 @@ English | [中文](2026-09-10-finance-destructive-maintenance.zh.md)
 
 ## Problem
 
-F3B changes existing accounting records. A successful HTTP response, a failed detail lookup or an empty filtered page cannot prove the intended deletion or write-off. Requests must use the vendor fields established for each operation; caller-generated identifiers or undocumented provenance requirements cannot replace fresh target inspection.
+F3B changes existing accounting records. A successful HTTP response, a failed detail lookup or an empty filtered page cannot prove the intended deletion or write-off. Requests must use the vendor fields established for each operation; caller-generated identifiers or undocumented source identity requirements cannot replace fresh target inspection.
 
 ## Proposal
 

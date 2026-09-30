@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-14-youcheng-source-snapshot.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-14-youcheng-source-snapshot.md
-2026-09-14-youcheng-source-snapshot.md: a02cb98044658336081a3812cd3d3151062d3adf
-2026-09-14-youcheng-source-snapshot.zh.md: 2db9c050bc1214784fd109a0ac3245f525e854bf
+/agent-note-youcheng-documentation-source-artifacts:
+  en: 70b4eb740344ab98
+  zh: 843bb2305cc3e074
+/agent-note-youcheng-documentation-source-artifacts/problem:
+  en: 10050eda09824adc
+  zh: 7136fd9c350e8f3a
+/agent-note-youcheng-documentation-source-artifacts/decision:
+  en: 647b354f01cb72de
+  zh: 3bc273d682083e68
+/agent-note-youcheng-documentation-source-artifacts/alternatives-considered:
+  en: 312ce77c75cf7f79
+  zh: 682fb687f8019fce
+/agent-note-youcheng-documentation-source-artifacts/consequences:
+  en: 9c50a0866a6e76db
+  zh: e8ed3f0f65eca8ab

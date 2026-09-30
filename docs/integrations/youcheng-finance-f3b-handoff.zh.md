@@ -30,7 +30,7 @@ F3已完成支持范围的收尾，详见[F3收尾文档](youcheng-finance-f3-cl
 | Origin | `git@github.com:yyshi127/sudotech_agent_harness.git` |
 | 官方 upstream | `https://github.com/deepseek-ai/deepseek-harness.git` |
 | 分支／跟踪分支 | `codex/finance-f1-2`／`origin/codex/finance-f1-2` |
-| HEAD | `4a0fa71329ee40646477adb9f13befb17d1502ee` |
+| HEAD | `xiaojing-history-20260930-6` |
 | HEAD 说明 | `feat(xiaojing): ship finance stage one and release 0.2.3` |
 | 原任务 | `01a0662b-881f-79a3-88fa-d578c9dd93a9` |
 | Goal | 查询任务实际 Goal，不根据文档推断状态或继承关系 |

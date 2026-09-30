@@ -3,6 +3,7 @@
 import { posix } from 'node:path'
 import { strFromU8, unzipSync } from 'fflate'
 import { XMLParser } from 'fast-xml-parser'
+import { SyntaxValidator } from 'fast-xml-validator'
 import type { ImageMediaType } from '@deepseek-ai/dsh-attachment'
 
 type XmlRecord = Record<string, unknown>
@@ -113,7 +114,9 @@ function walkElements(
 function parseXml(data: Uint8Array): readonly unknown[] {
   let value: unknown
   try {
-    value = parser.parse(strFromU8(data), true) as unknown
+    const input = strFromU8(data)
+    SyntaxValidator.validate(input)
+    value = parser.parse(input)
   } catch {
     throw new PptxParseError('invalid-pptx-xml')
   }

@@ -1,6 +1,91 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-weixin-channel/README.md
-README.md: ace73c6e98965ff64ba4d7f35953127a880975eb
-README.zh.md: a92a511effd554801ac1f0bb839c0381718b2e47
+/:
+  en: 5c60aac7ff0c89b3
+  zh: 5c60aac7ff0c89b3
+/deepseek-ai-dsh-xiaojing-weixin-channel:
+  en: ee2b2e60663b724c
+  zh: 00506207f0eba485
+/deepseek-ai-dsh-xiaojing-weixin-channel/summary:
+  en: a791b4c6011a0c55
+  zh: 7fdbc62d5f0ad8b7
+/deepseek-ai-dsh-xiaojing-weixin-channel/table-of-contents:
+  en: f1d967a7e5342ebc
+  zh: 86774d5ea1aab22d
+/deepseek-ai-dsh-xiaojing-weixin-channel/composition-and-protocol:
+  en: fc62dbbcb81458d9
+  zh: eb22f532404e5ec6
+/deepseek-ai-dsh-xiaojing-weixin-channel/session-and-delivery:
+  en: 0c05ab2182f7c4a8
+  zh: f0b9b10824f93475
+/deepseek-ai-dsh-xiaojing-weixin-channel/safety-and-recovery:
+  en: 7fa897f97c2eec2e
+  zh: 227664927859b741
+/deepseek-ai-dsh-xiaojing-weixin-channel/configuration:
+  en: 3726694221156f35
+  zh: f9b9b8c4478f893a
+/deepseek-ai-dsh-xiaojing-weixin-channel/source-attribution:
+  en: df4e52f10b18118f
+  zh: bf076c57a43f1010
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/inbound-weixin-task:
+  en: 879d86b470142025
+  zh: 6898c8be2f799d0e
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/inbound-weixin-task/what-the-model-sees:
+  en: c78c624036c1dd5a
+  zh: 3e6cf1a9c4424f82
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/inbound-weixin-task/token-effect:
+  en: 98dde3dd138b5f71
+  zh: b80a5846cd00fade
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/inbound-weixin-task/kv-cache-effect:
+  en: 1a29c673169af0b3
+  zh: 957b6c2e959be4de
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-session-system-prompt:
+  en: dc559609648a4bf7
+  zh: a68ac658ba58129e
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-session-system-prompt/what-the-model-sees:
+  en: 170213eaa3328508
+  zh: d272caf0fca45362
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-session-system-prompt/what-the-model-sees/weixin-session-instructions:
+  en: b7fba41ed6f44674
+  zh: d4e2b334bc73104f
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-session-system-prompt/token-effect:
+  en: cbe596ba66797e1e
+  zh: f97f3aa722dc9c8b
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-session-system-prompt/kv-cache-effect:
+  en: 2403b7a1b35d01be
+  zh: 8ff43a90f0d1eb3c
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/question-tool-restriction:
+  en: 8e807fcf243d8d59
+  zh: 05dd008872bb6b96
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/question-tool-restriction/what-the-model-sees:
+  en: a7d7886d62c75d91
+  zh: 67589b357b5bacee
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/question-tool-restriction/token-effect:
+  en: fbeb5897e617d462
+  zh: aa05da1d4cc41f82
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/question-tool-restriction/kv-cache-effect:
+  en: 4c9f9c1e38cc5081
+  zh: 465f5e21e46395e4
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-file-delivery-tool:
+  en: 460d621c1f9029a4
+  zh: 7379543584bcedc3
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-file-delivery-tool/what-the-model-sees:
+  en: 2f42b406f13b6b32
+  zh: 69c2ceaff6006405
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-file-delivery-tool/token-effect:
+  en: c6fc3a9474e7480d
+  zh: 49c86905ad68017e
+/deepseek-ai-dsh-xiaojing-weixin-channel/model-experience/weixin-file-delivery-tool/kv-cache-effect:
+  en: 12b10b44fb69d409
+  zh: 9df9d6e30a692817
+/deepseek-ai-dsh-xiaojing-weixin-channel/known-limitations-and-deferred-work:
+  en: 6ffad966f5674825
+  zh: 53f9b19d3598ac1c
+/deepseek-ai-dsh-xiaojing-weixin-channel/known-limitations-and-deferred-work/dev-note:
+  en: 6c98eefd36da35e8
+  zh: 97b281ca4fb06ce2

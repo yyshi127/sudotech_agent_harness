@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-voucher-query-evidence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-07-voucher-query-evidence.md
-2026-09-07-voucher-query-evidence.md: 7b6595b50e8983eb2d2c4f870e7a7558245edb19
-2026-09-07-voucher-query-evidence.zh.md: 8cc4bf264d1b8f9a34e797e87c58cca9e9559bf5
+/agent-note-voucher-query-evidence-and-bounds:
+  en: 440dc9cbedcc5e24
+  zh: e81bdf61c9077942
+/agent-note-voucher-query-evidence-and-bounds/problem:
+  en: 0f403fddfc7ad773
+  zh: 0b296fa9b112bd94
+/agent-note-voucher-query-evidence-and-bounds/decision:
+  en: 67cb8e2c72ca105e
+  zh: 2a65fc7f883d2429
+/agent-note-voucher-query-evidence-and-bounds/alternatives-considered:
+  en: fbc24f0899e76598
+  zh: 45938e1bc84b6da7
+/agent-note-voucher-query-evidence-and-bounds/consequences:
+  en: 6a58017b80416f1d
+  zh: 5d4ef2a7aa681244

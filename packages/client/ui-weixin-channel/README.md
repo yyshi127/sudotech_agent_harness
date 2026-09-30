@@ -1,9 +1,23 @@
+---
+description: "Xiaojing settings page for the local Weixin iLink channel"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-weixin-channel
 
 English | [中文](README.zh.md)
 
+## Summary
+
 Browser presentation for the Xiaojing Weixin channel. It adds a “Channels” settings section, keeps the Weixin card expanded by default, and presents pairing, verification, connection, reconnection, expiry, and error states without owning credentials or transport state.
 
+
+## Table of Contents
+
+- [Capabilities](#capabilities)
+- [Dev Note](#dev-note)
+
+<a id="capabilities"></a>
 ## Composition and Presentation
 
 The Client plugin registers `settings.section` with id `channels` and order `25` only for the `xiaojing` build profile on a loopback origin. Its observable controller calls the Host's `/xiaojing-weixin` RPC endpoints and refreshes status while the section is mounted. An in-flight user action suppresses periodic refreshes so a stale status response cannot overwrite pairing, verification, or disconnect feedback.
@@ -27,3 +41,10 @@ No direct effect; opening, pairing, refreshing, or disconnecting the settings vi
 - The section manages one preinstalled Weixin channel and does not provide arbitrary channel or account plug-in management.
 - Status refresh runs only while the settings component is mounted; the Host continues polling independently.
 - V1 presents direct text, image, and document support. Audio, video, ordinary groups, OCR, and image understanding remain unavailable.
+
+<a id="dev-note"></a>
+### Dev Note
+
+None.
+
+No invariant companion is published because registries and the owning services enforce these relationships directly; this package has no independent observation to compare.

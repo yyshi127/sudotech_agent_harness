@@ -1,6 +1,19 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-07-journal-answer-evidence.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-07-journal-answer-evidence.md
-2026-09-07-journal-answer-evidence.md: 427bb17b2cf5e8ddb4033641f03ab057c4bee19e
-2026-09-07-journal-answer-evidence.zh.md: 5e475abc0765e6f14b83dbb9d0b911d76144cf71
+/agent-note-journal-answer-evidence-limits:
+  en: 17b74a92dcbec100
+  zh: 1bae8d489e1563bd
+/agent-note-journal-answer-evidence-limits/problem:
+  en: 2012d7ad63fc2fc3
+  zh: 8e196f635e857dca
+/agent-note-journal-answer-evidence-limits/decision:
+  en: 0c4641a4f952a933
+  zh: 419906b8419aa87b
+/agent-note-journal-answer-evidence-limits/alternatives-considered:
+  en: dd8254b63760bc57
+  zh: 3aac4695867a948b
+/agent-note-journal-answer-evidence-limits/consequences:
+  en: c3523137d398f2bb
+  zh: 46e6b6437d569bef

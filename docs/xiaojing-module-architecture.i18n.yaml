@@ -1,6 +1,49 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for xiaojing-module-architecture.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/xiaojing-module-architecture.md
-xiaojing-module-architecture.md: bff6ceb72ac11485302aa2cea3ca5cd0ab0d77df
-xiaojing-module-architecture.zh.md: 984a1733d23145ef91fba20f94655d99e9f3ff2a
+/xiaojing-accounting-0-3-1-module-and-source-architecture:
+  en: bea2a892d78c5911
+  zh: 59fa61935da0a668
+/xiaojing-accounting-0-3-1-module-and-source-architecture/baseline-and-conclusion:
+  en: daa388ba3a848112
+  zh: 63baad3ce2cf889c
+/xiaojing-accounting-0-3-1-module-and-source-architecture/runtime-module-architecture:
+  en: 2a42d071570da7c8
+  zh: b728ff2baf2d6c75
+/xiaojing-accounting-0-3-1-module-and-source-architecture/layer-ownership:
+  en: 185f0c90f5c8a3b1
+  zh: a902a1b628e0b18c
+/xiaojing-accounting-0-3-1-module-and-source-architecture/feature-insertion-map:
+  en: 8094609df38a28b9
+  zh: 15a63c2c9b07156a
+/xiaojing-accounting-0-3-1-module-and-source-architecture/source-structure-and-plug-points:
+  en: 61d2feac5a46ddd9
+  zh: 8f1be0b65741a3cd
+/xiaojing-accounting-0-3-1-module-and-source-architecture/assembly-process:
+  en: 69cadc15ba31331d
+  zh: 0a2622cdc62cd705
+/xiaojing-accounting-0-3-1-module-and-source-architecture/removal-levels:
+  en: fdc7606b0cfde173
+  zh: 8fe699eef8dc61d1
+/xiaojing-accounting-0-3-1-module-and-source-architecture/removal-levels/pure-cordis-features:
+  en: 40c5e44a9e5a6f61
+  zh: afb08adfb15067dd
+/xiaojing-accounting-0-3-1-module-and-source-architecture/removal-levels/product-ui:
+  en: 329500d2924adb24
+  zh: 56c979a74cda6800
+/xiaojing-accounting-0-3-1-module-and-source-architecture/removal-levels/native-desktop-behavior:
+  en: 15d5c2d43aa39a5e
+  zh: ca7c053047e02093
+/xiaojing-accounting-0-3-1-module-and-source-architecture/removal-levels/third-party-integration-patches:
+  en: c58bb6a11e34f6ed
+  zh: 7deb5c4bf5c8fcca
+/xiaojing-accounting-0-3-1-module-and-source-architecture/rules-that-prevent-architectural-erosion:
+  en: cb6252a78ceb2dde
+  zh: dc95e774efe33f88
+/xiaojing-accounting-0-3-1-module-and-source-architecture/recommended-architecture-convergence:
+  en: 32ff6d85e4227b12
+  zh: 1b979c001084593f
+/xiaojing-accounting-0-3-1-module-and-source-architecture/new-feature-directory-template:
+  en: 4f4c8235dd1643cb
+  zh: 8f45b0385f71f318

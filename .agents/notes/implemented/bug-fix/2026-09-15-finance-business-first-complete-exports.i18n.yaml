@@ -1,6 +1,22 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-15-finance-business-first-complete-exports.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-15-finance-business-first-complete-exports.md
-2026-09-15-finance-business-first-complete-exports.md: 1669ab2c03aa1618e880ff6ac11acfc9fe43b9bb
-2026-09-15-finance-business-first-complete-exports.zh.md: bb1ab35dbce466c68abbaf03824a6cdf18ab6fba
+/agent-note-business-first-finance-deliverables:
+  en: c2e93643bf4c9c88
+  zh: 19e2f4e5e4cfbff6
+/agent-note-business-first-finance-deliverables/problem:
+  en: b748a5110bf0c9ec
+  zh: 6d4ef4011d63d2b4
+/agent-note-business-first-finance-deliverables/decision:
+  en: 7008a6e0a28610ec
+  zh: 0f8be0e2d5849243
+/agent-note-business-first-finance-deliverables/alternatives-considered:
+  en: 499629a6eaaa839c
+  zh: 9c4007ed63fa0294
+/agent-note-business-first-finance-deliverables/consequences:
+  en: f5af48fa5bc77a3f
+  zh: c17767e95b7b8604
+/agent-note-business-first-finance-deliverables/verification:
+  en: 0ed288d3e6ffda9b
+  zh: 7bb3fc2c05b9ef3f

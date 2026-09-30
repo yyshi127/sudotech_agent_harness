@@ -17,17 +17,38 @@
     "src/client/locales.ts"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../runtime-diagnostics/invariants" },
-    { "path": "../locale" },
-    { "path": "../ui-agent-preset" },
-    { "path": "../ui-chat" },
-    { "path": "../ui-conversation" },
-    { "path": "../ui-primitives" },
-    { "path": "../ui-renderer" },
-    { "path": "../ui-settings" },
-    { "path": "../ui-settings-models" },
-    { "path": "../ui-sidebar" },
-    { "path": "../ui-slots" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../locale/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-agent-preset"
+    },
+    {
+      "path": "../ui-chat/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-conversation/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-primitives"
+    },
+    {
+      "path": "../ui-renderer"
+    },
+    {
+      "path": "../ui-settings/tsconfig.client.json"
+    },
+    {
+      "path": "../ui-settings-models"
+    },
+    {
+      "path": "../ui-sidebar"
+    },
+    {
+      "path": "../ui-slots"
+    }
   ]
 }
