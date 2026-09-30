@@ -21,7 +21,7 @@ import {
   resolveFinanceClientWorkspace,
 } from '@deepseek-ai/dsh-xiaojing-finance-domain/workspace'
 import type {} from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-presets'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-skill'
 import type {} from '@deepseek-ai/dsh-tools'
@@ -34,8 +34,9 @@ const installAnchor = fileURLToPath(new URL('../../../package.json', import.meta
 const rootConfig = join(repoRoot, 'packages', 'bundle', 'base', 'tests', 'fixtures', 'root.cordis.yml')
 const basePatch = join(repoRoot, 'packages', 'bundle', 'base', 'cordis.patch.yml')
 const webPatch = join(repoRoot, 'packages', 'bundle', 'web-app', 'cordis.patch.yml')
+const standardPresetPatch = join(repoRoot, 'packages', 'bundle', 'web-app', 'presets', 'standard.patch.yml')
+const financePresetPatch = join(repoRoot, 'apps', 'cli', 'config', 'xiaojing-agent-presets', 'finance', 'agent.cordis.yml')
 const workspaceRoot = join(dshHome, 'finance-workspaces')
-const configRoot = join(repoRoot, 'apps', 'cli', 'config')
 const overrides: PatchOptions[] = [
   { id: 'settings', config: { path: join(dshHome, 'settings.yaml'), watch: false } },
   { id: 'storage-json', config: { root: join(dshHome, 'storages') } },
@@ -51,17 +52,6 @@ const overrides: PatchOptions[] = [
   { id: 'xiaojing-finance-calculations', disabled: false },
   { id: 'xiaojing-finance-evidence', disabled: false, config: { dshHome } },
   { id: 'xiaojing-finance-documents', disabled: false, config: { dshHome } },
-  {
-    id: 'agent-presets',
-    config: {
-      default: 'standard',
-      roots: [
-        { path: join(configRoot, 'agent-presets'), trust: 'system' },
-        { path: join(configRoot, 'xiaojing-agent-presets'), trust: 'system' },
-      ],
-      includeUserRoot: false,
-    },
-  },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
   { insert: [
@@ -345,6 +335,8 @@ await healProfilesModuleFallback({ installAnchor, home: dshHome })
 const ctx = await boot('finance-document-snapshot', rootConfig, [
   ...loadOverlayPatches('finance-document-snapshot', basePatch),
   ...loadOverlayPatches('finance-document-snapshot', webPatch),
+  ...loadOverlayPatches('finance-document-snapshot', standardPresetPatch),
+  ...loadOverlayPatches('finance-document-snapshot', financePresetPatch),
   ...overrides,
 ], (bootCtx) => {
   provideCmdline(bootCtx, { args: [], exit: () => {} })

@@ -10,6 +10,7 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 const marker = { date: '', abstractStr: '初始余额', accountCode: '', accountName: '', currencyCode: '', baseCurrencyCode: '',
   balance: 0, baseBalance: 0, categoryName: '', keeperName: '' }
@@ -61,10 +62,7 @@ class JournalAdapter extends LlmAdapter {
 it.skipIf(webClientProfile() !== 'xiaojing').each(['report', 'empty', 'failure', 'export', 'bank-empty', 'bank-mismatch', 'boundary-export', 'analysis-export', 'analysis-rejected'])('queries journals through the real Finance preset: %s', async (scenario) => {
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
-    default: 'standard', roots: [
-      { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
-      { path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url)), trust: 'system' },
-    ],
+    default: 'standard', definitions: [financePresetDefinition()],
   } })
   const browser = await chromium.launch()
   const originalFetch = globalThis.fetch

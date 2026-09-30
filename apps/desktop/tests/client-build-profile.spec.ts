@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { assertXiaojingDesktopClientBuild } from '../client-build-profile.mjs'
+import { assertXiaojingDesktopClientBuild } from '../src/xiaojing-product.ts'
 
 const roots: string[] = []
 

@@ -1,10 +1,11 @@
 /** Build the ZIP and DMG from separate signed application copies with overlapping notarization. */
 
 import { execFile } from 'node:child_process'
-import { mkdtemp, rename, rm, stat } from 'node:fs/promises'
+import { mkdtemp, readFile, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { promisify } from 'node:util'
-import { notarize } from '@electron/notarize'
+import { notarizeMacOS } from './notarize-macos.mjs'
+import { packagingStep } from './packaging-step.mjs'
 import {
   resolveMacOSNotarizationEnvironment,
   resolveMacOSSigningEnvironment,
@@ -17,6 +18,7 @@ import { verifyMacOSAppUpdateConfig } from './macos-app-update-config.mjs'
 import { verifyMacOSNotarizedApplication, verifyMacOSSignature } from './verify-macos-signature.mjs'
 
 const execute = promisify(execFile)
+const identity = JSON.parse(await readFile(new URL('../identity.json', import.meta.url), 'utf8')) as { readonly productName: string }
 
 /** One electron-builder artifact made from an already signed application. */
 export interface DesktopPrepackagedArtifact {
@@ -45,15 +47,15 @@ const operations: MacOSArtifactOperations = {
   async copyApp(source, destination) {
     await execute('/usr/bin/ditto', [source, destination])
   },
-  notarize,
+  notarize: notarizeMacOS,
   verifySignature: verifyMacOSSignature,
   verifyNotarization: verifyMacOSNotarizedApplication,
 }
 
-async function timed(label: string, action: () => Promise<void>): Promise<void> {
+async function timed(label: string, action: () => Promise<void>, secrets: readonly string[]): Promise<void> {
   const start = performance.now()
   process.stdout.write(`desktop macOS packaging: ${label} started at ${new Date().toISOString()}\n`)
-  await action()
+  await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, label, action, secrets)
   process.stdout.write(`desktop macOS packaging: ${label} completed in ${((performance.now() - start) / 1000).toFixed(2)}s\n`)
 }
 
@@ -73,10 +75,11 @@ export async function packageMacOSArtifacts(
   apple: MacOSArtifactOperations = operations,
 ): Promise<void> {
   const { arch, version, artifactsRoot, environment } = request
+  const secrets = Object.entries(environment).filter(([name]) => /KEY|SECRET|TOKEN|PASSWORD|APPLE_ID/iu.test(name)).map(([, value]) => value ?? '')
   const expected = resolveMacOSSigningEnvironment(environment)
   const credentials = resolveMacOSNotarizationEnvironment(environment)
   const update = resolveDesktopAutoUpdateConfig(environment, 'darwin', arch)
-  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
+  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', `${identity.productName}.app`)
   const root = await mkdtemp(join(dirname(artifactsRoot), 'notarization-'))
   const zipApp = join(root, 'zip', basename(appPath))
   const dmgApp = join(root, 'dmg', basename(appPath))
@@ -95,10 +98,10 @@ export async function packageMacOSArtifacts(
         await apple.notarize({ appPath: zipApp, ...credentials })
         apple.verifyNotarization(zipApp, expected)
         await build({ format: 'zip', appPath: zipApp, output: zipOutput })
-      }),
+      }, secrets),
       timed('DMG creation and notarization', async () => {
         await build({ format: 'dmg', appPath: dmgApp, output: dmgOutput })
-      }),
+      }, secrets),
     ])
     const failures = results.filter(result => result.status === 'rejected')
     if (failures.length > 0) {

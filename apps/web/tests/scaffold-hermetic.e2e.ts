@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import type {} from '@deepseek-ai/dsh-skill'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-agent-presets'
 import { launchWebScaffold, realizeSeedFixture, type WebScaffold } from './scaffold.ts'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 
 async function writeSkill(root: string, name: string): Promise<void> {
   const bundle = join(root, name)

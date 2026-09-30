@@ -4,17 +4,17 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
-import { discoverPresets } from '@deepseek-ai/dsh-agent-presets'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { priceUsage, RECOVERABLE_PRICE_TABLES } from '@deepseek-ai/dsh-usage-accounting'
 import { loadProfile } from '@deepseek-ai/dsh-app-boot'
 import { FinanceClientStore } from '@deepseek-ai/dsh-xiaojing-finance-domain/store'
 import { FinanceClientId } from '@deepseek-ai/dsh-xiaojing-finance-domain/types'
+import { createElectronBuilderConfig } from './electron-builder-config.mjs'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = join(appRoot, '..', '..')
@@ -23,10 +23,19 @@ const fixtureRoot = join(appRoot, 'tests', 'fixtures', fixtureVersion)
 const contract = JSON.parse(await readFile(join(appRoot, 'user-data-contract.json'), 'utf8'))
 const identity = JSON.parse(await readFile(join(appRoot, 'identity.json'), 'utf8'))
 const manifest = JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8'))
-const main = await readFile(join(appRoot, 'main.mjs'), 'utf8')
+const main = await readFile(join(appRoot, 'src', 'main.ts'), 'utf8')
+const product = await readFile(join(appRoot, 'src', 'xiaojing-product.ts'), 'utf8')
 const installer = await readFile(join(appRoot, 'build', 'installer.nsh'), 'utf8')
 const installerCancelHelper = await readFile(join(appRoot, 'build', 'installer-cancel-helper.ps1'), 'utf8')
 const installerShutdownHelper = await readFile(join(appRoot, 'build', 'installer-shutdown-helper.ps1'), 'utf8')
+const builder = createElectronBuilderConfig({
+  DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
+  DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+  DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
+  DSH_DESKTOP_TARGET_PLATFORM: 'win32',
+  DSH_DESKTOP_TARGET_ARCH: 'x64',
+  DSH_DESKTOP_UNSIGNED: '1',
+}, 'win32', 'x64')
 
 const EXPECTED_WEB_BUNDLES = [
   '@deepseek-ai/dsh-base',
@@ -48,18 +57,17 @@ if (contract.schemaVersion !== 1
 if (JSON.stringify(identity.userDataSegments) !== JSON.stringify(['@sudotech', 'xiaojing-accounting-desktop'])) {
   throw new Error('desktop identity no longer resolves the protected Electron user-data root')
 }
-if (manifest.build?.nsis?.deleteAppDataOnUninstall !== false) {
+if (builder.nsis?.deleteAppDataOnUninstall !== false) {
   throw new Error('the installer must retain application data on uninstall and in-place update')
 }
-if (!main.includes("app.setPath('userData', join(app.getPath('appData'), ...identity.userDataSegments))")
-  || !main.includes("join(app.getPath('userData'), 'harness')")
-  || !main.includes("const root = join(app.getPath('documents'), '小兢会计工作区')")
-  || !main.includes("office: join(root, '办公工作区')")
-  || !main.includes("finance: join(root, 'Finance工作区')")
-  || !main.includes('const { office: officeWorkspace, finance: financeWorkspace } = xiaojingWorkspacePaths()')
-  || !main.includes('XIAOJING_OFFICE_WORKSPACE_ROOT: officeWorkspace')
-  || !main.includes('XIAOJING_FINANCE_WORKSPACE_ROOT: financeWorkspace')
-  || !main.includes('cwd: officeWorkspace')) {
+if (!product.includes("const userData = join(application.getPath('appData'), ...XIAOJING_IDENTITY.userDataSegments)")
+  || !product.includes("dshHome: join(userData, 'harness')")
+  || !product.includes("const workspaceRoot = join(application.getPath('documents'), '小兢会计工作区')")
+  || !product.includes("officeWorkspace: join(workspaceRoot, '办公工作区')")
+  || !product.includes("financeWorkspace: join(workspaceRoot, 'Finance工作区')")
+  || !product.includes('XIAOJING_OFFICE_WORKSPACE_ROOT: paths.officeWorkspace')
+  || !product.includes('XIAOJING_FINANCE_WORKSPACE_ROOT: paths.financeWorkspace')
+  || !main.includes('resources, (next) => { platformView.setSession(next) }, xiaojingPaths.officeWorkspace)')) {
   throw new Error('desktop startup no longer uses the permanent user-data paths')
 }
 if (/\$APPDATA\b|%APPDATA%|\$LOCALAPPDATA\b|Local Storage|\.credentials|\.agent-presets|attachments|usage-accounting/i
@@ -198,13 +206,11 @@ async function verifyCredentialData(appData, scratch) {
 }
 
 async function verifyPresetData(appData) {
-  const presets = await discoverPresets([{
-    path: join(appData, 'harness', '.agent-presets'),
-    trust: 'user',
-  }], pathToFileURL(join(repositoryRoot, 'apps', 'cli', 'package.json')).href)
-  const fixture = presets.find(preset => preset.id === 'fixture-persona')
-  assert(fixture !== undefined && fixture.broken === undefined && fixture.name === '升级样本人格',
-    '0.1.9 user-created agent preset is not readable by rc.2')
+  const legacyPreset = join(appData, 'harness', '.agent-presets', 'fixture-persona')
+  const metadata = await readFile(join(legacyPreset, 'preset.yml'), 'utf8')
+  const composition = await readFile(join(legacyPreset, 'agent.cordis.yml'), 'utf8')
+  assert(metadata.includes('name: 升级样本人格') && composition.includes("name: '@deepseek-ai/dsh-persona'"),
+    '0.1.9 legacy Agent-preset files were not preserved for explicit RC1 bundle migration')
   const settings = await readFile(join(appData, 'harness', 'settings.yaml'), 'utf8')
   assert(settings.includes('agent-presets:\n  default: fixture-persona'),
     '0.1.9 default agent preset selection is missing')

@@ -12,9 +12,9 @@
 
 办公搭子和 Finance 会话的新会话欢迎区使用同一张双机器人图片，分别存放为 `xiaojing-office-robot-logo.png` 与 `xiaojing-finance-robot-logo.png`；侧边栏使用透明方形“兢”字图片 `xiaojing-character-logo.png`。两个欢迎区资源别名都从显示区域中排除原图的透明留白。欢迎区 Logo 高度为 145 像素，位于标题上方；侧边栏在透明留白内将字形放大约 15%，保持宿主指定的外框和旁边品牌文字的位置不变。标题独立居中，不受版本角标宽度影响；窄布局中角标移到标题下方。初始 HTML 从 profile 的 `DSH_CLIENT_BOOT_LOGO` 与 `DSH_CLIENT_BOOT_LOGO_ALT` 接收 `dsh-boot-logo` 和 `dsh-boot-logo-alt`，使 SUDO 品牌在客户端插件激活前就可显示。profile 的 `DSH_CLIENT_FAVICON` 在初始 HTML 中为浏览器标签页选用同一张透明“兢”字图片；未配置该值的构建保留通用标签页图标。
 
-浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`onboarding.content` 和 `settings.section`。产品文案、配色覆盖、带版本号的内测标签、按版本倒序排列的增量更新历史和默认人格位于本包。普通工作区的新会话欢迎语是 `小兢会计，您的AI办公搭子`；Finance 会话显示 `小兢会计，您的AI财务助手`。`0.3.1` 同时显示在欢迎区版本角标和“关于小兢”更新历史首项。发布新版本时只在历史首部增加一条记录，旧记录保持不变，防止把旧功能重新归入当前版本。Electron 通过一个受限 preload 方法提供应用实际版本；普通 Web 预览使用必须与 `apps/desktop/package.json` 相同的受检 fallback。测试要求该 fallback 与更新历史首项一致，并拒绝重复版本号。产品层门禁会拒绝版本不一致，也会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。插件生命周期还会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在插件卸载时恢复通用值。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 `dsh-v0.1.6-alpha.2` 基线、通用 slot、浏览器资源路径、桌面产品清单，以及显示为 `Finance模式` 的产品自有 `finance` 预设。产品层门禁会解析 Finance 与标准模式组装，只允许 Finance 人格和清单登记的产品 skill 根目录不同。
+浏览器插件只在 `xiaojing` Client 构建 profile 中注册 `sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`onboarding.content` 和 `settings.section`。产品文案、配色覆盖、带版本号的内测标签、按版本倒序排列的增量更新历史和默认人格位于本包。普通工作区的新会话欢迎语是 `小兢会计，您的AI办公搭子`；Finance 会话显示 `小兢会计，您的AI财务助手`。`0.3.1` 同时显示在欢迎区版本角标和“关于小兢”更新历史首项。发布新版本时只在历史首部增加一条记录，旧记录保持不变，防止把旧功能重新归入当前版本。Electron 通过一个受限 preload 方法提供应用实际版本；普通 Web 预览使用必须与 `apps/desktop/package.json` 相同的受检 fallback。测试要求该 fallback 与更新历史首项一致，并拒绝重复版本号。产品层门禁会拒绝版本不一致，也会拒绝把小兢会计品牌标记重新写入官方 UI 源码目录。插件生命周期还会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在产品插件卸载时恢复通用值。构建 profile 通过通用启动元数据为插件加载前页面选择已登记的 SUDO Logo；缺少该元数据时，shell 仍显示 `HARNESS` 默认内容。`product.json` 记录官方 `dsh-v0.1.7-rc.1` 基线及 commit `46a7f68b0922371ce7144b668b90e377d8e799f4`、通用 slot、浏览器资源路径、桌面产品清单和产品自有 `finance` 预设。产品层门禁会解析 Finance 与标准模式的声明式组装，只允许 Finance 人格、已声明的 Finance 消费端和产品 skill 目录不同。
 
-`finance` 预设位于 `apps/cli/config/xiaojing-agent-presets/`，profile 启动只为 `xiaojing` Client profile 增加该根目录，官方预设根目录保持不变。本 Client 插件通过通用 `AgentPresetDisplayRegistry` 提供 Finance 的本地化显示文案，因此官方预设界面不包含产品 id 或产品文字。`product.json.financeExtension` 登记当前五个 Finance skills 和已实现的 Host／Client 包族，并负责组合行前缀、兼容适配文件名和受保护的 `harness/finance` 持久化根目录。已移除或未来能力不会以占位 skill 清单项保留。
+`finance` 预设是普通 patch，位于 `apps/cli/config/xiaojing-agent-presets/finance/agent.cordis.yml`。它插入由 `@deepseek-ai/dsh-agent-preset` 提供的 `preset-finance`；该声明负责 `finance` id、fallback 显示元数据、顺序和子插件清单。profile 启动只为 `xiaojing` Client 构建加载该 patch，位置在 bundle patches 之后、profile、home 和命令行 overlays 之前。该路径不使用运行时预设根目录发现或 `preset.yml` sidecar。公开的 `AgentPresetDisplayRegistry` 允许本 Client 插件为已登记的 `finance` id 提供当前 locale 文案；未注册提供方时，通用界面回退到声明元数据。`product.json.agentPresets` 记录预期组装路径，`product.json.financeExtension` 登记当前五个 Finance skills 和已实现的 Host／Client 包族，并记录组合行前缀、兼容适配文件名和受保护的 `harness/finance` 持久化根目录。已移除或未来能力不会以占位 skill 清单项保留。
 
 Host 产品插件还拥有小兢会计的强制删除策略。显式删除工具和 shell 删除命令即使在会话策略为 `never` 时，也会通过共享审批通道请求一次性确认。单调工具 guard 会拒绝任何未通过该次确认的匹配调用。浏览器和 Windows 控制提供方在各自工具内部，将删除／移除／卸载目标以及 Delete 键归类为强制确认。
 
@@ -30,9 +30,9 @@ Host 产品插件还拥有小兢会计的强制删除策略。显式删除工具
 
 ## 中国财税官方来源核验
 
-产品自有 `finance-tax-research-cn` skill 要求 Finance模式在形成依赖规则的结论前，先识别适用地区、纳税人事实、交易事实、会计或纳税期间和答案对应日期。它调用 `finance_evidence`，只把搜索摘要当作发现线索，并把缺少官方正文、现行效力或适用性证据的事项标为 `待核验`。另外四个 skill 分别覆盖财务文档读取、发票审核、凭证草拟和财务数据分析。它们编排共享文档、官方依据、确定性试算和受控文件工具，但 skill 名称本身不能证明某项业务操作已支持。当前 Finance 预设不包含报销 skill。
+产品自有 `finance-tax-research-cn` skill 要求 Finance模式在形成依赖规则的结论前，先识别适用地区、纳税人事实、交易事实、会计或纳税期间和答案对应日期。它调用 `finance_evidence`，只把搜索摘要当作发现线索，并把缺少官方正文、现行效力或适用性证据的事项标为 `待核验`。另外四个 skill 分别覆盖财务文档读取、发票审核、凭证草拟和财务数据分析。它们编排共享文档、官方依据、确定性试算和受控文件工具，但 skill 名称本身不能证明某项业务操作已支持。凭证 skill 只会在用户明确请求、生成带版本预览、完成强制审批并核验回读后创建有成凭证，不会执行过账。当前 Finance 预设不包含报销 skill。
 
-该 skill 不保存法规正文，不建设爬虫或 RAG 索引，也不启用通用 HTTP 抓取。搜索摘要不能被当作完整条文；官方结果不足以支持结论时，回答必须保持非确定性。删除清单项、预设 skill 目录和自定义根即可移除该能力，不修改 Harness 核心包或用户数据。
+该 skill 不保存法规正文，不建设爬虫或 RAG 索引，也不启用通用 HTTP 抓取。搜索摘要不能被当作完整条文；官方结果不足以支持结论时，回答必须保持非确定性。删除清单项和预设 skill 目录即可移除该能力，不修改 Harness 核心包或用户数据。
 
 ## Model Experience
 
@@ -126,7 +126,7 @@ You are 小兢会计, an AI office companion configured for internal use, operat
 
 ## Known Limitations and Deferred Work
 
-- 产品层依赖 `dsh-v0.1.6-alpha.2` 集成基线上的八个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
+- 产品层依赖 `dsh-v0.1.7-rc.1` 集成基线上的八个通用 UI slot；未来官方版本若改变这些 owner，必须先更新适配再合并。
 - 浏览器图片仍是由 `product.json` 登记的应用级 public 资源；检查脚本验证其存在，但不会将其嵌入客户端 bundle。
 - Shell 分类会识别显式删除命令，但无法推断无关且不透明的第三方可执行文件内部隐藏的破坏行为；任何新增且能删除用户数据的工具都必须公开并强制执行自己的删除分类。
 - `Finance模式` 现已具备本地客户上下文、专属财务工作区、文档与票据初审、官方财税依据研究、确定性试算、财务成果文件管理，以及已实现的有成查询和受控维护操作。权威能力清单将各业务领域标为已支持、有限支持或暂不支持。总账、明细账、辅助账、资产负债表、利润表、现金流量表、报销、审核、过账、结账、申报和实际支付都不是当前 Finance 对话能力。

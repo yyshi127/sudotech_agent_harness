@@ -1,18 +1,44 @@
 /** Typed preload operations exposed only by the Electron shell. */
 
 import type { IpcMainInvokeEvent } from 'electron'
+import type { DesktopBrowserBridge } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
 
 /** IPC channel names kept private to the desktop application bundle. */
 export const DESKTOP_IPC = {
   boot: 'dsh-desktop:boot',
+  enterWorkspace: 'dsh-desktop:enter-workspace',
   bootFailed: 'dsh-desktop:boot-failed',
+  browserAcquire: 'dsh-desktop:browser-acquire',
+  browserRelease: 'dsh-desktop:browser-release',
+  browserOpenRequested: 'dsh-desktop:browser-open-requested',
   directoryPick: 'dsh-desktop:directory-pick',
+  localeBootstrap: 'dsh-desktop:locale-bootstrap',
+  localeChanged: 'dsh-desktop:locale-changed',
   updatesStatus: 'dsh-desktop:updates-status',
   updatesOpen: 'dsh-desktop:updates-open',
   updatesPresentation: 'dsh-desktop:updates-presentation',
   nativeThemeSet: 'dsh-desktop:native-theme-set',
+  windowFullscreen: 'dsh-desktop:window-fullscreen',
   windowsAppearance: 'dsh-desktop:windows-appearance',
   windowsMenu: 'dsh-desktop:windows-menu',
+} as const
+
+/** Xiaojing-only IPC channels used by the local application and companion windows. */
+export const XIAOJING_DESKTOP_IPC = {
+  applicationInfo: 'xiaojing-desktop:application-info',
+  companionState: 'xiaojing-desktop:companion-state',
+  companionWake: 'xiaojing-desktop:wake-companion',
+  companionTuck: 'xiaojing-desktop:tuck-companion',
+  companionReset: 'xiaojing-desktop:reset-companion-position',
+  companionScale: 'xiaojing-desktop:set-companion-scale',
+  showMain: 'xiaojing-desktop:show-main-window',
+  companionChanged: 'xiaojing-desktop:companion-state-changed',
+  companionPointer: 'xiaojing-desktop:companion-pointer',
+  companionDragStart: 'xiaojing-desktop:companion-drag-start',
+  companionDragMove: 'xiaojing-desktop:companion-drag-move',
+  companionDragEnd: 'xiaojing-desktop:companion-drag-end',
+  companionContextMenu: 'xiaojing-desktop:companion-context-menu',
+  openPath: 'dsh-desktop:open-path',
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
@@ -53,6 +79,7 @@ export interface DesktopUpdatePresentation {
 /** Product documents cannot supply update versions, package URLs, or installation authorization. */
 export interface DshDesktopProductApi {
   readonly protocolVersion: 1
+  readonly browser: DesktopBrowserBridge
   readonly updates: {
     status(): Promise<DesktopUpdatePresentation>
     open(): Promise<void>

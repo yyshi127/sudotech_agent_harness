@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.2.3 / dsh-v0.1.1-rc.2）
+# 小兢会计产品开发基线（0.3.1 / dsh-v0.1.7-rc.1）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.1-rc.2` 的当前 0.2.3 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.1.7-rc.1` 的当前 0.3.1 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
 
 需要快速理解官方核心、小兢插件、Electron 外壳和源码目录之间关系时，先阅读[模块架构与源码结构图](xiaojing-module-architecture.zh.md)。
 
@@ -19,19 +19,19 @@
 
 | 项目 | 当前值 | 真源 |
 |---|---|---|
-| 桌面产品版本 | `0.2.3` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| 官方 Harness 基线 | `dsh-v0.1.1-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
-| 官方基线 commit | `b150a551b8d465e31e418e1b2eaf5e79bbb7d28` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 桌面产品版本 | `0.3.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| 官方 Harness 基线 | `dsh-v0.1.7-rc.1` | [`product.json`](../packages/client/xiaojing-product/product.json) |
+| 官方基线 commit | `46a7f68b0922371ce7144b668b90e377d8e799f4` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 产品集成基准 | `48f0c4f9fc5ecb17cd8460639089ae976ea80a79` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 源码仓库 | `git@github.com:yyshi127/sudotech_agent_harness.git` | Git `origin` |
 
-`product.json` 显式记录上游基线，不能根据内容相似的源码推断基线。`@deepseek-ai/dsh-*` 包作用域继续遵循仓库级工作区约定，桌面包使用 `@sudotech/xiaojing-accounting-desktop`。产品文案和来源说明必须继续准确表述：小兢会计基于 DeepSeek Harness 进行内部品牌和配置定制，不能声称底层框架由数豆科技开发。
+`product.json` 显式记录上游基线，不能根据内容相似的源码推断基线。`@deepseek-ai/dsh-*` 包作用域继续遵循仓库级工作区约定，桌面包使用 `@deepseek-ai/dsh-desktop`。产品文案和来源说明必须继续准确表述：小兢会计基于 DeepSeek Harness 进行内部品牌和配置定制，不能声称底层框架由数豆科技开发。
 
 ## 架构
 
 ```mermaid
 flowchart LR
-  Upstream["Upstream dsh-v0.1.1-rc.2 core"] --> Adapters["Generic UI slots and rc adapter"]
+  Upstream["Upstream dsh-v0.1.7-rc.1 core"] --> Adapters["Generic UI slots and rc adapter"]
   Adapters --> Product["Xiaojing product plugin"]
   Adapters --> Finance["Finance product extension boundary"]
   Adapters --> Usage["Usage host and client plugins"]
@@ -82,7 +82,7 @@ flowchart LR
 
 官方兼容 UI 根目录公开六个小兢所需的单 owner slot：`sidebar.brand.mark`、`sidebar.brand.name`、`conversation.hero.brand.mark`、`conversation.hero.brand.content`、`conversation.hero.context` 和 `onboarding.content`。每个 owner 都保留中性 fallback，因此缺少产品插件或 Finance Client 插件时，上游风格应用仍能运行。通用代码可以定义 owner props、布局空间、设计 token、元数据键和 fallback 渲染，但不能导入小兢包，也不能出现小兢、数豆、SUDO、产品资源文件名或产品文案。
 
-通用 Agent 预设 Client 还公开 `AgentPresetDisplayRegistry`。它允许为额外系统预设 id 注册本地化显示提供方，但绝不覆盖用户自建行。registry 本身不包含小兢 id 或文案；Finance 注册由产品插件负责，移除产品插件后恢复文件元数据。
+通用 Agent 预设 Client 通过 `AgentPresetDisplayRegistry` 支持产品自有预设。产品插件为自己的预设 id 注册当前 locale 文案；未命中的配置行回退到自己发布的名称与说明。四个上游声明使用通用 locale 字典，因此通用 Client 不包含小兢 id 或文案。
 
 [`scripts/verify-xiaojing-product-layer.mjs`](../scripts/verify-xiaojing-product-layer.mjs)会扫描官方 UI 源码根目录中的产品标记，验证所有已声明 slot、清单中的资源和桌面 manifest，并要求 Web 组合加载产品插件。隔离检查失败时，打包命令会失败。
 
@@ -90,7 +90,7 @@ flowchart LR
 
 `@deepseek-ai/dsh-client-xiaojing-product` 同时包含 Host 半侧和浏览器半侧。Host 半侧只在 `deployment:persona` 为空时填入小兢身份，不会覆盖已选择或用户创建的 agent 人格。浏览器半侧把五个产品 slot、本地化文案和主题 CSS 注册为一个可卸载插件，而且这些注册只会由 `xiaojing` Client 构建 profile 编译进入产品客户端。同一生命周期会在产品 dataset 挂载后同步现有浏览器 `theme-color` 元数据，并在产品插件卸载时恢复通用值。
 
-同一个浏览器半侧通过通用预设 registry 注册 Finance 本地化显示文案。预设组装不存放在这个 Client 包中：profile 启动只为 `xiaojing` 构建 profile 增加 `apps/cli/config/xiaojing-agent-presets/`，official 和未知 profile 继续使用原来的四预设根目录。
+该浏览器半侧通过通用 `AgentPresetDisplayRegistry` 注册 Finance 的当前 locale 显示文案。`apps/cli/config/xiaojing-agent-presets/finance/agent.cordis.yml` 是普通 patch，其中的 `preset-finance` 配置行通过 `@deepseek-ai/dsh-agent-preset` 声明 `finance` id、fallback 名称与说明、顺序和子插件清单。profile 启动只为 `xiaojing` 构建 profile 插入该 patch，位置在 bundle patches 之后、profile、home 和命令行 overlays 之前；official 和未知构建不会收到该 patch。
 
 普通品牌修改都应从该包开始。在应用 public 资源中增加或替换资源，资源清单变化时更新 `product.json`，再由产品组件引用。不能为了补充产品展示而直接修改 `SidebarRoot`、`EmptyHero`、`WelcomeNotice` 或其他官方 owner。
 
@@ -98,7 +98,7 @@ flowchart LR
 
 当前有两个启动展示页面，二者都必须保留品牌：
 
-1. [`apps/desktop/loading.html`](../apps/desktop/loading.html) 是本地 Host 启动期间显示的 Electron 启动页，负责桌面专属产品文案和本地启动资源。
+1. [`apps/desktop/src/client/WelcomePage.tsx`](../apps/desktop/src/client/WelcomePage.tsx) 是本地 Host 启动期间显示的 RC1 Electron 欢迎界面，其文案来自桌面端 locale 字典。
 2. [`scripts/client-build-environment.ts`](../scripts/client-build-environment.ts) 中的 `xiaojing` 条目向构建后的 Web shell 注入 `dsh-boot-logo` 元数据。通用启动页读取该元数据并保留 `HARNESS` fallback；[`apps/web/index.html`](../apps/web/index.html) 本身保持产品中立。
 
 只检查一个页面不能算完成启动品牌修改。必须验证 Electron 启动页、Web 插件加载页、展开和收起的侧边栏、空会话首页及初次使用说明。
@@ -115,7 +115,7 @@ flowchart LR
 
 ### Finance 客户域
 
-Finance 保留除人格以外的全部 Standard 模式组合行，并增加五个预设作用域的消费端：`finance-client-context` 提供不可变客户上下文，`finance-files` 提供受控发布与归档操作，`finance-calculations` 提供带版本的确定性试算，`finance-documents` 提供确定性文档读取，`finance-evidence` 提供官方来源研究。产品检查会比较解析后的 Standard 与 Finance 配置，只允许这些已声明扩展，并要求 `product.json.financeExtension` 清单中的 Host 与 Client 包同时出现在小兢 Web 组合中。官方 Harness profile 仍不会发现 Finance。
+声明式 Finance 预设保留除人格以外的全部 Standard 模式组合行，通过文件系统 skill 提供方增加五个产品 skills，并增加产品专属的客户上下文、受管文件、有成查询与受控维护、确定性试算、文档读取和官方来源研究消费端。产品检查会比较解析后的 `preset-standard` 与 `preset-finance` 声明，只允许这些 Finance 增量，并要求 `product.json.financeExtension` 清单中的 Host 与 Client 包同时出现在小兢 Web 组合中。官方 Harness 构建不会收到 Finance patch。
 
 `@deepseek-ai/dsh-xiaojing-finance-domain` 在带 schema 版本的 `$DSH_HOME/finance/clients-v1.json` 中为每个纳税主体保存一条本地档案。文件级 revision 会拒绝过期写入，文件锁与原子替换防止半写入，损坏数据会阻止插件启动且不覆盖原文件。客户只能归档，不能物理删除。外部系统引用只保存有成或 SDOO 标识，不保存凭据。
 
@@ -153,7 +153,7 @@ Finance 专属 `finance_evidence` 工具返回 `verified`、`partial`、`pending
 
 绑定客户时，试算器只能从不可变 `finance/client-bound` 快照取得纳税人类型和注册地区。请求中的纳税人类型若与客户冲突会被拒绝；咨询会话必须显式提供纳税人类型。事实缺失时返回 `needs-input`，日期不在规则包范围时返回 `unsupported`，两种情况都不会猜测税率或结果。本包不创建独立账本；普通 `tool/call` 与 `tool/result` 事件会保留请求和完整审计轨迹。删除 Host 与预设配置行即可移除试算能力，不改变客户、文档、依据或 Standard 模式。
 
-Finance skill 根目录包含 `finance-tax-research-cn`、`finance-invoice-review`、`finance-voucher-draft`、`finance-data-analysis` 和 `finance-reimbursement`，以及作为支撑的 `finance-document-reading`。这些工作流只编排现有文档、依据、试算和受控文件工具，形成可复核的结论与草稿；不会执行凭证过账、纳税申报、报销审批、付款或外部系统修改。
+Finance skill 目录只包含五个产品 skills：`finance-tax-research-cn`、`finance-document-reading`、`finance-invoice-review`、`finance-voucher-draft` 和 `finance-data-analysis`。这些工作流通常编排现有文档、依据、试算和受控文件工具，形成可复核的结论与草稿。凭证 skill 只会在用户明确请求、生成带版本预览、完成强制审批并核验回读后创建有成凭证；不会执行过账、纳税申报、报销审批或付款。当前不提供报销 skill。
 
 ### Finance 第一阶段集成验收
 
@@ -207,7 +207,7 @@ Finance skill 根目录包含 `finance-tax-research-cn`、`finance-invoice-revie
 
 ### 随包第三方插件
 
-发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。已绑定客户的 Finance 会话可以认领该入口的可选准备事件，用一次受控客户文件复制替代旧存储结果；同一个文件不会上传两次。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接不属于 0.2.3。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
+发行版 profile 通过 [`PROFILE_TEMPLATES`](../packages/boot/app-boot/src/profile.ts) 集成 `dsh-file-uploads`，Web 组合则只为 Xiaojing 构建集成独立可视化插件。文件上传源码提交由应用依赖图固定，本地 pnpm patch 保留唯一可见文件选择器：受支持的 PNG/JPEG/WebP/GIF 调用通用会话作用域 `conversation.addImages()` 进入原生图片路径，文档和不支持直接视觉的图片格式继续使用旧文件存储并附带明确说明。已绑定客户的 Finance 会话可以认领该入口的可选准备事件，用一次受控客户文件复制替代旧存储结果；同一个文件不会上传两次。同一个入口在普通、Goal 和 Plan 输入中均可用，并继续保留附件布局与光标修复。ModLens 及其视觉桥接当前不存在。只有安装程序拥有的 0.1.9 精确列表 `base + web-app + ModLens + file uploads` 会原子迁移为 `base + web-app + file uploads`；顺序变化、附加插件或其他自定义列表保持字节不变。随包插件变化属于源码变化，需要聚焦测试、预览和新版安装包。用户安装的 profile 插件必须通过 peer dependencies 使用应用运行时；profile 本地 Harness 或 Cordis 运行时副本会被拒绝，新引入的遮蔽依赖会被回滚。
 
 ### 增加功能
 
@@ -222,7 +222,7 @@ Finance skill 根目录包含 `finance-tax-research-cn`、`finance-invoice-revie
 
 | 补丁 id | 约定 | 负责路径 |
 |---|---|---|
-| `desktop-api-key-environment-isolation` | 桌面端移除继承的 `DEEPSEEK_API_KEY`；用户通过 rc.2 可写凭据界面在启动后创建或替换凭据。 | `apps/desktop/main.mjs` |
+| `desktop-api-key-environment-isolation` | 桌面端移除继承的 `DEEPSEEK_API_KEY`；用户通过 rc.2 可写凭据界面在启动后创建或替换凭据。 | `apps/desktop/src/xiaojing-product.ts` |
 | `profile-runtime-shadow-protection` | 用户安装插件不能替换应用自带的 Harness 或 Cordis 运行时并恢复成上游界面。 | CLI 与 app-boot profile 加载 |
 | `file-upload-composer-repair` | 唯一文件入口在普通、Goal 和 Plan 模式下把受支持图片路由到 rc.2 规范化原生图片入口、其他文件路由到旧存储，并允许可选 Finance 准备事件完成一次受控客户文件复制；待发送附件布局不能遮挡输入框，并且可见光标必须与文字插入位置一致。 | `patches/dsh-file-uploads@1.0.0.patch` |
 
@@ -284,7 +284,7 @@ Finance skill 根目录包含 `finance-tax-research-cn`、`finance-invoice-revie
 
 ### 预览与验证
 
-先完成一次构建，再启动组合后的 Web 应用，不能只运行 Vite。Host 启动时通过 `DSH_CLIENT_BUILD_PROFILE` 挂载小兢会计专属预设目录，因此必须在启动预览的同一个 PowerShell 会话中保留该配置：
+先完成一次构建，再启动组合后的 Web 应用，不能只运行 Vite。Host 启动时通过 `DSH_CLIENT_BUILD_PROFILE` 插入小兢会计专属 Finance 预设 patch，因此必须在启动预览的同一个 PowerShell 会话中保留该配置：
 
 ```powershell
 $env:DSH_CLIENT_BUILD_PROFILE = 'xiaojing'
@@ -292,7 +292,7 @@ pnpm run build:xiaojing
 pnpm dsh web --port 3090
 ```
 
-如果运行时遗漏该配置，浏览器仍会显示已构建的小兢会计界面，但 Host 只挂载官方预设目录，因此即使 Finance 模式的源码和浏览器产物都存在，界面中也不会出现 Finance 模式。
+如果运行时遗漏该配置，浏览器仍会显示已构建的小兢会计界面，但 Host 不会插入 Finance 声明 patch，因此即使 Finance 模式的源码和浏览器产物都存在，界面中也不会出现 Finance 模式。
 
 持续修改 Client 插件时，可以在初次构建后从另一个终端运行 watcher：
 
@@ -306,9 +306,9 @@ pnpm run dev:web
 
 ```sh
 pnpm exec vitest run packages/client/xiaojing-product/tests packages/llm/usage-accounting/tests packages/client/ui-usage-accounting/tests packages/xiaojing/xiaojing-browser-control/tests packages/client/ui-xiaojing-browser-control/tests packages/xiaojing/xiaojing-computer-control/tests packages/xiaojing/xiaojing-weixin-channel/tests packages/client/ui-weixin-channel/tests packages/xiaojing/xiaojing-visualize/tests
-pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:identity
-pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:user-data
-pnpm --filter @sudotech/xiaojing-accounting-desktop run verify:product-layer
+pnpm --filter @deepseek-ai/dsh-desktop run verify:identity
+pnpm --filter @deepseek-ai/dsh-desktop run verify:user-data
+pnpm --filter @deepseek-ai/dsh-desktop run verify:product-layer
 ```
 
 随后运行与改动文件匹配的仓库检查。文档变化需要运行 `pnpm run doc-sync`、`pnpm run lint` 和 `git diff --check`；代码变化需要聚焦行为测试、相关 build 或 typecheck，以及仓库 pre-push 工作流。
@@ -342,7 +342,7 @@ pnpm desktop:dist
 ## 发布阻断检查
 
 - `scripts/verify-xiaojing-product-layer.mjs` 通过，官方 UI 源码根目录不包含产品标记。
-- 官方预设根目录只包含 `standard`、`code`、`minimal` 和 `cordis`；小兢 profile 只增加清单登记的 `finance` 预设，而且其人格以外组装始终与标准模式一致。
+- Web bundle 只声明上游 `standard`、`ptc`、`minimal` 和 `cordis` 预设；只有小兢构建会插入清单登记的 Finance patch，其中的 `preset-finance` 配置行负责显示元数据，并由产品检查验证 Standard 对等性和已声明的 Finance 增量。
 - 组装应用加载 `xiaojing-product`、用量 Host、用量 Client、桌面小兢 Host 与 Client 和独立可视化插件；移除产品插件后通用 fallback 仍可运行，移除桌面小兢组合行只会移除其状态／设置集成，移除可视化组合行只会移除可视化卡片。
 - 启动后可以创建和替换 API Key，任何明文 Key 都不能进入用量记录或浏览器 snapshot。
 - 用量统计对每个提供方请求只结算一次，正确应用北京时间峰谷和内置模型价格，保留历史请求时费用，并显示两位小数。
@@ -351,7 +351,7 @@ pnpm desktop:dist
 - 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 假 iLink 测试覆盖绑定、验证码、重连、FIFO 回传、去重、会话关联、微信审批、加密图片／文档收发、结构化手机端文字和持久化恢复，全程不暴露凭据也不联系腾讯。发布前由人工预览确认真实手机绑定和媒体互操作。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
-- 桌面小兢测试覆盖六种状态、终态计时、并发任务、审批优先级、无任务内容快照、设置操作、bridge 校验、50% 默认尺寸和调节范围、偏好原子写入、拖动边界、主窗口内部的初始／重置位置、显示器恢复、收起／唤醒／重置一致性、托盘恢复、第二实例恢复、关闭到托盘和带风险确认的真正退出。产品测试和 Web 快照覆盖 v0.2.3 内测标签、“关于小兢”版本清单及版本一致性门禁。Electron 预览确认不抢焦点的透明窗口只在缩放后的角色和邻近状态提示区域响应交互，且收起后释放 renderer。
+- 桌面小兢测试覆盖六种状态、终态计时、并发任务、审批优先级、无任务内容快照、设置操作、bridge 校验、50% 默认尺寸和调节范围、偏好原子写入、拖动边界、主窗口内部的初始／重置位置、显示器恢复、收起／唤醒／重置一致性、托盘恢复、第二实例恢复、关闭到托盘和带风险确认的真正退出。产品测试和 Web 快照覆盖 v0.3.1 内测标签、“关于小兢”版本清单及版本一致性门禁。Electron 预览确认不抢焦点的透明窗口只在缩放后的角色和邻近状态提示区域响应交互，且收起后释放 renderer。
 - 桌面身份和用户数据检查在版本递增后通过。
 - 全新安装可在默认路径和自定义父路径完成，并自动补齐 `xiaojing-agent-desktop`。
 - 覆盖升级沿用已有安装路径，控制面板中只保留一个条目，并维持同一个应用身份。
@@ -370,7 +370,7 @@ pnpm desktop:dist
 - 浏览器和 Windows 操控依赖语义而不是视觉；纯像素或仅 Canvas 界面需要未来独立的视觉能力。
 - 微信频道只在小兢会计打开时支持一个 iLink bot 的单聊文字、受支持图片和文档消息。它不会接管个人账号、处理普通群聊、语音或视频，也无法保证远程发送成功后崩溃场景下的最终回复严格只投递一次。
 - 可视化卡片只在 Web Client 中渲染，固定使用浅色配色，卡片内部暂时不能向主对话发送后续消息。
-- Finance 已具备本地客户档案、不可变会话客户上下文、官方来源研究、共享文档读取、四类确定性试算和首批五个专业流程 skill；仍无本地法规语料、有成工作流、SDOO 连接器、申报或过账连接器及合规引擎。
+- Finance 已具备本地客户档案、不可变会话客户上下文、官方来源研究、共享文档读取、确定性试算、五个产品 skills，以及已实现的有成查询与受控维护操作；仍无本地法规语料、报销 skill、SDOO 连接器、申报或过账连接器、实际支付操作及合规引擎。
 - 后续上游版本可能要求调整通用 slot、rc 适配器、集成补丁或数据迁移，但不能要求重新实现产品层和功能层。
 
 ## 新会话快速交接

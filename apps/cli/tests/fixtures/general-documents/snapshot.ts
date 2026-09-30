@@ -7,7 +7,7 @@ import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-presets'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-documents'
@@ -20,7 +20,7 @@ const installAnchor = fileURLToPath(new URL('../../../package.json', import.meta
 const rootConfig = join(repoRoot, 'packages', 'bundle', 'base', 'tests', 'fixtures', 'root.cordis.yml')
 const basePatch = join(repoRoot, 'packages', 'bundle', 'base', 'cordis.patch.yml')
 const webPatch = join(repoRoot, 'packages', 'bundle', 'web-app', 'cordis.patch.yml')
-const configRoot = join(repoRoot, 'apps', 'cli', 'config')
+const standardPresetPatch = join(repoRoot, 'packages', 'bundle', 'web-app', 'presets', 'standard.patch.yml')
 const overrides: PatchOptions[] = [
   { id: 'settings', config: { path: join(dshHome, 'settings.yaml'), watch: false } },
   { id: 'storage-json', config: { root: join(dshHome, 'storages') } },
@@ -34,17 +34,6 @@ const overrides: PatchOptions[] = [
   { id: 'xiaojing-desktop-companion', disabled: true },
   { id: 'xiaojing-finance-domain', disabled: false, config: { dshHome, workspaceRoot: join(dshHome, 'finance-workspaces') } },
   { id: 'xiaojing-finance-documents', disabled: false, config: { dshHome } },
-  {
-    id: 'agent-presets',
-    config: {
-      default: 'standard',
-      roots: [
-        { path: join(configRoot, 'agent-presets'), trust: 'system' },
-        { path: join(configRoot, 'xiaojing-agent-presets'), trust: 'system' },
-      ],
-      includeUserRoot: false,
-    },
-  },
   { id: 'client-hmr', disabled: true },
   { id: 'directory-picker', disabled: true },
   { insert: [{ id: 'directory-picker-browse', name: '@deepseek-ai/dsh-host-directory-picker-browse' }] },
@@ -61,6 +50,7 @@ await healProfilesModuleFallback({ installAnchor, home: dshHome })
 const ctx = await boot('general-document-snapshot', rootConfig, [
   ...loadOverlayPatches('general-document-snapshot', basePatch),
   ...loadOverlayPatches('general-document-snapshot', webPatch),
+  ...loadOverlayPatches('general-document-snapshot', standardPresetPatch),
   ...overrides,
 ], (bootCtx) => {
   provideCmdline(bootCtx, { args: [], exit: () => {} })

@@ -9,8 +9,8 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: 'dsh-v0.1.6-alpha.2',
-  commit: 'ddefc45fbc7f8e46dd73185e68295696d1297887',
+  release: 'dsh-v0.1.7-rc.1',
+  commit: '46a7f68b0922371ce7144b668b90e377d8e799f4',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {
@@ -106,12 +106,23 @@ const jsExpression = new Type('tag:yaml.org,2002:js', {
   construct: value => ({ __jsExpr: value }),
 })
 const entrySchema = JSON_SCHEMA.extend(jsExpression)
-const standardPresetPath = join(root, 'packages', 'preset', 'agent-presets', 'presets', 'standard', 'agent.cordis.yml')
+const standardPresetPath = join(root, 'packages', 'bundle', 'web-app', 'presets', 'standard.patch.yml')
 const financePresetPath = join(root, expectedFinancePreset.composition)
-const standardRows = load(await readFile(standardPresetPath, 'utf8'), { schema: entrySchema })
-const financeRows = load(await readFile(financePresetPath, 'utf8'), { schema: entrySchema })
+const presetDeclaration = (document, id) => document
+  ?.flatMap(patch => Array.isArray(patch?.insert) ? patch.insert : [])
+  .find(row => row?.id === `preset-${id}`
+    && row?.name === '@deepseek-ai/dsh-agent-preset'
+    && row?.config?.id === id)
+const standardDeclaration = presetDeclaration(
+  load(await readFile(standardPresetPath, 'utf8'), { schema: entrySchema }), 'standard',
+)
+const financeDeclaration = presetDeclaration(
+  load(await readFile(financePresetPath, 'utf8'), { schema: entrySchema }), 'finance',
+)
+const standardRows = standardDeclaration?.config?.plugins
+const financeRows = financeDeclaration?.config?.plugins
 if (!Array.isArray(standardRows) || !Array.isArray(financeRows)) {
-  errors.push('standard and Finance模式 compositions must both be top-level row lists')
+  errors.push('standard and Finance模式 must both be declarative Agent presets with plugin lists')
 } else {
   const standardCapabilities = standardRows.filter(row => row?.id !== 'persona')
   const financeCapabilities = financeRows.filter(row => row?.id !== 'persona')
@@ -199,19 +210,19 @@ for (const skill of financeExtension?.skills ?? []) {
     errors.push('Finance document-reading skill is missing its deterministic reading rules')
   }
 }
-const financeMetadata = load(await readFile(
-  join(root, expectedFinancePreset.composition, '..', 'preset.yml'), 'utf8',
-))
-if (financeMetadata?.name !== 'Finance模式'
-  || financeMetadata?.order !== 5
-  || typeof financeMetadata?.description !== 'string') {
-  errors.push('Finance模式 metadata must keep its product name, fifth position, and description')
+if (financeDeclaration?.config?.name !== 'Finance模式'
+  || financeDeclaration?.config?.order !== 5
+  || typeof financeDeclaration?.config?.description !== 'string') {
+  errors.push('Finance模式 declaration must keep its product name, fifth position, and description')
 }
 const directoryIds = async (directory) => (await readdir(directory, { withFileTypes: true }))
   .filter(entry => entry.isDirectory())
   .map(entry => entry.name)
   .sort()
-const officialPresetIds = await directoryIds(join(root, 'packages', 'preset', 'agent-presets', 'presets'))
+const officialPresetIds = (await readdir(join(root, 'packages', 'bundle', 'web-app', 'presets')))
+  .filter(name => name.endsWith('.patch.yml'))
+  .map(name => name.slice(0, -'.patch.yml'.length))
+  .sort()
 const productPresetIds = await directoryIds(join(root, expectedFinanceRules.presetRoot))
 if (JSON.stringify(officialPresetIds) !== JSON.stringify(['cordis', 'minimal', 'ptc', 'standard'])) {
   errors.push('official Agent-preset root must contain only the four upstream presets')
@@ -415,10 +426,13 @@ if (!userDataContract.protectedPaths.includes('desktop-companion')) {
 if (!userDataContract.protectedPaths.includes(financeExtension?.durableRoot)) {
   errors.push('Finance durable state is missing from the desktop user-data contract')
 }
-const desktopMain = await readFile(join(root, 'apps', 'desktop', 'main.mjs'), 'utf8')
+const desktopMain = await readFile(join(root, 'apps', 'desktop', 'src', 'main.ts'), 'utf8')
+const desktopCompanion = await readFile(join(root, 'apps', 'desktop', 'src', 'xiaojing-companion.ts'), 'utf8')
 if (!desktopMain.includes("window.on('close'")
+  || !desktopMain.includes('companion.hideMainWindow()')
   || !desktopMain.includes("label: '退出小兢会计'")
-  || !desktopMain.includes("app.on('window-all-closed'")) {
+  || !desktopMain.includes("app.on('window-all-closed'")
+  || !desktopCompanion.includes("new URL('/xiaojing-desktop-companion/events', hostUrl)")) {
   errors.push('desktop tray lifecycle no longer keeps close, tray exit, and window-all-closed behavior explicit')
 }
 const buildEnvironment = await readFile(join(root, 'scripts', 'client-build-environment.ts'), 'utf8')
@@ -426,8 +440,17 @@ if (!buildEnvironment.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
   errors.push('xiaojing client build profile is missing')
 }
 const rootManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+const desktopManifest = JSON.parse(await readFile(join(root, 'apps', 'desktop', 'package.json'), 'utf8'))
+const desktopPackageTarget = await readFile(join(root, 'apps', 'desktop', 'scripts', 'package-target.ts'), 'utf8')
+const desktopBuilder = await readFile(join(root, 'apps', 'desktop', 'scripts', 'electron-builder-config.mjs'), 'utf8')
 if (rootManifest.scripts?.['build:xiaojing'] !== 'tsx scripts/build.ts --profile xiaojing'
-  || !rootManifest.scripts?.['desktop:dist']?.includes('pnpm run build:xiaojing')) {
+  || rootManifest.scripts?.['desktop:dist'] !== 'pnpm run package:desktop:win:x64'
+  || rootManifest.scripts?.['package:desktop:win:x64'] !== 'pnpm --filter @deepseek-ai/dsh-desktop run package:win:x64'
+  || desktopManifest.name !== '@deepseek-ai/dsh-desktop'
+  || desktopManifest.main !== 'lib/main.js'
+  || !desktopPackageTarget.includes("await execute(['run', 'build:xiaojing']")
+  || desktopPackageTarget.includes("await execute(['run', 'build:official']")
+  || !desktopBuilder.includes("'lib/main.js'")) {
   errors.push('the desktop release path no longer selects the xiaojing client profile')
 }
 

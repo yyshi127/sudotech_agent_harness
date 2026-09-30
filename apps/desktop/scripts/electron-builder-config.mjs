@@ -1,4 +1,8 @@
-import { join } from 'node:path'
+import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
+import { X509Certificate } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -16,10 +20,14 @@ import {
   scrubWindowsSigningEnvironment,
 } from './windows-sign.mjs'
 import { resolveDesktopAutoUpdateConfig } from './desktop-auto-update-environment.mjs'
+import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
+import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
 import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
 import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
 import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
-import { preserveWindowsRuntimeSignature } from './windows-runtime-signature.mjs'
+import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runtime-signature.mjs'
+import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
+import { recordPackagingEvent } from './packaging-run.mjs'
 import {
   resolveMacOSAppUpdateFeed,
   verifyMacOSAppUpdateConfig,
@@ -32,6 +40,7 @@ import {
  * @param {NodeJS.Platform} hostPlatform - Build-host platform used when no explicit target is present.
  * @param {string} hostArch - Build-host architecture used when no explicit target is present.
  * @param {string | undefined} preparedRuntime - Verified private dsh tree for installed-update qualification; ordinary releases use the target tree.
+ * @param {string | undefined} preparedRuntimeVersion - Version that private tree declares, which qualification rewrites away from the product version.
  * @returns {object} electron-builder configuration.
  */
 export function createElectronBuilderConfig(
@@ -39,8 +48,13 @@ export function createElectronBuilderConfig(
   hostPlatform = process.platform,
   hostArch = process.arch,
   preparedRuntime = undefined,
+  preparedRuntimeVersion = undefined,
 ) {
-  const appId = resolveDesktopAppId(env)
+  const identity = JSON.parse(readFileSync(fileURLToPath(new URL('../identity.json', import.meta.url)), 'utf8'))
+  const appId = resolveDesktopAppId({
+    ...env,
+    DSH_DESKTOP_APP_ID: env.DSH_DESKTOP_APP_ID?.trim() || identity.appId,
+  })
   const policy = resolveDesktopPolicyEnvironment(env)
   const targetPlatform = env.DSH_DESKTOP_TARGET_PLATFORM
   const resolvedPlatform = targetPlatform ?? hostPlatform
@@ -57,17 +71,24 @@ export function createElectronBuilderConfig(
   if (packagesMacOS) resolveMacOSNotarizationEnvironment(env)
   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
   let primaryRuntimeDestination
+  let dshDestination
+  let windowsCode = []
+  const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
+    `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`]
   const windowsSigner = packagesWindows && !unsigned
     ? createWindowsTokenSigner({
         certificateFile: env.DSH_DESKTOP_WINDOWS_CER_FILE,
         signTool: env.DSH_DESKTOP_WINDOWS_SIGNTOOL,
         tokenPin: env.DSH_DESKTOP_WINDOWS_TOKEN_PIN,
         keyContainer: env.DSH_DESKTOP_WINDOWS_KEY_CONTAINER,
-        preserveSignature: async path => primaryRuntimeDestination === undefined ? false : preserveWindowsRuntimeSignature(path, {
-          sourceRoot: join(buildPaths.runtime, 'primary-runtime'),
-          destinationRoot: primaryRuntimeDestination,
-          runDirectory: env.DSH_DESKTOP_PACKAGING_RUN_DIR,
-        }),
+        preserveSignature: async path => {
+          for (const [sourceRoot, destinationRoot] of [[join(buildPaths.runtime, 'primary-runtime'), primaryRuntimeDestination], [buildPaths.dsh, dshDestination]]) {
+            if (destinationRoot !== undefined && await preserveWindowsRuntimeSignature(path, {
+              sourceRoot, destinationRoot, runDirectory: env.DSH_DESKTOP_PACKAGING_RUN_DIR,
+            })) return true
+          }
+          return false
+        },
       })
     : undefined
   if (windowsSigner !== undefined) {
@@ -75,12 +96,27 @@ export function createElectronBuilderConfig(
   }
   const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
+  // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
+  // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
+  const desktopPackageVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+  const productVersion = identity.productVersion
+  const bundledDshVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../../../package.json', import.meta.url)), 'utf8')).version
+  const buildVersion = resolveDesktopBuildVersion(env, productVersion)
+  const packaged = resolveDesktopBuildCommit(env)
   return {
     appId,
-    extraMetadata: { dshDesktopAppId: appId, dshMandatoryUpdatePolicy: policy },
-    productName: 'DeepSeek Harness',
-    artifactName: 'deepseek-harness-${version}-${os}-${arch}.${ext}',
-    directories: { output: unsigned ? join(buildPaths.root, 'unsigned-artifacts') : buildPaths.artifacts },
+    protocols: [{ name: identity.productName, schemes: ['dsh'] }],
+    extraMetadata: {
+      dshDesktopAppId: appId,
+      dshMandatoryUpdatePolicy: policy,
+      ...buildVersion === desktopPackageVersion ? {} : { version: buildVersion },
+      ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
+    },
+    productName: identity.productName,
+    // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
+    // Keep RC1 update artifact keys stable; installed application identity comes from the fields below.
+    artifactName: `deepseek-harness-\${version}-\${os}-\${arch}${unsigned ? '-unsigned' : ''}.\${ext}`,
+    directories: { output: unsigned ? buildPaths.unsignedArtifacts : buildPaths.artifacts },
     asar: true,
     electronDist: buildPaths.electron,
     electronFuses: { runAsNode: true },
@@ -99,28 +135,44 @@ export function createElectronBuilderConfig(
     },
     files: [
       'lib/main.js',
+      'lib/welcome/**/*',
       'lib/preload-app.cjs',
       'lib/preload-mandatory.cjs',
+      'lib/preload-platform-account.cjs',
       'lib/preload-update-dialog.cjs',
+      'lib/preload-welcome.cjs',
+      'lib/preload-xiaojing-companion.cjs',
       'renderer/**/*',
+      'companion.html',
+      'companion.css',
+      'companion.js',
+      'identity.json',
+      'integration-patches.json',
+      'user-data-contract.json',
+      'assets/**/*',
+      '!assets/desktop-companion/masters/**/*',
       'package.json',
       { from: buildPaths.dsh, to: 'dsh', filter: ['**/*'] },
       // electron-builder excludes a source directory's root node_modules.
       { from: join(buildPaths.dsh, 'node_modules'), to: 'dsh/node_modules', filter: ['**/*'] },
     ],
-    asarUnpack: [
-      '**/*.{node,dylib,dll,so,exe}',
-      '**/*.so.*',
-      '**/spawn-helper',
-      '**/@vscode/ripgrep/bin/rg',
-    ],
+    asarUnpack: unpack,
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
-      { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
+      { from: fileURLToPath(new URL('../build/app-icon.png', import.meta.url)), to: 'icon.png' },
+      { from: fileURLToPath(new URL('../../../packages/xiaojing/xiaojing-browser-control/extension', import.meta.url)), to: 'xiaojing-edge-extension' },
+      { from: fileURLToPath(new URL('../../../LICENSE', import.meta.url)), to: 'legal/DeepSeek-Harness-LICENSE.txt' },
+      { from: fileURLToPath(new URL('../../../THIRD_PARTY_NOTICES.md', import.meta.url)), to: 'legal/THIRD_PARTY_NOTICES.md' },
+      { from: fileURLToPath(new URL('../build/internal-use-notice.txt', import.meta.url)), to: 'legal/Xiaojing-Internal-Use-Notice.txt' },
     ],
     mac: {
       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
       category: 'public.app-category.developer-tools',
+      // macOS matches the application locale against this bundle, not Electron Framework resources.
+      extendInfo: {
+        CFBundleLocalizations: ['en', 'zh_CN'],
+        NSMicrophoneUsageDescription: '小兢会计使用麦克风将语音转写为消息草稿。',
+      },
       identity: macOSSigning?.signingIdentity,
       forceCodeSigning: true,
       hardenedRuntime: true,
@@ -134,29 +186,42 @@ export function createElectronBuilderConfig(
       writeUpdateInfo: false,
     },
     beforePack: async context => {
-      if (windowsSigner !== undefined) primaryRuntimeDestination = join(context.appOutDir, 'resources', 'runtime', 'primary-runtime')
+      const office = await officePackageDirectories(buildPaths.dsh, { platform: resolvedPlatform, arch: resolvedArch })
+      const patterns = office.map(directory => `**/${relative(buildPaths.dsh, directory).split(sep).join('/')}/**/*`)
+      const existing = context.packager.config.asarUnpack ?? []
+      context.packager.config.asarUnpack = [...(typeof existing === 'string' ? [existing] : existing), ...patterns]
+      if (packagesWindows) windowsCode = await prepareWindowsAsarUnpack(context, buildPaths.dsh)
+      if (windowsSigner !== undefined) {
+        primaryRuntimeDestination = join(context.appOutDir, 'resources', 'runtime', 'primary-runtime')
+        dshDestination = join(context.appOutDir, 'resources', 'app.asar.unpacked', 'dsh')
+      }
       if (policy === undefined) return
       const { resolveDesktopPolicyConfig } = await import('../lib/types/mandatory-update-policy.js')
       resolveDesktopPolicyConfig(policy)
     },
     afterPack: async context => {
-      const { verifyDesktopRuntime, writeDesktopRuntime } = await import('../lib/types/runtime-tree.js')
+      const { verifyDesktopRuntime } = await import('../lib/types/runtime-tree.js')
       const resourcesDir = context.packager.getResourcesDir(context.appOutDir)
       if (resolvedPlatform === 'darwin' && update !== undefined) {
         await writeMacOSAppUpdateConfig(resourcesDir, resolveMacOSAppUpdateFeed(context.packager.config.publish),
           context.packager.appInfo.updaterCacheDirName)
       }
-      if (resolvedPlatform === 'win32' && !unsigned) {
-        // Windows signs copied executable resources before afterPack runs.
-        const prepared = await verifyDesktopRuntime(buildPaths.dsh,
-          context.packager.appInfo.version, { platform: resolvedPlatform, arch: resolvedArch })
-        writeDesktopRuntime(buildPaths.dsh, prepared.release, prepared.sharedPackages.map(entry => entry.name),
-          { platform: resolvedPlatform, arch: resolvedArch })
-      }
+      // The bundled runtime declares whichever version prepared it: the product version for an ordinary
+      // release, and a rewritten one for installed-update qualification.
       await verifyDesktopRuntime(buildPaths.dsh,
-        context.packager.appInfo.version, { platform: resolvedPlatform, arch: resolvedArch })
+        preparedRuntimeVersion ?? bundledDshVersion, { platform: resolvedPlatform, arch: resolvedArch })
+      // Unsigned Windows builds skip electron-builder's afterSign hook.
+      if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
     },
     afterSign: async context => {
+      if (windowsSigner !== undefined) {
+        await signWindowsCode(context.appOutDir, {
+          thumbprint: new X509Certificate(await readFile(env.DSH_DESKTOP_WINDOWS_CER_FILE)).fingerprint.replaceAll(':', ''),
+          sign: windowsSigner,
+          record: event => recordPackagingEvent(env.DSH_DESKTOP_PACKAGING_RUN_DIR, event),
+        })
+        await verifyWindowsAsarUnpack(buildPaths.dsh, context.packager.getResourcesDir(context.appOutDir), windowsCode)
+      }
       if (context.electronPlatformName !== 'darwin') return
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
       if (update !== undefined) {
@@ -174,7 +239,9 @@ export function createElectronBuilderConfig(
       )
     },
     win: {
-      icon: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)),
+      icon: fileURLToPath(new URL('../build/app-icon.png', import.meta.url)),
+      executableName: identity.executableName,
+      legalTrademarks: '小兢会计是瑞华云数豆科技内部使用品牌',
       forceCodeSigning: !unsigned,
       signtoolOptions: {
         sign: windowsSigner,
@@ -188,14 +255,22 @@ export function createElectronBuilderConfig(
       target: ['AppImage'],
     },
     nsis: {
-      installerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
-      uninstallerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
-      include: fileURLToPath(new URL('./installer.nsh', import.meta.url)),
+      guid: identity.nsisGuid,
+      include: fileURLToPath(new URL('../build/installer.nsh', import.meta.url)),
       oneClick: false,
       perMachine: false,
-      allowElevation: false,
+      allowElevation: true,
       allowToChangeInstallationDirectory: false,
-      installerLanguages: ['en_US', 'zh_CN'],
+      createDesktopShortcut: 'always',
+      createStartMenuShortcut: true,
+      shortcutName: identity.shortcutName,
+      runAfterFinish: true,
+      deleteAppDataOnUninstall: false,
+      installerLanguages: ['zh_CN'],
+      language: '2052',
+      installerIcon: fileURLToPath(new URL('../build/installer-runtime-icon.ico', import.meta.url)),
+      installerHeader: fileURLToPath(new URL('../build/installer-header.bmp', import.meta.url)),
+      installerSidebar: fileURLToPath(new URL('../build/installer-sidebar.bmp', import.meta.url)),
       differentialPackage: true,
     },
     detectUpdateChannel: false,

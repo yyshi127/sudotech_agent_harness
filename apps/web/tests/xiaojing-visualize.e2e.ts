@@ -11,6 +11,7 @@ import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold, readPersistedEvents, watchConsole,
   webClientProfile, webSnapshotMode,
 } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 import { newEnglishPage } from './support.ts'
 
 const TITLE = 'Persistent visualization'
@@ -65,7 +66,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
   const scaffold = await launchWebScaffold({
     replayFixture: join(replayDir, 'override-only.jsonl'), replayOverride, paceMs: 10,
     agentPresets: {
-      roots: [{ path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets/', import.meta.url)), trust: 'system' }],
+      definitions: [financePresetDefinition()],
       default: 'standard',
     },
   })

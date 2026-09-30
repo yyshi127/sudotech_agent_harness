@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { afterEach, expect, it, vi } from 'vitest'
 import { launchWebScaffold, seedSession, watchConsole, webClientProfile } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 import { newEnglishPage } from './support.ts'
 
 const SEED = fileURLToPath(new URL('../../../snapshots/web/message-feedback-protocol/session.v3.jsonl', import.meta.url))
@@ -14,7 +15,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps Finance history out of ordin
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({
     agentPresets: {
-      roots: [{ path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets/', import.meta.url)), trust: 'system' }],
+      definitions: [financePresetDefinition()],
       default: 'standard',
     },
   })

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Local, current-key DeepSeek token and request-time cost accounting. The plugin observes provider-reported `usage` chunks through the rc.2 `llm/stream` waterfall and does not modify the agent loop or model requests.
+Local, current-key DeepSeek token and request-time cost accounting. The plugin observes provider-reported `usage` chunks through the `llm/stream` waterfall and does not modify the agent loop or model requests.
 
 ## Table of Contents
 
@@ -33,9 +33,11 @@ The built-in official table is the sole tariff source. The plugin performs no pr
 <a id="observation-and-settlement"></a>
 ## Observation and settlement
 
-The rc.2 compatibility adapter is the only file that imports `llm/stream`, `TokenUsage`, DeepSeek settings, and credential resolution. It records the first `usage` chunk from every actual `deepseek-official` stream exactly once. Ordinary conversation, compaction, session-title, and retried requests therefore settle independently when the provider reports usage.
+The compatibility adapter is the only file that imports `llm/stream`, `TokenUsage`, DeepSeek settings, credential resolution, and the DeepSeek request-identity event. Immediately before a model fetch, the provider reports the selected base URL and either account authentication or the API key's SHA-256 fingerprint. The observer captures that fact within the matching asynchronous stream call and records its first `usage` chunk exactly once. Settings, login, or key changes while the request runs cannot reassign its usage. Ordinary conversation, compaction, session-title, and retried requests therefore settle independently when the provider reports usage.
 
-Both official DeepSeek roots are priced: the Chat Completions root `https://api.deepseek.com` and the Messages root `https://api.deepseek.com/anthropic`. Other paths and custom origins remain unpriced.
+The Messages root `https://api.deepseek.com/anthropic` is the only endpoint that receives built-in pricing. The root `https://api.deepseek.com`, other paths, and custom origins remain unpriced.
+
+Requests authenticated by a signed-in DeepSeek account are excluded. The observer never assigns account-token usage to the configured API key.
 
 Each record contains cached input, uncached input, output, cache-write tokens, model, Beijing request date, request purpose, tariff version, and the fixed total and per-category costs. The API key is represented only by its SHA-256 fingerprint. A key change retains old records but `snapshot()` returns only the configured key's current month.
 

@@ -16,7 +16,7 @@
     { "path": "../../core/system-prompt" },
     { "path": "../../core/tools" },
     { "path": "../../interaction/user-approval" },
-    { "path": "../../preset/agent-presets" },
+    { "path": "../../preset/agent-preset-registry" },
     { "path": "../../runtime-diagnostics/invariants" },
     { "path": "../../session/session-projection" },
     { "path": "../../typert/protocol" },

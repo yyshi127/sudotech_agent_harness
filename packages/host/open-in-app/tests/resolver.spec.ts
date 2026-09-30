@@ -581,16 +581,15 @@ describe('launchResolved', () => {
         },
       }),
     )).resolves.toBe('launched')
-    // The opener is the shipped visible desktop-process channel; the detached spawner never runs.
+    // The opener is the shipped Explorer channel; the detached spawner never runs.
     expect(spawns).toEqual([])
     expect(commands).toEqual([
-      ['powershell.exe', '-NoProfile', '-Command',
-        "Start-Process -FilePath 'C:\\w\\dir' -WindowStyle Normal -ErrorAction Stop"],
+      ['explorer.exe', 'file:///C:/w/dir'],
     ])
   })
 
   it('counts a shell-open opener that outlives the watch window as launched, and a fast failure as failed', async () => {
-    // A cold powershell start can outlive the window: still-running counts launched.
+    // A cold shell opener can outlive the window: still-running counts launched.
     await expect(launchResolved(
       { launch: { kind: 'shell-open' } }, '/w/dir', 25,
       bare({ platform: 'darwin', run: () => new Promise(() => {}) }),

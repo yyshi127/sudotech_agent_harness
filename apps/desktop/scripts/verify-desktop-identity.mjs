@@ -1,11 +1,13 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createElectronBuilderConfig } from './electron-builder-config.mjs'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const identity = JSON.parse(await readFile(join(appRoot, 'identity.json'), 'utf8'))
 const integration = JSON.parse(await readFile(join(appRoot, 'integration-patches.json'), 'utf8'))
 const manifest = JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8'))
+const rootManifest = JSON.parse(await readFile(join(appRoot, '..', '..', 'package.json'), 'utf8'))
 const installer = await readFile(join(appRoot, 'build', 'installer.nsh'), 'utf8')
 const shortcutInstaller = await readFile(join(appRoot, 'build', 'installer-shortcuts.nsh'), 'utf8')
 const installerProductLogo = await readFile(join(appRoot, 'build', 'installer-product-logo.bmp'))
@@ -13,11 +15,22 @@ const installerProductLogoSmall = await readFile(join(appRoot, 'build', 'install
 const installerCompanyLogo = await readFile(join(appRoot, 'build', 'installer-company-logo.bmp'))
 const installerCancelHelper = await readFile(join(appRoot, 'build', 'installer-cancel-helper.ps1'), 'utf8')
 const installerShutdownHelper = await readFile(join(appRoot, 'build', 'installer-shutdown-helper.ps1'), 'utf8')
-const main = await readFile(join(appRoot, 'main.mjs'), 'utf8')
+const main = await readFile(join(appRoot, 'src', 'main.ts'), 'utf8')
+const product = await readFile(join(appRoot, 'src', 'xiaojing-product.ts'), 'utf8')
+const companion = await readFile(join(appRoot, 'src', 'xiaojing-companion.ts'), 'utf8')
 const buildResourceNames = await readdir(join(appRoot, 'build'))
+const builder = createElectronBuilderConfig({
+  DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
+  DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+  DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
+  DSH_DESKTOP_TARGET_PLATFORM: 'win32',
+  DSH_DESKTOP_TARGET_ARCH: 'x64',
+  DSH_DESKTOP_UNSIGNED: '1',
+}, 'win32', 'x64')
 
 const expected = Object.freeze({
-  packageName: '@sudotech/xiaojing-accounting-desktop',
+  packageName: '@deepseek-ai/dsh-desktop',
+  productVersion: '0.3.1',
   appId: 'com.sudotech.xiaojing-accounting',
   nsisGuid: '1f6e3c2a-13e7-5ab1-a2d7-10b68c1b911a',
   installDirectoryName: 'xiaojing-agent-desktop',
@@ -80,29 +93,31 @@ for (const patch of integration.patches) {
 
 const checks = [
   ['package name', manifest.name, identity.packageName],
-  ['app id', manifest.build?.appId, identity.appId],
-  ['NSIS GUID', manifest.build?.nsis?.guid, identity.nsisGuid],
-  ['installer icon', manifest.build?.nsis?.installerIcon, 'build/installer-runtime-icon.ico'],
-  ['product name', manifest.build?.productName, identity.productName],
-  ['executable name', manifest.build?.win?.executableName, identity.executableName],
-  ['shortcut name', manifest.build?.nsis?.shortcutName, identity.shortcutName],
-  ['per-user install', manifest.build?.nsis?.perMachine, false],
-  ['uninstall data retention', manifest.build?.nsis?.deleteAppDataOnUninstall, false],
+  ['application entry', manifest.main, 'lib/main.js'],
+  ['workspace package version', manifest.version, rootManifest.version],
+  ['packaged product version', builder.extraMetadata?.version, identity.productVersion],
+  ['app id', builder.appId, identity.appId],
+  ['NSIS GUID', builder.nsis?.guid, identity.nsisGuid],
+  ['installer icon', builder.nsis?.installerIcon, join(appRoot, 'build', 'installer-runtime-icon.ico')],
+  ['product name', builder.productName, identity.productName],
+  ['executable name', builder.win?.executableName, identity.executableName],
+  ['shortcut name', builder.nsis?.shortcutName, identity.shortcutName],
+  ['per-user install', builder.nsis?.perMachine, false],
+  ['uninstall data retention', builder.nsis?.deleteAppDataOnUninstall, false],
 ]
 
 for (const [label, actual, wanted] of checks) {
   if (actual !== wanted) throw new Error(`${label} must remain ${JSON.stringify(wanted)}`)
 }
 
-const packagedFiles = new Set(manifest.build?.files ?? [])
-for (const match of main.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
-  const importedFile = match[1]
-  if (!packagedFiles.has(importedFile)) {
-    throw new Error(`Electron main-process import ${importedFile} must be included in build.files`)
-  }
+const packagedFiles = new Set(builder.files?.filter(value => typeof value === 'string') ?? [])
+for (const file of ['lib/main.js', 'lib/preload-app.cjs', 'lib/preload-xiaojing-companion.cjs',
+  'companion.html', 'companion.css', 'companion.js', 'identity.json', 'integration-patches.json',
+  'user-data-contract.json', 'assets/**/*', 'package.json']) {
+  if (!packagedFiles.has(file)) throw new Error(`RC1 desktop package must include ${file}`)
 }
 
-const version = String(manifest.version).split('.').map(Number)
+const version = String(identity.productVersion).split('.').map(Number)
 if (version.length !== 3 || version.some(part => !Number.isInteger(part) || part < 0)) {
   throw new Error('desktop version must be a three-part numeric semver')
 }
@@ -112,6 +127,10 @@ if (version[0] === 0 && version[1] === 1 && version[2] <= 7) {
 
 if (!installer.includes(`!define APP_FILENAME "${identity.installDirectoryName}"`)) {
   throw new Error('installer directory identity no longer matches identity.json')
+}
+if (!installer.includes('!include "${__FILEDIR__}\\..\\scripts\\installer-directories.nsh"')
+  || !/!macro customInstall[\s\S]*!insertmacro dshFinishDirectories[\s\S]*Call xiaojingFinalizeInstallSection/.test(installer)) {
+  throw new Error('branded installer must commit the RC1 staged-directory replacement before its automatic exit')
 }
 if (!installer.includes('${isUpdated}')) {
   throw new Error('installer must skip directory selection during an in-place update')
@@ -142,10 +161,10 @@ if (!installer.includes('Var /GLOBAL xiaojingSelectedInstallDirectory')
   throw new Error('installer must restore the selected directory after current-user install mode initialization')
 }
 const autoDiscoveredLicenseFiles = buildResourceNames.filter(name => /^(?:license|eula)(?:[_.]|$)/i.test(name))
-if (manifest.build?.nsis?.license != null || autoDiscoveredLicenseFiles.length > 0) {
+if (builder.nsis?.license != null || autoDiscoveredLicenseFiles.length > 0) {
   throw new Error('installer must not generate a separate electron-builder license page')
 }
-if (!manifest.build?.extraResources?.some(resource => resource.from === 'build/internal-use-notice.txt'
+if (!builder.extraResources?.some(resource => resource.from === join(appRoot, 'build', 'internal-use-notice.txt')
   && resource.to === 'legal/Xiaojing-Internal-Use-Notice.txt')) {
   throw new Error('installer internal-use notice must remain available under resources/legal')
 }
@@ -203,25 +222,28 @@ if (!installer.includes('!macro customCheckAppRunning')
   || !installerShutdownHelper.includes('Remove-OverlongLegacyInstallEntries')
   || !installerShutdownHelper.includes('$maximumLegacyPathLength = 259')
   || !installerShutdownHelper.includes("$shutdownArgument = '--xiaojing-shutdown-for-update'")
-  || !main.includes("const UPDATE_SHUTDOWN_ARGUMENT = '--xiaojing-shutdown-for-update'")) {
+  || !product.includes("XIAOJING_UPDATE_SHUTDOWN_ARGUMENT = '--xiaojing-shutdown-for-update'")) {
   throw new Error('installer must stop only owned processes and remove legacy overlong program paths before replacement')
 }
-if (!main.includes("app.setPath('userData'")) {
+if (!product.includes("application.setPath('userData', userData)")) {
   throw new Error('Electron userData must be pinned before startup')
 }
-if (!main.includes("const previewRoot = !app.isPackaged ? process.env.DSH_DESKTOP_PREVIEW_ROOT?.trim() : undefined")
-  || !main.includes("app.setPath('appData', appData)")
-  || !main.includes("app.setPath('documents', documents)")) {
+if (!product.includes('const previewRoot = !application.isPackaged ? environment.DSH_DESKTOP_PREVIEW_ROOT?.trim() : undefined')
+  || !product.includes("application.setPath('appData', appData)")
+  || !product.includes("application.setPath('documents', documents)")) {
   throw new Error('source Electron previews must isolate application data and Documents workspaces')
 }
-if (!main.includes("[paths.cli, 'web', '--port', '0', '--no-open']")) {
-  throw new Error('Electron must prevent the embedded Host from opening an external browser')
+if (!main.includes('new DesktopHostProcess(') || !main.includes('xiaojingPaths.officeWorkspace')) {
+  throw new Error('Electron must launch the RC1 Desktop Host from the Xiaojing Office workspace')
 }
-if (!main.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
+if (!product.includes("DSH_CLIENT_BUILD_PROFILE: 'xiaojing'")) {
   throw new Error('Electron must activate Xiaojing-only Host plugins at runtime')
 }
-if (!main.includes('app.setAppUserModelId(identity.appId)')) {
+if (!product.includes('application.setAppUserModelId(XIAOJING_IDENTITY.appId)')) {
   throw new Error('Electron AppUserModelId must come from identity.json')
+}
+if (!main.includes('new XiaojingDesktopCompanion(') || !companion.includes("new URL('/xiaojing-desktop-companion/events', hostUrl)")) {
+  throw new Error('RC1 desktop startup must retain the Xiaojing tray and authenticated companion state stream')
 }
 
 console.log(`desktop identity verified for ${manifest.name} ${manifest.version}`)

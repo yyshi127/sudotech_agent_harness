@@ -1,30 +1,21 @@
-# Xiaojing Accounting 0.2.2 module and source architecture
+# Xiaojing Accounting 0.3.1 module and source architecture
 
 English | [中文](xiaojing-module-architecture.zh.md)
 
-This page maps Xiaojing Accounting 0.2.2 across the repository. It identifies what original DeepSeek Harness code owns, where Xiaojing additions live, and which extension point installs or removes each capability. Source code, package READMEs, and the [product development baseline](xiaojing-product-development.md) remain authoritative for behavior.
+This page maps Xiaojing Accounting 0.3.1 across the repository. It identifies what original DeepSeek Harness code owns, where Xiaojing additions live, and which extension point installs or removes each capability. Source code, package READMEs, and the [product development baseline](xiaojing-product-development.md) remain authoritative for behavior.
 
 ## Baseline and conclusion
 
 | Item | Current value | Source of truth |
 |---|---|---|
-| Desktop version | `0.2.2` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
-| Harness baseline | `dsh-v0.1.1-rc.2` / `b150a551...` | [`packages/client/xiaojing-product/product.json`](../packages/client/xiaojing-product/product.json) |
+| Desktop version | `0.3.1` | [`apps/desktop/package.json`](../apps/desktop/package.json) |
+| Harness baseline | `dsh-v0.1.7-rc.1` / `46a7f68...` | [`packages/client/xiaojing-product/product.json`](../packages/client/xiaojing-product/product.json) |
 | Runtime composition | Cordis profiles, bundles, and configuration rows | [`packages/boot/app-boot/src/profile.ts`](../packages/boot/app-boot/src/profile.ts), [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) |
 | Xiaojing Client selector | `DSH_CLIENT_BUILD_PROFILE=xiaojing` | [`scripts/client-build-environment.ts`](../scripts/client-build-environment.ts) |
 
 The main architecture is extensible: brand, accounting, Weixin, Edge, Windows control, the desktop companion, and Visualize use separate packages, and none embeds its implementation in `agent-loop`. Three areas remain integration layers rather than single-row plugins: product rows currently live in the shared `web-app` bundle, file upload depends on an external package plus a pnpm patch, and the desktop companion's native window and tray must be implemented by Electron.
 
 ## Runtime module architecture
-
-![Xiaojing Accounting 0.2.2 module architecture](assets/xiaojing/module-architecture-v0.2.2.png)
-
-The diagram uses a fixed color system:
-
-- Deep navy identifies original DeepSeek Harness capabilities and data models.
-- Slate gray identifies provider-neutral extension points: UI Slots, Tool Registry, events, and Remote/RPC.
-- Mint and teal identify Xiaojing product and feature plugins.
-- Orange identifies Electron, system tray integration, external channels, and independent integration patches.
 
 A desktop request normally flows from Electron into the assembled Web Client. Client plugins render through slots and call the Host through Remote or RPC. Host feature plugins attach through tools, events, or the LLM waterfall, while the upstream Agent Loop remains the driver. A Weixin task enters through the channel Host plugin and uses the normal `sessions.prompt()` path, so it shares session, tool, approval, and log semantics with desktop work.
 
@@ -44,7 +35,7 @@ A desktop request normally flows from Electron into the assembled Web Client. Cl
 | Feature | Host owner | Client owner | Extension point | Persistence owner | Complete removal |
 |---|---|---|---|---|---|
 | Brand and deployment persona | [`packages/client/xiaojing-product/`](../packages/client/xiaojing-product/) | The same package's `src/client/` | `system-prompt/assemble`, five brand slots, and `settings.section` | User personas remain owned by Harness settings and presets | Remove the `xiaojing-product` row and build the official Client profile |
-| Finance mode foundation | [`apps/cli/config/xiaojing-agent-presets/finance/`](../apps/cli/config/xiaojing-agent-presets/finance/) composition; no Finance Host service yet | Finance display provider in [`xiaojing-product`](../packages/client/xiaojing-product/) | Xiaojing-only preset root, `AgentPresetDisplayRegistry`, and product-manifest verifier | Reserved `$DSH_HOME/finance`; the foundation writes nothing | Remove the product preset, display registration, manifest entry, and focused checks; the official roster remains unchanged |
+| Finance mode | Declarative [`agent.cordis.yml`](../apps/cli/config/xiaojing-agent-presets/finance/agent.cordis.yml) plus the Finance Host packages inventoried by the product manifest | Finance display provider in [`xiaojing-product`](../packages/client/xiaojing-product/) and [`ui-xiaojing-finance-clients`](../packages/client/ui-xiaojing-finance-clients/) | `preset-finance` through `@deepseek-ai/dsh-agent-preset`, `AgentPresetDisplayRegistry`, scoped Finance service and tool rows, and the product-manifest verifier | Package-owned schema-versioned data under the protected `harness/finance` root | Remove the Finance patch, display registration, its five skill entries and directories, the Finance Host/Client composition rows and package inventories, and focused checks; upstream preset declarations remain unchanged |
 | Local usage | [`packages/llm/usage-accounting/`](../packages/llm/usage-accounting/) | [`packages/client/ui-usage-accounting/`](../packages/client/ui-usage-accounting/) | `llm/stream`, Typert Remote, `usage-accounting/updated`, sidebar and settings slots | `$DSH_HOME/usage-accounting/usage-v1.json` | Remove both Host and Client rows; the historical ledger may remain |
 | File and image upload | `dsh-file-uploads` bundle and native attachment services | External plugin Client plus generic `conversation.addImages()` | Profile bundle, native image intake, and composer slot | `$DSH_HOME/uploads`, `$DSH_HOME/attachments/v1` | Remove the profile bundle, application dependency, and pnpm patch; this is not a pure one-row plugin |
 | Weixin channel | [`packages/xiaojing/xiaojing-weixin-channel/`](../packages/xiaojing/xiaojing-weixin-channel/) | [`packages/client/ui-weixin-channel/`](../packages/client/ui-weixin-channel/) | `sessions.prompt()`, Agent/Session/Approval events, and loopback RPC | Credential service, `$DSH_HOME/weixin-channel`, shared attachment roots | Remove both Host and Client rows |
@@ -54,8 +45,6 @@ A desktop request normally flows from Electron into the assembled Web Client. Cl
 | Visualize | [`packages/xiaojing/xiaojing-visualize/`](../packages/xiaojing/xiaojing-visualize/) | The same package's `src/client/` | `ctx.tools`, skill provider, and tool-result renderer | Session tool results and workspace copies | Remove the single `xiaojing-visualize` row and its package dependency |
 
 ## Source structure and plug points
-
-![Xiaojing Accounting 0.2.2 source structure and plug points](assets/xiaojing/source-structure-v0.2.2.png)
 
 ```text
 E:/Projects/sudo agent/
@@ -70,18 +59,19 @@ E:/Projects/sudo agent/
 │  │  ├─ ui-usage-accounting/
 │  │  ├─ ui-weixin-channel/
 │  │  ├─ ui-xiaojing-browser-control/
+│  │  ├─ ui-xiaojing-finance-clients/
 │  │  └─ ui-desktop-companion/
 │  ├─ xiaojing/
+│  │  ├─ xiaojing-finance-*/
 │  │  ├─ xiaojing-browser-control/
 │  │  ├─ xiaojing-computer-control/
 │  │  ├─ xiaojing-weixin-channel/
 │  │  ├─ xiaojing-desktop-companion/
 │  │  └─ xiaojing-visualize/
-│  ├─ bundle/web-app/
+│  ├─ bundle/web-app/presets/*.patch.yml
 │  └─ boot/app-boot/
 ├─ apps/
 │  ├─ cli/config/
-│  │  ├─ agent-presets/
 │  │  └─ xiaojing-agent-presets/finance/
 │  ├─ web/
 │  └─ desktop/
@@ -94,10 +84,10 @@ E:/Projects/sudo agent/
 ## Assembly process
 
 1. `PROFILE_TEMPLATES.web` layers `dsh-base`, `dsh-web-app`, and `dsh-file-uploads` in that order.
-2. Profile boot always mounts the official preset root and adds `xiaojing-agent-presets` only when `DSH_CLIENT_BUILD_PROFILE=xiaojing`.
+2. Profile boot inserts `xiaojing-agent-presets/finance/agent.cordis.yml` only when `DSH_CLIENT_BUILD_PROFILE=xiaojing`, after all bundle patches and before profile, home, and command-line overlays.
 3. The `dsh-web-app` `cordis.patch.yml` inserts Host rows and Client rows carrying `dsh.client` declarations.
 4. `client-modules` scans the Client roster and creates `window.__DSH_BOOT__`; browser-side Cordis then installs that roster.
-5. The Xiaojing build profile lets product Client plugins register brand, Finance display copy, and product-only settings while the official build keeps neutral fallbacks.
+5. The Xiaojing build profile lets product Client plugins register brand, active-locale Finance display copy, and product-only settings; the declarative Finance row retains fallback metadata, while the official build keeps neutral fallbacks.
 6. Electron starts the same Web profile, pins the user-data root, and exposes only enumerated desktop operations through preload.
 
 Cordis registrations return disposers, while `ctx.effect()` and `ctx.on()` unwind their registrations when a plugin unloads. Plugins therefore must not bypass Cordis with permanent module-level global side effects. Host and Client packages communicate through public Remote, RPC, SSE, or event interfaces rather than importing each other's internal implementations.
@@ -112,7 +102,7 @@ Visualize and Windows control can be disabled through one Host row. Accounting, 
 
 The `xiaojing-product` row contributes the brand, but the build environment also determines which bytes enter the Client artifact. A removal check must build the official Client profile and prove that neutral fallbacks work independently.
 
-Finance foundation removal is narrower than removing the whole product UI: delete its product preset directory, display registration, manifest entry, and focused checks together. No Host or Client service row exists yet, and the reserved Finance durable root can remain empty.
+Finance removal is narrower than removing the whole product UI but wider than deleting one preset file: remove the declarative patch, Finance display registration, all five skill entries and directories, the Finance Host/Client composition rows and package inventories, and focused checks together. No runtime preset root, directory discovery, or `preset.yml` sidecar participates.
 
 ### Native desktop behavior
 
@@ -137,7 +127,7 @@ The companion's state aggregation and settings are Cordis plugins, while its tra
 
 The highest-value next cleanup is to move all product-specific configuration rows out of the shared [`packages/bundle/web-app/cordis.patch.yml`](../packages/bundle/web-app/cordis.patch.yml) and into a dedicated `packages/bundle/xiaojing-app/cordis.patch.yml`. The target composition is `dsh-base → dsh-web-app → dsh-file-uploads → xiaojing-app`. Future upstream upgrades would then compare the original `web-app` directly, while Xiaojing feature changes would remain in the product bundle and the official profile could prove that it loads no Xiaojing Host tools.
 
-Finance already establishes this pattern in `product.json.financeExtension`: package prefixes, composition-row prefixes, a compatibility-adapter rule, a protected data root, and exact Host/Client package inventories are checked together. After the dedicated product bundle exists, extend the same manifest-driven inventory to other features so a partial removal or missing release-protection entry fails automatically. Do not add a shared feature superclass or another framework until a second real consumer requires it.
+Finance already establishes this pattern in the product manifest: `agentPresets` records the declarative composition path and display identity, while `financeExtension` inventories the five skills, package and composition-row prefixes, compatibility-adapter rule, protected data root, and exact Host/Client packages. The verifier checks them together. After the dedicated product bundle exists, extend the same manifest-driven inventory to other features so a partial removal or missing release-protection entry fails automatically. Do not add a shared feature superclass or another framework until a second real consumer requires it.
 
 ## New feature directory template
 

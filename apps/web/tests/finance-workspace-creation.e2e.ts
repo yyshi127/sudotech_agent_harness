@@ -1,10 +1,10 @@
 /** Directory selection must reach customer details before creating a ledger's files. */
 import { mkdir, readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { afterEach, expect, it, vi } from 'vitest'
 import { launchWebScaffold, watchConsole, webClientProfile } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 import { newEnglishPage } from './support.ts'
 
 afterEach(() => { vi.unstubAllEnvs() })
@@ -13,7 +13,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('opens customer details after folde
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({
     agentPresets: {
-      roots: [{ path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets/', import.meta.url)), trust: 'system' }],
+      definitions: [financePresetDefinition()],
       default: 'standard',
     },
   })

@@ -28,7 +28,7 @@ function sameFields(left: SnapshotFields, right: SnapshotFields): boolean {
 }
 
 function resultCallId(event: Extract<SessionEvent, { type: 'tool/result' }>): string {
-  return String(event.data.message.content[0].toolCallId)
+  return String(event.data.message.source.callId)
 }
 
 /** Fold session events into a redacted global companion state. */

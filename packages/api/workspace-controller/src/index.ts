@@ -4,10 +4,11 @@ import { realpathSync, statSync } from 'node:fs'
 import { isAbsolute } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { WorkspaceCommands } from './commands.ts'
 import { DirectoryPickerController } from './directory-picker.ts'
-import { WorkspaceFeed } from './feed.ts'
+import { defaultWorkspaceDirectory, validateDocumentsDirectory } from './default-directory.ts'
+import { WorkspaceFeed, workspaceView } from './feed.ts'
 import type {
   WorkspaceArchiveSessionRequest,
   WorkspaceArchiveValue,
@@ -17,15 +18,34 @@ import type {
   WorkspaceDeleteValue,
   WorkspaceFollowFrame,
   WorkspaceInsertBeforeRequest,
+  WorkspaceInitializeDefaultRequest,
   WorkspaceInsertSessionBeforeRequest,
   WorkspaceOrderValue,
+  WorkspacePinSessionRequest,
+  WorkspacePinValue,
   WorkspaceRenameRequest,
   WorkspaceUnarchiveSessionRequest,
+  WorkspaceUnpinSessionRequest,
   WorkspaceValue,
 } from './types.ts'
 
 export type * from './types.ts'
 export { DirectoryPickerController } from './directory-picker.ts'
+
+/** Host directory policy for first use, picking, and ordinary Workspace creation. */
+export interface Config {
+  /** Absolute starting directory for ordinary Workspace pickers; explicit picker paths take precedence. */
+  directoryPickerInitialPath?: string
+  /** Existing absolute roots that an ordinary Workspace may neither contain nor enter. */
+  protectedRoots?: string[]
+  /** Override the system Documents directory with a fully qualified path. */
+  documentsDirectory?: string
+  /** Maximum duration of the operating system's Documents lookup. */
+  documentsLookupTimeoutMs?: number
+}
+
+/** Directory policy after schema defaults have been applied. */
+type ResolvedConfig = Config & { documentsLookupTimeoutMs: number; protectedRoots: string[] }
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -34,29 +54,29 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Deployment policy for ordinary Workspace creation. */
-export interface Config {
-  /** Absolute starting directory for ordinary Workspace pickers; explicit picker paths take precedence. */
-  directoryPickerInitialPath?: string
-  /** Existing absolute roots that an ordinary Workspace may neither contain nor enter. */
-  protectedRoots?: string[]
-}
-
 /** Host service backing the generated `ctx.remote.workspace` namespace. */
 export class WorkspaceController extends TypertRemoteService {
   static inject = ['typert', 'workspaceRegistry']
-  static Config: z<Config> = z.object({
+  static Config: z<Config, ResolvedConfig> = z.object({
     directoryPickerInitialPath: z.string(),
     protectedRoots: z.array(z.string()).default([]),
+    documentsDirectory: z.string(),
+    documentsLookupTimeoutMs: z.natural().min(1).default(10_000),
   })
 
+  private readonly config: ResolvedConfig
   private readonly commands: WorkspaceCommands
   private readonly feed: WorkspaceFeed
 
-  /** @param ctx - Host context containing the Workspace registry. @param config - Ordinary Workspace path policy. */
+  /**
+   * @param ctx - Host context containing the Workspace registry.
+   * @param config - Host directory policy.
+   */
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'workspaceController', { namespace: 'workspace' })
-    const protectedRoots = (config.protectedRoots ?? []).map((root) => {
+    this.config = WorkspaceController.Config(config)
+    if (this.config.documentsDirectory !== undefined) validateDocumentsDirectory(this.config.documentsDirectory)
+    const protectedRoots = this.config.protectedRoots.map((root) => {
       if (!isAbsolute(root)) throw new Error(`workspace-controller: protected root must be absolute: ${root}`)
       const canonical = realpathSync.native(root)
       if (!statSync(canonical).isDirectory()) {
@@ -70,7 +90,7 @@ export class WorkspaceController extends TypertRemoteService {
     // directory-picking seam is abstract and never an entry itself. The child
     // stays pending until a picking backend is composed, so a host without one
     // registers no picking namespace instead of answering an unservable verb.
-    ctx.plugin(DirectoryPickerController, { initialPath: config.directoryPickerInitialPath })
+    ctx.plugin(DirectoryPickerController, { initialPath: this.config.directoryPickerInitialPath })
   }
 
   /**
@@ -81,6 +101,29 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('create')
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
     return this.commands.create(request)
+  }
+
+  /**
+   * Initialize or reuse the default Workspace during first-use startup.
+   * @param request - initial directory name and title; never rename an existing default.
+   * @param signal - caller lifetime; cancels native directory lookup.
+   * @returns the durable Workspace, or undefined when first-use initialization is ineligible; creates no Session or message.
+   */
+  @Remote('initializeDefault')
+  async initializeDefault(request: WorkspaceInitializeDefaultRequest, signal: AbortSignal): Promise<WorkspaceValue | undefined> {
+    const { directoryName, title } = request
+    if (directoryName.trim() === '' || directoryName !== directoryName.trim()
+      || directoryName.endsWith('.') || /[/\\:\0]/.test(directoryName) || title.trim() === '') {
+      throw new RemoteError('gateway/bad-request', 'default Workspace requires a directory name and non-blank title', {})
+    }
+    const workspace = await this.ctx.workspaceRegistry.initializeDefault(async () => {
+      const timeout = AbortSignal.timeout(this.config.documentsLookupTimeoutMs)
+      const path = await defaultWorkspaceDirectory(
+        directoryName, this.config.documentsDirectory, AbortSignal.any([signal, timeout]),
+      )
+      return { path, title }
+    })
+    return workspace === undefined ? undefined : { workspace: workspaceView(workspace) }
   }
 
   /**
@@ -141,6 +184,26 @@ export class WorkspaceController extends TypertRemoteService {
   @Remote('unarchiveSession')
   unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     return this.commands.unarchiveSession(request)
+  }
+
+  /**
+   * Surface one known unarchived Session ahead of unpinned Sessions.
+   * @param request - Session identity to pin.
+   * @returns the complete resulting pin set, most recently pinned first.
+   */
+  @Remote('pinSession')
+  pinSession(request: WorkspacePinSessionRequest): Promise<WorkspacePinValue> {
+    return this.commands.pinSession(request)
+  }
+
+  /**
+   * Remove one Session's pin without changing its saved Session order.
+   * @param request - Session identity to unpin.
+   * @returns the complete resulting pin set, most recently pinned first.
+   */
+  @Remote('unpinSession')
+  unpinSession(request: WorkspaceUnpinSessionRequest): Promise<WorkspacePinValue> {
+    return this.commands.unpinSession(request)
   }
 
   /**

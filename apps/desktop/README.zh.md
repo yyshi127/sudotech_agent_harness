@@ -10,7 +10,7 @@
 
 | 字段 | 值 |
 |---|---|
-| Package name | `@sudotech/xiaojing-accounting-desktop` |
+| Package name | `@deepseek-ai/dsh-desktop` |
 | App ID / AppUserModelId | `com.sudotech.xiaojing-accounting` |
 | NSIS GUID | `1f6e3c2a-13e7-5ab1-a2d7-10b68c1b911a` |
 | 安装目录 | `xiaojing-agent-desktop` |
@@ -23,7 +23,7 @@
 
 品牌欢迎页在 820×680 窗口内显示最大 480×400 像素的双机器人大图。较矮的屏幕会同步缩小窗口和图片，保持标题、安装控件和底部许可说明可见。安装页保留 NSIS 原生布局和消息处理，不再创建自定义子窗口或私有消息循环。在仓库根目录运行 `powershell -File apps/desktop/scripts/prepare-installer-logo.ps1`，可从 `build/installer-robot-source.png` 重新生成白底欢迎页位图，保持两个角色的原始比例。安装器图片与 Web Logo 独立。
 
-在仓库根目录运行 `node apps/desktop/scripts/prepare-installer-icon.mjs`，可从保持不变的 `build/installer-icon-source.png` 生成 Windows 图标。生成器在同尺寸透明画布内将“兢”字放大 10%，写入一致的 `build/app-icon.png` 和 `assets/windows-icon.png`，再通过 electron-builder 转换器生成多尺寸 `build/installer-runtime-icon.ico`。可执行文件使用 `build/app-icon.png`；原生窗口、任务栏和托盘使用 `assets/windows-icon.png`；安装程序使用 ICO。启动等待页保留原始 `assets/taskbar-icon.png`，仍以 128×128 像素显示；聊天欢迎区和安装页的机器人大图保持独立。
+在仓库根目录运行 `node apps/desktop/scripts/prepare-installer-icon.mjs`，可从保持不变的 `build/installer-icon-source.png` 生成 Windows 图标。生成器在同尺寸透明画布内将“兢”字放大 10%，写入一致的 `build/app-icon.png` 和 `assets/windows-icon.png`，再通过 electron-builder 转换器生成多尺寸 `build/installer-runtime-icon.ico`。可执行文件使用 `build/app-icon.png`；原生窗口、任务栏和托盘使用 `assets/windows-icon.png`；安装程序使用 ICO。RC1 欢迎窗口使用产品 locale 和随包品牌资源；聊天欢迎区和安装页的机器人大图保持独立。
 
 程序文件安装后，安装器将图标复制到 `resources/xiaojing-character-<sha256>.ico`，把现有桌面和开始菜单快捷方式的图标引用更新为这个按内容命名的路径，保留 AppUserModelId，并向 Windows Shell 发送针对快捷方式路径的更新通知。即使应用版本号不变，更换图标也会得到新路径。此步骤也适用于静默升级，不会重建上游快捷方式策略省略的链接。写入失败时提供重试，或返回退出码 `2`，不会按安装成功启动应用。此流程不重启资源管理器，也不删除系统图标缓存。`dist:win` 会生成图标并运行 `verify:installer-shortcuts`；该检查使用隔离的临时快捷方式编译实际更新逻辑，验证图标变更、重复安装、省略桌面链接和图标文件锁定失败。
 
@@ -31,7 +31,7 @@
 
 Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudotech\xiaojing-accounting-desktop`。随包 Host 使用其 `harness` 子目录作为 `DSH_HOME`。`%USERPROFILE%\Documents\小兢会计工作区` 是工作区公共容器：普通 Host 从其 `办公工作区` 子目录启动，并通过 `XIAOJING_OFFICE_WORKSPACE_ROOT` 传入；Finance 则通过 `XIAOJING_FINANCE_WORKSPACE_ROOT` 使用同级的 `Finance工作区`。因此新建普通 Workspace 与 Finance Workspace 默认不会互相嵌套。普通添加操作未提供初始路径时，Electron 目录对话框默认进入 `办公工作区`；打包 preload 会转发每个 Finance 添加操作显式提供的绝对路径，因此创建客户账套和咨询工作区时都会从 `Finance工作区` 开始。两种起始目录都不限制用户最终选择其他位置。
 
-桌面端通过临时 loopback 端口和 `--no-open` 启动 Host，并固定 `DSH_CLIENT_BUILD_PROFILE=xiaojing`，因此只有 Electron 窗口会加载应用，Host 不会额外打开系统浏览器窗口，打包后的小兢专属 Host 插件也会保持启用。桌面端会加载包含认证令牌的完整启动地址，并将令牌交换为桌面小兢状态流使用的 Host Cookie；用户无需手动打开日志中的地址。
+RC1 的 `DesktopHostProcess` 负责 loopback Host 生命周期，并固定 `DSH_CLIENT_BUILD_PROFILE=xiaojing`，因此只有 Electron shell 会加载应用，打包后的小兢专属 Host 插件也会保持启用。桌面端将认证令牌交换为桌面小兢状态流使用的 Host Cookie，用户无需手动打开日志中的地址。
 
 `user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、专用浏览器操控 profile、微信频道状态、桌面小兢偏好、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和当前读取实现；除将包含旧版文件上传组合包的精确安装默认 Web 列表（含或不含 ModLens）迁移为当前 Web 模板外，所有受保护数据必须保持字节不变。它还会在私有副本上验证扁平凭据到 version 1 的原子迁移不会生成明文备份，并检查会话、凭据、预设、设置、上传、storage 和用量兼容。V3 会话迁移接纳此样本紧挨首个步骤之前的用户消息，同时不改写源文件；升级版发布前仍必须通过该门禁。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
 
@@ -47,7 +47,7 @@ Electron 就绪后，桌面端会创建一个透明且不抢焦点的小兢宠�
 
 桌面小兢可以跨显示器拖动，默认显示为原始角色尺寸的 50%，并在设置中提供 30%–100% 大小调节器。首次启动和“重置桌面位置”会把完整宠物窗口放在小兢会计主窗口内部右下角并保留固定内边距；用户明确拖动后保存的位置仍然优先。桌面版启动时，处于已唤醒状态的桌面小兢会等到主应用界面加载完成，再等待 3 秒，然后用两行显示“你好，我是小兢会计，”和“您的AI办公搭子！”，持续 5 秒；活动任务会立即取消或覆盖欢迎语，后续手动唤醒不会重复介绍。连续空闲 3 分钟后，它会从思考、展示和干劲姿势中随机选择两个不同姿势，每个保持 3 秒；两轮结束后恢复默认待机，并重新等待下一个空闲周期。这项巡游不会改变 Host 的真实任务状态，也不会显示任务状态气泡；任务开始时立即取消，Windows“减少动态效果”会将其关闭。大小和受限工作区位置保存到 `%APPDATA%\@sudotech\xiaojing-accounting-desktop\desktop-companion\preferences-v1.json`；状态提示会跟随缩放后的角色，不会固定在透明窗口顶部。已保存的显示器不可用时，它会恢复到主窗口所在显示器。收起桌面小兢只销毁其 BrowserWindow；Host、活动任务和微信频道继续运行，设置页或托盘可以再次唤醒它。
 
-关闭主窗口只会将其隐藏到托盘，不会退出应用。最小化按钮仍保持正常任务栏行为；第二次启动应用会恢复现有主窗口；只有托盘中的“退出小兢会计”才会停止 Host 和整个应用。存在活动任务或微信在线等中断风险时，该命令会要求确认。renderer 可使用 `preload.cjs` 声明的八个产品方法和两个受限桥接：一个选择目录，一个通过 Electron 的操作系统 Shell 打开已存在的绝对工作区目录。主进程会在执行两类操作前校验调用 renderer 与路径；renderer 不能访问 Node、文件系统、任意 IPC 或 BrowserWindow。
+关闭主窗口只会将其隐藏到托盘，不会退出应用。最小化按钮仍保持正常任务栏行为；第二次启动应用会恢复现有主窗口；只有托盘中的“退出小兢会计”才会停止 Host 和整个应用。存在活动任务或微信在线等中断风险时，该命令会要求确认。renderer 可使用 `src/preload-app.ts`（编译为 `lib/preload-app.cjs`） 声明的八个产品方法和两个受限桥接：一个选择目录，一个通过 Electron 的操作系统 Shell 打开已存在的绝对工作区目录。主进程会在执行两类操作前校验调用 renderer 与路径；renderer 不能访问 Node、文件系统、任意 IPC 或 BrowserWindow。
 
 ## 内置自动化运行环境
 
@@ -63,12 +63,11 @@ Electron 就绪后，桌面端会创建一个透明且不抢焦点的小兢宠�
 
 准备随包运行时前，先运行身份、用户数据、产品层、桌面小兢、真实 Edge 和 Windows UI Automation 测试。正式发布还必须在默认路径与自定义路径分别完成全新 Windows 安装，以及从上一安装包覆盖升级。安装后确认会话、凭据、预设、插件、附件、工作区、用量数据、专用浏览器 profile、微信频道状态和桌面小兢偏好全部保留，才能发布安装器。
 
-`verify:packaged-runtime` 默认核验 `dist/installer/win-unpacked/resources`、必要的随包后端依赖与插件导入，并使用临时应用数据启动 Host、迁移旧版 Web profile。核验隔离目录中的候选包时，将 `XIAOJING_PACKAGED_RESOURCES_PATH` 设为该包的绝对 `win-unpacked/resources` 路径。
+RC1 打包流程会在写入发布记录前对组装后的应用运行 `smoke-packaged-runtime.ts`。该检查会验证准备好的 DSH 目录、随包可执行文件和主运行时，包括 ASAR 外的原生 Office 转换。
 
 ## 已知限制
 
-- 更新方式是下载并运行新版安装包，目前没有应用内自动更新。
-- 安装包尚未进行 Authenticode 数字签名，因此 Windows 可能显示未知发布者或 SmartScreen 提示。
+- 正式发布包使用 RC1 更新与 Windows 签名流程；明确的 unsigned 打包命令仅用于本地验收。
 - 覆盖升级只适用于同一 Windows 用户，且不能在升级过程中迁移安装目录。
 - 浏览器操控依赖 Microsoft Edge；如果 Edge 未安装或被设备策略阻止，能力会返回明确的启动错误。
 - 内置自动化依赖语义而不是视觉，不能操作纯像素控件、验证码、UAC、安全桌面或管理员权限应用。

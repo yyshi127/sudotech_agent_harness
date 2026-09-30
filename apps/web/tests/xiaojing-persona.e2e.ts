@@ -6,6 +6,7 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { launchWebScaffold, readPersistedEvents, seedSession, type WebScaffold } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 const PERSONA_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/xiaojing-persona/session.v3.jsonl', import.meta.url))
 
@@ -25,7 +26,7 @@ it.each(['standard', 'ptc', 'cordis'])('uses the office identity in the shipped 
   scaffold = await launchWebScaffold({
     profile: { hmr: false, packages: [] },
     agentPresets: {
-      roots: [{ path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets/', import.meta.url)), trust: 'system' }],
+      definitions: [financePresetDefinition()],
       default: 'standard',
     },
   })

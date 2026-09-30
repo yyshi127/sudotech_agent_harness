@@ -9,6 +9,7 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import { OpenItemWriteOffRecords, type OpenItemWriteOffId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/open-item-write-off-records.ts'
 import type { OpenItemWriteOffReceiptId } from '../../../packages/xiaojing/xiaojing-finance-domain/src/open-item-write-off.ts'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 class WriteOffPreviewAdapter extends LlmAdapter {
   calls = 0
@@ -65,10 +66,7 @@ class WriteOffPreviewAdapter extends LlmAdapter {
 
 it.skipIf(webClientProfile() !== 'xiaojing')('shows write-off versions and independent observations through the real Finance preset', async () => {
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
-  const scaffold = await launchWebScaffold({ agentPresets: { default: 'standard', roots: [
-    { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
-    { path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url)), trust: 'system' },
-  ] } })
+  const scaffold = await launchWebScaffold({ agentPresets: { default: 'standard', definitions: [financePresetDefinition()] } })
   const browser = await chromium.launch()
   const originalFetch = globalThis.fetch
   try {

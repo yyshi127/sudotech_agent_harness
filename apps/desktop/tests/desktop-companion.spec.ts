@@ -7,7 +7,7 @@ import {
   isCompanionSnapshot,
   normalizeCompanionPreferences,
   resolveCompanionBounds,
-} from '../desktop-companion.mjs'
+} from '../src/xiaojing-companion-geometry.ts'
 
 const primary = { id: 1, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }
 const left = { id: 2, workArea: { x: -1280, y: 0, width: 1280, height: 984 } }

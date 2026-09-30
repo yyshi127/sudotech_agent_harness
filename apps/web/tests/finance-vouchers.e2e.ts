@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-session-title'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 class VoucherAdapter extends LlmAdapter {
   constructor(readonly beyondLastPage = false, readonly withDetail = false,
@@ -69,10 +70,7 @@ class VoucherAdapter extends LlmAdapter {
 it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false], [true, false, false, false], [false, true, false, false], [false, false, true, false], [false, false, false, true]])('queries vouchers without leaked credentials; beyondLastPage=%s, detail=%s, networkFailure=%s, export=%s', async (beyondLastPage, withDetail, networkFailure, exportExcel) => {
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
   const scaffold = await launchWebScaffold({ toolsMode: 'native', agentPresets: {
-    default: 'standard', roots: [
-      { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
-      { path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url)), trust: 'system' },
-    ],
+    default: 'standard', definitions: [financePresetDefinition()],
   } })
   const browser = await chromium.launch()
   const originalFetch = globalThis.fetch

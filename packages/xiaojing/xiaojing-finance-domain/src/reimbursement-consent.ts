@@ -19,7 +19,7 @@ export function assertReimbursementConsent(events: readonly SessionEvent[]): voi
     } else if (event.type === 'tool/call' && event.data.name === 'ask_user_question') {
       questions.add(event.data.callId)
     } else if (event.type === 'tool/result' && questions.delete(event.data.message.source.callId)) {
-      if (event.data.message.content.some(block => block.isError)) cancelled = true
+      if (event.data.message.isError) cancelled = true
     } else if (event.type === 'approval/asked' && event.data.toolName === 'finance_reimbursement') {
       approvals.add(event.data.id)
     } else if (event.type === 'approval/decided' && approvals.delete(event.data.id)) {

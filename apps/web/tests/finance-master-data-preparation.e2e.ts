@@ -10,6 +10,7 @@ import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { MasterDataRecords, type PreparedMasterDataId, type MasterDataProposal } from '../../../packages/xiaojing/xiaojing-finance-domain/src/master-data-records.ts'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 class MasterDataAdapter extends LlmAdapter {
   calls = 0
@@ -68,10 +69,7 @@ class MasterDataAdapter extends LlmAdapter {
 
 it.skipIf(webClientProfile() !== 'xiaojing')('confirms exact master-data previews and preserves accepted or lost writes in the real UI', async () => {
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
-  const scaffold = await launchWebScaffold({ agentPresets: { default: 'standard', roots: [
-    { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
-    { path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url)), trust: 'system' },
-  ] } })
+  const scaffold = await launchWebScaffold({ agentPresets: { default: 'standard', definitions: [financePresetDefinition()] } })
   const browser = await chromium.launch()
   const originalFetch = globalThis.fetch
   const outputs = []

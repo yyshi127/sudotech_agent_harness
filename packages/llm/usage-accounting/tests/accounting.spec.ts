@@ -3,12 +3,12 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek'
-import { SettingsProvider } from '@deepseek-ai/dsh-settings'
-import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
+import type {} from '@deepseek-ai/dsh-settings'
 import { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type {
   CredentialInfo,
@@ -27,29 +27,40 @@ import { EMBEDDED_PRICE_TABLE } from '../src/pricing.ts'
 import { ledgerInput, UsageLedgerStore } from '../src/store.ts'
 
 const API_KEY = 'test-secret-api-key'
+const API_KEY_FINGERPRINT = createHash('sha256').update(API_KEY).digest('hex')
 const REQUEST_TIME = Date.UTC(2026, 7, 20, 1)
 const AFFECTED_REQUEST_TIME = Date.UTC(2026, 8, 15, 1)
 const contexts: Context[] = []
 const homes: string[] = []
 
-class MemorySettings extends SettingsProvider {
-  readonly writable = true
-  protected load(): Promise<Record<string, unknown>> { return Promise.resolve({}) }
-  protected persist(_ns: SettingsNamespace, _section: Record<string, unknown>): Promise<void> {
-    return Promise.resolve()
+class MemorySettings extends Service {
+  constructor(ctx: Context, private readonly section?: Record<string, unknown>) {
+    super(ctx, 'settings')
+  }
+
+  configure(): () => void { return () => {} }
+
+  describe(): Array<{ ns: string; value: unknown }> {
+    return this.section === undefined ? [] : [{ ns: 'llm-deepseek', value: this.section }]
   }
 }
 
 class MemoryCredentials extends CredentialProvider {
   private readonly records = new Map<CredentialKey, CredentialRecord>()
 
-  constructor(ctx: Context, private readonly value: string | undefined | Error) { super(ctx) }
-  resolve(_ref: CredentialRef): Promise<ResolvedCredential | undefined> {
-    if (this.value instanceof Error) return Promise.reject(this.value)
-    return Promise.resolve(this.value === undefined ? undefined : { value: this.value, source: 'memory' })
+  constructor(ctx: Context, private readonly options: {
+    value: () => string | undefined | Error
+    beforeResolve?: () => Promise<void>
+  }) { super(ctx) }
+  async resolve(_ref: CredentialRef): Promise<ResolvedCredential | undefined> {
+    await this.options.beforeResolve?.()
+    const value = this.options.value()
+    if (value instanceof Error) throw value
+    return value === undefined ? undefined : { value, source: 'memory' }
   }
   describe(_ref: CredentialRef): Promise<CredentialInfo> {
-    return Promise.resolve({ configured: this.value !== undefined && !(this.value instanceof Error), source: 'memory', writable: true })
+    const value = this.options.value()
+    return Promise.resolve({ configured: value !== undefined && !(value instanceof Error), source: 'memory', writable: true })
   }
   set(_ref: CredentialRef, _value: string): Promise<void> { return Promise.resolve() }
   unset(_ref: CredentialRef): Promise<void> { return Promise.resolve() }
@@ -81,18 +92,48 @@ class MemoryCredentials extends CredentialProvider {
   }
 }
 
-async function harness(options: { key?: string | undefined | Error; baseURL?: string } = {}): Promise<Context> {
+async function harness(options: {
+  key?: string | undefined | Error | (() => string | undefined | Error)
+  accountToken?: string | undefined | Error | (() => string | undefined | Error)
+  baseURL?: string
+  credentialReadBarrier?: () => Promise<void>
+} = {}): Promise<Context> {
   const ctx = new Context()
   contexts.push(ctx)
-  await ctx.plugin(MemorySettings).await()
-  await ctx.plugin(MemoryCredentials, 'key' in options ? options.key : API_KEY).await()
+  await ctx.plugin(MemorySettings, options.baseURL === undefined ? {} : { baseURL: options.baseURL }).await()
+  const key = 'key' in options ? options.key : API_KEY
+  await ctx.plugin(MemoryCredentials, {
+    value: typeof key === 'function' ? key : () => key,
+    ...options.credentialReadBarrier === undefined ? {} : { beforeResolve: options.credentialReadBarrier },
+  }).await()
+  if ('accountToken' in options) {
+    const token = options.accountToken
+    ctx.provide('deepseekAccount', {
+      resolveToken: () => {
+        const value = typeof token === 'function' ? token() : token
+        return value instanceof Error ? Promise.reject(value) : Promise.resolve(value)
+      },
+    } as DeepSeekAccount)
+  }
   await ctx.plugin(LlmRuntime).await()
   await ctx.plugin(LlmDeepSeek, options.baseURL === undefined ? {} : { baseURL: options.baseURL }).await()
   return ctx
 }
 
-function usageStream(...chunks: StreamChunk[]) {
+function apiKeyIdentity(
+  baseURL = LlmDeepSeek.PUBLIC_BASE_URL,
+  keyFingerprint = API_KEY_FINGERPRINT,
+): LlmDeepSeek.DeepSeekRequestIdentity {
+  return { baseURL, authentication: { kind: 'api-key', keyFingerprint } }
+}
+
+function usageStream(
+  ctx: Context,
+  identity: LlmDeepSeek.DeepSeekRequestIdentity | undefined,
+  ...chunks: StreamChunk[]
+) {
   return async function* (_options: GenerateOptions, _next: () => AsyncIterable<StreamChunk>) {
+    if (identity !== undefined) ctx.emit('llm-deepseek/request-identity', identity)
     yield* chunks
   }
 }
@@ -112,12 +153,12 @@ afterEach(async () => {
   await Promise.all(homes.splice(0).map(home => rm(home, { recursive: true, force: true })))
 })
 
-describe('Harness 0.1.1-rc.2 usage observer', () => {
+describe('Harness 0.1.7-rc.1 usage observer', () => {
   it('resolves the default DeepSeek connection when settings have no provider section', async () => {
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(MemorySettings).await()
-    await ctx.plugin(MemoryCredentials, API_KEY).await()
+    await ctx.plugin(MemoryCredentials, { value: () => API_KEY }).await()
 
     await expect(currentKeyFingerprint(ctx)).resolves.toBe(createHash('sha256').update(API_KEY).digest('hex'))
     await expect(currentUsageIdentity(ctx)).resolves.toMatchObject({
@@ -132,7 +173,7 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     const settle = vi.fn(() => Promise.resolve())
     const fail = vi.fn()
     installUsageObserver(ctx, { settle, fail })
-    ctx.on('llm/stream', usageStream(
+    ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity(),
       { type: 'usage', usage: { inputTokens: 20, outputTokens: 30, cacheReadTokens: 10 } },
       { type: 'usage', usage: { inputTokens: 200, outputTokens: 300, cacheReadTokens: 100 } },
     ))
@@ -140,7 +181,7 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     expect(await consume(ctx)).toHaveLength(2)
     expect(settle).toHaveBeenCalledOnce()
     expect(settle).toHaveBeenCalledWith({
-      keyFingerprint: createHash('sha256').update(API_KEY).digest('hex'),
+      keyFingerprint: API_KEY_FINGERPRINT,
       officialEndpoint: true,
       model: 'deepseek-v4-flash',
       occurredAt: REQUEST_TIME,
@@ -160,7 +201,7 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     const settle = vi.fn(() => Promise.resolve())
     const fail = vi.fn()
     installUsageObserver(ctx, { settle, fail })
-    ctx.on('llm/stream', usageStream(
+    ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity('https://gateway.example/v1'),
       { type: 'usage', usage: { inputTokens: -1, outputTokens: 1 } },
     ))
 
@@ -170,10 +211,10 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
   })
 
   it('records optional cache-write usage and the explicit request purpose', async () => {
-    const ctx = await harness({ baseURL: 'https://api.deepseek.com/v1' })
+    const ctx = await harness({ baseURL: 'https://api.deepseek.com' })
     const settle = vi.fn(() => Promise.resolve())
     installUsageObserver(ctx, { settle, fail: vi.fn() })
-    ctx.on('llm/stream', usageStream(
+    ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity('https://api.deepseek.com'),
       { type: 'usage', usage: { inputTokens: 2, outputTokens: 3, cacheWriteTokens: 4 } },
     ))
 
@@ -200,7 +241,7 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     const ctx = await harness({ baseURL: 'https://api.deepseek.com/anthropic/' })
     const settle = vi.fn(() => Promise.resolve())
     installUsageObserver(ctx, { settle, fail: vi.fn() })
-    ctx.on('llm/stream', usageStream(
+    ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity('https://api.deepseek.com/anthropic/'),
       { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     ))
 
@@ -213,29 +254,81 @@ describe('Harness 0.1.1-rc.2 usage observer', () => {
     })
   })
 
-  it('contains credential-resolution failures', async () => {
+  it('settles from the request identity without re-resolving a failing current credential', async () => {
     const credentialFailure = await harness({ key: new Error('credential unavailable') })
+    const settle = vi.fn(() => Promise.resolve())
     const fail = vi.fn()
-    installUsageObserver(credentialFailure, { settle: vi.fn(() => Promise.resolve()), fail })
-    credentialFailure.on('llm/stream', usageStream(
+    installUsageObserver(credentialFailure, { settle, fail })
+    credentialFailure.on('llm/stream', usageStream(credentialFailure, apiKeyIdentity(),
       { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     ))
 
     await consume(credentialFailure)
-    expect(fail).toHaveBeenCalledWith(expect.objectContaining({ message: 'credential unavailable' }))
+    expect(settle).toHaveBeenCalledOnce()
+    expect(fail).not.toHaveBeenCalled()
+    await expect(currentUsageIdentity(credentialFailure)).rejects.toThrow('credential unavailable')
   })
 
-  it('ignores unconfigured keys and non-DeepSeek routes', async () => {
+  it('does not attribute account-authenticated usage to the configured API key', async () => {
+    const ctx = await harness({ accountToken: 'account-token' })
+    const settle = vi.fn(() => Promise.resolve())
+    const fail = vi.fn()
+    installUsageObserver(ctx, { settle, fail })
+    ctx.on('llm/stream', usageStream(ctx, {
+      baseURL: LlmDeepSeek.PUBLIC_BASE_URL,
+      authentication: { kind: 'account' },
+    },
+    { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
+    ))
+
+    await consume(ctx)
+
+    expect(settle).not.toHaveBeenCalled()
+    expect(fail).not.toHaveBeenCalled()
+    await expect(currentUsageIdentity(ctx)).resolves.toBeUndefined()
+  })
+
+  it('reports missing request identity without guessing from an unconfigured current key', async () => {
     const ctx = await harness({ key: undefined })
     const settle = vi.fn(() => Promise.resolve())
-    installUsageObserver(ctx, { settle, fail: vi.fn() })
-    ctx.on('llm/stream', usageStream(
+    const fail = vi.fn()
+    installUsageObserver(ctx, { settle, fail })
+    ctx.on('llm/stream', usageStream(ctx, undefined,
       { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     ))
 
     await consume(ctx)
     await consume(ctx, 'another-provider')
     expect(settle).not.toHaveBeenCalled()
+    expect(fail).toHaveBeenCalledOnce()
+    await expect(currentKeyFingerprint(ctx)).resolves.toBeUndefined()
+  })
+
+  it('keeps the authentication selected by an in-flight request while current login state switches', async () => {
+    let key: string | undefined = API_KEY
+    let accountToken: string | undefined
+    const requestSelected = Promise.withResolvers<undefined>()
+    const ctx = await harness({
+      key: () => key,
+      accountToken: () => accountToken,
+      credentialReadBarrier: () => requestSelected.promise,
+    })
+    const settle = vi.fn(() => Promise.resolve())
+    const fail = vi.fn()
+    installUsageObserver(ctx, { settle, fail })
+    ctx.on('llm/stream', async function* (_options, _next) {
+      ctx.emit('llm-deepseek/request-identity', apiKeyIdentity())
+      key = 'replacement-key'
+      accountToken = 'new-account-token'
+      requestSelected.resolve(undefined)
+      yield { type: 'usage', usage: { inputTokens: 3, outputTokens: 5 } }
+    })
+
+    await consume(ctx)
+
+    expect(settle).toHaveBeenCalledWith(expect.objectContaining({ keyFingerprint: API_KEY_FINGERPRINT }))
+    expect(fail).not.toHaveBeenCalled()
+    await expect(currentUsageIdentity(ctx)).resolves.toBeUndefined()
   })
 })
 
@@ -250,7 +343,7 @@ describe('UsageAccountingService', () => {
     await ctx.plugin(UsageAccountingService, { dshHome: home }).await()
     const revisions: number[] = []
     ctx.on('usage-accounting/updated', (revision) => { revisions.push(revision) })
-    ctx.on('llm/stream', usageStream(
+    ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity(),
       { type: 'usage', usage: { inputTokens: 20, outputTokens: 30, cacheReadTokens: 10 } },
     ))
 
@@ -278,7 +371,7 @@ describe('UsageAccountingService', () => {
     vi.spyOn(Date, 'now').mockReturnValue(AFFECTED_REQUEST_TIME)
     const home = await mkdtemp(join(tmpdir(), 'dsh-usage-service-repair-'))
     homes.push(home)
-    const fingerprint = createHash('sha256').update(API_KEY).digest('hex')
+    const fingerprint = API_KEY_FINGERPRINT
     const usage = {
       cacheHitInputTokens: 10,
       cacheMissInputTokens: 20,
@@ -322,7 +415,7 @@ describe('UsageAccountingService', () => {
     const asyncFailure = (() => Promise.reject(new Error('async listener failed'))) as () => void
     ctx.on('usage-accounting/updated', asyncFailure)
     ctx.on('usage-accounting/updated', () => { throw Object.assign(new Error('invariant listener failed'), { code: 'INVARIANT' }) })
-    ctx.on('llm/stream', usageStream(
+    ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity(),
       { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     ))
 

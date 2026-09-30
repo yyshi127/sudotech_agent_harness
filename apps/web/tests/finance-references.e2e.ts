@@ -9,6 +9,7 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import type {} from '@deepseek-ai/dsh-tools'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 const queries = [
   { kind: 'subjects', name: '费用' }, { kind: 'auxiliary-categories' }, { kind: 'auxiliary-items', categoryCode: '01' },
@@ -46,10 +47,7 @@ class ReferenceAdapter extends LlmAdapter {
 
 it.skipIf(webClientProfile() !== 'xiaojing')('queries five reference kinds without guessing same-name records or writing to the vendor', async () => {
   vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
-  const scaffold = await launchWebScaffold({ agentPresets: { default: 'standard', roots: [
-    { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' },
-    { path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url)), trust: 'system' },
-  ] } })
+  const scaffold = await launchWebScaffold({ agentPresets: { default: 'standard', definitions: [financePresetDefinition()] } })
   const browser = await chromium.launch()
   const originalFetch = globalThis.fetch
   const paths: string[] = []

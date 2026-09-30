@@ -6,6 +6,10 @@
 !include "${BUILD_RESOURCES_DIR}\installer-shortcuts.nsh"
 
 !ifndef BUILD_UNINSTALLER
+  !include "${__FILEDIR__}\..\scripts\installer-directories.nsh"
+!endif
+
+!ifndef BUILD_UNINSTALLER
   !define MUI_CUSTOMFUNCTION_GUIINIT xiaojingInstallerSetIcon
   !define MUI_CUSTOMFUNCTION_ABORT xiaojingInstallerAbortRequested
 !endif
@@ -55,6 +59,7 @@ xiaojingRefreshShortcutsRetry:
     SetErrorLevel 2
     Quit
   ${EndIf}
+  !insertmacro dshFinishDirectories
   Call xiaojingFinalizeInstallSection
 !macroend
 

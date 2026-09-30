@@ -1,7 +1,7 @@
 /** Harness-version adapter for Finance preset and blank-session checks. */
 
 import type { Session } from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-agent-presets'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 
 /** Stable Xiaojing Finance preset id. */
 export const FINANCE_PRESET_ID = 'finance'

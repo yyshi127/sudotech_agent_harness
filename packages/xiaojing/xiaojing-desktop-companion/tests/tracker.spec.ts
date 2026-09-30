@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+import { createToolResultMessage } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent, SessionEventMap, SessionEventType } from '@deepseek-ai/dsh-session'
 import { ApprovalRequestId } from '@deepseek-ai/dsh-user-approval/types'
 import { CompanionTracker } from '../src/tracker.ts'
@@ -9,6 +10,18 @@ function event<T extends SessionEventType>(type: T, data: SessionEventMap[T]): S
 }
 
 describe('CompanionTracker', () => {
+  it('returns to thinking after a current-format tool result settles the running call', () => {
+    const tracker = new CompanionTracker()
+    const callId = ToolCallId('completed-call')
+    tracker.ingest('a', event('turn/start', { turn: 1 }), 0)
+    tracker.ingest('a', event('tool/call', { turn: 1, step: 1, callId, name: 'read', arguments: '{}' }), 1)
+    expect(tracker.snapshot(1).state).toBe('executing')
+    tracker.ingest('a', event('tool/result', {
+      turn: 1, step: 1, message: createToolResultMessage({ callId, isError: false, content: [] }),
+    }), 2)
+    expect(tracker.snapshot(2).state).toBe('thinking')
+  })
+
   it('folds thinking, tool execution, approval, failure, and expiry in priority order', () => {
     const tracker = new CompanionTracker()
     const approvalId = ApprovalRequestId('approval-1')

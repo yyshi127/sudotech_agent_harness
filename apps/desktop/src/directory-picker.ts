@@ -7,8 +7,15 @@ import { DESKTOP_IPC, assertDesktopSender } from './ipc.ts'
 /**
  * Install the application-lifetime directory picker IPC handler.
  * @param getWindow - Current local application window; shell pages and subframes cannot open dialogs.
+ * @param defaultPath - Product-owned starting directory when the renderer supplies no hint.
  */
-export function installDesktopDirectoryPicker(getWindow: () => BrowserWindow | undefined): void {
+export function installDesktopDirectoryPicker(
+  getWindow: () => BrowserWindow | undefined,
+  defaultPath?: string,
+): void {
+  if (defaultPath !== undefined && !isAbsolute(defaultPath)) {
+    throw new Error('dsh desktop: directory picker default path must be absolute')
+  }
   const pending = new WeakMap<BrowserWindow, Promise<string | null>>()
   ipcMain.handle(DESKTOP_IPC.directoryPick, async (event, initialPath: unknown) => {
     const window = getWindow()
@@ -27,7 +34,7 @@ export function installDesktopDirectoryPicker(getWindow: () => BrowserWindow | u
     window.focus()
     const result = dialog.showOpenDialog(window, {
       properties: ['openDirectory', 'createDirectory'],
-      ...(initialPath === undefined ? {} : { defaultPath: initialPath }),
+      ...(initialPath === undefined && defaultPath === undefined ? {} : { defaultPath: initialPath ?? defaultPath }),
     }).then(
       ({ canceled, filePaths }) => window.isDestroyed() || canceled ? null : filePaths[0] ?? null,
     ).finally(() => { pending.delete(window) })

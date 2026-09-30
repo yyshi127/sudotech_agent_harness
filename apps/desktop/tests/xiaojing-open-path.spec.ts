@@ -1,22 +1,24 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { BrowserWindow } from 'electron'
+import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  XIAOJING_OPEN_PATH_CHANNEL,
-  registerXiaojingOpenPath,
-} from '../xiaojing-open-path.mjs'
+import { XIAOJING_DESKTOP_IPC } from '../src/ipc.ts'
 
-interface OpenEvent {
-  readonly sender: unknown
-  readonly senderFrame: unknown
-}
+type OpenHandler = (event: IpcMainInvokeEvent, path: unknown) => Promise<void>
 
-type OpenHandler = (event: OpenEvent, path: unknown) => Promise<void>
+const electron = vi.hoisted(() => ({
+  handle: vi.fn<(channel: string, handler: OpenHandler) => void>(),
+  openPath: vi.fn<(path: string) => Promise<string>>().mockResolvedValue(''),
+}))
+vi.mock('electron', () => ({ ipcMain: { handle: electron.handle }, shell: { openPath: electron.openPath } }))
+const { installXiaojingOpenPath } = await import('../src/xiaojing-open-path.ts')
+
 const roots: string[] = []
 
 afterEach(async () => {
+  vi.clearAllMocks()
+  electron.openPath.mockResolvedValue('')
   await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
 })
 
@@ -26,50 +28,44 @@ async function tempRoot(): Promise<string> {
   return root
 }
 
-function createHarness() {
-  let registeredHandler: OpenHandler | undefined
-  const handle = vi.fn((_channel: string, handler: OpenHandler) => { registeredHandler = handler })
-  const openPath = vi.fn<(path: string) => Promise<string>>().mockResolvedValue('')
-  const webContents = { mainFrame: {} }
-  const windowMock = { webContents, isDestroyed: vi.fn(() => false) }
-  registerXiaojingOpenPath({
-    ipcMain: { handle },
-    shell: { openPath },
-    getWindow: () => windowMock as unknown as BrowserWindow,
-  })
-  if (registeredHandler === undefined) throw new Error('path-open handler was not installed')
-  return { handler: registeredHandler, openPath, webContents, window: windowMock }
+function fixture() {
+  const frame = { url: 'dsh-app://app/' }
+  const webContents = { mainFrame: frame }
+  const window = { webContents, isDestroyed: vi.fn(() => false) }
+  installXiaojingOpenPath(() => window as unknown as BrowserWindow)
+  expect(electron.handle.mock.calls.at(-1)?.[0]).toBe(XIAOJING_DESKTOP_IPC.openPath)
+  const handler = electron.handle.mock.calls.at(-1)?.[1]
+  if (handler === undefined) throw new Error('path-open handler was not installed')
+  return {
+    handler,
+    event: { sender: webContents, senderFrame: frame } as unknown as IpcMainInvokeEvent,
+  }
 }
 
 describe('Xiaojing desktop path opener', () => {
   it('opens an existing absolute directory through Electron shell', async () => {
     const directory = await tempRoot()
-    const { handler, openPath, webContents } = createHarness()
-    await expect(handler({ sender: webContents, senderFrame: webContents.mainFrame }, directory))
-      .resolves.toBeUndefined()
-    expect(openPath).toHaveBeenCalledExactlyOnceWith(directory)
+    const { handler, event } = fixture()
+    await expect(handler(event, directory)).resolves.toBeUndefined()
+    expect(electron.openPath).toHaveBeenCalledExactlyOnceWith(directory)
   })
 
   it('rejects files, missing paths, relative paths, and unowned renderers', async () => {
     const directory = await tempRoot()
     const file = join(directory, 'file.txt')
     await writeFile(file, 'fixture')
-    const { handler, openPath, webContents } = createHarness()
-    const event = { sender: webContents, senderFrame: webContents.mainFrame }
+    const { handler, event } = fixture()
     await expect(handler(event, file)).rejects.toThrow('existing directory')
     await expect(handler(event, join(directory, 'missing'))).rejects.toThrow('existing directory')
     await expect(handler(event, 'relative')).rejects.toThrow('must be absolute')
-    await expect(handler({ sender: {}, senderFrame: webContents.mainFrame }, directory))
-      .rejects.toThrow('unowned renderer')
-    expect(openPath).not.toHaveBeenCalled()
+    await expect(handler({ ...event, sender: {} } as IpcMainInvokeEvent, directory)).rejects.toThrow('unowned renderer')
+    expect(electron.openPath).not.toHaveBeenCalled()
   })
 
-  it('surfaces Electron shell failures and uses the dedicated channel', async () => {
+  it('surfaces Electron shell failures', async () => {
     const directory = await tempRoot()
-    const { handler, openPath, webContents } = createHarness()
-    openPath.mockResolvedValue('no association')
-    await expect(handler({ sender: webContents, senderFrame: webContents.mainFrame }, directory))
-      .rejects.toThrow('no association')
-    expect(XIAOJING_OPEN_PATH_CHANNEL).toBe('dsh-desktop:open-path')
+    const { handler, event } = fixture()
+    electron.openPath.mockResolvedValue('no association')
+    await expect(handler(event, directory)).rejects.toThrow('no association')
   })
 })

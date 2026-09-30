@@ -1,5 +1,5 @@
 import { Context } from '@deepseek-ai/cordis'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -58,7 +58,7 @@ it.each([
     const reader = await ctx.sessionPersistence.open(id, access)
     try {
       const result = await reader.read()
-      expect(reader.header.version).toBe(3)
+      expect(reader.header.version).toBe(SESSION_FORMAT_VERSION)
       expect(result.events.filter(event => event.type.startsWith('finance/')).map(event => ({
         type: event.type, data: event.data,
       }))).toEqual(financeRows)
@@ -78,7 +78,7 @@ it.each([
     await ctx.fiber.dispose()
   }
   expect(await readFile(path)).toEqual(source)
-  const successor = generationLogPath(root, undefined, id, 3, 'zstd')
+  const successor = generationLogPath(root, undefined, id, SESSION_FORMAT_VERSION, 'zstd')
   if (access === 'write') expect((await readFile(successor)).length).toBeGreaterThan(0)
   else await expect(readFile(successor)).rejects.toMatchObject({ code: 'ENOENT' })
 })

@@ -4,7 +4,7 @@
     {
       "id": "desktop-api-key-environment-isolation",
       "paths": [
-        "apps/desktop/main.mjs"
+        "apps/desktop/src/xiaojing-product.ts"
       ]
     },
     {

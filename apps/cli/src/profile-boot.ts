@@ -19,9 +19,7 @@ import {
   boot,
   composeEntries,
   readProfilePatches,
-  createProfileResolutionGeneration,
-  healProfilesModuleFallback,
-  healIsolatedProfileModuleFallback,
+  createRuntimeResolution,
   initProfile,
   installFailLoud,
   loadOverlayPatches,
@@ -32,10 +30,8 @@ import {
   resolveProfileDir,
   type ProfileContext,
   type Profile,
-  type ProfileResolutionGeneration,
-  type ProfileResolutionMode,
+  type RuntimeResolution,
 } from '@deepseek-ai/dsh-app-boot'
-import { SHIPPED_PRESET_ROOT, type PresetRoot } from '@deepseek-ai/dsh-agent-presets'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { installProxyFromEnvironment } from '@deepseek-ai/dsh-http-proxy'
 import { DSH_LAUNCH_ENVIRONMENT_KEY, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
@@ -44,46 +40,22 @@ import { createProcessShutdown, type ProcessShutdown } from './process-shutdown.
 
 const NAME = 'dsh'
 
-/** Xiaojing-only agent-preset root, added only for the product build profile. */
-const XIAOJING_PRESET_ROOT = fileURLToPath(new URL('../config/xiaojing-agent-presets/', import.meta.url))
-
-/** Create one independent descriptor for the Xiaojing preset root. */
-function xiaojingPresetRoot(): PresetRoot {
-  return { path: XIAOJING_PRESET_ROOT, trust: 'system' }
-}
+/** Xiaojing-only declarative Finance preset patch. */
+const XIAOJING_FINANCE_PRESET_PATCH = fileURLToPath(
+  new URL('../config/xiaojing-agent-presets/finance/agent.cordis.yml', import.meta.url),
+)
 
 /**
- * Resolve the immutable system-preset roots visible to one Client build profile.
+ * Load the product preset declarations visible to one Client build profile.
  * @param clientProfile - active Client build profile; undefined is the official-safe default.
- * @returns the built-in presets plus Xiaojing presets only for the Xiaojing profile.
+ * @returns the Finance declaration only for the Xiaojing profile.
  */
-export function shippedPresetRoots(
+export function xiaojingPresetPatches(
   clientProfile: string | undefined = process.env.DSH_CLIENT_BUILD_PROFILE,
-): PresetRoot[] {
-  return [
-    { path: SHIPPED_PRESET_ROOT, trust: 'system' },
-    ...(clientProfile === 'xiaojing'
-      ? [xiaojingPresetRoot()]
-      : []),
-  ]
-}
-
-/** Add the product preset root without replacing deployment-added roots. */
-function xiaojingPresetPatch(patches: PatchOptions[]): PatchOptions | undefined {
-  if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing') return undefined
-  const row = composeEntries([patches]).find(entry => entry.id === 'agent-presets')
-  if (row === undefined) return undefined
-  const config = typeof row.config === 'object' && row.config !== null && !Array.isArray(row.config)
-    ? row.config as Record<string, unknown>
-    : {}
-  const roots: unknown[] = Array.isArray(config.roots) ? config.roots : []
-  return {
-    id: 'agent-presets',
-    config: {
-      ...config,
-      roots: [...roots, xiaojingPresetRoot()],
-    },
-  }
+): PatchOptions[] {
+  return clientProfile === 'xiaojing'
+    ? loadOverlayPatches(NAME, XIAOJING_FINANCE_PRESET_PATCH)
+    : []
 }
 
 /** Launcher-owned readiness signal committed only after boot and host setup succeed. */
@@ -220,8 +192,8 @@ export function prepareProfile(name: string, userLayer = true, fromDefaultProfil
 /** One profile's patch layers, in application order. */
 interface ComposedProfile {
   profile: Profile
-  /** Immutable package fallback selected before any plugin imports. */
-  resolution: ProfileResolutionGeneration
+  /** Immutable runtime resolution computed before any plugin imports. */
+  resolution: RuntimeResolution
   /** Command-line overlay contents, frozen for this invocation. */
   overlays: PatchOptions[]
 }
@@ -235,7 +207,6 @@ interface ComposedProfile {
  * then the telemetry switch.
  * @param name - the profile name.
  * @param patchFiles - `--patch` overlay paths, in argv order.
- * @param resolutionMode - runtime lookup, disk links, or dual verification of both.
  * @param fromDefaultProfile - shipped template for a missing named profile.
  * @param resolvedProfile - application-owned profile and installation.
  * @returns the profile and its patch layers.
@@ -243,17 +214,13 @@ interface ComposedProfile {
 async function composeProfile(
   name: string,
   patchFiles: readonly string[],
-  resolutionMode: ProfileResolutionMode,
   fromDefaultProfile?: string,
   resolvedProfile?: ResolvedProfileRuntime,
 ): Promise<ComposedProfile> {
   const profile = resolvedProfile?.profile ?? prepareProfile(name, true, fromDefaultProfile)
   if (resolvedProfile !== undefined) writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
   const resolutionOptions = { installAnchor: resolvedProfile?.installAnchor ?? INSTALL_ANCHOR, profile }
-  if (resolvedProfile !== undefined && resolutionMode !== 'runtime') healIsolatedProfileModuleFallback(resolvedProfile)
-  const resolution = resolutionMode === 'runtime' || resolvedProfile !== undefined
-    ? await createProfileResolutionGeneration(resolutionOptions)
-    : await healProfilesModuleFallback(resolutionOptions)
+  const resolution = await createRuntimeResolution(resolutionOptions)
   const overlays = patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file)))
   return { profile, resolution, overlays }
 }
@@ -282,8 +249,6 @@ export interface RunProfileOptions {
   args: readonly string[]
   /** Application-owned package runtime, scoped to plugin package operations. */
   packageManager?: ProfileContext['packageManager']
-  /** Module fallback backend; defaults to runtime. Plain Node callers may override it; pkg executables always use runtime. */
-  resolutionMode?: ProfileResolutionMode
 }
 
 /**
@@ -303,8 +268,6 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     (message) => { process.stderr.write(`${NAME}: ${message}\n`) },
   )
 
-  const packaged = (process as NodeJS.Process & { pkg?: unknown }).pkg !== undefined
-  const resolutionMode = packaged ? 'runtime' : options.resolutionMode ?? 'runtime'
   const app: { current?: Context } = {}
   let disposal: Promise<void> | undefined
   const dispose = (): Promise<void> => disposal ??= (async () => {
@@ -317,7 +280,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
   })()
   try {
     const composed = await composeProfile(
-      options.profile, options.patchFiles, resolutionMode, options.fromDefaultProfile, options.resolvedProfile,
+      options.profile, options.patchFiles, options.fromDefaultProfile, options.resolvedProfile,
     )
     const appReady = createAppReady()
     const shutdown = createProcessShutdown(dispose)
@@ -338,7 +301,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
     })
 
     const rootConfig = join(composed.profile.dir, PROFILE_ROOT_FILENAME)
-    let profileContext: ProfileContext = {
+    const profileContext: ProfileContext = {
       name: options.profile,
       ...(options.packageManager === undefined ? {} : { packageManager: options.packageManager }),
       dir: composed.profile.dir, patchPath: composed.profile.patchPath,
@@ -347,14 +310,11 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       cwd: process.cwd(), home: resolveDshHome(),
       overlays: composed.overlays, telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
     }
-    let patches = readProfilePatches(NAME, profileContext, composed.profile)
-    const productPresetPatch = xiaojingPresetPatch(patches)
-    if (productPresetPatch !== undefined) {
-      profileContext = {
-        ...profileContext,
-        overlays: [...profileContext.overlays, productPresetPatch],
-      }
-      patches = readProfilePatches(NAME, profileContext, composed.profile)
+    const patches = readProfilePatches(NAME, profileContext, composed.profile)
+    if (composeEntries([patches]).some(row => row.id === 'agent-preset-registry')) {
+      const productPatches = xiaojingPresetPatches()
+      const bundlePatchCount = composed.profile.layers.reduce((sum, layer) => sum + layer.patches.length, 0)
+      patches.splice(bundlePatchCount, 0, ...productPatches)
     }
     const ctx = await boot(NAME, rootConfig, patches, async (hostCtx) => {
       app.current = hostCtx
@@ -362,9 +322,8 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       // Before any config-tree entry mounts, so plugins resolve all launch-time
       // environment values from the same immutable launch snapshot.
       hostCtx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, options.environment)
-      await hostCtx.plugin(PluginPackages, resolutionMode === 'link' ? {} : {
-        generation: composed.resolution,
-        behavior: resolutionMode === 'dual' ? 'verify' : 'enforce',
+      await hostCtx.plugin(PluginPackages, {
+        resolution: composed.resolution,
       })
       // The command line and bounded exit request are launcher facts available
       // to every app plugin that injects the argument snapshot.

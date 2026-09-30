@@ -11,7 +11,7 @@ const { installDesktopDirectoryPicker } = await import('../src/directory-picker.
 
 beforeEach(() => { vi.resetAllMocks() })
 
-function fixture() {
+function fixture(defaultPath?: string) {
   const frame = { url: 'dsh-app://app/' }
   const window = {
     webContents: { mainFrame: frame },
@@ -22,7 +22,7 @@ function fixture() {
     focus: vi.fn(),
   }
   let current: BrowserWindow | undefined = window as unknown as BrowserWindow
-  installDesktopDirectoryPicker(() => current)
+  installDesktopDirectoryPicker(() => current, defaultPath)
   expect(electron.handle.mock.calls[0]?.[0]).toBe(DESKTOP_IPC.directoryPick)
   const handler = electron.handle.mock.calls[0]![1]
   const event = { sender: window.webContents, senderFrame: frame } as unknown as IpcMainInvokeEvent
@@ -67,6 +67,20 @@ describe('Desktop directory picker', () => {
     electron.showOpenDialog.mockClear()
     await expect(f.handler(f.event, 'relative')).rejects.toThrow('absolute')
     expect(electron.showOpenDialog).not.toHaveBeenCalled()
+  })
+
+  it('uses the product default when the renderer supplies no initial directory', async () => {
+    const f = fixture('C:\\Users\\fixture\\Documents\\小兢会计工作区\\办公工作区')
+    electron.showOpenDialog.mockResolvedValue({ canceled: true, filePaths: [] })
+    await expect(f.handler(f.event)).resolves.toBeNull()
+    expect(electron.showOpenDialog).toHaveBeenCalledExactlyOnceWith(f.window, {
+      properties: ['openDirectory', 'createDirectory'],
+      defaultPath: 'C:\\Users\\fixture\\Documents\\小兢会计工作区\\办公工作区',
+    })
+  })
+
+  it('rejects a relative product default before registering IPC', () => {
+    expect(() => { fixture('relative') }).toThrow('default path must be absolute')
   })
 
   it('discards the selected path after the parent is destroyed', async () => {

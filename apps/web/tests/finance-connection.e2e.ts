@@ -6,6 +6,7 @@ import { chromium, type Locator, type Page } from 'playwright'
 import { expect, it, vi } from 'vitest'
 import type {} from '@deepseek-ai/dsh-xiaojing-finance-domain'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
+import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
 async function verifyConnectionIcon(row: Locator, connected: boolean): Promise<void> {
   const button = row.getByRole('button', { name: /^(连接账套|重新连接账套|正在验证连接和账套) ·/ })
@@ -108,10 +109,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('verifies one saved Youcheng ledger
   vi.stubEnv('XIAOJING_FINANCE_WORKSPACE_ROOT', undefined)
   const agentPresets = {
     default: 'standard',
-    roots: [
-      { path: fileURLToPath(new URL('../../cli/config/agent-presets', import.meta.url)), trust: 'system' as const },
-      { path: fileURLToPath(new URL('../../cli/config/xiaojing-agent-presets', import.meta.url)), trust: 'system' as const },
-    ],
+    definitions: [financePresetDefinition()],
   }
   const scaffold = await launchWebScaffold({ agentPresets })
   const browser = await chromium.launch()

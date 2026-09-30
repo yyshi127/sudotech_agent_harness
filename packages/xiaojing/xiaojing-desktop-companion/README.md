@@ -6,7 +6,7 @@ Host-side task-state aggregation for the Xiaojing Windows desktop companion. Thi
 
 ## Composition and State
 
-The plugin is loaded only by the Xiaojing product composition. It tracks open turns, unfinished tools, unresolved approvals, recent terminal results, and the sanitized Weixin online flag. The global state priority is approval, failure, execution, thinking, success, then idle. Completed turns retain success for 2.5 seconds, while failed, blocked, max-token, and interrupted turns retain failure for 5 seconds. Concurrent active turns contribute only a count.
+The plugin is loaded only by the Xiaojing product composition. It tracks open turns, unfinished tools, unresolved approvals, recent terminal results, and the sanitized Weixin online flag. The global state priority is approval, failure, execution, thinking, success, then idle. Completed turns retain success for 2.5 seconds, while failed, blocked, max-token, and interrupted turns retain failure for 5 seconds. Concurrent active turns contribute only a count. Tool completion reads the call id from the tool message source, including results with empty content.
 
 The exported `CompanionSnapshot` contains `state`, `activeTaskCount`, `approvalCount`, `weixinOnline`, and `revision`. It never contains session titles, user instructions, file names, tool arguments, model replies, API keys, or Weixin credentials. The tracker retains only lifecycle counters and timestamps per session and discards a session record when the session is disposed.
 

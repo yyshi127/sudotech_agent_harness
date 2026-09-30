@@ -1,10 +1,12 @@
-/** Harness 0.1.1-rc.2 compatibility adapter for DeepSeek request observation. */
+/** Harness 0.1.7-rc.1 compatibility adapter for DeepSeek request observation. */
 
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { GenerateOptions, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
-import type { Config as DeepSeekConfig } from '@deepseek-ai/dsh-llm-deepseek'
-import { MESSAGES_BASE_URL, PUBLIC_BASE_URL, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
+import type { DeepSeekRequestIdentity, Options as DeepSeekOptions } from '@deepseek-ai/dsh-llm-deepseek'
+import { PUBLIC_BASE_URL, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
+import type {} from '@deepseek-ai/dsh-deepseek-account'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import type {} from '@deepseek-ai/dsh-settings'
 import type { UsageBuckets } from './pricing.ts'
@@ -12,10 +14,11 @@ import type { UsageBuckets } from './pricing.ts'
 const PROVIDER = 'deepseek-official'
 const SETTINGS_NS = 'llm-deepseek'
 const BASE_URL_ENV = 'DEEPSEEK_BASE_URL'
-const OFFICIAL_ENDPOINTS = [PUBLIC_BASE_URL, MESSAGES_BASE_URL].map((baseURL) => {
-  const url = new URL(baseURL)
-  return { origin: url.origin, pathname: normalizedPathname(url.pathname) }
-})
+const publicEndpoint = new URL(PUBLIC_BASE_URL)
+const OFFICIAL_ENDPOINT = {
+  origin: publicEndpoint.origin,
+  pathname: normalizedPathname(publicEndpoint.pathname),
+}
 
 /** One actual provider request ready for durable settlement. */
 export interface UsageObservation {
@@ -46,9 +49,7 @@ function officialEndpoint(baseURL: string): boolean {
     const actual = new URL(baseURL)
     if (actual.username || actual.password || actual.search || actual.hash) return false
     const pathname = normalizedPathname(actual.pathname)
-    return OFFICIAL_ENDPOINTS.some(endpoint => (
-      actual.origin === endpoint.origin && pathname === endpoint.pathname
-    ))
+    return actual.origin === OFFICIAL_ENDPOINT.origin && pathname === OFFICIAL_ENDPOINT.pathname
   } catch {
     return false
   }
@@ -78,56 +79,79 @@ export interface CurrentUsageIdentity {
   recoverDefaultMessagesHistory: boolean
 }
 
-async function identityOf(ctx: Context): Promise<CurrentUsageIdentity | undefined> {
-  const raw = ctx.settings.get(SETTINGS_NS) as DeepSeekConfig | undefined
+async function currentIdentityOf(ctx: Context): Promise<CurrentUsageIdentity | undefined> {
+  const settingsNs = ctx.get('llm')?.listConfigurableProviders()
+    .find(entry => entry.provider === PROVIDER)?.settingsNs ?? SETTINGS_NS
+  const value = ctx.settings.describe().find(entry => entry.ns === settingsNs)?.value
+  const raw = value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as DeepSeekOptions
+    : {}
   const environment = launchEnvironmentOf(ctx)
-  const connection = resolveAdapterOptions(raw ?? {}, environment)
+  const connection = resolveAdapterOptions(raw, environment)
+  if (await ctx.get('deepseekAccount')?.resolveToken(connection.baseURL) !== undefined) return undefined
   const resolved = await ctx.credentials.resolve(connection.apiKeyEnv)
   if (resolved === undefined) return undefined
   return {
     keyFingerprint: fingerprint(resolved.value),
     officialEndpoint: officialEndpoint(connection.baseURL),
-    recoverDefaultMessagesHistory: connection.protocol === 'messages'
-      && raw?.baseURL === undefined
+    recoverDefaultMessagesHistory: raw.baseURL === undefined
       && environment.get(BASE_URL_ENV) === undefined
       && normalizedPathname(new URL(connection.baseURL).pathname)
-        === normalizedPathname(new URL(MESSAGES_BASE_URL).pathname),
+        === normalizedPathname(new URL(PUBLIC_BASE_URL).pathname),
   }
 }
 
+interface RequestIdentityCapture {
+  identity?: DeepSeekRequestIdentity
+}
+
 async function* observe(
-  ctx: Context,
+  requestIdentities: AsyncLocalStorage<RequestIdentityCapture>,
   options: GenerateOptions,
   next: () => AsyncIterable<StreamChunk>,
   callbacks: UsageObserverCallbacks,
 ): AsyncIterable<StreamChunk> {
   const occurredAt = Date.now()
-  const identity = identityOf(ctx).then(
-    value => ({ ok: true as const, value }),
-    (error: unknown) => ({ ok: false as const, error }),
-  )
+  const capture: RequestIdentityCapture = {}
+  const stream = requestIdentities.run(capture, next)
+  const iterator = stream[Symbol.asyncIterator]()
   let settled = false
-  for await (const chunk of next()) {
-    if (!settled && chunk.type === 'usage') {
-      settled = true
-      const requestIdentity = await identity
-      if (!requestIdentity.ok) callbacks.fail(requestIdentity.error)
-      else if (requestIdentity.value !== undefined) {
-        try {
-          await callbacks.settle({
-            keyFingerprint: requestIdentity.value.keyFingerprint,
-            officialEndpoint: requestIdentity.value.officialEndpoint,
-            model: options.model,
-            occurredAt,
-            purpose: options.purpose ?? 'conversation',
-            usage: bucketsOf(chunk.usage),
-          })
-        } catch (error) {
-          callbacks.fail(error)
+  let completed = false
+  try {
+    while (true) {
+      const item = await requestIdentities.run(capture, () => iterator.next())
+      if (item.done) {
+        completed = true
+        return
+      }
+      const chunk = item.value
+      if (!settled && chunk.type === 'usage') {
+        settled = true
+        const identity = capture.identity
+        if (identity === undefined) {
+          callbacks.fail(new Error('usage-accounting: DeepSeek request did not report its authentication identity'))
+        } else if (identity.authentication.kind === 'api-key') {
+          try {
+            await callbacks.settle({
+              keyFingerprint: identity.authentication.keyFingerprint,
+              officialEndpoint: officialEndpoint(identity.baseURL),
+              model: options.model,
+              occurredAt,
+              purpose: options.purpose ?? 'conversation',
+              usage: bucketsOf(chunk.usage),
+            })
+          } catch (error) {
+            callbacks.fail(error)
+          }
         }
       }
+      yield chunk
     }
-    yield chunk
+  } finally {
+    if (!completed) {
+      const close = iterator.return?.bind(iterator)
+      if (close !== undefined) await requestIdentities.run(capture, () => close())
+    }
   }
 }
 
@@ -138,10 +162,19 @@ async function* observe(
  * @returns listener disposer.
  */
 export function installUsageObserver(ctx: Context, callbacks: UsageObserverCallbacks): () => void {
-  return ctx.on('llm/stream', (options, next) => {
-    if (options.provider !== PROVIDER) return next()
-    return observe(ctx, options, next, callbacks)
+  const requestIdentities = new AsyncLocalStorage<RequestIdentityCapture>()
+  const disposeIdentity = ctx.on('llm-deepseek/request-identity', (identity) => {
+    const capture = requestIdentities.getStore()
+    if (capture !== undefined) capture.identity = identity
   })
+  const disposeStream = ctx.on('llm/stream', (options, next) => {
+    if (options.provider !== PROVIDER) return next()
+    return observe(requestIdentities, options, next, callbacks)
+  })
+  return () => {
+    disposeStream()
+    disposeIdentity()
+  }
 }
 
 /**
@@ -150,7 +183,7 @@ export function installUsageObserver(ctx: Context, callbacks: UsageObserverCallb
  * @returns SHA-256 fingerprint, or undefined when no key is configured.
  */
 export async function currentKeyFingerprint(ctx: Context): Promise<string | undefined> {
-  return (await identityOf(ctx))?.keyFingerprint
+  return (await currentIdentityOf(ctx))?.keyFingerprint
 }
 
 /**
@@ -159,5 +192,5 @@ export async function currentKeyFingerprint(ctx: Context): Promise<string | unde
  * @returns current fingerprint and endpoint classification, or undefined when no key is configured.
  */
 export async function currentUsageIdentity(ctx: Context): Promise<CurrentUsageIdentity | undefined> {
-  return identityOf(ctx)
+  return currentIdentityOf(ctx)
 }
