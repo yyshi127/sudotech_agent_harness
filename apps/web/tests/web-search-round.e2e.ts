@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
@@ -14,13 +15,16 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { WEB_SEARCH_MAX_RESULTS } from '@deepseek-ai/dsh-tool-web'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/web-search-round', import.meta.url))
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/web-search-round/session.v3.jsonl', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/web-search-round/ui.expected.md', import.meta.url))
+const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
+  ? './expected/web-search-round-xiaojing' : '../../../snapshots/web/web-search-round', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
+const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
 const QUERIES = ['DeepSeek Harness snapshot search', 'DeepSeek Harness multi-query search'] as const
 const PROMPT = `Use web_search once with queries ${JSON.stringify(QUERIES)}. Then reply exactly SEARCH_DONE and stop.`
@@ -144,11 +148,13 @@ describe('web e2e: shipped default web search', () => {
   const sessionEvents: SessionEvent[] = []
 
   beforeAll(async () => {
+    if (NATIVE_XIAOJING && MODE === 'record') throw new Error('The Windows Xiaojing fixture is independently authored')
     const search = await startSearchServer(searchRequests)
     searchServer = search.server
     searchBaseURL = search.baseURL
     scaffold = await launchWebScaffold({
       compareReplaySession: true,
+      ...(NATIVE_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
       deepSeekSearch: {
         baseURL: search.baseURL,
         apiKeyEnv: SEARCH_CREDENTIAL_REF,

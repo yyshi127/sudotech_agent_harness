@@ -95,6 +95,10 @@ test('registers into the sidebar', async ({ remote, start }) => {
 
 ### 何时使用
 
+正常释放和启动失败时，`TestClient` 都先等待 React 卸载，再释放根服务，随后移除自己创建的挂载点并释放 jsdom 桩。启动错误与清理错误会一起报告；释放流程在清理后仍然检查未匹配的 Remote 调用。
+
+条目引用已经加载的 bundle 时，使用该 bundle 名称精确匹配的包清单；即使 bundle 链接到载体依赖树之外，也不需要自依赖。其他条目从 bundle 层的依赖中解析，且包名必须与请求名称一致。
+
 当功能套件要在真实运行时下检验 slot、存储、渲染与销毁时使用本测试台——生产 `SlotRegistry`、渲染器与 provide bundle 物化都会被挂载，绝不重实现。它是客户端测试基础设施：永远不触及模型请求，功能包仅以 `devDependencies` 依赖之。
 
 ### 可能出什么问题

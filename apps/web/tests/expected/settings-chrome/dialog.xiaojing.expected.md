@@ -1,63 +1,40 @@
 - dialog "设置":
   - navigation:
     - text: 设置
-    - button "通用设置":
-      - img
-      - text: 通用设置
-    - button "模型":
-      - img
-      - text: 模型
-    - button "插件":
-      - img
-      - text: 插件
-    - button "用量":
-      - img
-      - text: 用量
-    - button "Agent 预设":
-      - img
-      - text: Agent 预设
-    - button "频道":
-      - img
-      - text: 频道
-    - button "附件存储":
-      - img
-      - text: 附件存储
-    - button "浏览器控制":
-      - img
-      - text: 浏览器控制
-    - button "桌面小兢":
-      - img
-      - text: 桌面小兢
-    - button "关于小兢":
-      - img
-      - text: 关于小兢
+    - button "通用设置"
+    - button "模型"
+    - button "内置插件"
+    - button "Agent 预设"
+    - button "用量"
+    - button "频道"
+    - button "附件存储"
+    - button "浏览器控制"
+    - button "桌面小兢"
+    - button "关于小兢"
   - button "打开配置文件"
-  - button "关闭":
-    - img
-    - text: 关闭
-  - text: Agent 预设 对此后新建的会话生效。运行中的会话保持它开始时的预设。
-  - button "标准模式":
-    - text: 标准模式
-    - img
+  - button "关闭"
   - text: 权限 选择新会话的默认权限模式
-  - button "Workspace Write":
-    - text: Workspace Write
-    - img
+  - button "工作区内修改"
   - text: 语言
-  - button "中文":
-    - text: 中文
-    - img
+  - button "中文"
   - text: 外观
-  - button "浅色":
-    - img
-    - text: 浅色
-  - button "深色":
-    - img
-    - text: 深色
-  - button "跟随系统" [pressed]:
-    - img
-    - text: 跟随系统
-  - text: 繁忙时 Enter 键行为 仅在智能体运行时生效；Cmd/Ctrl+Enter 使用另一行为
-  - button "排队发送":
-    - text: 排队发送
-    - img
+  - button "浅色"
+  - button "深色"
+  - button "跟随系统" [pressed]
+  - text: 字号大小 仅影响会话内容的字号 14
+  - button "增大字号"
+  - button "减小字号"
+  - text: px 工作步骤展示 选择希望看到多少工具调用细节
+  - button "详细"
+  - text: 显示代码工作视图 开启后，显示轨迹、本轮代码差异，可选择完整的 Agent 预设切换
+  - switch "显示代码工作视图"
+  - text: 快捷键
+  - paragraph: 查看和编辑当前可用的快捷键和输入操作
+  - button "编辑快捷键"
+  - text: 繁忙时的发送行为 智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为
+  - button "排队发送"
+  - text: 性能与用量 选择性能与用量信息展示的详细程度
+  - button "详细"
+  - text: 在使用官方模型 API 时上传 Session Log 帮助改进 DeepSeek 模型与产品
+  - switch "在使用官方模型 API 时上传 Session Log"
+  - text: 当前版本：{{version}}

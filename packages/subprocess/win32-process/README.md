@@ -34,6 +34,8 @@ This low-level Win32 process library is consumed by the Windows ACL sandbox and 
 
 Process creation sets `STARTF_USESHOWWINDOW` with `SW_HIDE` before target code runs. It preserves console inheritance and does not add `CREATE_NO_WINDOW` or `CREATE_NEW_CONSOLE`, which can fail DLL initialization under the restricted token. Existing parent console windows are not hidden.
 
+Only ordinary current-token creation accepts `childLifetime: 'independent'`. Its Job adds `JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK` while retaining `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, so the target remains owned and its newly created children stay outside this Job. Nested host Jobs can still own those children. Restricted-token creation and capability probing keep their original descendant-owning Job limits.
+
 The Windows ACL sandbox adds SID, DACL, grant, workspace, and public child policy above these primitives.
 
 - **Inherited control descriptor** — Job creation accepts an optional fd-7 pipe. `STARTUPINFO.cbReserved2/lpReserved2` carries an eight-slot CRT descriptor table with standard handles, closed slots 3–6, and the control pipe at slot 7. The table is allocated until CreateProcess returns; temporary handle inheritance is reset on success and failure. Initializing the slot before Node starts avoids overwriting descriptors Node has already allocated.

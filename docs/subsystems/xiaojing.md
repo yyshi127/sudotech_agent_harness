@@ -72,7 +72,7 @@ Semantic Windows UI Automation provider and model-facing tool consumer.
 
 ```ts cordis-catalog
 /**
- * Explain whether one request requires a one-shot user approval.
+ * Explain whether one request requires user approval.
  * @param owner - Agent session that owns the observed Windows targets.
  * @param request - Validated Windows operation.
  * @returns The approval reason, or undefined when the operation may proceed directly.
@@ -81,6 +81,7 @@ approvalReason(owner: SessionId, request: ComputerActionRequest): string | undef
 
 /**
  * Execute one validated Windows operation for an owning session.
+ * Cancellation during helper startup rejects the operation before its request is dispatched.
  * @param owner - Agent session that owns the observed Windows targets.
  * @param request - Windows operation to execute.
  * @param signal - Cancellation signal for the operation.
@@ -768,6 +769,30 @@ research(agent: Agent, request: FinanceEvidenceRequest, signal?: AbortSignal): P
 Types: [Agent](core.md)
 
 Source: [`packages/xiaojing/xiaojing-finance-evidence/src/index.ts`](../../packages/xiaojing/xiaojing-finance-evidence/src/index.ts)
+
+<a id="ctxxiaojingnativebrowsersettings--nativebrowsersettingsservice"></a>
+
+### `ctx.xiaojingNativeBrowserSettings` — `NativeBrowserSettingsService`
+
+Product settings consumed by the native browser runtime.
+
+```ts cordis-catalog
+/**
+ * Read the operator's persisted permission to control existing tabs.
+ * @param browser - browser brand to check.
+ * @returns whether existing-tab control is enabled.
+ */
+enabled(browser: NativeBrowser): boolean
+
+/**
+ * Register the active native runtime, excluding simultaneous replacements.
+ * @param runtime - installation, connection-state, and revocation callbacks.
+ * @returns disposer that removes only this registration.
+ */
+registerRuntime(runtime: NativeBrowserSettingsRuntime): () => void
+```
+
+Source: [`packages/xiaojing/xiaojing-browser-control/src/native-settings-types.ts`](../../packages/xiaojing/xiaojing-browser-control/src/native-settings-types.ts)
 
 <a id="ctxxiaojingweixinchannel--xiaojingweixinchannel"></a>
 

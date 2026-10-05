@@ -8,27 +8,33 @@
 // Zero model calls: everything is pure client + persistence state on a blank
 // frame, so there is no fixture and a stray stream would fail loud on the
 // open llm seam.
-import { readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
-import { afterAll, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { join } from 'node:path'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import { readProfileManifest } from '@deepseek-ai/dsh-app-boot'
+import { createPluginProfile } from '../../desktop/src/project-manager.ts'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/settings-chrome', import.meta.url))
-const DIALOG_EXPECTED = join(SNAPSHOT_DIR, 'dialog.expected.md')
+const PROFILE_SUFFIX = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
+const DIALOG_EXPECTED = join(SNAPSHOT_DIR, `dialog${PROFILE_SUFFIX}.expected.md`)
 const PLUGINS_EXPECTED = join(SNAPSHOT_DIR, 'plugins.expected.md')
 const PLUGIN_INSTANCES_EXPECTED = join(SNAPSHOT_DIR, 'plugin-instances.expected.md')
 // The English fallback surface: a browser naming no shipped language.
-const DIALOG_EN_EXPECTED = join(SNAPSHOT_DIR, 'dialog-en.expected.md')
+const DIALOG_EN_EXPECTED = join(SNAPSHOT_DIR, `dialog-en${PROFILE_SUFFIX}.expected.md`)
 const PLUGIN_ROW_SELECTOR = '[data-plugin-scope="preset"] [data-plugin-entry="tool-subagent"]'
 const MODE = webSnapshotMode()
+const favicon = (dark = false): string[] => [webClientProfile() === 'xiaojing'
+  ? '/xiaojing-character-logo.png' : dark ? '/favicon-dark.svg' : '/favicon.svg']
 const { version } = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf8')) as { version: string }
 const versionCapture = { replacements: [[version, '{{version}}']] as const }
 
@@ -55,6 +61,10 @@ describe('web e2e: settings modal and General preferences', () => {
   afterAll(async () => {
     await browser?.close()
     await scaffold?.close()
+  })
+
+  afterEach(async () => {
+    if (await page?.getByRole('dialog', { name: /^(设置|Settings)$/u }).isVisible()) await page.keyboard.press('Escape')
   })
 
   it('opens the settings dialog, switches sections, and closes by every path', async () => {
@@ -417,7 +427,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await page.emulateMedia({ colorScheme: 'light' })
     const light = await readState()
     expect(light.attr).toBe(false)
-    expect(light.faviconPaths).toEqual(['/favicon.svg'])
+    expect(light.faviconPaths).toEqual(favicon())
     expectThemeColorSynchronized(light)
 
     await openSettings(page, 'zh')
@@ -431,7 +441,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await expect.poll(() => darkCube.getAttribute('aria-pressed'), { timeout: 5_000 }).toBe('true')
     const dark = await readState()
     expect(dark.attr).toBe(true)
-    expect(dark.faviconPaths).toEqual(['/favicon.svg'])
+    expect(dark.faviconPaths).toEqual(favicon())
     expect(dark.legacy).toBeNull()
     expect(dark.token).not.toBe(light.token)
     expectThemeColorSynchronized(dark)
@@ -448,7 +458,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await expect.poll(async () => (await readState()).attr, { timeout: 5_000 }).toBe(true)
     const reloaded = await readState()
     expect(reloaded.legacy).toBeNull()
-    expect(reloaded.faviconPaths).toEqual(['/favicon.svg'])
+    expect(reloaded.faviconPaths).toEqual(favicon())
     expectThemeColorSynchronized(reloaded)
 
     // A second live Host binds another ephemeral port but shares the same
@@ -482,15 +492,15 @@ describe('web e2e: settings modal and General preferences', () => {
     expectThemeColorSynchronized(await readState())
     await page.emulateMedia({ colorScheme: 'dark' })
     await expect.poll(async () => (await readState()).attr, { timeout: 5_000 }).toBe(true)
-    await expect.poll(async () => (await readState()).faviconPaths).toEqual(['/favicon-dark.svg'])
+    await expect.poll(async () => (await readState()).faviconPaths).toEqual(favicon(true))
     expectThemeColorSynchronized(await readState())
     // Restore for the specs that follow: light preference beats the emulated
     // dark OS scheme, leaving the shared page in the light default.
     await selectTheme(page.getByRole('dialog', { name: '设置' }).getByRole('button', { name: '浅色' }), 'light')
     await expect.poll(async () => (await readState()).attr, { timeout: 5_000 }).toBe(false)
-    expect((await readState()).faviconPaths).toEqual(['/favicon-dark.svg'])
+    expect((await readState()).faviconPaths).toEqual(favicon(true))
     await page.emulateMedia({ colorScheme: 'light' })
-    await expect.poll(async () => (await readState()).faviconPaths).toEqual(['/favicon.svg'])
+    await expect.poll(async () => (await readState()).faviconPaths).toEqual(favicon())
     expectThemeColorSynchronized(await readState())
     await page.keyboard.press('Escape')
     expect(tripwire.pageErrors).toEqual([])
@@ -815,10 +825,117 @@ describe('web e2e: settings modal and General preferences', () => {
       .getByRole('button', { name: 'Detailed', exact: true }).waitFor()
     expect(await dialog.getByText('Open chat links in', { exact: true }).count()).toBe(0)
     const snapshot = await captureStableAria(withoutBrowser, '[role="dialog"]', fresh.workspaceCwd, versionCapture)
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'dialog-no-browser.expected.md'), snapshot, MODE)
+    await compareOrRefreshGolden(join(SNAPSHOT_DIR, `dialog-no-browser${PROFILE_SUFFIX}.expected.md`), snapshot, MODE)
     expect(browserConsole.pageErrors).toEqual([])
     expect(browserConsole.warnings).toEqual([])
   })
+
+  it.skipIf(webClientProfile() !== 'xiaojing')('keeps release summaries on About and opens current and prior versions in a details dialog', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-about-release-history'))
+    await openSettings(page, 'zh')
+    const settings = page.getByRole('dialog', { name: '设置', exact: true })
+    await settings.getByRole('button', { name: '关于小兢', exact: true }).click()
+    const about = settings.locator('[data-xiaojing-about]')
+    await about.waitFor()
+    const releases = about.locator('[data-release-version]')
+    expect(await releases.evaluateAll(rows => rows.map(row => row.getAttribute('data-release-version'))))
+      .toEqual(['0.3.2', '0.3.1', '0.2.4', '0.2.3', '0.2.2'])
+    expect(await about.getByRole('listitem').count()).toBe(0)
+    expect(await about.getByRole('button', { name: /查看详情/u }).count()).toBe(5)
+    const main = await captureStableAria(page, '[data-xiaojing-about]', scaffold.workspaceCwd)
+    await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'about-xiaojing.expected.md'), main, MODE)
+
+    for (const releaseVersion of ['0.3.2', '0.3.1']) {
+      const row = about.locator(`[data-release-version="${releaseVersion}"]`)
+      const trigger = row.getByRole('button', { name: /查看详情/u })
+      await trigger.click()
+      const details = page.getByRole('dialog', { name: new RegExp(releaseVersion.replaceAll('.', '\\.')) })
+      await details.waitFor()
+      expect(await details.getByRole('listitem').count()).toBeGreaterThan(0)
+      if (releaseVersion === '0.3.2') {
+        expect(await details.getByRole('listitem').count()).toBe(20)
+        expect(await details.getByRole('heading', { name: '会话内批量审批', exact: true }).count()).toBe(1)
+        const original = page.viewportSize()
+        if (original === null) throw new Error('About geometry needs an explicit viewport')
+        for (const [name, viewport] of [['full', original], ['narrow', { width: 480, height: 700 }]] as const) {
+          await page.setViewportSize(viewport)
+          const geometry = await details.evaluate((dialog) => {
+            const rect = dialog.getBoundingClientRect()
+            const buttons = [...dialog.querySelectorAll('button')].map(button => button.getBoundingClientRect())
+            return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
+              overflow: dialog.scrollWidth > dialog.clientWidth,
+              buttons: buttons.map(button => ({ left: button.left, right: button.right, top: button.top, bottom: button.bottom })) }
+          })
+          expect(geometry.left).toBeGreaterThanOrEqual(0)
+          expect(geometry.right).toBeLessThanOrEqual(viewport.width)
+          expect(geometry.top).toBeGreaterThanOrEqual(0)
+          expect(geometry.bottom).toBeLessThanOrEqual(viewport.height)
+          expect(geometry.overflow).toBe(false)
+          for (const button of geometry.buttons) {
+            expect(button.left).toBeGreaterThanOrEqual(0)
+            expect(button.right).toBeLessThanOrEqual(viewport.width)
+            expect(button.top).toBeGreaterThanOrEqual(0)
+            expect(button.bottom).toBeLessThanOrEqual(viewport.height)
+          }
+          const evidence = process.env.DSH_APPROVAL_EVIDENCE_DIR
+          if (evidence !== undefined) await page.screenshot({ path: join(evidence, `about-approval-${name}.png`), fullPage: true })
+          await details.getByText('底座升级至 DeepSeek Harness 0.2.0-rc.2。已打开标签页的接管需要浏览器授权。', { exact: true }).scrollIntoViewIfNeeded()
+          await details.getByRole('heading', { name: '会话内批量审批', exact: true }).scrollIntoViewIfNeeded()
+        }
+        await page.setViewportSize(original)
+      }
+      const snapshot = await captureStableAria(
+        page, `[role="dialog"][aria-label*="${releaseVersion}"]`, scaffold.workspaceCwd,
+      )
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, `about-release-${releaseVersion}.expected.md`), snapshot, MODE)
+      if (releaseVersion === '0.3.2') await page.keyboard.press('Escape')
+      else await details.getByRole('button', { name: '关闭', exact: true }).last().click()
+      await details.waitFor({ state: 'detached' })
+      expect(await settings.isVisible()).toBe(true)
+      await expect.poll(() => trigger.evaluate(element => element === document.activeElement)).toBe(true)
+    }
+    expect(await captureStableAria(page, '[data-xiaojing-about]', scaffold.workspaceCwd)).toBe(main)
+    expect(tripwire.pageErrors).toEqual([])
+  })
+
+  it.skipIf(webClientProfile() !== 'xiaojing')('enables Automation tasks in a fresh desktop profile and retains a user opt-out', async () => {
+    const seed = await mkdtemp(join(tmpdir(), 'xiaojing-schedule-default-'))
+    let fresh: WebScaffold | undefined
+    let freshPage: Page | undefined
+    try {
+      createPluginProfile(seed)
+      const selected = readProfileManifest('test', seed).dsh!.profile!.bundles!
+      fresh = await launchWebScaffold({
+        profile: { packages: [], bundles: selected.filter(name => !['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'].includes(name)) },
+        extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
+      })
+      freshPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
+      const errors = watchConsole(freshPage)
+      await freshPage.goto(fresh.authenticatedUrl, { waitUntil: 'load' })
+      await freshPage.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      const panel = freshPage.locator('[data-plugin-panel]')
+      const toggle = panel.getByRole('switch', { name: '启用 自动化任务', exact: true })
+      await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('true')
+      expect(fresh.ctx.get('schedule')).toBeDefined()
+      const row = panel.locator('[data-plugin-package="@deepseek-ai/dsh-experimental-schedule-bundle"]')
+      const snapshot = await captureStableAria(freshPage, '[data-plugin-panel] [data-plugin-package="@deepseek-ai/dsh-experimental-schedule-bundle"]', fresh.workspaceCwd)
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'schedule-default.xiaojing.expected.md'), snapshot, MODE)
+      await toggle.click()
+      await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('false')
+      expect(fresh.ctx.get('schedule')).toBeUndefined()
+      const profileDir = join(fresh.harnessHome, 'profiles', 'scaffold')
+      const before = await readFile(join(profileDir, 'package.json'))
+      createPluginProfile(profileDir)
+      expect(await readFile(join(profileDir, 'package.json'))).toEqual(before)
+      expect(readProfileManifest('test', profileDir).dsh!.profile!.bundles).not.toContain('@deepseek-ai/dsh-experimental-schedule-bundle')
+      expect(await row.isVisible()).toBe(true)
+      expect(errors.pageErrors).toEqual([])
+    } finally {
+      await freshPage?.close()
+      await fresh?.close()
+      await rm(seed, { recursive: true, force: true })
+    }
+  }, 120_000)
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
@@ -828,6 +945,11 @@ describe('web e2e: settings modal and General preferences', () => {
       'dialog.expected.md',
       'plugin-instances.expected.md',
       'plugins.expected.md',
+      'dialog.xiaojing.expected.md', 'dialog-en.xiaojing.expected.md',
+      'dialog-no-browser.xiaojing.expected.md',
+      'desktop-companion.xiaojing.expected.md', 'about-xiaojing.expected.md',
+      'about-release-0.3.2.expected.md', 'about-release-0.3.1.expected.md',
+      'schedule-default.xiaojing.expected.md',
     ])
   })
 })

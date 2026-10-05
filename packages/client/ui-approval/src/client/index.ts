@@ -49,6 +49,12 @@ async function answerApproval(
       : { callId: request.callId }),
     ...(request.reason === undefined ? {} : { reason: request.reason }),
     ...(request.displayReason === undefined ? {} : { displayReason: request.displayReason }),
+    ...(request.reusable === undefined ? {} : {
+      reusable: {
+        label: request.reusable.label,
+        ...(request.reusable.displayLabel === undefined ? {} : { displayLabel: request.reusable.displayLabel }),
+      },
+    }),
     ...(request.signal === undefined ? {} : { signal: request.signal }),
   })
   const completed = Promise.withResolvers<void>()

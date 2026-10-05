@@ -12,7 +12,7 @@
  * Catalog RPCs retain an existing Client Session through completion and
  * wait for its initial history open to succeed before contacting the Host.
  */
-import { Service } from '@deepseek-ai/cordis'
+import { FiberState, Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
 // Type-only: pulls the ctx.remote merge and the forwarded-event key face
 // (`commands/change` rides the allowlist) into this program.
@@ -95,6 +95,11 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     if (locale === undefined) throw new Error('ui-commands: locale service unavailable')
     this.t = locale.bind('command')
     this.directory = new CommandDirectory(async (sessionId) => {
+      if (ctx.fiber.state === FiberState.UNLOADING || ctx.fiber.state === FiberState.DISPOSED
+        || ctx.fiber.state === FiberState.FAILED) {
+        this.directory.dispose()
+        throw new Error('command directory is disposed')
+      }
       const sessions = this.sessions()
       if (sessions.subagentAddress(sessionId) !== undefined) return []
       if (sessions.binding(sessionId) === undefined) {
@@ -110,6 +115,7 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
         return result.value
       })
     })
+    ctx.effect(() => () => { this.directory.dispose() }, 'command: catalog directory')
     const inputTriggers = ctx.get('inputTriggers')
     if (inputTriggers === undefined) throw new Error('ui-commands: slash service unavailable')
     ctx.effect(() => inputTriggers.registerSource({

@@ -47,6 +47,8 @@ it('requires one signing preflight before building, then records only the comple
   const { run, stages } = supervisor()
   await packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), environment, run)
   expect(stages.slice(0, 2)).toEqual(['preflight:windows-signing', 'run build:xiaojing'])
+  const dshPack = run.run.mock.calls.find(call => call[0].startsWith('run release:pack --family dsh'))
+  expect(dshPack?.[2]).toEqual(expect.arrayContaining(['--client-profile', 'xiaojing']))
   expect(stages.filter(stage => stage === 'preflight:windows-signing')).toHaveLength(1)
   expect(vi.mocked(withWindowsSigningStage).mock.calls.map(([options]) => options.stage))
     .toEqual(['preflight', 'artifacts'])
@@ -140,7 +142,10 @@ it.each([undefined, '2'])('passes macOS pack concurrency %s only to workspace pa
   const calls = run.run.mock.calls
   const packs = calls.filter(call => call[0].startsWith('run release:pack'))
   expect(packs).toHaveLength(2)
-  for (const call of packs) expect(call[2].slice(-2)).toEqual(['--concurrency', concurrency ?? '4'])
+  for (const call of packs) {
+    expect(call[2].slice(-2)).toEqual(['--concurrency', concurrency ?? '4'])
+    expect(call[2].includes('--client-profile')).toBe(call[0].includes('--family dsh'))
+  }
   for (const call of calls) {
     expect(call[3].env.HTTP_PROXY).toBe(/^run prepare:(?:runtime|dsh)$/u.test(call[0]) ? 'http://downloads.example:8080' : undefined)
   }

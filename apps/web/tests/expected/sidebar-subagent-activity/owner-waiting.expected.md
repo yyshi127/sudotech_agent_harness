@@ -1,0 +1,3 @@
+- tree "Sessions":
+  - treeitem "workspace" [expanded]
+  - treeitem "Waiting for approval 1 subagent running Delegate a background job." [selected]

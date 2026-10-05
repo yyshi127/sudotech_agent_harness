@@ -28,6 +28,12 @@ const overrides: PatchOptions[] = [
   { id: 'session-telemetry-otel', disabled: true },
   { id: 'modules', disabled: true },
   { id: 'connection', disabled: true },
+  { id: 'usage-accounting', disabled: true },
+  { id: 'session-log-download', disabled: true },
+  { id: 'open-in-app', disabled: true },
+  { id: 'session-controller', disabled: true },
+  { id: 'file-upload', disabled: true },
+  { id: 'ui-deliverables', disabled: true },
   { id: 'xiaojing-weixin-channel', disabled: true },
   { id: 'xiaojing-browser-control', disabled: true },
   { id: 'xiaojing-desktop-companion', disabled: true },
@@ -49,6 +55,9 @@ const ctx = await boot('general-document-snapshot', rootConfig, [
   ...loadOverlayPatches('general-document-snapshot', basePatch),
   ...loadOverlayPatches('general-document-snapshot', webPatch),
   ...loadOverlayPatches('general-document-snapshot', standardPresetPatch),
+  ...['minimal', 'cordis', 'ptc'].flatMap(preset => loadOverlayPatches(
+    'general-document-snapshot', join(repoRoot, 'packages', 'bundle', 'web-app', 'presets', `${preset}.patch.yml`),
+  )),
   ...overrides,
 ], (bootCtx) => {
   provideCmdline(bootCtx, { args: [], exit: () => {} })
@@ -69,7 +78,7 @@ try {
     const schema = schemas.find(candidate => candidate.name === 'document_reader')
     if (schema === undefined) throw new Error('General document snapshot did not assemble document_reader')
     const ordinaryPresetTools: Record<string, boolean> = { standard: true }
-    for (const preset of ['code', 'cordis', 'minimal'] as const) {
+    for (const preset of ['ptc', 'cordis', 'minimal'] as const) {
       const probe = await ctx.agents.create({
         sessionId: SessionId(`general-document-${preset}-snapshot`),
         meta: { cwd: dshHome },

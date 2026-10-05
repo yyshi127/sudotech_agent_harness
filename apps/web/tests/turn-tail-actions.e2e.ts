@@ -18,25 +18,33 @@ import type { ReplayOverrideDoc } from '@deepseek-ai/dsh-llm-replay'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/turn-tail-actions', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-turn-tail-actions', import.meta.url))
+const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/turn-tail-actions', import.meta.url))
+const FIXTURE = XIAOJING ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl') : join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const expected = (name: string) => join(XIAOJING ? PRODUCT_EXPECTED_DIR : SNAPSHOT_DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
 // Three goldens for the same message: parked mid-turn, aborted, and completed.
-const RUNNING_EXPECTED = join(SNAPSHOT_DIR, 'running.expected.md')
-const SETTLED_EXPECTED = join(SNAPSHOT_DIR, 'settled.expected.md')
-const USAGE_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'usage-expanded.expected.md')
-const COMPLETED_EXPECTED = join(SNAPSHOT_DIR, 'completed.expected.md')
-const FOCUSED_EXPECTED = join(SNAPSHOT_DIR, 'focused.expected.md')
+const RUNNING_EXPECTED = expected('running')
+const SETTLED_EXPECTED = expected('settled')
+const USAGE_EXPANDED_EXPECTED = expected('usage-expanded')
+const COMPLETED_EXPECTED = expected('completed')
+const FOCUSED_EXPECTED = expected('focused')
+const SHELL = XIAOJING ? 'pwsh' : 'bash'
+const COMMAND = XIAOJING ? "[Console]::Write('alpha' + [char]10)" : 'echo alpha'
+const TOOL_BUTTON = XIAOJING ? 'Pwsh Print alpha to stdout' : 'Bash Print alpha to stdout'
+const TOOL_SELECTOR = XIAOJING ? '[data-tool="pwsh"]' : '[data-sample="bash"]'
 const MODE = webSnapshotMode()
 
 // The recording must carry text in the SAME assistant message as the tool
 // call; a Think-only step would leave nothing for the footer to attach to and
 // the scenario would pass against either implementation.
 const NARRATION = 'Reading the workspace now.'
-const PROMPT = `Begin your reply with the plain sentence "${NARRATION}" as text, and in that same message call the bash tool with the command "echo alpha". After the tool result, reply with the single word DONE and stop.`
+const PROMPT = `Begin your reply with the plain sentence "${NARRATION}" as text, and in that same message call the ${SHELL} tool with the command "${COMMAND}". After the tool result, reply with the single word DONE and stop.`
 
 /**
  * Focus the Copy IconAction and wait for the tooltip the running golden records.
@@ -105,6 +113,12 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
         ? {}
         : {
           replayFixture: FIXTURE,
+          ...(XIAOJING ? {
+            replayProviders: [{
+              id: 'deepseek-official', name: 'DeepSeek',
+              models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
+            }],
+          } : {}),
           ...(overridePath === undefined ? {} : { replayOverride: overridePath }),
           compareReplaySession: overridePath === undefined,
           paceMs,
@@ -114,6 +128,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
   }
 
@@ -162,7 +177,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     const runningProcess = page.locator('[data-turn-process]')
     expect(await runningProcess.count()).toBe(0)
     await expect.poll(
-      () => page.getByRole('status').filter({ hasText: 'Deep diving' }).isVisible(),
+      () => page.getByRole('status').filter({ hasText: XIAOJING ? 'Xiaojing Accounting is thinking' : 'Deep diving' }).isVisible(),
       { timeout: 10_000 },
     ).toBe(true)
     await page.locator('[data-streaming="true"]')
@@ -214,7 +229,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     expect(await trigger.getAttribute('aria-expanded')).toBe('true')
     const dialog = page.getByRole('dialog', { name: 'Turn usage' })
     expect(await dialog.count()).toBe(1)
-    expect(await dialog.getByText('deepseek-official/deepseek-v4-flash', { exact: true }).count()).toBe(1)
+    expect(await dialog.getByText(`deepseek-official/${XIAOJING ? 'deepseek-flash' : 'deepseek-v4-flash'}`, { exact: true }).count()).toBe(1)
     expect(await dialog.getByText('49.7%', { exact: true }).count()).toBe(1)
     expect(await dialog.getByText('7,891 tok', { exact: true }).count()).toBe(1)
     expect(await dialog.getByText('7,808 tok', { exact: true }).count()).toBe(1)
@@ -267,7 +282,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     const { settled } = await sendPrompt()
     await settled
     const process = page.locator('[data-turn-process]')
-    const tool = page.getByRole('button', { name: 'Bash Print alpha to stdout' })
+    const tool = page.getByRole('button', { name: TOOL_BUTTON })
     await process.waitFor({ timeout: 10_000 })
     expect(await process.getAttribute('aria-expanded')).toBe('false')
     expect(await tool.isVisible()).toBe(false)
@@ -283,7 +298,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     await expect.poll(async () => readFile(join(scaffold!.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8'), { timeout: 5_000 })
       .toContain(`transcriptView: ${mode}`)
 
-    const group = page.locator('[data-sample="bash"]').first().locator('xpath=ancestor::*[@data-chat-group-key]')
+    const group = page.locator(TOOL_SELECTOR).first().locator('xpath=ancestor::*[@data-chat-group-key]')
     const groupControl = group.locator('[data-process-activity]')
     if (mode === 'verbose') {
       expect(await process.isDisabled()).toBe(true)
@@ -319,8 +334,8 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     await launch(undefined, 200)
     onTestFailed(() => saveFailureShot(page, 'web-e2e-turn-tail-actions-focused'))
     const { settled } = await sendPrompt()
-    const tool = page.getByRole('button', { name: 'Bash Print alpha to stdout' })
-    await expandOwningTurnProcess(page, page.locator('[data-sample="bash"]').first())
+    const tool = page.getByRole('button', { name: TOOL_BUTTON })
+    await expandOwningTurnProcess(page, page.locator(TOOL_SELECTOR).first())
     await tool.waitFor({ timeout: 30_000 })
     await tool.focus()
     expect(await tool.evaluate(element => element.ownerDocument.activeElement === element)).toBe(true)
@@ -344,5 +359,11 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
         'settled.expected.md', 'usage-expanded.expected.md',
       ],
     )
+    if (XIAOJING) {
+      await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
+      await assertFixtureInventory(PRODUCT_EXPECTED_DIR, [
+        'completed', 'focused', 'running', 'settled', 'usage-expanded',
+      ].map(name => `${name}.xiaojing.expected.md`))
+    }
   })
 })

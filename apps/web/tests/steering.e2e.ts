@@ -15,19 +15,29 @@ import { parseRemoteStreamServerMessage } from '@deepseek-ai/dsh-api-gateway/str
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, connectFreshWorkspace, newEnglishPage, pinBrowserClock, pinHostClock, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/steering', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-steering', import.meta.url))
+const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/steering', import.meta.url))
+const FIXTURE = XIAOJING ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl') : join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const REPLAY_CATALOG = XIAOJING ? {
+  replayProviders: [{
+    id: 'deepseek-official', name: 'DeepSeek',
+    models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] as const }],
+  }],
+} : {}
+const expected = (name: string) => join(XIAOJING ? PRODUCT_EXPECTED_DIR : SNAPSHOT_DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
 // Two goldens pin the transient Host projection and its durable handoff: the
 // mid-turn state renders accepted steering from the Session control queue while the
 // question blocks admission, then the settled state renders the same message
 // from user/message beside the reply that obeys it.
-const MID_EXPECTED = join(SNAPSHOT_DIR, 'mid-steer.expected.md')
-const SETTLED_EXPECTED = join(SNAPSHOT_DIR, 'settled.expected.md')
-const SETTLED_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'settled-expanded.expected.md')
+const MID_EXPECTED = expected('mid-steer')
+const SETTLED_EXPECTED = expected('settled')
+const SETTLED_EXPANDED_EXPECTED = expected('settled-expanded')
 const MODE = webSnapshotMode()
 // The question composer replaces the textarea, so fill → Queue row → Steer
 // starts only after request/context and must finish before the first replay
@@ -45,9 +55,9 @@ const STEER = 'Interjection: include the word BANANA in your final reply.'
 const STEER_ALL_DIR = fileURLToPath(new URL('./expected/steer-all', import.meta.url))
 const STEER_ALL_FIXTURE = join(STEER_ALL_DIR, 'session.jsonl')
 const STEER_ALL_OVERRIDE = join(STEER_ALL_DIR, 'replay.override.json')
-const STEER_ALL_MID = join(STEER_ALL_DIR, 'mid-steer.expected.md')
-const STEER_ALL_SETTLED = join(STEER_ALL_DIR, 'settled.expected.md')
-const STEER_ALL_SETTLED_EXPANDED = join(STEER_ALL_DIR, 'settled-expanded.expected.md')
+const STEER_ALL_MID = XIAOJING ? expected('all-mid-steer') : join(STEER_ALL_DIR, 'mid-steer.expected.md')
+const STEER_ALL_SETTLED = XIAOJING ? expected('all-settled') : join(STEER_ALL_DIR, 'settled.expected.md')
+const STEER_ALL_SETTLED_EXPANDED = XIAOJING ? expected('all-settled-expanded') : join(STEER_ALL_DIR, 'settled-expanded.expected.md')
 const STEER_ONE = 'Interjection: include the word BANANA in your final reply.'
 const STEER_TWO = 'Interjection: include the word ORANGE in your final reply.'
 
@@ -83,7 +93,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
     hostClock = pinHostClock()
     scaffold = await launchWebScaffold(MODE === 'record'
       ? {}
-      : { replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: true })
+      : { replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: true, ...REPLAY_CATALOG })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -91,6 +101,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     // Fresh world: connect a Workspace so the composer scenarios start live.
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
   }, 120_000)
@@ -203,6 +214,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'session.v3.jsonl', 'mid-steer.expected.md', 'settled.expected.md', 'settled-expanded.expected.md',
     ])
+    if (XIAOJING) await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
   })
 })
 
@@ -223,7 +235,7 @@ describe.each(['reconnect', 'delayed-inbox'] as const)('web e2e: composer shortc
   }
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: false })
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: false, ...REPLAY_CATALOG })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -244,6 +256,7 @@ describe.each(['reconnect', 'delayed-inbox'] as const)('web e2e: composer shortc
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
   }, 120_000)
 
@@ -335,13 +348,14 @@ describe('web e2e: composer shortcut follows the swapped busy behavior', () => {
   const sessionEvents: SessionEvent[] = []
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: false })
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: REPLAY_PACE_MS, compareReplaySession: false, ...REPLAY_CATALOG })
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
   }, 120_000)
 
@@ -408,6 +422,7 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
       replayFixture: STEER_ALL_FIXTURE,
       replayOverride: STEER_ALL_OVERRIDE,
       paceMs: REPLAY_PACE_MS,
+      ...REPLAY_CATALOG,
     })
     disposeReplayBarrier = scaffold.ctx.on('llm/stream', async function* (_options, next) {
       await releaseReplay.promise
@@ -420,6 +435,7 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
     await page.getByText('Standard mode', { exact: true }).waitFor({ timeout: 10_000 })
   }, 120_000)
@@ -529,5 +545,8 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
       'replay.override.json', 'mid-steer.expected.md',
       'settled.expected.md', 'settled-expanded.expected.md',
     ])
+    if (XIAOJING) await assertFixtureInventory(PRODUCT_EXPECTED_DIR, [
+      'mid-steer', 'settled', 'settled-expanded', 'all-mid-steer', 'all-settled', 'all-settled-expanded',
+    ].map(name => `${name}.xiaojing.expected.md`))
   })
 })

@@ -7,7 +7,7 @@ import type {
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SubagentAddress, SubagentCatalogRow } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionPendingInteraction, SessionStatus, SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import {
   SubagentCatalogAction, SubagentHeaderLineage,
   type SubagentCatalogActionProps, type SubagentHeaderLineageProps,
@@ -154,6 +154,27 @@ function HeaderCatalog(props: SubagentHeaderLineageProps) {
 }
 
 describe('SubagentHeaderLineage', () => {
+  it('identifies a waiting child and opens its approval owner directly from the parent header', () => {
+    const current = props(catalog())
+    let statuses = new Map<SessionId, SessionStatus>([
+      [CHILD, { running: true, completionUnread: false, pendingInteraction: { key: 'child-approval', kind: 'approval', sessionId: CHILD } as SessionPendingInteraction }],
+    ])
+    current.useSessionStatus = select => select(statuses)
+    const view = render(<HeaderCatalog {...current} />)
+    const waiting = screen.getByRole('button', { name: '子任务等待审批：worker' })
+    expect(waiting.querySelector('[data-state="warning"]')).not.toBeNull()
+    fireEvent.click(waiting)
+    expect(current.openChild).toHaveBeenCalledWith({ parentSessionId: PARENT, childSessionId: CHILD, mode: 'continuable' })
+    fireEvent.click(screen.getByRole('button', { name: /个子智能体/ }))
+    const row = screen.getByRole('treeitem', { name: /worker/ })
+    expect(row.textContent).toContain('等待审批')
+    expect(row.querySelector('[data-state="warning"]')).not.toBeNull()
+    statuses = new Map([[CHILD, { running: false, completionUnread: false, pendingInteraction: undefined }]])
+    view.rerender(<HeaderCatalog {...current} />)
+    expect(screen.queryByRole('button', { name: '子任务等待审批：worker' })).toBeNull()
+    expect(screen.getByRole('button', { name: /个子智能体/ }).querySelector('[data-state="ongoing"]')).toBeNull()
+  })
+
   it('shows current catalog-only child status before Host list discovery', () => {
     const input = props(catalog({ entries: [{ id: CHILD, mode: 'continuable', label: 'worker', activity: 'inactive' }] }))
     const initial = input.useSessions(state => state)

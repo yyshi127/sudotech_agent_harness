@@ -281,6 +281,7 @@ export function apply(ctx: Context): void {
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
     createWorkspace: input => workspaces.create(input),
+    retryWorkspaceCategoryLoad: (categoryId) => { workspaceCategories.retryLoad(categoryId) },
     hooks: { directoryFlow: pickerFlowSource, workspaceCategories: workspaceCategories.store },
   })
   // Each registration declares its owned children in the same call; slot

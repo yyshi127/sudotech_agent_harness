@@ -26,6 +26,7 @@ export class AppWebEntry {
   private readonly page: BootPage
   private ctx: Context | undefined
   private stopDragRecall: (() => void) | undefined
+  private stopMount: (() => Promise<void>) | undefined
   private modules!: ClientModuleSystem
   private manifest!: BootManifest
 
@@ -95,7 +96,7 @@ export class AppWebEntry {
       // know that trap. It installs before the first mount, so the surface the
       // renderer draws is the one the first frame measures.
       this.stopDragRecall = installWindowDragRecall({ document: this.container.ownerDocument })
-      await mountClient(ctx, this.container)
+      this.stopMount = await mountClient(ctx, this.container)
     } catch (reason) {
       console.error(reason)
       if (onFailure !== undefined) onFailure(reason)
@@ -103,14 +104,29 @@ export class AppWebEntry {
     }
   }
 
-  /** Dispose the client plugin tree and whichever page owns the mount point. */
+  /** Unmount React before disposing its services; always remove the boot page and report cleanup failures. */
   async dispose(): Promise<void> {
     this.stopDragRecall?.()
     this.stopDragRecall = undefined
     const ctx = this.ctx
     this.ctx = undefined
-    if (ctx !== undefined) await ctx.fiber.dispose()
-    this.page.dispose()
+    const stopMount = this.stopMount
+    this.stopMount = undefined
+    const failures: unknown[] = []
+    try {
+      await stopMount?.()
+    } catch (error) {
+      failures.push(error)
+    }
+    try {
+      if (ctx !== undefined) await ctx.fiber.dispose()
+    } catch (error) {
+      failures.push(error)
+    } finally {
+      this.page.dispose()
+    }
+    if (failures.length === 1) throw failures[0]
+    if (failures.length > 1) throw new AggregateError(failures, 'web boot: application cleanup failed')
   }
 
   /** Prefetch stage-one bundles and their dynamic requests before concurrent plugin imports. */

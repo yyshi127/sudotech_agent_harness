@@ -3,6 +3,9 @@
 /** Namespace for Chat target, node, statistics, and details copy. */
 export const NS = 'chat'
 
+const runningLabelZh = process.env.DSH_CLIENT_RUNNING_LABEL_ZH ?? '深度求索中'
+const runningLabelEn = process.env.DSH_CLIENT_RUNNING_LABEL_EN ?? 'Deep diving'
+
 /** Simplified Chinese dictionary and key-set source of truth. */
 export const zh = {
   'message.stepProcess.thinking': '正在分析请求',
@@ -86,8 +89,8 @@ export const zh = {
   'chat.loadError': '历史加载失败：{message}（{code}）',
   'chat.loadOlder': '加载更早',
   'chat.toBottom': '回到底部',
-  'chat.deepDiving': '深度求索中',
-  'chat.deepDivingFor': '深度求索中，用时 {duration} ···',
+  'chat.deepDiving': runningLabelZh,
+  'chat.deepDivingFor': `${runningLabelZh}，用时 {duration} ···`,
   'chat.turnNavigation.label': '轮次导航',
   'chat.turnNavigation.jump': '跳转到第 {turn} 轮',
   'chat.turnNavigation.jumpLoad': '加载并跳转到第 {turn} 轮',
@@ -283,8 +286,8 @@ export const en = {
   'chat.loadError': 'Failed to load history: {message} ({code})',
   'chat.loadOlder': 'Load earlier',
   'chat.toBottom': 'Back to bottom',
-  'chat.deepDiving': 'Deep diving',
-  'chat.deepDivingFor': 'Deep diving for {duration} ···',
+  'chat.deepDiving': runningLabelEn,
+  'chat.deepDivingFor': `${runningLabelEn} for {duration} ···`,
   'chat.turnNavigation.label': 'Turn navigation',
   'chat.turnNavigation.jump': 'Jump to turn {turn}',
   'chat.turnNavigation.jumpLoad': 'Load and jump to turn {turn}',

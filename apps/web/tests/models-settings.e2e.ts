@@ -23,15 +23,16 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/models-settings', import.meta.url))
-const EMPTY_EXPECTED = join(SNAPSHOT_DIR, 'empty.expected.md')
-const CONFIGURED_EXPECTED = join(SNAPSHOT_DIR, 'configured.expected.md')
-const DECLARED_EXPECTED = join(SNAPSHOT_DIR, 'declared.expected.md')
-const DECLARED_EDIT_EXPECTED = join(SNAPSHOT_DIR, 'declared-edit.expected.md')
+const PROFILE_SUFFIX = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
+const EMPTY_EXPECTED = join(SNAPSHOT_DIR, `empty${PROFILE_SUFFIX}.expected.md`)
+const CONFIGURED_EXPECTED = join(SNAPSHOT_DIR, `configured${PROFILE_SUFFIX}.expected.md`)
+const DECLARED_EXPECTED = join(SNAPSHOT_DIR, `declared${PROFILE_SUFFIX}.expected.md`)
+const DECLARED_EDIT_EXPECTED = join(SNAPSHOT_DIR, `declared-edit${PROFILE_SUFFIX}.expected.md`)
 const MODEL_PICKER_EXPECTED = join(SNAPSHOT_DIR, 'model-picker.expected.md')
 const NATIVE_DELETE_EXPECTED = join(SNAPSHOT_DIR, 'native-delete.expected.md')
 const DELETE_EXPECTED = join(SNAPSHOT_DIR, 'delete.expected.md')
@@ -374,7 +375,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       await expect.poll(() => image.isChecked()).toBe(true)
       expect(await types.getByRole('checkbox', { name: '文本', exact: true }).isChecked()).toBe(true)
       const before = await readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')
-      await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'catalog-inputs.expected.md'),
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, `catalog-inputs${PROFILE_SUFFIX}.expected.md`),
         await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
       await dialog.getByRole('button', { name: '保存', exact: true }).click()
       await types.waitFor({ state: 'detached' })
@@ -456,6 +457,9 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       'configured.expected.md', 'declared-edit.expected.md', 'declared.expected.md',
       'delete.expected.md', 'empty.expected.md', 'model-picker.expected.md',
       'native-delete.expected.md', 'catalog-inputs.expected.md',
+      'configured.xiaojing.expected.md', 'declared-edit.xiaojing.expected.md',
+      'declared.xiaojing.expected.md', 'empty.xiaojing.expected.md',
+      'catalog-inputs.xiaojing.expected.md',
     ])
   })
 })

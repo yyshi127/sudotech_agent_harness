@@ -7,11 +7,13 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold,
-  watchConsole, webSnapshotMode, type WebScaffold,
+  watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
-const EXPECTED = fileURLToPath(new URL('./expected/models-settings-recovery/stored-error.expected.md', import.meta.url))
+const EXPECTED = fileURLToPath(new URL(webClientProfile() === 'xiaojing'
+  ? './expected/models-settings-recovery/stored-error.xiaojing.expected.md'
+  : './expected/models-settings-recovery/stored-error.expected.md', import.meta.url))
 const FAILURE = 'llm-pi-ai: provider "openrouter" model "111" needs an api; '
   + 'the installed catalog does not describe it, so set the route\'s api to the wire protocol its endpoint speaks'
 const CUSTOM_FAILURE = 'llm-pi-ai: provider "acme-gateway" model "custom-model" needs an api; '

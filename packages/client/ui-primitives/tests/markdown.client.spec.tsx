@@ -172,6 +172,65 @@ describe('MarkdownText', () => {
     expect(screen.getByRole('link', { name: 'mail' }).getAttribute('target')).toBeNull()
   })
 
+  it.each([false, true])('keeps Chinese sentence punctuation outside bare links (streaming: %s)', (streaming) => {
+    const openExternalLink = vi.fn<(href: string) => void>()
+    const url = 'https://www.xiaohongshu.com'
+    const source = `打开小红书（${url}）。`
+    const { container } = render(
+      <MarkdownDelegateProvider openExternalLink={openExternalLink}>
+        <MarkdownText text={source} streaming={streaming} />
+      </MarkdownDelegateProvider>,
+    )
+
+    const link = screen.getByRole('link', { name: url })
+    expect(link.getAttribute('href')).toBe(url)
+    expect(container.textContent).toBe(source)
+    expect(fireEvent.click(link)).toBe(false)
+    expect(openExternalLink).toHaveBeenCalledExactlyOnceWith(url)
+  })
+
+  it.each([false, true])('preserves authored links and paired parentheses while separating trailing punctuation (streaming: %s)', (streaming) => {
+    const destinations = [
+      'https://example.com/a(b)',
+      'https://example.com/项目（测试）',
+      'https://example.com/explicit）。',
+      'https://example.com/angle）。',
+      'https://example.com/code）。',
+      'https://example.com/query?value=%E3%80%82',
+    ]
+    const source = [
+      `查看（${destinations[0]}）。`,
+      `查看（${destinations[1]}）。`,
+      `[explicit](${destinations[2]})`,
+      `<${destinations[3]}>`,
+      `\`${destinations[4]}\``,
+      destinations[5],
+    ].join('\n\n')
+    const { container } = render(<MarkdownText text={source} streaming={streaming} />)
+
+    expect([...container.querySelectorAll('a')].map(link => decodeURI(link.getAttribute('href') as string)))
+      .toEqual(destinations.map(destination => decodeURI(destination)))
+    expect(container.textContent).toContain('查看（https://example.com/a(b)）。')
+    expect(container.textContent).toContain('查看（https://example.com/项目（测试））。')
+  })
+
+  it.each([false, true])('ends bare links before Chinese punctuation followed by more prose (streaming: %s)', (streaming) => {
+    const url = 'https://www.xiaohongshu.com'
+    const sources = [
+      `已在 Edge 中打开（${url}），现在应该正显示在屏幕最前面。`,
+      `打开 ${url}，页面已显示。`,
+      `查看（${url}），然后继续`,
+      `查看(${url})。下一步`,
+      '查看 https://example.com/项目（第一，第二），然后继续',
+      '查看 www.example.com，页面已显示。',
+    ]
+    const { container } = render(<MarkdownText text={sources.join('\n\n')} streaming={streaming} />)
+
+    expect([...container.querySelectorAll('a')].map(link => decodeURI(link.getAttribute('href') as string)))
+      .toEqual([url, url, url, url, 'https://example.com/项目（第一，第二）', 'http://www.example.com'])
+    expect([...container.querySelectorAll('p')].map(paragraph => paragraph.textContent)).toEqual(sources)
+  })
+
   it('copies HTTP(S) text-link destinations without opening them', async () => {
     const clipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
     const writeText = vi.fn().mockResolvedValue(undefined)

@@ -52,6 +52,7 @@ export { REGION_BEGIN, REGION_END }
 export const SERVICE_PAGE: Record<string, string> = {
   usageAccounting: 'usage-accounting.md',
   xiaojingBrowserControl: 'xiaojing.md',
+  xiaojingNativeBrowserSettings: 'xiaojing.md',
   xiaojingComputerControl: 'xiaojing.md',
   xiaojingDesktopCompanion: 'xiaojing.md',
   xiaojingFinanceCalculations: 'xiaojing.md',
@@ -515,6 +516,10 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   SessionLogSnapshot: 'session-query.md',
   SessionSurfaceSnapshot: 'session-query.md',
   ApprovalOutcome: 'approval.md',
+  ApprovalAnswer: 'approval.md',
+  ApprovalReuse: 'approval.md',
+  ApprovalReuseAudit: 'approval.md',
+  ApprovalAuthorization: 'approval.md',
   ApprovalPolicy: 'approval.md',
   ApprovalRequest: 'approval.md',
   ApprovalRequestEvent: 'approval.md',
@@ -926,6 +931,8 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   DeepSeekRequestIdentity: 'API-key request attribution is owned by packages/llm/llm-deepseek-api-key/README.md and src/request-identity.ts',
   WeixinChannelStatus: 'Xiaojing channel status fields are owned by packages/xiaojing/xiaojing-weixin-channel/README.md and src/types.ts',
+  NativeBrowser: 'Native browser brand selection is owned by packages/xiaojing/xiaojing-browser-control/README.md and src/native-settings-types.ts',
+  NativeBrowserSettingsRuntime: 'Native installation inspection, connection state, and revocation callbacks are owned by packages/xiaojing/xiaojing-browser-control/README.md and src/native-settings-types.ts',
   ProductEvent: 'Desktop event fields are owned by packages/client/product-analytics/README.md and src/events.ts',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',

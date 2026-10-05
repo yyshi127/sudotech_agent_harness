@@ -1,0 +1,52 @@
+- banner:
+  - navigation "Session hierarchy": Inline code links
+  - button "More actions"
+  - tablist:
+    - tab "Chat" [selected]
+    - tab "Trajectory"
+- text: Show the local preview URL. {{clock}}
+- button "Copy"
+- status: Completed
+- button "Completed in {{duration}}" [disabled]
+- heading "Inline code links" [level=2]
+- paragraph:
+  - text: "Preview:"
+  - code:
+    - link "{{linkUrl}}":
+      - /url: {{linkUrl}}
+    - button "Copy link"
+- paragraph:
+  - text: "Standard:"
+  - link "Open preview":
+    - /url: {{linkUrl}}
+  - button "Copy link"
+- paragraph:
+  - text: 打开小红书（
+  - link "https://www.xiaohongshu.com":
+    - /url: https://www.xiaohongshu.com
+  - button "Copy link"
+  - text: ）。
+- paragraph:
+  - text: 已在 Edge 中打开（
+  - link "https://www.xiaohongshu.com":
+    - /url: https://www.xiaohongshu.com
+  - button "Copy link"
+  - text: ），现在应该正显示在屏幕最前面。
+- paragraph:
+  - text: "Command:"
+  - code: curl {{linkUrl}}
+- paragraph:
+  - text: "Unsafe:"
+  - code: javascript:alert(1)
+- paragraph: INLINE_CODE_LINK_DONE
+- button "Copy"
+- button "Good response"
+- button "Bad response"
+- button "Branch into a new conversation"
+- text: {{clock}}
+- textbox "Message or run a task, / commands, @ files or sessions"
+- button "Add files or run commands"
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Select model, current DeepSeek-V41-Flash": DeepSeek-V41-Flash
+- button "Send message" [disabled]
+- button "1 turns 1 steps"

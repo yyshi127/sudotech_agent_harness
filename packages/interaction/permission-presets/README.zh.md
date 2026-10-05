@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+`registerSessionPreset(name, spec, admit)` 允许集成发布仅限当前会话、受 effect 生命周期管理的选项，并在写入选择前同步检查适用条件。这类选项出现在 `catalog().options`，不会进入 `defaultOptions`；卸载后撤回。选项身份通过现有 `permission/preset` 事件记录，集成负责额外的执行授权。
+
 当部署希望向用户提供一个 Permissions 选择器、而非分离的沙箱与审批控件时，选择此服务。它捆绑旋钮；执行与审批各自保留自己的取值，因此以后移除本包，最后一次取值依然生效。
 
 ### 配置预设

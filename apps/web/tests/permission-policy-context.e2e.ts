@@ -12,17 +12,24 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { canonicalPath } from '@deepseek-ai/dsh-sandbox'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-agent-loop'
+import type {} from '@deepseek-ai/dsh-user-approval'
 import type { WebTerminalId } from '@deepseek-ai/dsh-api-terminal-controller/types'
 import type {} from '@deepseek-ai/dsh-api-terminal-controller'
 import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, fixtureUserPrompts, launchWebScaffold, recordFixture,
-  watchConsole, webSnapshotMode, type WebScaffold,
+  watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/permission-policy-context', import.meta.url))
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/permission-policy-context/session.v3.jsonl', import.meta.url))
+const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
+  ? './expected/permission-policy-context-xiaojing'
+  : '../../../snapshots/web/permission-policy-context', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()
+const NEVER_POLICY = 'Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.'
 
 const PROMPTS = [
   'Can you create or edit a normal file right now under the current policy? Answer directly in one sentence. Do not call a tool just to discover the policy.',
@@ -72,8 +79,10 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
   const sessionEvents: SessionEvent[] = []
 
   beforeAll(async () => {
+    if (NATIVE_XIAOJING && MODE === 'record') throw new Error('Windows Xiaojing permission context owns an authored keyless fixture')
     scaffold = await launchWebScaffold({
       ...MODE === 'record' ? {} : { replayFixture: FIXTURE, compareReplaySession: true },
+      ...(NATIVE_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
       ...process.platform === 'win32' ? {} : {
         extraOverlayPath: fileURLToPath(new URL('./fixtures/sidebar-terminal.patch.yml', import.meta.url)),
       },
@@ -177,7 +186,7 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
     expect(systems).toHaveLength(1)
     expect(systems[0]).not.toContain('Current DSH file policy:')
     expect(systems[0]).not.toContain('Approval policy:')
-    expect(systems[0]).not.toContain('Approval prompts are disabled in this session')
+    expect(systems[0]).not.toContain(NEVER_POLICY)
 
     const contexts = runtimeContexts(sessionEvents)
     expect(contexts).toHaveLength(4)
@@ -185,12 +194,12 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
     expect(contexts[0]).toContain('Do not refuse a required modification from this policy alone')
     expect(contexts[0]).toContain('Approval policy: ask.')
     expect(contexts[1]).toContain('Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.')
-    expect(contexts[1]).toContain('Approval prompts are disabled in this session')
+    expect(contexts[1]).toContain(NEVER_POLICY)
 
     if (sessionWorkspace === undefined) throw new Error('permission-policy scenario observed no session workspace')
     expect(contexts[2]).toContain(`Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: ${JSON.stringify(canonicalPath(sessionWorkspace))}. Some platform temporary areas may also be writable.`)
     expect(contexts[2]).toContain('Approval policy: ask.')
-    expect(contexts[2]).not.toContain('Approval prompts are disabled in this session')
+    expect(contexts[2]).not.toContain(NEVER_POLICY)
     expect(contexts[3]).toContain('Current DSH file policy: read-only.')
 
     const answers = assistantTexts(sessionEvents)
@@ -217,6 +226,6 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
   it.skipIf(MODE === 'record')('stays clean and keeps the fixture inventory closed', async () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'workspace.expected'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl', 'workspace.expected'])
   })
 })

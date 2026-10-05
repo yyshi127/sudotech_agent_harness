@@ -17,6 +17,7 @@ import {
   seedSession,
   watchConsole,
   webSnapshotMode,
+  webClientProfile,
   type WebScaffold,
 } from './scaffold.ts'
 import { conversationContextKey, expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
@@ -77,9 +78,9 @@ async function nextPaint(page: Page): Promise<void> {
 }
 
 async function openSeed(page: Page): Promise<void> {
-  // The compact layout dropped group session counts; the seeded baseline is
-  // the Ungrouped bucket once cold summaries load.
-  await page.getByText('Ungrouped', { exact: true }).waitFor({ timeout: 30_000 })
+  // Cold summaries place the seed in its workspace group or the Ungrouped bucket.
+  await page.getByText(webClientProfile() === 'xiaojing' ? 'Long chat acceptance' : 'Ungrouped', { exact: true })
+    .waitFor({ timeout: 30_000 })
   // Search collapsed into a header action; expand it before filling.
   const searchButton = page.getByRole('button', { name: 'Search sessions' })
   if (await searchButton.getAttribute('aria-expanded') !== 'true') await searchButton.click()
@@ -148,9 +149,20 @@ describe('web e2e: long Chat interaction contract', () => {
       replayFixture: join(replayDir, 'override-only.jsonl'),
       replayOverride,
       replayContextWindow: 10_000_000,
+      ...(webClientProfile() === 'xiaojing' ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 10_000_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
       paceMs: 18,
     })
-    await seedSession(scaffold, FIXTURE.log, SESSION_ID)
+    const seeded = await seedSession(scaffold, FIXTURE.log, SESSION_ID)
+    if (webClientProfile() === 'xiaojing') {
+      const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
+      await workspace.setTitle('Long chat acceptance')
+      await workspace.attachSession(seeded)
+    }
     browser = await chromium.launch()
     page = await newEnglishPage(browser, 900)
     tripwire = watchConsole(page)

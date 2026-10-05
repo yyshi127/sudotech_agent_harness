@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { readFile } from 'node:fs/promises'
 import { chromium, type WebSocketRoute } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
-import { launchWebScaffold, seedSession, watchConsole } from './scaffold.ts'
+import { launchWebScaffold, seedSession, watchConsole, webClientProfile } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
 
 it.each([false, true])('retains the mounted application across WebSocket recovery with an active Session: %s', async (activeSession) => {
@@ -12,6 +12,7 @@ it.each([false, true])('retains the mounted application across WebSocket recover
   })
   onTestFinished(() => scaffold.close())
   const title = 'Connection recovery session'
+  const heroTitle = webClientProfile() === 'xiaojing' ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown'
   const draft = 'Unsent draft retained across connection recovery'
   if (activeSession) {
     const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
@@ -56,7 +57,7 @@ it.each([false, true])('retains the mounted application across WebSocket recover
     await writeComposerDraft(page, composer, draft)
     await expect.poll(() => sessionBaselines).toBeGreaterThan(0)
   } else {
-    await page.getByText('Into the Unknown', { exact: true }).waitFor({ timeout: 20_000 })
+    await page.getByText(heroTitle, { exact: true }).waitFor({ timeout: 20_000 })
   }
   await expect.poll(() => readyFrames).toBeGreaterThan(0)
   const root = await page.locator('[data-slot="root"]').elementHandle()
@@ -85,5 +86,5 @@ it.each([false, true])('retains the mounted application across WebSocket recover
   }
 
   expect(navigations).toBe(0)
-  if (!activeSession) expect(await page.getByText('Into the Unknown', { exact: true }).isVisible()).toBe(true)
+  if (!activeSession) expect(await page.getByText(heroTitle, { exact: true }).isVisible()).toBe(true)
 })

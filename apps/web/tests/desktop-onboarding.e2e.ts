@@ -11,7 +11,7 @@ import { credentialKey, credentialRef } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-settings'
 import {
   acknowledgeReloadConnectionLoss, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { REPO_ROOT, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
@@ -20,7 +20,7 @@ const EXPECTED = fileURLToPath(new URL('./expected/desktop-onboarding', import.m
 const NS = 'ui-settings-account'
 const INITIAL = { version: 1, step: 'welcome', purpose: null, process: null, completion: null, usage: 'compact', developerTools: false }
 
-describe.skipIf(MODE === 'record')('web e2e: App-only desktop onboarding', () => {
+describe.skipIf(MODE === 'record' || webClientProfile() === 'xiaojing')('web e2e: official App account onboarding', () => {
   let root: string
   let server: Server
   let origin: string

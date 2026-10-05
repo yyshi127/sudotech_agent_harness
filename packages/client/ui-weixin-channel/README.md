@@ -40,7 +40,7 @@ No direct effect; opening, pairing, refreshing, or disconnecting the settings vi
 
 - The section manages one preinstalled Weixin channel and does not provide arbitrary channel or account plug-in management.
 - Status refresh runs only while the settings component is mounted; the Host continues polling independently.
-- V1 presents direct text, image, and document support. Audio, video, ordinary groups, OCR, and image understanding remain unavailable.
+- V1 presents direct text, image, and document support. Image understanding requires a selected model that supports images. Audio, video, and ordinary groups remain unavailable.
 
 <a id="dev-note"></a>
 ### Dev Note

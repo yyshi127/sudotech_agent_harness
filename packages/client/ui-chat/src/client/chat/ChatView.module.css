@@ -175,6 +175,62 @@
   display: initial;
 }
 
+.runningDots {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.runningDot {
+  flex: none;
+  width: 22%;
+  height: 22%;
+  border-radius: 50%;
+  corner-shape: round;
+  color: inherit;
+  background: currentColor;
+}
+
+@media (forced-colors: none) {
+  .runningDot:nth-child(1) {
+    color: var(--dsw-alias-state-success-primary);
+  }
+
+  .runningDot:nth-child(2) {
+    color: var(--dsw-alias-state-warn-primary);
+  }
+
+  .runningDot:nth-child(3) {
+    color: var(--dsw-static-blue-400);
+  }
+}
+
+@media (forced-colors: active) {
+  .runningDot {
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: currentColor;
+  }
+}
+
+@keyframes dsh-thinking-dot-jump {
+  0%, 40%, 100% { transform: translateY(0); }
+  20% { transform: translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .runningDot {
+    animation: dsh-thinking-dot-jump 1.2s ease-in-out infinite;
+  }
+
+  .runningDot:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .runningDot:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+
 @supports (mask-mode: alpha) and (mask-image: url('')) {
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
     .runningWhaleAnimated {

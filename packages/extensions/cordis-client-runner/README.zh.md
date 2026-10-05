@@ -39,6 +39,8 @@ kind: "package-reference"
 
 装载是幂等的：要求装载这一页已在运行的 revision 不会改变任何东西，更新的 revision 顶替已装载的那个，同一 revision 在 retract 之后再装则重新装载。同一定义的操作串行执行。刷新按设计从干净状态开始——host 仍持有定义，本页在再次被要求之前不运行它。
 
+inspect 注册表随其 Client 插件关闭：它停止排队中的 manifest 发布，取消活跃的 provider 查询，并等待已开始的发布与查询（包括结果交付）完成。卸载时移除 provider 不会再发起迟到的传输调用。运行时的传输失败仍由调用者和 manifest 发布器的错误日志报告。
+
 -----
 
 <a id="understand-the-implementation"></a>

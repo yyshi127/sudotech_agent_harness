@@ -33,7 +33,15 @@ export const RunningStatus = memo(function RunningStatus({ startTime, t }: Runni
       <span className={a11yCss.visuallyHidden} role="status" aria-live="polite" aria-atomic="true">{t('chat.deepDiving')}</span>
       <span className={css.runningDivider} aria-hidden="true" />
       <span className={css.runningContent}>
-        <RunningWhaleTail />
+        {process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+          ? (
+            <span className={`${css.runningIcon} ${css.runningDots}`} data-running-dots aria-hidden="true">
+              <span className={css.runningDot} />
+              <span className={css.runningDot} />
+              <span className={css.runningDot} />
+            </span>
+          )
+          : <RunningWhaleTail />}
         <TextShimmer active className={css.runningText}>{label}</TextShimmer>
       </span>
     </div>

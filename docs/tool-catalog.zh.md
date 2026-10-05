@@ -19,7 +19,7 @@
 
 | 工具包 | 模型可见名称 | 依赖 | 写入／影响 | 随产品发布的别名 | 部署说明 |
 | --- | --- | --- | --- | --- | --- |
-| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_control` | `ctx.tools`, `ctx.credentials`, `ctx.connection`, `ctx.webServer` | `tool/call`, `tool/result` | - | - |
+| `@deepseek-ai/dsh-xiaojing-browser-control` | `browser_connect`, `browser_control` | `ctx.tools`, `ctx.credentials`, `ctx.connection`, `ctx.webServer`, `ctx.browserUse`, `ctx.agents`, `ctx.systemPrompt`, `ctx.approval` | `tool/call`, `tool/result`, `approval/asked`, `approval/decided` | - | 小兢产品启用 ./native 入口和 browser_connect；browser_control 仅由可选旧包根入口提供。原生 MCP schema 在连接后发现。 |
 | `@deepseek-ai/dsh-xiaojing-computer-control` | `computer_control` | `ctx.tools`, `ctx.subprocess` | `tool/call`, `tool/result` | - | - |
 | `@deepseek-ai/dsh-plugin-manager` | `plugin_manager` | `ctx.tools`, `ctx.pluginManager`, `ctx.sandboxPolicy` | `tool/call`, `tool/result`, `user/message` | - | - |
 | `@deepseek-ai/dsh-mcp-resources` | `list_mcp_resource_templates`, `list_mcp_resources`, `read_mcp_resource` | `ctx.tools`, `ctx.mcpResources` | `tool/call`, `tool/result` | - | - |
@@ -55,6 +55,36 @@
 <a id="deepseek-aidsh-xiaojing-browser-control"></a>
 
 ## `@deepseek-ai/dsh-xiaojing-browser-control`
+
+### `browser_connect`
+
+Connect to a browser before using its native browser tools. Default to Edge; choose Chrome only when the user asks for Chrome. When surface is omitted, use existing tabs if that browser is enabled in Browser Control settings; otherwise use a dedicated visible browser. Choose existing explicitly for already-open tabs. Existing access requires the browser permission enabled in settings and the browser connection approval; configured extension and debugging routes remain supported. A failed existing connection never opens a replacement browser.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "browser": {
+      "type": "string",
+      "description": "Default edge; use chrome only when requested.",
+      "enum": [
+        "edge",
+        "chrome"
+      ]
+    },
+    "surface": {
+      "type": "string",
+      "description": "Omitted uses existing when enabled in Browser Control settings, otherwise managed. Existing connects to already-open browser tabs.",
+      "enum": [
+        "managed",
+        "existing"
+      ]
+    }
+  }
+}
+```
+
+Source: [`packages/xiaojing/xiaojing-browser-control/src/native.ts`](../packages/xiaojing/xiaojing-browser-control/src/native.ts)
 
 ### `browser_control`
 
@@ -242,13 +272,15 @@
 
 Source: [`packages/xiaojing/xiaojing-browser-control/src/index.ts`](../packages/xiaojing/xiaojing-browser-control/src/index.ts)
 
+小兢产品启用 ./native 入口和 browser_connect；browser_control 仅由可选旧包根入口提供。原生 MCP schema 在连接后发现。
+
 <a id="deepseek-aidsh-xiaojing-computer-control"></a>
 
 ## `@deepseek-ai/dsh-xiaojing-computer-control`
 
 ### `computer_control`
 
-Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use browser_control for every website and report a browser semantic limitation instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.
+Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use the connected browser tools for website tasks and report connection or operation failures instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.
 
 ```json
 {

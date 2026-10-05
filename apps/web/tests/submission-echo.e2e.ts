@@ -9,11 +9,13 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp } from './assembled-boot.ts'
+import { loadXiaojingAssembledResponses } from './xiaojing-assembled-fixture.client.ts'
 
 installAssembledBootEnv()
 
 it('paints the submission echo on the send keystroke and swaps it for the durable node', async () => {
-  mountAssembledApp()
+  const remote = mountAssembledApp()
+  loadXiaojingAssembledResponses(remote.mock)
 
   const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
   const start = tree.querySelector<HTMLButtonElement>('button[aria-label="New session in fixture"]')

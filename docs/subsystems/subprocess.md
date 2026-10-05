@@ -107,6 +107,13 @@ interface SubprocessSpawnSpec {
   /** Per-stream stdio dispositions. */
   stdio: SubprocessStdio
   /**
+   * Keep children launched by a local Windows command outside its managed Job.
+   * The command itself remains owned; termination and wait observe only that Job.
+   * Omission retains descendant ownership. Unsupported providers reject before
+   * spawning. This does not remove children from an enclosing host Job.
+   */
+  windowsChildLifetime?: 'independent' | undefined
+  /**
    * Positive finite grace period in milliseconds, no greater than
    * `MAX_TIMER_DELAY_MS`, available to the provider's termination procedure
    * and used for draining still-open collected pipes after the process exits

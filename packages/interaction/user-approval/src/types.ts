@@ -9,6 +9,7 @@ import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { Scoped } from '@deepseek-ai/dsh-scope'
 import type { Agent } from '@deepseek-ai/dsh-agent/types'
 import type { ToolCallId } from '@deepseek-ai/dsh-llm/brand'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 /**
  * Pairs one `approval/asked` audit event with its `approval/decided`.
@@ -31,6 +32,32 @@ export function ApprovalRequestId(id: string): ApprovalRequestId {
  */
 export type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
 
+/** Answerer choice; session authorization is normalized to an allowed-once outcome. */
+export type ApprovalAnswer = ApprovalOutcome | 'allowed-session'
+
+/** Host-defined operation class and target scope eligible for session authorization. */
+export interface ApprovalReuse {
+  /** Namespaced operation category assigned by trusted requester code. */
+  readonly category: string
+  /** Exact target scope assigned by trusted requester code; never supplied by the model. */
+  readonly scope: string
+  /** Human-readable operation and target scope. */
+  readonly label: string
+  /** Localized presentation only; not part of authorization identity or audit. */
+  readonly displayLabel?: { readonly en: string; readonly [locale: string]: string }
+}
+
+/** Durable authorization identity; localized presentation is omitted. */
+export type ApprovalReuseAudit = Pick<ApprovalReuse, 'category' | 'scope' | 'label'>
+
+/** Records creation or reuse of an authorization owned by one session. */
+export interface ApprovalAuthorization extends ApprovalReuseAudit {
+  /** Owning session; copied history cannot authorize a different session. */
+  readonly sessionId: SessionId
+  /** A human or machine selected session authorization, or an existing grant was reused. */
+  readonly kind: 'session' | 'reuse'
+}
+
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /**
@@ -46,6 +73,7 @@ declare module '@deepseek-ai/dsh-session/types' {
       toolName: string
       callId?: ToolCallId
       reason?: string
+      reusable?: ApprovalReuseAudit
     }
     /**
      * The outcome of a prior `approval/asked` (same `id`) — log-only audit.
@@ -55,6 +83,7 @@ declare module '@deepseek-ai/dsh-session/types' {
     'approval/decided': {
       id: ApprovalRequestId
       outcome: ApprovalOutcome
+      authorization?: ApprovalAuthorization
     }
   }
 }
@@ -71,6 +100,8 @@ export interface ApprovalRequestEvent {
   readonly reason?: string
   /** Localized presentation only; never persisted in approval audit events. */
   readonly displayReason?: { readonly en: string; readonly [locale: string]: string }
+  /** Trusted requester classification; absent classifications permit only one-shot answers. */
+  readonly reusable?: ApprovalReuse
   /** Cancellation lifetime of the pending request. */
   readonly signal?: AbortSignal
 }
@@ -87,7 +118,7 @@ declare module '@deepseek-ai/cordis' {
     'approval/request'(
       this: Scoped<Agent>,
       req: ApprovalRequestEvent,
-      next: () => Promise<ApprovalOutcome>,
-    ): Promise<ApprovalOutcome>
+      next: () => Promise<ApprovalAnswer>,
+    ): Promise<ApprovalAnswer>
   }
 }

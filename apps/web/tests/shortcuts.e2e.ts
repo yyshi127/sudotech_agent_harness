@@ -4,10 +4,18 @@ import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { openSettings } from './support.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
+import {
+  captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
+} from './scaffold.ts'
 
 const expected = fileURLToPath(new URL('./expected/shortcuts', import.meta.url))
 const mode = webSnapshotMode()
+// Palette values come from xiaojing-product/theme.module.css and the official theme.
+const palette = webClientProfile() === 'xiaojing'
+  ? { secondary: 'rgb(77, 98, 95)', border: 'rgb(167, 186, 184)', tertiary: 'rgb(104, 126, 123)',
+    toastLight: 'rgb(23, 50, 59)', toastDark: 'rgb(40, 67, 62)' }
+  : { secondary: 'rgb(97, 102, 107)', border: 'rgba(0, 0, 0, 0.16)', tertiary: 'rgb(129, 133, 140)',
+    toastLight: 'rgb(53, 54, 56)', toastDark: 'rgb(67, 69, 74)' }
 
 describe('web e2e: shortcut reference', () => {
   let scaffold: WebScaffold
@@ -120,7 +128,7 @@ describe('web e2e: shortcut reference', () => {
       expect(await recorder.evaluate(element => ({
         color: getComputedStyle(element).color, border: getComputedStyle(element).borderColor,
       })))
-        .toEqual({ color: 'rgb(97, 102, 107)', border: 'rgba(0, 0, 0, 0.16)' })
+        .toEqual({ color: palette.secondary, border: palette.border })
       expect(await recorder.evaluate(element => ({
         focused: element === document.activeElement,
         outline: getComputedStyle(element).outlineStyle, shadow: getComputedStyle(element).boxShadow,
@@ -133,7 +141,7 @@ describe('web e2e: shortcut reference', () => {
       expect(await errorToast.evaluate(element => ({
         background: getComputedStyle(element).backgroundColor, color: getComputedStyle(element).color,
       })))
-        .toEqual({ background: 'rgb(53, 54, 56)', color: 'rgb(255, 255, 255)' })
+        .toEqual({ background: palette.toastLight, color: 'rgb(255, 255, 255)' })
       expect(await errorToast.evaluate(element => element.closest('[role="dialog"]') === null)).toBe(true)
       expect(await recorder.evaluate(element => ({
         color: getComputedStyle(element).borderColor, width: getComputedStyle(element).borderWidth,
@@ -160,15 +168,15 @@ describe('web e2e: shortcut reference', () => {
       await page.emulateMedia({ colorScheme: 'dark' })
       await expect.poll(() => successToast.evaluate(element => ({
         background: getComputedStyle(element).backgroundColor, color: getComputedStyle(element).color,
-      }))).toEqual({ background: 'rgb(67, 69, 74)', color: 'rgb(255, 255, 255)' })
+      }))).toEqual({ background: palette.toastDark, color: 'rgb(255, 255, 255)' })
       await page.emulateMedia({ colorScheme: 'light' })
-      await expect.poll(() => successToast.evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(53, 54, 56)')
+      await expect.poll(() => successToast.evaluate(element => getComputedStyle(element).backgroundColor)).toBe(palette.toastLight)
       await editButton.click()
       await inline.getByRole('button', { name: locale === 'zh-CN' ? '移除' : 'Remove', exact: true }).click()
       await inline.waitFor({ state: 'hidden' })
       const unbound = row.getByText(locale === 'zh-CN' ? '暂无快捷键' : 'No shortcut', { exact: true })
       await unbound.waitFor()
-      expect(await unbound.evaluate(element => getComputedStyle(element).color)).toBe('rgb(129, 133, 140)')
+      expect(await unbound.evaluate(element => getComputedStyle(element).color)).toBe(palette.tertiary)
       expect(await row.getByRole('button').count()).toBe(1)
       await editButton.click({ position: { x: 12, y: 12 } })
       await inline.waitFor()

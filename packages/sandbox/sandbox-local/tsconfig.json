@@ -27,6 +27,12 @@
       "path": "../sandbox"
     },
     {
+      "path": "../sandbox-policy"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
       "path": "../sandbox-windows-acl"
     },
     {

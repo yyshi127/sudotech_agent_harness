@@ -145,6 +145,23 @@ async function settle(fn: () => Promise<void>): Promise<void> {
   await act(async () => { await fn() })
 }
 
+/** Unmount subscriptions before their services, attempting both disposals and retaining both failures. */
+async function disposeMountedClient(ctx: Context, stopMount: (() => Promise<void>) | undefined): Promise<void> {
+  const failures: unknown[] = []
+  try {
+    await stopMount?.()
+  } catch (error) {
+    failures.push(error)
+  }
+  try {
+    await ctx.fiber.dispose()
+  } catch (error) {
+    failures.push(error)
+  }
+  if (failures.length === 1) throw failures[0]
+  if (failures.length > 1) throw new AggregateError(failures, 'client-test-runtime: application cleanup failed')
+}
+
 async function awaitConnected(ctx: Context, mock: RemoteMock, timeoutMs: number): Promise<void> {
   const { state } = connectionOf(ctx)
   if (state.getSnapshot() === 'connected') return
@@ -184,7 +201,8 @@ export class TestClient {
    * contract-free proxies over the same Connection instead; a `provide` entry
    * for that row is refused. On any failure the context is disposed, an owned
    * mount removed, and this client's hold on the shims released before the
-   * original error is rethrown.
+   * original error is rethrown. React unmount precedes service disposal; a
+   * cleanup failure is reported together with the startup failure.
    * @param plan - roster and annotations.
    * @param mock - Remote mock answering every Gateway call.
    * @param options - mount and readiness options.
@@ -208,6 +226,7 @@ export class TestClient {
       : { hostname: location.hostname }
     let mountPoint: MountPoint = { element: undefined, owned: false }
     let release: (() => void) | undefined
+    let stopMount: (() => Promise<void>) | undefined
     const restore = (): void => {
       if (mountPoint.owned) mountPoint.element?.remove()
       release?.()
@@ -235,22 +254,22 @@ export class TestClient {
         if (ctx.get('uiRenderer') === undefined) {
           throw new Error('client-test-runtime: mount requested, but the roster provides no `uiRenderer`')
         }
-        await mountClient(ctx, mountPoint.element)
+        stopMount = await mountClient(ctx, mountPoint.element)
       }
       if (options.awaitConnected !== false) {
         await awaitConnected(ctx, mock, options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS)
       }
     } catch (error) {
       try {
-        await settle(() => ctx.fiber.dispose())
-      } catch {
-        // The boot failure is the error to report; a half-built tree failing to dispose adds nothing to it.
+        await settle(() => disposeMountedClient(ctx, stopMount))
+      } catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], 'client-test-runtime: startup and cleanup failed')
       } finally {
         restore()
       }
       throw error
     }
-    return new TestClient(ctx, mock, mountPoint.element, restore)
+    return new TestClient(ctx, mock, mountPoint.element, restore, stopMount)
   }
 
   private disposing: Promise<void> | undefined
@@ -260,6 +279,7 @@ export class TestClient {
     readonly mock: RemoteMock,
     readonly container: HTMLElement | undefined,
     private readonly restore: () => void,
+    private readonly stopMount: (() => Promise<void>) | undefined,
   ) {}
 
   /** The roster's Connection service (no `Context` augmentation declares it); throws when the roster provides none. */
@@ -299,7 +319,7 @@ export class TestClient {
   }
 
   /**
-   * Dispose the plugin tree, then drop an owned mount and release this
+   * Unmount React, dispose the plugin tree, then drop an owned mount and release this
    * client's hold on the shared jsdom shims even when the tree fails to dispose,
    * then `mock.assertNoUnmatched()` last so its failure is the test's reason
    * without skipping the cleanup; when both the tree and the check fail, one
@@ -318,7 +338,7 @@ export class TestClient {
   private async teardown(): Promise<void> {
     let failure: Error | undefined
     try {
-      await settle(() => this.ctx.fiber.dispose())
+      await settle(() => disposeMountedClient(this.ctx, this.stopMount))
     } catch (error) {
       failure = toError(error)
     } finally {

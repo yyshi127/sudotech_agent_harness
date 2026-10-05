@@ -1,0 +1,9 @@
+- list "Background jobs":
+  - listitem:
+    - button "Finished 1" [expanded]
+    - button "Clear"
+  - listitem:
+    - 'button "Hide live output of Write-Output ''streamed-marker-line''; for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath ''.live-job-stream.release'') { break }; Start-Sleep -Milliseconds 200 }" [expanded]': "pwsh Write-Output 'streamed-marker-line'; for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath '.live-job-stream.release') { break }; Start-Sleep -Milliseconds 200 } killed before exit; web e2e cancellation {{duration}}"
+    - text: "$ Write-Output 'streamed-marker-line'; for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath '.live-job-stream.release') { break }; Start-Sleep -Milliseconds 200 }"
+    - button "Copy"
+    - text: streamed-marker-line

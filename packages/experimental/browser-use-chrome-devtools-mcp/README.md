@@ -37,13 +37,17 @@ Mount both entries before creating or resuming a Session, in a profile compositi
 
 Use `mode: attach` and set `endpoint` to an HTTP(S) debugging URL or WS(S) browser endpoint to operate an existing browser. The new live Session claims the attachment during initialization and retains it until unloading. If the attachment is busy, that activation continues without this browser and does not retry on later turns. After release, a newly created or resumed activation can acquire it. Direct calls from another Session fail. Cleanup disconnects and leaves the external browser and its pages running.
 
+Use `mode: auto-connect` with an explicit absolute `userDataDir` to let the pinned server discover a running browser through that directory's `DevToolsActivePort`. This mode requires browser remote debugging to be enabled and any browser connection prompt to be approved by the user. It has the same Session exclusivity and disconnect behavior as attachment; it does not launch a replacement browser, select an executable, or restore saved profile contents into conversation history.
+
 | Field | Default | Meaning |
 |---|---|---|
-| `mode` | required | `launch` or `attach`, fixed for this provider activation |
+| `mode` | required | `launch`, `attach`, or `auto-connect`, fixed for this provider activation |
 | `headless` | `true` | Launch without a visible window |
 | `executablePath` | upstream discovery | Chromium executable for launch |
 | `endpoint` | required for attach | Existing browser debugging endpoint |
+| `userDataDir` | required for auto-connect | Absolute user-data directory of the running browser |
 | `toolCallTimeoutMs` | MCP client default | Per-call timeout in milliseconds |
+| `serverName` | `chrome-devtools-mcp` | Stable namespace for this connection's model-facing tools |
 
 The [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-experimental-browser-use-chrome-devtools-mcp) lists accepted fields. The profile or preset selects the browser mode.
 
@@ -60,6 +64,8 @@ When configuring the system prompt's `toolOrder` for the whole process, leave br
 The provider resolves its pinned npm entry and starts it under the current Node executable. A temporary protocol probe may precede the serving process. The [shared runtime](../browser-use-runtime/README.md) owns awaited Agent initialization, per-Session serialization, and cleanup; the [MCP client](../../mcp/mcp-client/README.md) owns transport, discovery, and result projection. No runtime invariant companion is published because the provider maintains no independent connection observation.
 
 Browser state survives turns while its live Session remains attached. Disposal waits for server shutdown before releasing resources. Resume after reload starts fresh browser runtime state; stored conversation history does not restore cookies or pages.
+
+`createSessionMcpOptions()` returns validated executable, argument, namespace, and ownership settings without starting a process or reserving browser use. Product consumers can use these options for lazy connection through the same Session runtime and MCP client.
 
 </details>
 

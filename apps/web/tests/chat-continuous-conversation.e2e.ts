@@ -1,6 +1,6 @@
 // Web e2e contract for a conversation grown through the real composer rather
 // than pre-seeded history. Twelve deterministic replay turns exercise repeated
-// send/settle/render cycles, including two real bash executions and one long,
+// send/settle/render cycles, including two real native shell executions and one long,
 // multi-chunk final turn. Assertions stay semantic: no host timing, heap, or
 // mounted-row cardinality is treated as a correctness contract.
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -16,6 +16,7 @@ import {
   launchWebScaffold,
   watchConsole,
   webSnapshotMode,
+  webClientProfile,
   type WebScaffold,
 } from './scaffold.ts'
 import {
@@ -26,6 +27,7 @@ const MODE = webSnapshotMode()
 const TURN_COUNT = 12
 const TOOL_TURNS = [4, 9] as const
 const STREAM_PACE_MS = 10
+const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
 
 interface TurnSpec {
   readonly index: number
@@ -110,7 +112,9 @@ function toolStream(spec: TurnSpec): StreamChunk[] {
     throw new Error(`turn ${String(spec.index)} has no tool identity`)
   }
   const args = JSON.stringify({
-    command: `printf '${spec.toolResultMarker}\\n'`,
+    command: process.platform === 'win32'
+      ? `[Console]::Write('${spec.toolResultMarker}' + [char]10)`
+      : `printf '${spec.toolResultMarker}\\n'`,
     description: spec.toolResultMarker,
   })
   return [
@@ -119,13 +123,13 @@ function toolStream(spec: TurnSpec): StreamChunk[] {
       type: 'tool-call-delta',
       index: 0,
       id: spec.callId,
-      name: 'bash',
+      name: SHELL_TOOL,
       argumentsDelta: args,
     },
     {
       type: 'block-end',
       index: 0,
-      block: { type: 'tool-call', id: spec.callId, name: 'bash', arguments: args },
+      block: { type: 'tool-call', id: spec.callId, name: SHELL_TOOL, arguments: args },
     },
     { type: 'usage', usage: { inputTokens: 256, outputTokens: 24 } },
     { type: 'finish', reason: { kind: 'tool-calls' } },
@@ -189,6 +193,12 @@ describe('web e2e: continuous conversation grown through the composer', () => {
       replayFixture: join(replayDir, 'override-only.jsonl'),
       replayOverride,
       replayContextWindow: 10_000_000,
+      ...(webClientProfile() === 'xiaojing' ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 10_000_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
       paceMs: STREAM_PACE_MS,
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => {
@@ -202,6 +212,9 @@ describe('web e2e: continuous conversation grown through the composer', () => {
     })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (webClientProfile() === 'xiaojing') {
+      await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor({ timeout: 15_000 })
+    }
     await connectFreshWorkspace(page, scaffold.workspaceCwd, 'continuous-chat-e2e')
   }, 120_000)
 
@@ -312,18 +325,18 @@ describe('web e2e: continuous conversation grown through the composer', () => {
       expect(calls[0]?.data).toMatchObject({
         turn: spec.index,
         callId: spec.callId,
-        name: 'bash',
+        name: SHELL_TOOL,
       })
       expect(results[0]?.data.turn).toBe(spec.index)
       expect(results[0]?.data.message.source.callId).toBe(spec.callId)
-      expect(results[0]?.data.message.isError).toBe(false)
+      expect(results[0]?.data.message.isError, toolResultText(results[0]!)).toBe(false)
       expect(toolResultText(results[0]!)).toBe(`${spec.toolResultMarker}\n`)
 
       const toolRow = page.locator(`[data-chat-call-id="${spec.callId}"]`)
       await expect.poll(() => toolRow.count(), { timeout: 10_000 }).toBe(1)
       expect(await toolRow.textContent()).toContain(spec.toolResultMarker)
       await expandOwningTurnProcess(page, toolRow)
-      const disclosure = toolRow.locator('[data-sample="bash"]')
+      const disclosure = toolRow.getByRole('button', { name: new RegExp(spec.toolResultMarker) })
       expect(await disclosure.getAttribute('aria-expanded')).toBe('false')
       await disclosure.click()
       await expect.poll(() => disclosure.getAttribute('aria-expanded'), { timeout: 10_000 }).toBe('true')

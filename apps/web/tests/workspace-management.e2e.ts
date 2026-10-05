@@ -21,7 +21,7 @@ import { SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import { logPath } from '../../../packages/session/session-persistence-jsonl/src/format.ts'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, readPersistedEvents, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, readPersistedEvents, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
@@ -30,7 +30,11 @@ const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/workspace-man
 // spec needs any one cold session row, not new recorded content.
 const SEED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
 const MODE = webSnapshotMode()
-const BROWSER_EXPECTED = join(SNAPSHOT_DIR, 'directory-browser.expected.md')
+const LOCAL_EXPECTED = fileURLToPath(new URL('./expected/workspace-management', import.meta.url))
+const BROWSER_EXPECTED = webClientProfile() === 'xiaojing'
+  ? join(LOCAL_EXPECTED, 'directory-browser.xiaojing.expected.md')
+  : join(SNAPSHOT_DIR, 'directory-browser.expected.md')
+const WORKSPACE_SECTION = webClientProfile() === 'xiaojing' ? 'Office Companion' : 'Workspaces'
 const SEED_ID = 'workspace-management-web-e2e'
 // Both waits exceed ui-primitives' 200ms POINTER_GRACE_MS. Keep them above
 // that value if the shared setting changes.
@@ -413,7 +417,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
     onTestFailed(() => saveFailureShot(page, 'web-e2e-ws-flat'))
     // Grouped default: workspace group rows render (the seeded session sits
     // under Ungrouped; the created workspaces are empty groups).
-    await expect.poll(() => page.getByText('Workspaces', { exact: true }).count(), { timeout: 10_000 }).toBe(1)
+    await expect.poll(() => page.getByText(WORKSPACE_SECTION, { exact: true }).count(), { timeout: 10_000 }).toBe(1)
     // Grouping and ordering moved into the View options menu.
     await page.getByRole('button', { name: 'View options' }).click()
     await page.getByRole('menuitem', { name: 'In one list' }).click()
@@ -625,7 +629,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
     await page.reload({ waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
-    await expect.poll(() => page.getByText('Workspaces', { exact: true }).count(), { timeout: 15_000 }).toBe(1)
+    await expect.poll(() => page.getByText(WORKSPACE_SECTION, { exact: true }).count(), { timeout: 15_000 }).toBe(1)
     // Initial Workspace reconnection can focus the composer after the tree renders.
     // Finish that navigation before the next test opens a path editor.
     await page.locator('[role="treeitem"][aria-selected="true"]').waitFor({ timeout: 15_000 })
@@ -757,6 +761,9 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
     await assertFixtureInventory(SNAPSHOT_DIR, [
       '.gitkeep', 'directory-browser.expected.md', 'new-session.expected.md',
     ])
+    await assertFixtureInventory(LOCAL_EXPECTED, [
+      'directory-browser.xiaojing.expected.md', 'grouping-options.expected.md', 'parent-folders.expected.md',
+    ])
   })
 })
 
@@ -785,9 +792,17 @@ describe('web e2e: New Session after an outdated blank cache', () => {
       onTestFailed(() => saveFailureShot(page, 'web-e2e-new-session-stale-blank'))
 
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+      if (webClientProfile() === 'xiaojing') {
+        const group = page.getByRole('treeitem', { name: 'New session regression', exact: true })
+        await group.waitFor({ timeout: 15_000 })
+        if (await group.getAttribute('aria-expanded') !== 'true') await group.click()
+        await page.locator(`[data-row-key="session:${id}"]`).click()
+      }
       await page.getByRole('tab', { name: 'Chat', exact: true }).waitFor()
       const selected = page.locator('[role="treeitem"][aria-selected="true"]')
       await expect.poll(() => selected.innerText()).not.toBe('New Session')
+      await page.getByRole('button', { name: 'Settings', exact: true }).hover()
+      await expect.poll(() => selected.locator('[class*="_time"]').textContent()).toBe('now')
       const previous = (await selected.innerText()).split('\n')[0]!
       const before = await captureStableAria(page, '[role="tree"]', scaffold.workspaceCwd)
 

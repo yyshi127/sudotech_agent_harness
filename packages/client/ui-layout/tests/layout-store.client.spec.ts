@@ -13,7 +13,7 @@ describe('createLayoutStore', () => {
     expect(store.getSnapshot()).toEqual({
       panelInfo: { activePanelId: null },
       layoutInfo: {
-        sidebar: 280,
+        sidebar: 304,
         viewportWidth: 1920,
         narrowExpanded: false,
         rightbar: null,
@@ -31,7 +31,7 @@ describe('createLayoutStore', () => {
     const b = createLayoutStore().create()
     a.actions.setSidebar(400)
     a.actions.openRightbar(true, false)
-    expect(b.store.getSnapshot().layoutInfo.sidebar).toBe(280)
+    expect(b.store.getSnapshot().layoutInfo.sidebar).toBe(304)
     expect(b.store.getSnapshot().layoutInfo.rightbar).toBeNull()
     expect(write).not.toHaveBeenCalled()
   })
@@ -50,7 +50,7 @@ describe('createLayoutStore', () => {
     actions.toggleSidebar()
     expect(store.getSnapshot().layoutInfo.sidebar).toBe(0)
     actions.toggleSidebar()
-    expect(store.getSnapshot().layoutInfo.sidebar).toBe(280)
+    expect(store.getSnapshot().layoutInfo.sidebar).toBe(304)
   })
 
   it('keeps the sidebar preference while toggling its narrow override', () => {

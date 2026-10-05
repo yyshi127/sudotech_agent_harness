@@ -10,7 +10,7 @@ import { zh } from '../src/client/locale.ts'
 const t = makeTranslate(zh, commonZh)
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(5_000) })
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
 function statusHarness(startTime?: number) {
   const view = render(<RunningStatus startTime={startTime} t={t} />)
@@ -22,6 +22,48 @@ function statusHarness(startTime?: number) {
 }
 
 describe('RunningStatus', () => {
+  it('shows three decorative thinking dots in Xiaojing builds', () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    const view = statusHarness()
+    const dots = view.container.querySelector('[data-running-dots]')
+    expect(dots?.getAttribute('aria-hidden')).toBe('true')
+    expect(dots?.children).toHaveLength(3)
+    expect(dots?.textContent).toBe('')
+    expect(view.container.querySelector('img')).toBeNull()
+    expect(view.container.querySelector('svg')).toBeNull()
+    expect(view.getByRole('status').textContent).toBe('深度求索中')
+  })
+
+  it('retains the decorative whale in official builds', () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'official')
+    vi.stubEnv('DSH_CLIENT_FAVICON', './other-product.png')
+    const view = statusHarness()
+    expect(view.container.querySelector('img')).toBeNull()
+    expect(view.container.querySelector('[data-running-dots]')).toBeNull()
+    expect(view.container.querySelector('svg')?.parentElement?.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it.each([
+    ['zh', '小兢会计思考中', '秒'],
+    ['en', 'Xiaojing Accounting is thinking', 's'],
+  ] as const)('uses the product %s label for visible text and accessible status', async (language, label, unit) => {
+    vi.stubEnv('DSH_CLIENT_RUNNING_LABEL_ZH', '小兢会计思考中')
+    vi.stubEnv('DSH_CLIENT_RUNNING_LABEL_EN', 'Xiaojing Accounting is thinking')
+    vi.resetModules()
+    const dictionaries = await import('../src/client/locale.ts')
+    const productT = makeTranslate(dictionaries[language], commonZh)
+    const view = render(<RunningStatus startTime={undefined} t={productT} />)
+    const content = () => view.container.querySelector('[data-chat-running] > :last-child')
+    expect(content()?.textContent).toBe(label)
+    expect(view.getByRole('status').textContent).toBe(label)
+    view.rerender(<RunningStatus startTime={1_000} t={productT} />)
+    expect(content()?.textContent).toBe(productT('chat.deepDivingFor', { duration: `4${unit}` }))
+    expect(view.getByRole('status').textContent).toBe(label)
+    act(() => { vi.advanceTimersByTime(2_000) })
+    expect(content()?.textContent).toBe(productT('chat.deepDivingFor', { duration: `6${unit}` }))
+    expect(view.getByRole('status').textContent).toBe(label)
+  })
+
   it('waits for an open Turn start before allocating its clock', () => {
     const view = statusHarness()
     expect(view.content()?.textContent).toBe('深度求索中')

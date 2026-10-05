@@ -98,7 +98,7 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   { file: 'apps/cli/tests/profiles/web/tests/fixtures/creator-plugin-manager.mjs', upstream: ['cordis'] },
   { file: 'apps/web/tests/agent-preset-authoring.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/cli/tests/fixtures/general-documents/snapshot.ts', upstream: ['cordis'] },
-  { file: 'apps/cli/tests/general-documents.snapshot.ts', upstream: ['cordis'] },
+  { file: 'apps/cli/tests/general-documents.expected.e2e.ts', upstream: ['cordis'] },
   { file: 'apps/web/tests/xiaojing-persona.e2e.ts', upstream: ['cordis'] },
   { file: 'scripts/verify-xiaojing-product-layer.mjs', upstream: ['cordis'] },
   { file: 'docs/xiaojing-product-development.md', upstream: ['cordis'] },
@@ -580,7 +580,7 @@ function main(): void {
   const all = patterns(reverse)
   const files = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
     .split('\0')
-    .filter(file => file !== '' && !isRescopeExcluded(file))
+    .filter(file => file !== '' && !isRescopeExcluded(file) && existsSync(resolve(root, file)))
 
   const counts = new Map<string, { files: number; lines: number }>()
   const failures: string[] = []

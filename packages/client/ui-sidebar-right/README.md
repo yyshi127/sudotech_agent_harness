@@ -58,7 +58,7 @@ While the panel is hidden, one button in the conversation header's corner seat (
 
 The panel takes the conversation's ground colour and content font sizes rather than a raised layer of its own: it is a column of the page, not a card over it.
 
-The root-scoped `rightbar` entry renders the selected Session and background Sessions with initialized `keepMounted` bodies through separate `rightbar.session` subtrees. Each View owns its Session reference. Only the foreground subtree reports a frame track; other subtrees stay hidden without deleting tab state.
+The root-scoped `rightbar` entry renders the selected Session and background Sessions with initialized `keepMounted` bodies through separate `rightbar.session` subtrees. Each View owns its Session reference. A View reports opening failures until disposal, including while retired with committed mounts; releasing its pending reference during disposal does not report an opening failure. Only the foreground subtree reports a frame track; other subtrees stay hidden without deleting tab state.
 
 <a id="state"></a>
 ## State

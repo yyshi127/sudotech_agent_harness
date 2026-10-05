@@ -16,7 +16,7 @@ import {
   acknowledgeReloadConnectionLoss, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden,
   launchWebScaffold, readPersistedEvents, selectedSessionFixture, watchConsole,
-  webSnapshotMode, type WebScaffold,
+  webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
 
@@ -115,6 +115,12 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     await writeFile(childFixturePath, childFixture(baseFixture, 'recorded-subagent', true))
     scaffold = await launchWebScaffold({
       replayFixture: selectedBaseFixture,
+      ...(webClientProfile() === 'xiaojing' ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
       compareReplaySession: false,
       replayChildFixtures: [childFixturePath],
       paceMs: 25,
@@ -128,9 +134,12 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (webClientProfile() === 'xiaojing') {
+      await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor({ timeout: 15_000 })
+    }
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
 
-    const parent = scaffold.ctx.agents.roots()[0]
+    const parent = scaffold.ctx.agents.roots().find(agent => agent.session.header.cwd === join(scaffold.workspaceCwd, 'workspace'))
     if (parent === undefined) throw new Error('fresh workspace did not publish its parent Agent')
     const parentSettled = scaffold.whenTurnSettled()
     const parentInput = page.locator('[data-composer-input][contenteditable="true"]').first()

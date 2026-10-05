@@ -4,13 +4,16 @@ import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
-  launchWebScaffold, watchConsole, webSnapshotMode, WELCOME_NOTICE_COPY,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, WELCOME_NOTICE_COPY,
   type WebConsoleTripwire, type WebScaffold,
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE } from './support.ts'
 
 const MODE = webSnapshotMode()
 const MOUNT = '/tools/dsh/'
+const XIAOJING = webClientProfile() === 'xiaojing'
+const WELCOME_TITLE = XIAOJING ? '初次使用说明' : WELCOME_NOTICE_COPY.zh.title
+const WELCOME_CONTINUE = XIAOJING ? '开始使用' : WELCOME_NOTICE_COPY.zh.continueLabel
 
 describe.skipIf(MODE === 'record')('web e2e: public mount through a prefix-stripping proxy', () => {
   let scaffold: WebScaffold
@@ -50,8 +53,13 @@ describe.skipIf(MODE === 'record')('web e2e: public mount through a prefix-strip
   const offMountRequests = (): string[] => requestUrls.filter(url => !url.startsWith(scaffold.baseUrl))
 
   it('loads the shell, its plugin bundles, and the Gateway WebSocket under the mount', async () => {
-    const welcome = page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title })
+    const welcome = page.getByRole('dialog', { name: WELCOME_TITLE })
     await welcome.waitFor({ timeout: 15_000 })
+    if (XIAOJING) {
+      expect(await page.locator('html').getAttribute('data-dsh-client-build-profile')).toBe('xiaojing')
+      expect(await page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title, exact: true }).count()).toBe(0)
+      expect(await page.getByRole('button', { name: '账号菜单', exact: true }).count()).toBe(0)
+    }
     expect(new URL(page.url()).pathname).toBe(MOUNT)
 
     // Every resource the page requested — bundles, manifest, icon, and whatever
@@ -67,8 +75,33 @@ describe.skipIf(MODE === 'record')('web e2e: public mount through a prefix-strip
       manifest?: { id?: string; scope?: string; startUrl?: string }
     }
     expect([manifest?.id, manifest?.scope, manifest?.startUrl]).toEqual([scaffold.baseUrl, scaffold.baseUrl, scaffold.baseUrl])
+    if (XIAOJING) {
+      const manifestUrl = await page.locator('link[rel="manifest"]').evaluate((element) => {
+        if (!(element instanceof HTMLLinkElement)) throw new Error('Manifest link is missing')
+        return element.href
+      })
+      expect(manifestUrl).toBe(`${scaffold.baseUrl}xiaojing-manifest.webmanifest`)
+      const resources = await page.evaluate(async (url) => {
+        const response = await fetch(url)
+        const metadata: unknown = await response.json()
+        const icon = await fetch(new URL('xiaojing-character-logo.png', url))
+        return { metadata, manifestOk: response.ok, iconOk: icon.ok, iconType: icon.headers.get('content-type') }
+      }, manifestUrl)
+      expect(resources.manifestOk).toBe(true)
+      expect(resources.metadata).toEqual({
+        name: '小兢会计-您的AI办公搭子',
+        short_name: '小兢会计',
+        start_url: './',
+        scope: './',
+        display: 'fullscreen',
+        icons: [{ src: 'xiaojing-character-logo.png', sizes: '1254x1254', type: 'image/png', purpose: 'any' }],
+      })
+      expect(resources.iconOk).toBe(true)
+      expect(resources.iconType).toContain('image/png')
+      expect(offMountRequests()).toEqual([])
+    }
 
-    await welcome.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel }).click()
+    await welcome.getByRole('button', { name: WELCOME_CONTINUE }).click()
     await welcome.waitFor({ state: 'detached', timeout: 15_000 })
 
     // The forward must be a live two-way pipe, not just a handshake: the page's

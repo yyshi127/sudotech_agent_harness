@@ -6,6 +6,8 @@ import type {
   WebBootEntry,
 } from '@deepseek-ai/dsh-client-modules/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, createElement, useSyncExternalStore } from 'react'
+import { createRoot } from 'react-dom/client'
 import { AppWebEntry } from '../src/boot.ts'
 
 const MODULES_ID = '@deepseek-ai/dsh-client-modules'
@@ -56,6 +58,34 @@ async function expectBootFailure(setup: () => void, message: string): Promise<vo
 }
 
 describe('bootstrap failure rendering', () => {
+  it('removes the boot page when root cleanup fails after failed startup', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.append(container)
+    const target = installFacade()
+    win.__DSH_BOOT__ = {
+      rev: 'graph',
+      entries: [{ id: 'broken', url: '/broken.js', rev: '1' }],
+      batches: [{ phase: 'application', url: '/application.js', rev: '1', entries: ['broken'] }],
+    }
+    const entry = new AppWebEntry(container, {
+      loadBundle: async () => {
+        target.load({ id: 'broken', factory: () => ({ apply: (ctx: Context) => {
+          const dispose = ctx.root.fiber.dispose.bind(ctx.root.fiber)
+          vi.spyOn(ctx.root.fiber, 'dispose').mockImplementation(async () => {
+            await dispose()
+            throw new Error('root cleanup failed')
+          })
+          throw new Error('startup failed')
+        } }) })
+      },
+    })
+    await entry.run()
+    expect(container.querySelector('[data-dsh-boot]')).not.toBeNull()
+    await expect(entry.dispose()).rejects.toThrow('root cleanup failed')
+    expect(container.querySelector('[data-dsh-boot]')).toBeNull()
+  })
+
   it('leaves the loading page visible when a carrier owns fatal presentation', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const container = document.createElement('div')
@@ -137,6 +167,53 @@ describe('bootstrap failure rendering', () => {
 })
 
 describe('plugin activation', () => {
+  it('unmounts React subscriptions before disposing the services they observe', async () => {
+    const listeners = new Set<() => void>()
+    const observedDuringTeardown: number[] = []
+    const subscribe = (listener: () => void) => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    }
+    function Observer() {
+      useSyncExternalStore(subscribe, () => 0)
+      return null
+    }
+    const container = document.createElement('div')
+    document.body.append(container)
+    const target = installFacade()
+    win.__DSH_BOOT__ = {
+      rev: 'graph',
+      entries: [
+        { id: 'observed', url: '/observed.js', rev: '1' },
+        { id: 'renderer', url: '/renderer.js', rev: '1' },
+      ],
+      batches: [{ phase: 'application', url: '/application.js', rev: '1', entries: ['observed', 'renderer'] }],
+    }
+    const entry = new AppWebEntry(container, {
+      loadBundle: async () => {
+        target.load({ id: 'observed', factory: () => ({ apply: (ctx: Context) => {
+          ctx.root.effect(() => () => { observedDuringTeardown.push(listeners.size) })
+        } }) })
+        target.load({ id: 'renderer', factory: () => ({ apply: (ctx: Context) => {
+          ctx.reflect.provide('uiRenderer', { mount: (element: HTMLElement) => {
+            const root = createRoot(element)
+            root.render(createElement(Observer))
+            return () => { root.unmount() }
+          } })
+        } }) })
+      },
+    })
+    try {
+      await act(async () => { await entry.run() })
+      expect(listeners.size).toBe(1)
+      await act(async () => { await entry.dispose() })
+      expect(observedDuringTeardown).toEqual([0])
+      expect(listeners.size).toBe(0)
+    } finally {
+      await act(async () => { await entry.dispose() })
+    }
+  })
+
   it('prefetches a parser-loaded immediate row through the injected bundle transport', async () => {
     const container = document.createElement('div')
     document.body.append(container)

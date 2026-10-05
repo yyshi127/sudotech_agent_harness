@@ -15,6 +15,7 @@ const THEME_ORDER = ['lt1', 'dk1', 'lt2', 'dk2', 'accent1', 'accent2', 'accent3'
 
 /**
  * Decode an XLSX into display cells, omitting drawings and retaining formulas without recalculation.
+ * Sheets with no decoded default row height retain the viewer's default.
  * @param bytes - Complete borrowed workbook bytes.
  * @param limits - File and matrix allocation limits.
  * @returns Sheets ready for a read-only FortuneSheet workbook.
@@ -109,9 +110,11 @@ export async function convertXlsx(bytes: Uint8Array<ArrayBuffer>, limits: ExcelL
       id: String(worksheet.id), name: worksheet.name, order, status, hide: visible ? 0 : 1,
       row, column,
       config, celldata, showGridLines: view?.showGridLines !== false,
-      defaultRowHeight: worksheet.properties.defaultRowHeight * 96 / 72,
       luckysheet_select_save: initialSelection(config),
     }
+    // ExcelJS types require this field even when the XLSX omits sheetFormatPr.
+    const defaultRowHeight = worksheet.properties.defaultRowHeight as number | undefined
+    if (defaultRowHeight !== undefined) sheet.defaultRowHeight = defaultRowHeight * 96 / 72
     if (worksheet.properties.defaultColWidth !== undefined) sheet.defaultColWidth = columnPixels(worksheet.properties.defaultColWidth)
     if (view?.state === 'frozen' && (view.xSplit || view.ySplit)) {
       sheet.frozen = {

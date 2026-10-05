@@ -58,12 +58,19 @@ export interface ApprovalPresentationRequest {
   readonly reason?: string
   /** Localized presentation copy; the audit reason remains unchanged. */
   readonly displayReason?: { readonly en: string; readonly [locale: string]: string }
+  /** Host-offered session reuse, without the Host's category or scope identifiers. */
+  readonly reusable?: {
+    /** Readable operation range supplied by the requester. */
+    readonly label: string
+    /** Localized range presentation; never used for permission matching. */
+    readonly displayLabel?: { readonly en: string; readonly [locale: string]: string }
+  }
   /** Cancellation projected from the Host waterfall. */
   readonly signal?: AbortSignal
 }
 
 /** Decisions this interactive Client presentation can return. */
-export type ApprovalDecision = 'allowed-once' | 'rejected'
+export type ApprovalDecision = 'allowed-once' | 'allowed-session' | 'rejected'
 
 let nextApprovalKey = 0
 
@@ -84,6 +91,8 @@ export class PendingApproval {
   readonly reason: string | undefined
   /** Localized presentation copy, when supplied by the asker. */
   readonly displayReason: ApprovalPresentationRequest['displayReason']
+  /** Host-offered session reuse and its presentation-only operation range. */
+  readonly reusable: ApprovalPresentationRequest['reusable']
   /** Result returned by the Remote Event listener to the Host waterfall. */
   readonly result: Promise<ApprovalDecision>
 
@@ -106,6 +115,7 @@ export class PendingApproval {
     this.callId = request.callId
     this.reason = request.reason
     this.displayReason = request.displayReason
+    this.reusable = request.reusable
     const completion = Promise.withResolvers<ApprovalDecision>()
     this.result = completion.promise
     this.#resolve = completion.resolve

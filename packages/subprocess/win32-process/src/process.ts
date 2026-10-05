@@ -86,6 +86,8 @@ export interface CurrentTokenProcessSpawnOptions extends ProcessSpawnOptions {
   env: Readonly<Record<string, string>>
   /** Runner CRT descriptors carrying target stdin, stdout, and stderr. */
   stdio: CurrentTokenStdioFileDescriptors
+  /** Exclude the target's children from this Job while keeping the target owned. */
+  childLifetime?: 'independent' | undefined
 }
 
 /** Runner CRT descriptors whose OS handles become the target standard handles. */
@@ -337,12 +339,13 @@ export function waitForProcessExit(api: Win32ProcessBindings, process: NativePtr
   }
 }
 
-function createKillOnCloseJob(api: Win32ProcessBindings): NativePtr {
+function createKillOnCloseJob(api: Win32ProcessBindings, childLifetime?: 'independent'): NativePtr {
   const job = api.createJobObjectW(null, null)
   if (isNullPtr(job)) throwLastError(api, 'CreateJobObjectW')
   const information = Buffer.alloc(abi.JOBOBJECT_EXTENDED_LIMIT_SIZE)
   information.writeUInt32LE(
-    abi.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    abi.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+      | (childLifetime === 'independent' ? abi.JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK : 0),
     abi.JOBOBJECT_EXTENDED_LIMIT_FLAGS_OFFSET,
   )
   if (api.setInformationJobObject(
@@ -418,8 +421,9 @@ function spawnJobProcess(
   resolveStdio: () => ProcessStandardHandles,
   createName: 'CreateProcessAsUserW' | 'CreateProcessW',
   create: (startupInfo: NativePtr, processInfo: NativePtr) => number,
+  childLifetime?: 'independent',
 ): SpawnedJobProcess {
-  const job = createKillOnCloseJob(api)
+  const job = createKillOnCloseJob(api, childLifetime)
   const enabled: NativePtr[] = []
   let startupInfo: NativePtr | undefined
   let processInfo: NativePtr | undefined
@@ -547,6 +551,7 @@ export function spawnInheritedJobProcess(
 
 /**
  * Spawn an ordinary process suspended with hidden initial windows, assign its Job, then resume it.
+ * Independent children remain outside this Job but can remain in an enclosing host Job.
  * @param api - active binding table.
  * @param options - command, cwd, argv, and target carrier descriptors.
  * @returns caller-owned process and Job handles after successful resume.
@@ -569,7 +574,7 @@ export function spawnCurrentTokenJobProcess(
       options.cwd,
       startupInfo,
       processInfo,
-    ))
+    ), options.childLifetime)
 }
 
 /**

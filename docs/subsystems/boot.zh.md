@@ -66,6 +66,13 @@ Hot reload service with Cordis-compatible module configuration and events.
  */
 runExclusive<T>(operation: () => Promise<T>): Promise<T>
 
+/** Schedule independent follow-up work without inheriting the current transaction.
+ * Do not await a follow-up transaction from inside the transaction that scheduled it.
+ * @param operation Callback that emits notifications or schedules follow-up work.
+ * @returns The callback result.
+ */
+runOutsideTransaction<T>(operation: () => T): T
+
 /** Watch a configuration path through the same queue as module replacement.
  * @param filename Absolute path, which may not exist yet.
  * @param refresh Rebuilds configuration from its current files and awaits Loader completion.

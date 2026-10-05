@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
@@ -20,12 +20,19 @@ import {
   type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/minimal-preset', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/minimal-preset', import.meta.url))
+const SNAPSHOT_DIR = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('./expected/minimal-preset-xiaojing', import.meta.url)) : STOCK_SNAPSHOT_DIR
+const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
-const PROMPT = "Use the bash tool to run exactly: printf 'MINIMAL_BASH_CARD_OK\\n'. Then reply exactly MINIMAL_PRESET_REQUEST_OK and stop."
+const SHELL_TOOL = WINDOWS_XIAOJING ? 'pwsh' : 'bash'
+const PROMPT = WINDOWS_XIAOJING
+  ? "Use the pwsh tool to run exactly: Write-Output 'MINIMAL_BASH_CARD_OK'. Then reply exactly MINIMAL_PRESET_REQUEST_OK and stop."
+  : "Use the bash tool to run exactly: printf 'MINIMAL_BASH_CARD_OK\\n'. Then reply exactly MINIMAL_PRESET_REQUEST_OK and stop."
 
 /** Rendered text of the system prompt surface node, or undefined when the surface carries none. */
 function systemPromptText(session: Session): string | undefined {
@@ -42,7 +49,9 @@ describe('minimal agent preset', () => {
   let tripwire: ReturnType<typeof watchConsole> | undefined
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10 })
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10,
+      ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
+    })
     disposeInjectedPrompt = scaffold.ctx.systemPrompt.section({
       name: 'test:injected-prompt',
       order: 999,
@@ -51,7 +60,7 @@ describe('minimal agent preset', () => {
     agentHandle = await scaffold.ctx.agents.create({
       sessionId: SessionId('minimal-preset-smoke'),
       meta: { cwd: scaffold.workspaceCwd, agentPreset: 'minimal' },
-      agentOptions: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+      agentOptions: { provider: 'deepseek-official', model: WINDOWS_XIAOJING ? 'deepseek-flash' : 'deepseek-v4-flash' },
       setup: agentCtx => scaffold.ctx.agentPresets.mount(agentCtx, 'minimal').then(() => undefined),
     })
     agentHandle.agent.followup(createUserMessage({
@@ -59,6 +68,11 @@ describe('minimal agent preset', () => {
       source: { kind: 'user' },
     }))
     await agentHandle.agent.whenIdle()
+    if (WINDOWS_XIAOJING) {
+      const results = agentHandle.agent.session.snapshotEvents().filter(event => event.type === 'tool/result')
+      expect(results).toHaveLength(1)
+      expect(results[0]?.data.message.isError).toBe(false)
+    }
   })
 
   afterAll(async () => {
@@ -89,18 +103,22 @@ describe('minimal agent preset', () => {
     const stateDir = join(scaffold.workspaceCwd, 'persistent-state')
     await mkdir(stateDir)
     const signal = new AbortController().signal
-    await scaffold.ctx.tools.execute({
+    const setup = await scaffold.ctx.tools.execute({
       signal,
       callId: ToolCallId('minimal-bash-state-setup'),
-      name: 'bash',
-      arguments: { command: `cd ${JSON.stringify(stateDir)} && export DSH_MINIMAL_STATE=PERSISTED` },
+      name: SHELL_TOOL,
+      arguments: { command: WINDOWS_XIAOJING
+        ? `Set-Location -LiteralPath '${stateDir.replaceAll("'", "''")}'; $env:DSH_MINIMAL_STATE = 'PERSISTED'`
+        : `cd ${JSON.stringify(stateDir)} && export DSH_MINIMAL_STATE=PERSISTED` },
       agent: agentHandle.agent,
     })
     const bash = await scaffold.ctx.tools.execute({
       signal,
       callId: ToolCallId('minimal-bash-state-read'),
-      name: 'bash',
-      arguments: { command: 'printf \'%s:%s\n\' "$DSH_MINIMAL_STATE" "$PWD"' },
+      name: SHELL_TOOL,
+      arguments: { command: WINDOWS_XIAOJING
+        ? "Write-Output ('{0}:{1}' -f $env:DSH_MINIMAL_STATE, (Get-Location).Path)"
+        : 'printf \'%s:%s\n\' "$DSH_MINIMAL_STATE" "$PWD"' },
       agent: agentHandle.agent,
     })
     const text = (result: typeof bash): string => result.content
@@ -110,7 +128,16 @@ describe('minimal agent preset', () => {
       .replaceAll(scaffold.workspaceCwd, '{{cwd}}')
       .trimEnd()
 
-    expect({
+    expect(setup.isError).toBe(false)
+    expect(bash.isError).toBe(false)
+    if (WINDOWS_XIAOJING) {
+      expect(systemPrompt).toBe('You are a helpful software engineer assistant.')
+      expect(requestHeader.tools?.map(tool => tool.name)).toEqual(['browser_control', 'computer_control', 'document_reader', 'pwsh', 'visualize'])
+      expect(scaffold.ctx.commands.find(agentHandle.agent, 'goal')).toBeUndefined()
+      expect(text(bash)).toBe('PERSISTED:{{cwd}}\\persistent-state')
+      expect(requestHeader.tools?.find(tool => tool.name === 'pwsh'))
+        .toEqual(JSON.parse(await readFile(join(SNAPSHOT_DIR, 'pwsh-schema.expected.json'), 'utf8')))
+    } else expect({
       prompt: systemPrompt,
       tools: requestHeader.tools?.map(tool => tool.name),
       goalCommand: scaffold.ctx.commands.find(agentHandle.agent, 'goal') !== undefined,
@@ -152,11 +179,13 @@ describe('minimal agent preset', () => {
     await process.click()
     await expect.poll(() => process.getAttribute('aria-expanded')).toBe('true')
 
-    const group = page.locator('[data-chat-group-key]').filter({ has: page.locator('[data-sample="bash"]') }).first()
+    const shellSelector = WINDOWS_XIAOJING ? '[data-tool="pwsh"]' : '[data-sample="bash"]'
+    const group = page.locator('[data-chat-group-key]').filter({ has: page.locator(shellSelector) }).first()
     const groupControl = group.locator('[data-process-activity]')
     await groupControl.waitFor({ timeout: 15_000 })
     await expect.poll(() => groupControl.getAttribute('aria-expanded')).toBe('false')
-    const row = group.locator('[data-sample="bash"]').first()
+    const shell = group.locator(shellSelector).first()
+    const row = WINDOWS_XIAOJING ? shell.locator('[data-disclosure-row]') : shell
     expect(await row.isVisible()).toBe(false)
     await groupControl.click()
     await expect.poll(() => groupControl.getAttribute('aria-expanded')).toBe('true')
@@ -168,8 +197,9 @@ describe('minimal agent preset', () => {
     const call = row.locator('xpath=..')
     await call.getByText('IN', { exact: true }).waitFor()
     await call.getByText('OUT', { exact: true }).waitFor()
-    await call.getByText('MINIMAL_BASH_CARD_OK\n[Command finished with exit code 0]', { exact: true }).waitFor()
-    await call.getByText(/"command": "printf 'MINIMAL_BASH_CARD_OK/).waitFor()
+    await call.getByText(WINDOWS_XIAOJING ? 'MINIMAL_BASH_CARD_OK' : 'MINIMAL_BASH_CARD_OK\n[Command finished with exit code 0]', { exact: true }).waitFor()
+    await call.getByText(WINDOWS_XIAOJING
+      ? /"command": "Write-Output 'MINIMAL_BASH_CARD_OK/ : /"command": "printf 'MINIMAL_BASH_CARD_OK/).waitFor()
 
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
@@ -178,11 +208,12 @@ describe('minimal agent preset', () => {
   }, 60_000)
 
   it('keeps its snapshot inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, [
+    await assertFixtureInventory(STOCK_SNAPSHOT_DIR, [
       'session.v3.jsonl',
       'system-prompt.expected.md',
       'tool-schemas.expected.json',
       'ui.expected.md',
     ])
+    if (WINDOWS_XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl', 'ui.expected.md', 'pwsh-schema.expected.json'])
   })
 })

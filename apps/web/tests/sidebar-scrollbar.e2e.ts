@@ -11,14 +11,16 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, seedSession, watchConsole,
-  webSnapshotMode, type WebScaffold,
+  webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const SEED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/sidebar-scrollbar', import.meta.url))
 /** Geometry and resolved style are absent from ARIA snapshots, so this scenario records them directly. */
-const GEOMETRY_EXPECTED = join(SNAPSHOT_DIR, 'geometry.expected.md')
+const GEOMETRY_EXPECTED = webClientProfile() === 'xiaojing'
+  ? fileURLToPath(new URL('./expected/sidebar-scrollbar/geometry.xiaojing.expected.md', import.meta.url))
+  : join(SNAPSHOT_DIR, 'geometry.expected.md')
 const MODE = webSnapshotMode()
 /** Enough rows that the list overflows the 800px-tall viewport's sidebar; the scenario asserts the overflow rather than trusting it. */
 const SEED_COUNT = 24

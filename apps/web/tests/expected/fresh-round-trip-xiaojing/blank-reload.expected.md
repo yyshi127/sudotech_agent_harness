@@ -1,0 +1,11 @@
+- banner:
+  - button "Open right sidebar"
+- img "Xiaojing Accounting"
+- text: Xiaojing Accounting, Your AI Workmate Internal Beta v0.3.2
+- button "Choose workspace": workspace
+- button "Standard mode"
+- textbox "Describe what you want to build, / commands, @ files or sessions"
+- button "Add files or run commands"
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Select model, current DeepSeek-V41-Flash": DeepSeek-V41-Flash
+- button "Send message" [disabled]

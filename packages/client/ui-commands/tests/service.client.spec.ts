@@ -234,6 +234,7 @@ describe('candidates', () => {
     const b = await bench({ initialOpen: () => opened.promise, commands: () => response.promise })
     try {
       const pending = b.source.candidates(proj('s1'), req(''))
+      await Promise.resolve()
       expect(b.sessions.retainInfo(sid('s1')).getSnapshot().retainedBy.commandCatalog).toBe(1)
       expect(b.listCalls).toEqual([])
       opened.resolve(undefined)

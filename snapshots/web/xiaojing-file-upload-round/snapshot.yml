@@ -1,0 +1,9 @@
+version: 1
+scenario: xiaojing-file-upload-round
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing
+replay:
+  override: true

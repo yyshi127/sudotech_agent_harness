@@ -119,6 +119,162 @@ function makeHandle(pty: FakePty, inspector: ProcessInspector, graceMs: number):
 }
 
 describe('LocalTerminalHandle', () => {
+  it('observes a deferred native PID once and keeps its original identity', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const handle = makeHandle(pty, inspector, 1)
+    expect(handle.pid).toBe(0)
+    expect(inspector.captures).toBe(0)
+    expect(await handle.inspectForeground()).toBeUndefined()
+    pty.pid = 123
+    pty.emitData('ready')
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(1)
+    pty.pid = 999
+    inspector.root = { pid: 999, started: 'other' }
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(1)
+    pty.emitExit()
+    await handle.terminate()
+  })
+
+  it('uses the deferred Windows shell identity for verified termination', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    inspector.alive.add(123)
+    const handle = new LocalTerminalHandle(pty.asPty(), inspector, 1, 'win32')
+    pty.pid = 123
+    pty.emitData('ready')
+    expect(handle.pid).toBe(123)
+    await handle.terminate()
+    expect(inspector.processes).toEqual([[123, 'SIGTERM']])
+    expect(pty.kills).toEqual([])
+    expect(await handle.done).toEqual({ exitCode: null, signal: null })
+  })
+
+  it('does not recapture a failed first positive PID observation', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const snapshots = vi.spyOn(inspector, 'snapshot').mockImplementationOnce(() => { throw new Error('unreadable') })
+    const handle = makeHandle(pty, inspector, 1)
+    pty.pid = 123
+    pty.emitData('ready')
+    expect(handle.pid).toBe(123)
+    inspector.root = { pid: 123, started: 'replacement' }
+    expect(handle.pid).toBe(123)
+    expect(snapshots).toHaveBeenCalledOnce()
+    pty.emitExit()
+    await handle.terminate()
+  })
+
+  it('cancels an unconnected Windows PTY without signalling PID zero', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const handle = new LocalTerminalHandle(pty.asPty(), inspector, 1, 'win32')
+    expect(await handle.inspectForeground()).toBeUndefined()
+    await handle.terminate()
+    expect(inspector.processes).toEqual([])
+    expect(inspector.groups).toEqual([])
+    expect(pty.kills).toEqual(['SIGHUP'])
+  })
+
+  it('reports a PID learned after exit without adopting its replacement process', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const handle = new LocalTerminalHandle(pty.asPty(), inspector, 1, 'win32')
+    pty.pid = 123
+    inspector.root = { pid: 123, started: 'replacement' }
+    inspector.alive.add(123)
+    pty.emitExit()
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(0)
+    pty.pid = 999
+    expect(handle.pid).toBe(123)
+    await handle.terminate()
+    expect(inspector.processes).toEqual([])
+    expect(inspector.alive.has(123)).toBe(true)
+  })
+
+  it('reports a PID published after the unconnected PTY exits without capturing an identity', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const handle = new LocalTerminalHandle(pty.asPty(), inspector, 1, 'win32')
+    pty.emitExit()
+    pty.pid = 123
+    inspector.root = { pid: 123, started: 'replacement' }
+    inspector.alive.add(123)
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(0)
+    await handle.terminate()
+    expect(inspector.processes).toEqual([])
+    expect(inspector.alive.has(123)).toBe(true)
+  })
+
+  it('does not capture a late native PID while managed cleanup is pending', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const stopped = Promise.withResolvers<undefined>()
+    const owner: BoundProcessOwner = {
+      signal: vi.fn(),
+      waitForExit: () => stopped.promise,
+      terminateForHostExit: vi.fn(),
+    }
+    const handle = new LocalTerminalHandle(pty.asPty(), inspector, 100, 'win32', owner)
+    const closing = handle.terminate()
+    pty.pid = 123
+    inspector.root = { pid: 123, started: 'replacement' }
+    inspector.alive.add(123)
+    pty.emitData('late')
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(0)
+    pty.emitExit()
+    stopped.resolve(undefined)
+    await closing
+    expect(inspector.processes).toEqual([])
+    expect(inspector.alive.has(123)).toBe(true)
+  })
+
+  it('captures an active delayed shell identity on the first PID read without output', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    const inspector = new FakeInspector()
+    const handle = makeHandle(pty, inspector, 1)
+    pty.pid = 123
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(1)
+    pty.emitData('ready')
+    expect(inspector.captures).toBe(1)
+    pty.emitExit()
+    await handle.terminate()
+  })
+
+  it('does not adopt a late PID after an unconnected cleanup attempt fails', async () => {
+    const pty = new FakePty()
+    pty.pid = 0
+    pty.autoExitOnKill = false
+    const inspector = new FakeInspector()
+    const handle = new LocalTerminalHandle(pty.asPty(), inspector, 1, 'win32')
+    await expect(handle.terminate()).rejects.toThrow('terminal cleanup failed; surviving pid: 0')
+    const captures = inspector.captures
+    pty.pid = 123
+    inspector.root = { pid: 123, started: 'replacement' }
+    inspector.alive.add(123)
+    pty.emitData('late')
+    expect(handle.pid).toBe(123)
+    expect(inspector.captures).toBe(captures)
+    pty.autoExitOnKill = true
+    await handle.terminate()
+    expect(inspector.processes).toEqual([])
+    expect(inspector.alive.has(123)).toBe(true)
+  })
+
   it('retains ownership after shell exit when /proc cannot be enumerated', async () => {
     const pty = new FakePty()
     let readable = false

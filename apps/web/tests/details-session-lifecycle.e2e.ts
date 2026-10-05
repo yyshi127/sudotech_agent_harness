@@ -7,12 +7,21 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, compareOrRefreshGolden,
-  fixtureUserPrompts, launchWebScaffold, seedSession, watchConsole, webSnapshotMode,
+  fixtureUserPrompts, launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/details-session-lifecycle', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const HERO_TITLE = XIAOJING ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown'
+const SEED_WORKSPACE = 'Sidebar acceptance'
+const SEED_ID = 'details-session-lifecycle-seed'
+// Current ui-layout columns.ts default, independent of the selected product profile.
+const SIDEBAR_DEFAULT = 304
+const SNAPSHOT_DIR = XIAOJING
+  ? fileURLToPath(new URL('./expected/details-session-lifecycle-xiaojing', import.meta.url))
+  : fileURLToPath(new URL('../../../snapshots/web/details-session-lifecycle', import.meta.url))
 const HANDLES_EXPECTED = join(SNAPSHOT_DIR, 'handles.expected.md')
 const SIDEBAR_EXPECTED = join(SNAPSHOT_DIR, 'sidebar.expected.md')
 const BLANK_EXPECTED = join(SNAPSHOT_DIR, 'blank-session.expected.md')
@@ -144,8 +153,10 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
   beforeAll(async () => {
     const fixture = await readFile(FIXTURE, 'utf8')
     expect(fixtureUserPrompts(fixture)).toEqual([PROMPT])
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false })
-    await seedSession(scaffold, await readFile(SEED_FIXTURE, 'utf8'), 'details-session-lifecycle-seed')
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false,
+      ...(XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
+    })
+    const seeded = await seedSession(scaffold, await readFile(SEED_FIXTURE, 'utf8'), SEED_ID)
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event.type) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -154,6 +165,10 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await appFrame(page).waitFor({ timeout: 30_000 })
     expect(await page.locator('[data-sidebar-right-expand]').count()).toBe(0)
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
+    if (XIAOJING) {
+      const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, SEED_WORKSPACE)
+      await workspace.attachSession(seeded)
+    }
   }, 120_000)
 
   afterAll(async () => {
@@ -178,7 +193,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await blankColumn.locator('[data-sidebar-right-guide-entry="files"]').click()
     await blankColumn.locator('[data-files-entry="file"]').getByRole('button', { name: 'before-chat.md', exact: true }).click()
     await blankColumn.getByText('Workspace preview is available.', { exact: true }).waitFor()
-    await page.getByText('Into the Unknown', { exact: false }).waitFor()
+    await page.getByText(HERO_TITLE, { exact: false }).waitFor()
     const blankPanes = await paneSnapshot(page)
     expect(blankPanes.map(pane => pane.tabs.map(tab => tab.title))).toEqual([['Files', 'before-chat.md']])
     await page.screenshot({ path: join(SHOT_DIR, `blank-preview-${MODE}-${process.pid}.png`), fullPage: true })
@@ -202,7 +217,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     } finally {
       await page.setViewportSize(blankViewport)
     }
-    await expect.poll(() => columns(page)).toEqual([280, blankViewport.width - 280, 0])
+    await expect.poll(() => columns(page)).toEqual([SIDEBAR_DEFAULT, blankViewport.width - SIDEBAR_DEFAULT, 0])
     await page.locator('[data-sidebar-right-expand]').click()
     await blankColumn.locator('[data-dockkit-add-tab]').click()
     await blankColumn.locator('[data-sidebar-right-guide-entry="terminal"]')
@@ -273,7 +288,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     expect(await page.getByText('Details', { exact: true }).isVisible()).toBe(false)
 
     await page.getByRole('button', { name: /^(?:New session|新.*会话)$/ }).last().click()
-    await page.getByText('Into the Unknown', { exact: false }).waitFor({ timeout: 15_000 })
+    await page.getByText(HERO_TITLE, { exact: false }).waitFor({ timeout: 15_000 })
     await expect.poll(() => detailsTrack(page), { timeout: 5_000 }).toBe(0)
     expect(await page.getByText('Details', { exact: true }).isVisible()).toBe(false)
 
@@ -283,12 +298,14 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await expect.poll(() => detailsTrack(page), { timeout: 5_000 }).toBe(0)
     expect(await page.getByText('Details', { exact: true }).isVisible()).toBe(false)
 
-    const ungrouped = page.getByText('Ungrouped', { exact: true })
+    const ungrouped = page.getByText(XIAOJING ? SEED_WORKSPACE : 'Ungrouped', { exact: true })
     const ungroupedRow = ungrouped.locator('..').locator('..')
     if (await ungroupedRow.getAttribute('aria-expanded') !== 'true') await ungrouped.click()
     await expect.poll(() => ungroupedRow.getAttribute('aria-expanded')).toBe('true')
     // A cold Session's row may still show its cwd until its history loads.
-    const seeded = ungroupedRow.locator('..').locator('[role="treeitem"][aria-selected]')
+    const seeded = XIAOJING
+      ? page.locator(`[data-row-key="session:${SEED_ID}"][role="treeitem"][aria-selected]`)
+      : ungroupedRow.locator('..').locator('[role="treeitem"][aria-selected]')
     await expect.poll(() => seeded.count()).toBe(1)
     await seeded.click()
     await page.getByText('DONE', { exact: true }).waitFor({ timeout: 15_000 })
@@ -300,7 +317,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     const panel = column.locator('[data-sidebar-right-panel]')
     const panes = column.locator('[data-dockkit-pane]')
     const normalWidth = Math.round(viewport.width * 0.45)
-    const normalColumns = [280, viewport.width - 280 - normalWidth, normalWidth]
+    const normalColumns = [SIDEBAR_DEFAULT, viewport.width - SIDEBAR_DEFAULT - normalWidth, normalWidth]
     const checkpoints: string[] = ['# Recorded-session Sidebar states']
     const checkpoint = async (label: string): Promise<void> => {
       checkpoints.push(`## ${label}\n\n\`\`\`json\n${JSON.stringify(await sidebarSnapshot(page), null, 2)}\n\`\`\``)
@@ -410,7 +427,7 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     try {
       await page.setViewportSize({ width: 1024, height: viewport.height })
       // Frame measurement and the grid transition can finish after setViewportSize returns.
-      await expect.poll(() => columns(page), { timeout: 5_000 }).toEqual([280, 400, 344])
+      await expect.poll(() => columns(page), { timeout: 5_000 }).toEqual([SIDEBAR_DEFAULT, 400, 1024 - SIDEBAR_DEFAULT - 400])
       await dragSidebar(page, 420)
       await expect.poll(() => columns(page)).toEqual([420, 604, 0])
       expect(await column.locator('[data-sidebar-right-open]').count()).toBe(0)

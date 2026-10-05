@@ -84,6 +84,8 @@ The model sees each tool under a stable server-qualified name: `mcp__<serverName
 
 When the model calls an MCP tool, the call runs against the remote server with a per-call timeout (default 60 seconds) and can be cancelled like any other tool call. The result comes back as ordinary text in block order; resource links appear as text with their name and URI. If the server reports an error, the call fails visibly — the model does not see a fake success.
 
+SDK-confirmed `NOT_CONNECTED` and `CONNECTION_CLOSED` failures retain their message and carry `error.info.name: "McpTransportError"` plus the SDK code in tool results and logs. A plain call failure after the SDK Client has detached its transport is also classified as `NOT_CONNECTED`. Consumers can distinguish a lost transport from an approval refusal, timeout, or server-reported business error without matching error text. This classification does not retry any tool call.
+
 Images are supported when the current model accepts image input and the harness attachment feature is enabled; they then appear in the conversation like other images. Otherwise — and for audio or embedded resources — the model sees a clear diagnostic message instead of nothing.
 
 ### Startup, updates, and reconnection
@@ -101,6 +103,8 @@ When a server connection drops — for example a local server process crashes �
 <summary>Implementation internals — click to expand</summary>
 
 This section explains the design decisions behind the bridge and points at the code that realizes them; the observable behavior is fully covered in [Use this package](#use-this-package).
+
+The [local protocol e2e cases](tests/mcp-client.e2e.ts) also exercise a real resource-only stdio child: resource discovery, URI templates, literal text reads, and binary content retained for callers without inline base64 in model text.
 
 ### Design philosophy
 

@@ -1,7 +1,7 @@
 .label {
   background: #eef8f6;
   border: 1px solid #cde7e1;
-  border-radius: 7px;
+  border-radius: var(--dsw-radius-sm);
   color: #287166;
   display: inline-block;
   font-size: 12px;

@@ -6,11 +6,13 @@ import { chromium, type Browser, type Page, type WebSocketRoute } from 'playwrig
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/workspace-recency', import.meta.url))
+const LOCAL_EXPECTED = fileURLToPath(new URL('./expected/workspace-recency', import.meta.url))
+const PROFILE_EXPECTED = webClientProfile() === 'xiaojing' ? LOCAL_EXPECTED : SNAPSHOT_DIR
 const SEED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
 const MODE = webSnapshotMode()
 const TITLES = ['Newest conversation', 'Middle conversation', 'Oldest conversation']
@@ -28,6 +30,7 @@ describe('web e2e: workspace recency', () => {
     scaffold = await launchWebScaffold({})
     const fixture = await readFile(SEED, 'utf8')
     const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
+    if (webClientProfile() === 'xiaojing') await workspace.setTitle('Recency acceptance')
     const now = Date.now()
     const ids = []
     for (const [index, title] of TITLES.entries()) {
@@ -96,7 +99,7 @@ describe('web e2e: workspace recency', () => {
     }
     await expect.poll(titles).toEqual(TITLES)
     await compareOrRefreshGolden(
-      join(SNAPSHOT_DIR, 'sidebar.expected.md'),
+      join(PROFILE_EXPECTED, 'sidebar.expected.md'),
       await captureSidebar(), MODE,
     )
     await pick('Manual')
@@ -129,7 +132,7 @@ describe('web e2e: workspace recency', () => {
     holdWorkspace = true
     await socket.close()
     await expect.poll(() => releaseWorkspace !== undefined).toBe(true)
-    const workspaceTitle = basename(scaffold.workspaceCwd)
+    const workspaceTitle = webClientProfile() === 'xiaojing' ? 'Recency acceptance' : basename(scaffold.workspaceCwd)
     // Session titles can fall back to the workspace name while reconnect projections reload.
     await page.locator('[role="treeitem"][aria-expanded]')
       .filter({ has: page.getByText(workspaceTitle, { exact: true }) }).hover()
@@ -149,7 +152,7 @@ describe('web e2e: workspace recency', () => {
     acknowledgeReloadConnectionLoss(tripwire, reconnectWarningStart)
     await expect.poll(titles).toEqual(['New Session', ...TITLES])
     await compareOrRefreshGolden(
-      join(SNAPSHOT_DIR, 'manual-blank.expected.md'),
+      join(PROFILE_EXPECTED, 'manual-blank.expected.md'),
       await captureSidebar(), MODE,
     )
     const blank = page.getByRole('treeitem').filter({ has: page.getByText('New Session', { exact: true }) })
@@ -163,6 +166,7 @@ describe('web e2e: workspace recency', () => {
     await pick('Manual')
     await expect.poll(titles).toEqual(['New Session', ...TITLES])
     await assertFixtureInventory(SNAPSHOT_DIR, ['sidebar.expected.md', 'manual-blank.expected.md'])
+    await assertFixtureInventory(LOCAL_EXPECTED, ['sidebar.expected.md', 'manual-blank.expected.md'])
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

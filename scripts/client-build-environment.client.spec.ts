@@ -81,14 +81,20 @@ describe('client build environment', () => {
   it('supplies the Xiaojing boot brand without changing the official profile', () => {
     const metadata = { DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7), DSH_CLIENT_VERSION: '1.2.3' }
     expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'xiaojing' })).toMatchObject({
-      DSH_CLIENT_BOOT_LOGO: '/sudo-logo-gray.png',
+      DSH_CLIENT_BOOT_LOGO: './sudo-logo-gray.png',
       DSH_CLIENT_BOOT_LOGO_ALT: '数豆科技',
-      DSH_CLIENT_FAVICON: '/xiaojing-character-logo.png',
+      DSH_CLIENT_FAVICON: './xiaojing-character-logo.png',
+      DSH_CLIENT_RUNNING_LABEL_ZH: '小兢会计思考中',
+      DSH_CLIENT_RUNNING_LABEL_EN: 'Xiaojing Accounting is thinking',
     })
     expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'official' }))
       .not.toHaveProperty('DSH_CLIENT_BOOT_LOGO')
     expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'official' }))
       .not.toHaveProperty('DSH_CLIENT_FAVICON')
+    expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'official' }))
+      .not.toHaveProperty('DSH_CLIENT_RUNNING_LABEL_ZH')
+    expect(resolveClientBuildEnvironment({ ...metadata, DSH_BUILD_CLIENT_PROFILE: 'official' }))
+      .not.toHaveProperty('DSH_CLIENT_RUNNING_LABEL_EN')
   })
 
   it('requires an exact public environment for a named artifact profile', () => {

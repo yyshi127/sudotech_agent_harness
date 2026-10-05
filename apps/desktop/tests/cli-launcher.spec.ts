@@ -1,12 +1,13 @@
 /** Installed launcher scripts preserve terminal invocation through a minimal runtime fixture. */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
 import { expect, it, onTestFinished } from 'vitest'
 import { prepareDesktopCli } from '../scripts/prepare-cli.ts'
+import { XIAOJING_IDENTITY } from '../src/xiaojing-product.ts'
 
 function fixture() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'dsh-cli-launcher-')))
@@ -24,7 +25,13 @@ function fixture() {
   const resources = join(application, ...platform === 'darwin' ? ['Contents', 'Resources'] : ['resources'])
   const cli = join(resources, 'runtime', 'cli')
   prepareDesktopCli(cli, platform)
-  const electron = join(application, ...platform === 'darwin' ? ['Contents', 'MacOS', 'DeepSeek Harness'] : ['DeepSeek Harness.exe'])
+  if (platform === 'win32') {
+    const primaryNode = join(resources, 'runtime', 'primary-runtime', 'dependencies', 'node', 'bin', 'node.exe')
+    mkdirSync(dirname(primaryNode), { recursive: true })
+    copyFileSync(process.execPath, primaryNode)
+  }
+  const electron = join(application, ...platform === 'darwin'
+    ? ['Contents', 'MacOS', XIAOJING_IDENTITY.productName] : [`${XIAOJING_IDENTITY.executableName}.exe`])
   mkdirSync(dirname(electron), { recursive: true })
   if (platform === 'win32') copyFileSync(process.execPath, electron)
   else symlinkSync(process.execPath, electron)
@@ -43,7 +50,8 @@ function fixture() {
   function start(args: string[], executable = command) {
     // cmd fixture inputs contain no metacharacters; POSIX cases exercise literal expansion characters separately.
     const child = platform === 'win32'
-      ? spawn(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `""${executable}" ${args.map(value => `"${value}"`).join(' ')}"`], {
+      ? spawn(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', `""${executable}" ${args.map(value =>
+        `"${value.replace(/(\\*)"/gu, '$1$1\\"').replace(/(\\*)$/u, '$1$1')}"`).join(' ')}"`], {
         cwd: root, env: { ...process.env, DSH_CLI_TEST_VALUE: 'kept' }, stdio: 'pipe', windowsVerbatimArguments: true,
       })
       : spawn(executable, args, { cwd: root, env: { ...process.env, DSH_CLI_TEST_VALUE: 'kept' }, stdio: 'pipe' })
@@ -59,8 +67,26 @@ function fixture() {
     child.stderr.setEncoding('utf8').on('data', (text: string) => { stderr += text })
     return { child, closed, stdout: () => stdout, stderr: () => stderr }
   }
-  return { root, command, start }
+  return { root, command, electron, start }
 }
+
+it('prepares both platform commands with the packaged product identity', () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'dsh-cli-identity-')))
+  onTestFinished(() => rm(root, { recursive: true, force: true }))
+  for (const platform of ['win32', 'darwin'] as const) {
+    const destination = join(root, platform)
+    prepareDesktopCli(destination, platform)
+    const command = readFileSync(join(destination, 'bin', platform === 'win32' ? 'dsh.cmd' : 'dsh'), 'utf8')
+    expect(command).not.toContain('DeepSeek Harness')
+    expect(command).not.toContain('__DSH_DESKTOP_EXECUTABLE__')
+    if (platform === 'win32') {
+      expect(command).toMatch(/^[\x00-\x7f]*$/u)
+      expect(command).not.toContain('chcp')
+      expect(readFileSync(join(destination, 'launch.mjs'), 'utf8'))
+        .toContain(JSON.stringify(`${XIAOJING_IDENTITY.executableName}.exe`))
+    } else expect(command).toContain(XIAOJING_IDENTITY.productName)
+  }
+})
 
 it('preserves common arguments, cwd, environment, binary input, stderr and exit status', async () => {
   const f = fixture()
@@ -71,6 +97,26 @@ it('preserves common arguments, cwd, environment, binary input, stderr and exit 
   expect(await run.closed, run.stderr()).toBe(23)
   expect(JSON.parse(run.stdout())).toEqual({ args, cwd: f.root, value: 'kept', nodeMode: '1', input: input.toString('hex') })
   expect(run.stderr()).toBe('separate stderr\n')
+})
+
+it.skipIf(process.platform !== 'win32')('preserves embedded quotes and trailing backslashes through the Windows bridge', async () => {
+  const f = fixture()
+  const args = ['quote"inside', 'trailing\\', 'space and "quotes"', '中文 "参数"', '']
+  const run = f.start(args)
+  run.child.stdin.end()
+  expect(await run.closed, run.stderr()).toBe(23)
+  expect(JSON.parse(run.stdout())).toMatchObject({ args })
+})
+
+it.skipIf(process.platform !== 'win32')('reports a missing product executable without using a legacy executable', async () => {
+  const f = fixture()
+  await rm(f.electron)
+  copyFileSync(process.execPath, join(dirname(f.electron), 'DeepSeek Harness.exe'))
+  const run = f.start([])
+  run.child.stdin.end()
+  expect(await run.closed).toBe(1)
+  expect(run.stderr()).toContain('ENOENT')
+  expect(run.stderr()).toContain(`${XIAOJING_IDENTITY.executableName}.exe`)
 })
 
 it.skipIf(process.platform === 'win32')('resolves chained command symlinks without expanding argument contents', async () => {

@@ -44,7 +44,7 @@ async function bench() {
   })
   const panelInfo = createSnapshotStore<PanelInfo>({ activePanelId: null })
   const selectPanel = vi.fn<ILayout['selectPanel']>((activePanelId) => { panelInfo.set({ activePanelId }) })
-  ctx.provide('layout', { panelInfo, selectPanel, beginNavigation: () => new AbortController().signal,
+  ctx.provide('layout', { panelInfo, selectPanel, navigationSignal: new AbortController().signal, beginNavigation: () => new AbortController().signal,
     toggleSidebar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn() })
   await ctx.plugin(settings).await()
   return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list, remote, selectPanel, panelInfo }

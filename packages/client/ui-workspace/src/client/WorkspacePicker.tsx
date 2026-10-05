@@ -49,6 +49,10 @@ export interface WorkspacePickFlowProps {
   addOnly?: boolean
   /** Optional product-owned set restricting the workspaces shown in this picker. */
   visibleWorkspaceIds?: ReadonlySet<WorkspaceId>
+  /** Membership state gates implicit empty-list picking; explicit Add remains available. */
+  membershipStatus?: 'loading' | 'error' | 'ready'
+  /** Category load failures and explicit retry controls shown inside the menu. */
+  membershipError?: ReactNode
   /** Whether this picker may adopt another ordinary Workspace. */
   allowCreate?: boolean
   /** Optional absolute directory where the add flow starts. */
@@ -76,6 +80,8 @@ export function WorkspacePickFlow({
   onClose,
   addOnly = false,
   visibleWorkspaceIds,
+  membershipStatus = 'ready',
+  membershipError,
   allowCreate = true,
   initialPath,
   onBusyChange,
@@ -128,10 +134,9 @@ export function WorkspacePickFlow({
       disabled: flowBusy,
     }))
     : addEntries
-  // Nothing listed and nothing to add with (a composition that mounts this
-  // package without any directory-picker): an empty popover would claim a
-  // choice that does not exist, so the anchor gesture shows nothing at all.
-  const menuIsEmpty = items.length === 0
+  // A category failure remains visible even without a directory picker.
+  // With neither choices nor failure content, the gesture shows no popover.
+  const menuIsEmpty = items.length === 0 && membershipError == null
 
   const closeModal = (): void => {
     setErrorOpen(false)
@@ -165,7 +170,7 @@ export function WorkspacePickFlow({
   // only final once the baseline lands — until then the menu stays up with its
   // loading status instead of jumping into a flow the arriving list would have
   // made unnecessary; the add-only surface lists nothing and never waits.
-  const listSettled = addOnly || workspaceSnapshot.phase === 'ready'
+  const listSettled = addOnly || (workspaceSnapshot.phase === 'ready' && membershipStatus === 'ready')
   const addIsTheOnlyEntry = !pinAdd && listSettled && addEntries.length === 1
   // `flowBusy` gates this exactly as it disables the equivalent menu entry: a
   // pick still being adopted owns the surface until it settles.
@@ -211,8 +216,10 @@ export function WorkspacePickFlow({
         side={side}
         portal
         getAnchorRect={getAnchorRect}
-      />
-      {open && !addIsTheOnlyEntry && !menuIsEmpty && workspaceSnapshot.phase === 'pending' && <div className={css.menuStatus} role="status">{t('picker.loading')}</div>}
+      >
+        {membershipError}
+      </Menu>
+      {open && !addIsTheOnlyEntry && !menuIsEmpty && membershipStatus !== 'error' && (workspaceSnapshot.phase === 'pending' || membershipStatus === 'loading') && <div className={css.menuStatus} role="status">{t('picker.loading')}</div>}
       {renderDirectoryFlow(flowOwner)}
       <Modal
         open={errorOpen}
@@ -250,10 +257,15 @@ export function WorkspacePicker({
   createWorkspace,
   useDirectoryFlow,
   useWorkspaceCategories,
+  retryWorkspaceCategoryLoad,
   renderSlot,
   t,
 }: WorkspacePickerProps) {
   const categorySnapshot = useWorkspaceCategories(state => state)
+  const membershipReady = categorySnapshot.categories.every(category => category.ready !== false)
+  const membershipFailed = categorySnapshot.categories.some(category => category.ready === false && category.loadError !== undefined)
+  const membershipStatus = membershipReady ? 'ready' : membershipFailed ? 'error' : 'loading'
+  const categoryFailures = categorySnapshot.categories.filter(category => category.loadError !== undefined)
   const allWorkspaceIds = useWorkspaces(state => state.items.map(workspace => workspace.workspaceId))
   const activeCategory = categorySnapshot.categories
     .find(category => category.id === categorySnapshot.pickerCategoryId)
@@ -264,10 +276,10 @@ export function WorkspacePicker({
     [categorySnapshot.categories],
   )
   const visibleWorkspaceIds = useMemo(
-    () => new Set(activeCategory === undefined
+    () => new Set(!membershipReady ? [] : activeCategory === undefined
       ? allWorkspaceIds.filter(workspaceId => !reservedWorkspaceIds.has(workspaceId))
       : activeCategory.workspaceIds),
-    [activeCategory, allWorkspaceIds, reservedWorkspaceIds],
+    [activeCategory, allWorkspaceIds, reservedWorkspaceIds, membershipReady],
   )
   return (
     <WorkspacePickFlow
@@ -278,6 +290,13 @@ export function WorkspacePicker({
       createWorkspace={createWorkspace}
       useDirectoryFlow={useDirectoryFlow}
       visibleWorkspaceIds={visibleWorkspaceIds}
+      membershipStatus={membershipStatus}
+      membershipError={categoryFailures.length === 0 ? undefined : categoryFailures.map(category => (
+        <div key={category.id} className={css.modalError} role="alert">
+          <span>{category.label}: {category.loadError}</span>
+          {category.retryLoadAvailable === true && <Button variant="outline" onClick={() => { retryWorkspaceCategoryLoad(category.id) }}>{t('picker.retry', { category: category.label })}</Button>}
+        </div>
+      ))}
       allowCreate={activeCategory === undefined}
       renderDirectoryFlow={owner => renderSlot('conversation.hero.workspace.directoryFlow', owner)}
       selectedId={selectedId}

@@ -58,6 +58,34 @@ describe('ACP machine permission policy', () => {
     await expect(harness.ctx.approval.request(request)).resolves.toBe('rejected')
   })
 
+  it('advertises session authorization only for a classified request and reuses its exact scope', async () => {
+    harness = await makeBridgeHarness()
+    harness.onPermission = () => ({ outcome: { outcome: 'selected', optionId: 'allow-session' } })
+    const request = await ownedRequest({ reusable: {
+      category: 'fixture:edit', scope: 'fixture:document-A', label: 'Edit document A',
+    } })
+    await expect(harness.ctx.approval.request(request)).resolves.toBe('allowed-once')
+    expect(harness.permissionRequests[0]?.options).toEqual([
+      { optionId: 'allow-once', name: 'Allow once', kind: 'allow_once' },
+      { optionId: 'allow-session', name: 'Always allow in this session: Edit document A', kind: 'allow_always' },
+      { optionId: 'reject-once', name: 'Reject', kind: 'reject_once' },
+    ])
+    await expect(harness.ctx.approval.request(request)).resolves.toBe('allowed-once')
+    expect(harness.permissionRequests).toHaveLength(1)
+    await expect(harness.ctx.approval.request({ ...request, reusable: {
+      category: 'fixture:edit', scope: 'fixture:document-B', label: 'Edit document B',
+    } })).resolves.toBe('allowed-once')
+    expect(harness.permissionRequests).toHaveLength(2)
+  })
+
+  it('rejects an unadvertised session selection for an unclassified request', async () => {
+    harness = await makeBridgeHarness()
+    harness.onPermission = () => ({ outcome: { outcome: 'selected', optionId: 'allow-session' } })
+    const request = await ownedRequest()
+    await expect(harness.ctx.approval.request(request)).resolves.toBe('rejected')
+    expect(harness.permissionRequests[0]?.options.some(option => option.optionId === 'allow-session')).toBe(false)
+  })
+
   it('fails closed when the client errors the permission request', async () => {
     harness = await makeBridgeHarness()
     const request = await ownedRequest()

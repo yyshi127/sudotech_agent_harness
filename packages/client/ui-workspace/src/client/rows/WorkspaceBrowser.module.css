@@ -104,11 +104,13 @@
 }
 
 .categoryButton {
-  flex: none;
+  flex: 0 1 auto;
   max-width: none;
-  overflow: visible;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--dsw-radius-xs);
   padding: 2px 8px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
@@ -143,7 +145,7 @@
 }
 
 .searchSlot {
-  flex: 1;
+  flex: 1 0 28px;
   max-width: 28px;
   min-width: 0;
   display: flex;
@@ -498,7 +500,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-sm);
   box-sizing: border-box;
   color: var(--dsw-alias-label-primary);
   display: flex;

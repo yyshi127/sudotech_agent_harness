@@ -16,15 +16,15 @@ import { deriveReplayScript, parseSessionLog, type ReplayEntry } from '@deepseek
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/queued-image', import.meta.url))
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 const PNG = fileURLToPath(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
-const QUEUED_EXPECTED = join(SNAPSHOT_DIR, 'queued.expected.md')
-const DELIVERED_EXPECTED = join(SNAPSHOT_DIR, 'delivered.expected.md')
+const QUEUED_EXPECTED = join(SNAPSHOT_DIR, webClientProfile() === 'xiaojing' ? 'queued.xiaojing.expected.md' : 'queued.expected.md')
+const DELIVERED_EXPECTED = join(SNAPSHOT_DIR, webClientProfile() === 'xiaojing' ? 'delivered.xiaojing.expected.md' : 'delivered.expected.md')
 const MODE = webSnapshotMode()
 
 const ACTIVE_PROMPT = 'Reply with a one-sentence description of event sourcing, then stop.'
@@ -80,7 +80,15 @@ describe('web e2e: queued image submission', () => {
     await writeFile(overridePath, JSON.stringify(replay))
 
     const sessionEvents: SessionEvent[] = []
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false })
+    scaffold = await launchWebScaffold({
+      replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false,
+      ...(webClientProfile() === 'xiaojing' ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)

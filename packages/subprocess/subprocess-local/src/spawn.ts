@@ -452,6 +452,9 @@ export function bindManagedProcess(
  * @returns live subprocess handle.
  */
 export function spawnSubprocess(spec: SubprocessSpawnSpec, internals: SpawnInternals = {}): LocalSubprocessHandle {
+  if (spec.windowsChildLifetime !== undefined) {
+    throw new Error('independent Windows children require a local Windows Job')
+  }
   const binding = prepareManagedProcessBinding(internals)
   const platform = internals.platform ?? process.platform
   const [program, ...args] = spec.argv

@@ -81,6 +81,47 @@ function directSpawnFailure(argv: readonly string[], cwd = scratch): Promise<Spa
 const windowsNative = process.platform === 'win32' && probeWindowsJob()
 
 describe.skipIf(!windowsNative)('Windows Job native containment', () => {
+  it('keeps independent Windows children alive when their managed launcher terminates', async () => {
+    const pidFile = join(scratch, 'independent-child.pid')
+    const stopFile = join(scratch, 'independent-child.stop')
+    const closedFile = join(scratch, 'independent-child.closed')
+    const childSource = `
+      const { existsSync, writeFileSync } = require('node:fs')
+      writeFileSync(${JSON.stringify(pidFile)}, String(process.pid))
+      setInterval(() => {
+        if (existsSync(${JSON.stringify(stopFile)})) {
+          writeFileSync(${JSON.stringify(closedFile)}, String(process.pid))
+          process.exit(0)
+        }
+      }, 20)
+    `
+    // libuv adds its own kill-on-parent-exit Job for non-detached children.
+    const parentSource = `
+      const child = require('node:child_process').spawn(process.execPath, ['-e', ${JSON.stringify(childSource)}], { stdio: 'ignore', detached: true })
+      child.unref()
+      setInterval(() => {}, 1000)
+    `
+    const request = { ...spec([process.execPath, '-e', parentSource]), windowsChildLifetime: 'independent' as const }
+    const handle = bindManagedProcess(request, launchWindowsJob(request, targetEnvironment(request)))
+    let descendant: number | undefined
+    try {
+      descendant = await waitForPid(pidFile)
+      handle.terminate()
+      await expect(handle.waitForExit(AbortSignal.timeout(5_000))).resolves.toBe(true)
+      await expect(handle.done).resolves.toEqual({ exitCode: 1, signal: null })
+      const ownedPid = descendant
+      expect(() => process.kill(ownedPid, 0)).not.toThrow()
+      writeFileSync(stopFile, 'owned child cleanup')
+      await waitGone(descendant)
+      expect(readFileSync(closedFile, 'utf8')).toBe(String(descendant))
+    } finally {
+      writeFileSync(stopFile, 'owned child cleanup')
+      handle.terminate()
+      await Promise.allSettled([handle.done, handle.waitForExit()])
+      if (descendant !== undefined) await waitGone(descendant)
+    }
+  })
+
   it('keeps ordinary descendants free of visible console windows', async () => {
     const fixture = fileURLToPath(new URL('../../win32-process/tests/fixtures/console-state.ts', import.meta.url))
     const script = `

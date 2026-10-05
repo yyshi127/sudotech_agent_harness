@@ -11,7 +11,7 @@
 // (the shipped tree keeps the bash stack).
 import { spawnSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
@@ -92,7 +92,9 @@ describe.skipIf(MODE === 'record' || !HAS_PWSH)('web e2e: pwsh calls use the bas
     expect(text).toContain('exit code 1')
     expect(text).toContain('Get-Item : Cannot find path')
     expect(text).not.toContain('[exit code: 1]')
-    const snapshot = (await captureStableAria(page, '[data-terminal]', scaffold.workspaceCwd))
+    const snapshot = (await captureStableAria(page, '[data-terminal]', scaffold.workspaceCwd, {
+      replacements: [[basename(scaffold.workspaceCwd), '{{workspace}}']],
+    }))
       .split(SEED_ID).join('{{seededId}}')
     await compareOrRefreshGolden(TERMINAL_EXPECTED, snapshot, MODE)
   }, 60_000)

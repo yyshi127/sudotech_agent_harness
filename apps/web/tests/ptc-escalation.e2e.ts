@@ -9,12 +9,17 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/ptc-escalation-approved', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/ptc-escalation-approved', import.meta.url))
+const SNAPSHOT_DIR = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('./expected/ptc-escalation-xiaojing', import.meta.url))
+  : STOCK_SNAPSHOT_DIR
+const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'approval.expected.md')
 const MODE = webSnapshotMode()
 const PROMPT = 'Use run_code with timeoutMs 120000 and direct Node filesystem access to create approved.txt in the working directory containing exactly "approved\\n". '
@@ -34,7 +39,10 @@ describe('web e2e: PTC program sandbox escalation', () => {
     scaffold = await launchWebScaffold({
       agentPresets: { default: 'ptc' },
       compareReplaySession: true,
-      ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15 }),
+      ...(MODE === 'record' ? {} : {
+        replayFixture: FIXTURE, paceMs: 15,
+        ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
+      }),
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
     browser = await chromium.launch()
@@ -90,6 +98,9 @@ describe('web e2e: PTC program sandbox escalation', () => {
   }, 300_000)
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'approval.expected.md', 'workspace.expected'])
+    await assertFixtureInventory(STOCK_SNAPSHOT_DIR, ['session.v3.jsonl', 'approval.expected.md', 'workspace.expected'])
+    if (WINDOWS_XIAOJING) {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl', 'approval.expected.md', 'workspace.expected'])
+    }
   })
 })

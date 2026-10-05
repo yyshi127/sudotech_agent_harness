@@ -21,6 +21,10 @@ import * as FrontendStatic from '../src/index.ts'
 
 let root: string | undefined
 let context: Context | undefined
+const png = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64',
+)
 
 afterEach(async () => {
   await context?.fiber.dispose()
@@ -38,6 +42,7 @@ async function loadComposition(): Promise<Context> {
   await writeFile(distIndex, '<head></head><body>shell</body>')
   await writeFile(join(dist, 'app.js'), 'export {}')
   await writeFile(join(dist, 'blob.bin'), 'BLOB')
+  await writeFile(join(dist, 'icon.png'), png)
   await writeFile(join(dist, 'manifest.webmanifest'), '{}')
   await mkdir(join(dist, 'empty'))
   const configPath = join(root, 'cordis.yml')
@@ -94,6 +99,14 @@ async function request(port: number, path: string, init?: RequestInit): Promise<
 }
 
 describe('real Loader composition', () => {
+  it.each(['GET', 'HEAD'])('serves PNG headers and bytes for %s without index authentication', async (method) => {
+    const loaded = await loadComposition()
+    const response = await fetch(`http://127.0.0.1:${String(loaded.webServer.port)}/icon.png`, { method })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('image/png')
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(method === 'GET' ? png : Buffer.alloc(0))
+  })
+
   it('serves explicit index entries and files while preserving HTTP error semantics', { timeout: 60_000 }, async () => {
     const loaded = await loadComposition()
     const unloaded = [...loaded.loader.entries()]

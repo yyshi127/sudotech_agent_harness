@@ -68,9 +68,10 @@ describe.skipIf(MODE === 'record')('web e2e: durable workflow run in Chat', () =
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    const sessions = scaffold.ctx.sessions.list()
-    expect(sessions).toHaveLength(1)
-    scaffold.ctx.permissionPresets.set(sessions[0]!, 'danger-full-access')
+    const workspace = scaffold.ctx.workspaceRegistry.list().find(item => item.path === join(scaffold.workspaceCwd, 'workspace'))
+    const agent = scaffold.ctx.agents.list().find(item => workspace?.sessionIds.includes(item.id))
+    if (agent === undefined) throw new Error('Workspace did not create a Session')
+    scaffold.ctx.permissionPresets.set(agent.session, 'danger-full-access')
   }, 120_000)
 
   afterAll(async () => {

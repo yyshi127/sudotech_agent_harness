@@ -128,6 +128,16 @@ class FakeTerminal implements SubprocessTerminalHandle {
   }
 }
 
+it('exposes the provider PID after deferred terminal creation', async () => {
+  const terminal = new FakeTerminal()
+  terminal.pid = 0
+  const session = new LocalPtySession(terminal, config())
+  expect(session.pid).toBe(0)
+  terminal.pid = 456
+  expect(session.pid).toBe(456)
+  await session.close('test complete')
+})
+
 function makeSession(
   terminal: FakeTerminal,
   inspector: FakeInspector,

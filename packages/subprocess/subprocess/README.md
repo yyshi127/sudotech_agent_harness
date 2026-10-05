@@ -69,6 +69,8 @@ Set `stdio.control: 'pipe'` to receive a separate raw `Duplex` in `handle.contro
 
 Termination and waiting use one provider-managed range. `terminate()` starts the provider's documented procedure, is idempotent, and becomes a no-op after that range is empty; the request's abort signal starts the same procedure. `waitForExit()` observes the same range and resolves only after the provider proves it quiescent, so direct command completion does not hide a surviving descendant. It rejects when the selected owner can no longer prove quiescence. Providers document their native owners and weaker fallbacks; callers own deadlines, teardown ladders, and cause classification.
 
+Desktop launcher commands can request `windowsChildLifetime: 'independent'` from the local native Windows provider. Their command remains managed, while applications it starts are excluded from that command's Job and survive its cancellation or disposal. Other providers and Windows fallback reject the request before launch. The option does not detach applications from enclosing host Jobs; omission preserves ordinary descendant ownership.
+
 ### Running a terminal session
 
 For interactive programs, `spawnTerminal` allocates a real PTY: write text, read UTF-8 output, inspect and signal the current foreground process group, and await one `terminate()` that settles every session member the provider can still observe. Readiness, scrollback, and prompt policy stay with the PTY consumer.

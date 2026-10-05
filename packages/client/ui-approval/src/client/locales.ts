@@ -7,6 +7,8 @@ export const zh = {
   escalation: '工具 {toolName} 请求越权执行',
   reject: '拒绝',
   allowOnce: '允许一次',
+  allowSession: '始终允许',
+  sessionScope: '本会话适用范围：{scope}',
 } satisfies Record<string, string>
 
 /** Approval dictionary key union. */
@@ -19,4 +21,6 @@ export const en = {
   escalation: 'Tool {toolName} requests privileged execution',
   reject: 'Reject',
   allowOnce: 'Allow once',
+  allowSession: 'Always allow',
+  sessionScope: 'Session approval scope: {scope}',
 } satisfies Record<ApprovalKey, string>

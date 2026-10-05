@@ -15,6 +15,7 @@ import { resolve } from 'node:path'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp } from './assembled-boot.ts'
+import { loadXiaojingAssembledResponses } from './xiaojing-assembled-fixture.client.ts'
 
 installAssembledBootEnv()
 
@@ -57,12 +58,15 @@ function clientBuildValue(name: string): string | undefined {
 }
 
 it('boots the built plugin graph and renders a fixture session end to end', async () => {
-  mountAssembledApp()
+  loadXiaojingAssembledResponses(mountAssembledApp().mock)
 
   // The sidebar renders from the boot graph: every inject layer activated.
   const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
   if (clientBuildValue('DSH_CLIENT_BUILD_PROFILE') === 'official') {
     expect(document.querySelector('svg[viewBox="26 0 156 24"]')).not.toBeNull()
+    expect(screen.queryByText('DSH Local Build')).toBeNull()
+  } else if (clientBuildValue('DSH_CLIENT_BUILD_PROFILE') === 'xiaojing') {
+    expect(document.querySelector('svg[viewBox="0 0 1254 1254"] image[href="./xiaojing-character-logo.png"]')).not.toBeNull()
     expect(screen.queryByText('DSH Local Build')).toBeNull()
   } else {
     expect(document.querySelector('svg[viewBox="0 0 23.16 17.04"]')).not.toBeNull()
@@ -173,7 +177,7 @@ it('boots the built plugin graph and renders a fixture session end to end', asyn
 })
 
 it('boots without ui-chat and does not select another conversation view implicitly', async () => {
-  mountAssembledApp({ exclude: ['@deepseek-ai/dsh-client-ui-chat'] })
+  loadXiaojingAssembledResponses(mountAssembledApp({ exclude: ['@deepseek-ai/dsh-client-ui-chat'] }).mock)
 
   const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
   const boot = Reflect.get(window, '__DSH_BOOT__') as { entries: Array<{ id: string }> } | undefined

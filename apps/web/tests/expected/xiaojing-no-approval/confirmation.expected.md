@@ -1,0 +1,8 @@
+- dialog "Enable automatic approval (experimental)?":
+  - heading "Enable automatic approval (experimental)?" [level=2]
+  - button "Close"
+  - paragraph: Automatically approve this session and its subtasks, including commands, file changes and deletion, web submissions, and uploads. Pending approvals will proceed too. Other sessions are unaffected; switch back at any time. Browser connections and Windows elevation remain subject to system authorization.
+  - checkbox "I authorize this session to perform these operations automatically"
+  - text: I authorize this session to perform these operations automatically
+  - button "Cancel"
+  - button "Enable automatic approval" [disabled]

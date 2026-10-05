@@ -1,8 +1,10 @@
 /** An explicit New Session the Host refuses reports through the Workspace notice in the shipped Web composition. */
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { describe, expect, it, onTestFinished } from 'vitest'
-import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode } from './scaffold.ts'
+import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode } from './scaffold.ts'
 import { saveFailureShot } from './support.ts'
 
 const NOTICE_EXPECTED = fileURLToPath(new URL('./expected/new-session-refused/notice.expected.md', import.meta.url))
@@ -25,16 +27,23 @@ describe.skipIf(MODE === 'record')('web e2e: refused New Session', () => {
       agentPresets: { default: PRESET_ID, definitions: [BROKEN_PRESET] },
     })
     onTestFinished(() => scaffold.close())
+    const xiaojing = webClientProfile() === 'xiaojing'
+    if (xiaojing) {
+      const path = join(scaffold.workspaceCwd, 'refusal-workspace')
+      await mkdir(path)
+      await scaffold.ctx.workspaceRegistry.create(path, 'Refusal acceptance')
+    }
+    const workspaceCount = xiaojing ? 2 : 1
     const browser = await chromium.launch()
     try {
       const page = await browser.newPage({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai' })
       const tripwire = watchConsole(page)
       try {
         await page.goto(scaffold.authenticatedUrl)
-        // Startup prepares the default Workspace, and its own blank-Session
-        // attempt is refused without a notice: the hero stays on the picker.
+        // The Office category needs an ordinary Workspace; the reserved Finance
+        // Workspace does not receive its New Session action.
         await page.getByRole('button', { name: '选择工作区', exact: true }).waitFor()
-        await expect.poll(() => scaffold.ctx.workspaceRegistry.list().length).toBe(1)
+        await expect.poll(() => scaffold.ctx.workspaceRegistry.list().length).toBe(workspaceCount)
         expect(scaffold.ctx.sessions.list()).toEqual([])
         expect(await page.getByRole('alert').count()).toBe(0)
 
@@ -43,7 +52,7 @@ describe.skipIf(MODE === 'record')('web e2e: refused New Session', () => {
         await notice.waitFor()
         await compareOrRefreshGolden(NOTICE_EXPECTED, await notice.ariaSnapshot(), MODE)
         expect(scaffold.ctx.sessions.list()).toEqual([])
-        expect(scaffold.ctx.workspaceRegistry.list()).toHaveLength(1)
+        expect(scaffold.ctx.workspaceRegistry.list()).toHaveLength(workspaceCount)
         expect(await page.locator('[data-composer-input][contenteditable="true"]').count()).toBe(0)
         expect(tripwire.pageErrors).toEqual([])
         expect(tripwire.warnings).toEqual([])

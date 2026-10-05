@@ -9,7 +9,7 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
   }
 }
 
-/** Owns its reference until retirement finishes or the Sidebar plugin shuts down. */
+/** Owns its reference and reports opening failures until disposal. */
 export class SidebarSessionView {
   /** Session reference released exclusively by this View. */
   readonly reference: SessionReference
@@ -31,7 +31,9 @@ export class SidebarSessionView {
     private readonly onTabRelease: (view: SidebarSessionView) => void,
   ) {
     this.reference = sessions.retain(sessionId, { source: 'sidebarView' })
-    void this.reference.ready.catch((error: unknown) => { console.error('Sidebar Session opening failed:', error) })
+    void this.reference.ready.catch((error: unknown) => {
+      if (!this.disposed) console.error('Sidebar Session opening failed:', error)
+    })
   }
 
   /** Whether an initialized retained body still needs this view. */

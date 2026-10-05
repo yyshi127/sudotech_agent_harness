@@ -11,7 +11,7 @@
 // (frame/handle) rides local names that survive hashing as suffixes; prefer
 // data-* for anything new.
 //
-// Flow order matters: chat rounds first (the bash round reuses the first
+// Flow order matters: chat rounds first (the shell round reuses the first
 // send's session), geometry and theme after, reload recovery last. Tests run
 // sequentially in-file.
 import type { ChildProcess } from 'node:child_process'
@@ -27,10 +27,26 @@ import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import WebSocket from 'ws'
-import { REPO_ROOT, connectFreshWorkspace, newEnglishPage, probeFreePort, requireDist, saveFailureShot } from './support.ts'
+import { REPO_ROOT, connectFreshWorkspace, expandTurnProcesses, newEnglishPage, requireDist, saveFailureShot } from './support.ts'
 
 const WEB_SURFACE_PROMPT = fileURLToPath(new URL('./expected/web-runtime-context/web-surface-prompt.expected.md', import.meta.url))
+const XIAOJING = process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+const PICKER_PATCH = fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url))
+const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
 const authenticatedCookies = new Map<string, Promise<{ origin: string; cookie: string }>>()
+
+/** Acknowledge the real first-use notice before exercising the underlying app. */
+async function acknowledgeWelcome(page: Page): Promise<void> {
+  const title = XIAOJING ? 'First-time setup' : 'Preview Notice'
+  const dialog = page.getByRole('dialog', { name: title, exact: true })
+  await dialog.waitFor({ timeout: 15_000 })
+  if (XIAOJING) {
+    expect(await page.getByRole('dialog', { name: 'Preview Notice', exact: true }).count()).toBe(0)
+    expect(await page.getByRole('button', { name: 'Sign in', exact: true }).count()).toBe(0)
+  }
+  await dialog.getByRole('button', { name: XIAOJING ? 'Get started' : 'Continue', exact: true }).click()
+  await dialog.waitFor({ state: 'detached' })
+}
 
 /** Frame a complete text turn or an open block before a transport failure. */
 function messagesResponse(text: string, complete = true): string {
@@ -70,7 +86,8 @@ const comboMapUrl = (url: string): string => url.replace(/\/client\.js(?=,|&rev=
 function waitForReadyLine(child: ChildProcess): Promise<string> {
   return new Promise((resolveReady, reject) => {
     let out = ''
-    const timer = setTimeout(() => { reject(new Error(`dsh web not ready in 90s; output:\n${out}`)) }, 90_000)
+    const diagnosticOutput = (): string => out.replace(/([?&]token=)[A-Za-z0-9_-]+/gu, '$1[REDACTED]')
+    const timer = setTimeout(() => { reject(new Error(`dsh web not ready in 90s; output:\n${diagnosticOutput()}`)) }, 90_000)
     const onData = (chunk: Buffer): void => {
       out += chunk.toString()
       const match = /dsh web: (http:\/\/[^\s]+)/.exec(out)
@@ -83,7 +100,7 @@ function waitForReadyLine(child: ChildProcess): Promise<string> {
     child.stderr?.on('data', onData)
     child.once('exit', (code) => {
       clearTimeout(timer)
-      reject(new Error(`dsh web exited early (code ${code}); output:\n${out}`))
+      reject(new Error(`dsh web exited early (code ${code}); output:\n${diagnosticOutput()}`))
     })
   })
 }
@@ -282,13 +299,13 @@ async function screen(page: Page, name: string): Promise<void> {
 
 /** First column track (px string) of the frame grid. */
 async function firstTrack(page: Page): Promise<string> {
-  return (await page.locator('[class*="frame"]').evaluate(
+  return (await page.locator('[data-rightbar-collapsed="true"]').evaluate(
     el => getComputedStyle(el).gridTemplateColumns)).split(' ')[0]!
 }
 
 /** Last column track (details) as a number of pixels. */
 async function detailsTrack(page: Page): Promise<number> {
-  const cols = await page.locator('[class*="frame"]').evaluate(
+  const cols = await page.locator('[data-rightbar-collapsed="true"]').evaluate(
     el => getComputedStyle(el).gridTemplateColumns)
   return Number(cols.split(' ').pop()!.replace('px', ''))
 }
@@ -315,7 +332,7 @@ describe('dsh web keyless CLI smoke', () => {
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--patch', PICKER_PATCH, '--no-open', '--port', '0'],
       {
         cwd: sessionsDir,
         env: {
@@ -354,6 +371,7 @@ describe('dsh web keyless CLI smoke', () => {
         }
       })
       await page.goto(readyUrl)
+      await acknowledgeWelcome(page)
       await page.getByRole('button', { name: 'New session', exact: true }).first().waitFor({ timeout: 30_000 })
       const batchPaths = [...new Set(pluginScripts)].sort()
       // The bootstrap phase is the modules package alone; the application phase
@@ -437,7 +455,7 @@ describe('dsh web keyless CLI smoke', () => {
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--patch', PICKER_PATCH, '--no-open', '--port', '0'],
       {
         cwd: workspace,
         env: {
@@ -475,7 +493,15 @@ describe('dsh web keyless CLI smoke', () => {
         .find(block => block.type === 'text' && block.text?.includes('web-workspace-context-probe'))
       const expectedWebSection = readFileSync(WEB_SURFACE_PROMPT, 'utf8').trimEnd()
         .replace('{{webUrl}}', new URL(baseUrl).origin)
-      expect(captured.system).toContain(expectedWebSection)
+      if (XIAOJING) {
+        expect(captured.system).toContain('你的名字是小兢会计（简称小兢），在办公搭子模式下的身份始终是用户的AI办公搭子。')
+        expect(captured.system).toContain('自我介绍使用“办公搭子”')
+        expect(captured.system).not.toContain(expectedWebSection)
+        expect(captured.system).not.toContain('You are a coding agent powered by')
+        expect(captured.system).not.toContain('You are an AI agent powered by DeepSeek Harness.')
+      } else {
+        expect(captured.system).toContain(expectedWebSection)
+      }
       expect(workspaceMessage).toMatchInlineSnapshot(`
         {
           "text": "<system-reminder>
@@ -542,7 +568,7 @@ describe('dsh web keyless CLI smoke', () => {
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--patch', PICKER_PATCH, '--no-open', '--port', '0'],
       {
         cwd: workspace,
         env: {
@@ -622,7 +648,7 @@ describe('dsh web keyless CLI smoke', () => {
     const tsxLoader = pathToFileURL(createRequire(join(REPO_ROOT, 'package.json')).resolve('tsx')).href
     const child = spawn(
       process.execPath,
-      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--no-open', '--port', '0'],
+      ['--import', tsxLoader, join(REPO_ROOT, 'apps/cli/src/bin.ts'), 'web', '--patch', PICKER_PATCH, '--no-open', '--port', '0'],
       {
         cwd: workspace,
         env: {
@@ -673,12 +699,13 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
   let baseUrl: string
   let browser: Browser
   let page: Page
+  let activeSessionId: string
   const pageErrors: string[] = []
+  const consoleErrors: string[] = []
 
   beforeAll(async () => {
     requireDist()
     sessionsDir = mkdtempSync(join(tmpdir(), 'dsh-web-w5-'))
-    const port = await probeFreePort()
     // tsx boot mirrors the runtime half of the root dsh script. Isolate
     // the host-level Harness and shared-agent homes inside the temp world; tsx
     // also needs the repo's loader and tsconfig paths pointed at explicitly.
@@ -691,9 +718,9 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
         // starts the web app's own arguments.
         // Pin the in-browser picker: the shipped `-auto` row would resolve to
         // the native OS chooser on this bind, and no page can drive that.
-        '--patch', fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
+        '--patch', PICKER_PATCH,
         '--no-open',
-        '--port', String(port),
+        '--port', '0',
       ],
       {
         cwd: sessionsDir,
@@ -710,16 +737,22 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     page.on('pageerror', e => pageErrors.push(String(e)))
+    page.on('console', (message) => {
+      if (message.type() !== 'error' && message.type() !== 'warning') return
+      console.error(`[smoke-real Client ${message.type()}] ${message.text()}`)
+      if (message.type() === 'error') consoleErrors.push(message.text())
+    })
     await page.goto(baseUrl, { waitUntil: 'load' })
   }, 120_000)
 
   afterAll(async () => {
     await browser?.close()
     if (child !== undefined && child.exitCode === null) {
-      const gone = new Promise<void>(resolveExit => child.once('exit', () => { resolveExit() }))
+      const gone = new Promise<void>(resolveClose => child.once('close', () => { resolveClose() }))
       child.kill('SIGTERM')
       await Promise.race([gone, new Promise(r => setTimeout(r, 10_000).unref())])
       if (child.exitCode === null) child.kill('SIGKILL')
+      await gone
     }
     if (sessionsDir !== undefined) rmSync(sessionsDir, { recursive: true, force: true })
   })
@@ -727,6 +760,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
   it('cold start: loading page settles into the three-column frame', async () => {
     onTestFailed(() => saveFailureShot(page, 'w5-cold-start'))
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    await acknowledgeWelcome(page)
     expect(await page.locator('text=Failed to load plugins').count()).toBe(0)
     const template = await page.locator('[class*="frame"]').evaluate(el => getComputedStyle(el).gridTemplateColumns)
     expect(template.split(' ').length).toBe(3)
@@ -735,9 +769,8 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
 
   it('empty-state first send completes a real model round', async () => {
     onTestFailed(() => saveFailureShot(page, 'w5-first-round'))
-    // This scenario spawns its own server against a fresh $DSH_HOME with the
-    // DeepSeek credential inherited from the environment, so no onboarding
-    // step mounts and the page is immediately interactive.
+    // The preceding cold-start case acknowledged the real welcome notice;
+    // the DeepSeek credential is inherited into this isolated Harness home.
     // Fresh world: connect a Workspace so the composer starts live.
     await connectFreshWorkspace(page, sessionsDir)
     const input = page.locator('[data-composer-input]').first()
@@ -756,20 +789,21 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
       productTitle,
       { timeout: 15_000 },
     )
-    await expect.poll(async () => (await remoteRpc<{ items: { sessionId: string }[] }>(
+    await expect.poll(async () => (await remoteRpc<{ items: { sessionId: string; cwd?: string }[] }>(
       baseUrl,
       'session/list',
       { _request: {} },
-    )).items.length, {
+    )).items.filter(item => item.cwd === join(sessionsDir, 'workspace')).length, {
       timeout: 15_000,
     }).toBe(1)
-    const sessions = await remoteRpc<{ items: { sessionId: string }[] }>(
+    const sessions = await remoteRpc<{ items: { sessionId: string; cwd?: string }[] }>(
       baseUrl,
       'session/list',
       { _request: {} },
     )
-    const sessionId = sessions.items[0]?.sessionId
+    const sessionId = sessions.items.find(item => item.cwd === join(sessionsDir, 'workspace'))?.sessionId
     if (sessionId === undefined) throw new Error('created Web session was not listed')
+    activeSessionId = sessionId
     const durableTitle = await waitForProviderTitle(baseUrl, sessionId)
     await page.waitForFunction(
       ({ expected, product }) => document.title === `${expected} — ${product}`,
@@ -790,30 +824,56 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
 
   it('view tabs: Chat and Trajectory switch', async () => {
     onTestFailed(() => saveFailureShot(page, 'w5-tabs'))
-    await page.locator('button', { hasText: /Trajectory/i }).first().click()
+    await page.getByRole('tab', { name: 'Trajectory', exact: true }).click()
     await screen(page, '05-trajectory-tab')
     await page.getByLabel('Trajectory timeline').waitFor()
     await expect.poll(() => page.getByRole('tab', { name: 'Waterfall' }).count()).toBe(0)
-    await page.locator('button', { hasText: /^Chat$/i }).first().click()
+    await page.getByRole('tab', { name: 'Chat', exact: true }).click()
     await screen(page, '07-back-to-chat')
   })
 
-  it('bash differential rendering: tool row click leaves the default details column closed', async () => {
+  it(`${SHELL_TOOL} differential rendering: tool row click leaves the default details column closed`, async () => {
     onTestFailed(() => saveFailureShot(page, 'w5-tool-details'))
     const input = page.locator('[data-composer-input]').first()
-    await input.fill('请用 bash 工具运行命令 echo w5marker 然后告诉我结果')
+    const command = SHELL_TOOL === 'pwsh' ? 'Write-Output w5marker' : 'echo w5marker'
+    await input.fill(`Use the ${SHELL_TOOL} tool to run exactly ${JSON.stringify(command)} once, then report the output. Do not use other tools.`)
     await input.press('Enter')
     // Wait for the tool ROW, not response text (the reply echoes any marker).
-    // Bash renders through the third-party sample registration. Match that
-    // exact row: other clickable variants (for example Think disclosure)
-    // may precede the tool call in document order.
-    const toolRow = page.locator('[data-sample="bash"]')
-    await toolRow.waitFor({ timeout: 120_000 })
+    // Bash has a keyed sample row; the native pwsh fallback uses ToolRow.
+    // Match that exact shell row: Think disclosure may precede the call.
+    await expect.poll(async () => {
+      const observed = await history(baseUrl, activeSessionId)
+      const calls = observed.records.flatMap(record => record.type === 'event' && record.event.type === 'tool/call'
+        ? [record.event.data] : [])
+      const call = calls[0]
+      if (calls.length !== 1 || !isRecord(call) || call.name !== SHELL_TOOL || typeof call.arguments !== 'string') return false
+      const args: unknown = JSON.parse(call.arguments)
+      if (!isRecord(args) || args.command !== command) return false
+      return hasAssistantMarker(observed, 'w5marker') && observed.records.some((record) => {
+        if (record.type !== 'event' || record.event.type !== 'tool/result' || !isRecord(record.event.data)) return false
+        const result = record.event.data.message
+        return isRecord(result) && result.toolCallId === call.callId && result.isError === false
+          && Array.isArray(result.content) && result.content.some(block => isRecord(block)
+            && block.type === 'text' && block.text === (process.platform === 'win32' ? 'w5marker\r\n' : 'w5marker\n'))
+      })
+    }, { timeout: 120_000 }).toBe(true)
+    await expandTurnProcesses(page)
+    const shellSelector = SHELL_TOOL === 'pwsh' ? '[data-tool="pwsh"]' : '[data-sample="bash"]'
+    const toolRow = page.locator(shellSelector)
+    await toolRow.waitFor({ timeout: 10_000 })
+    expect(await toolRow.count()).toBe(1)
+    expect(await toolRow.getAttribute('data-state')).toBe('ok')
+    const beforeClickDOM = await toolRow.evaluate(element => element.outerHTML)
     await screen(page, '08-bash-round')
     expect(await detailsTrack(page)).toBe(0)
     await toolRow.click()
     // Tool rows do not drive layout.openDetails; the default column stays closed.
     expect(await detailsTrack(page)).toBe(0)
+    writeFileSync(join(REPO_ROOT, '.artifacts', 'w5-native-tool-dom.json'), JSON.stringify({
+      tool: SHELL_TOOL, selector: shellSelector, count: await toolRow.count(),
+      beforeClickDOM, afterClickDOM: await toolRow.evaluate(element => element.outerHTML),
+      detailsTrackAfterClick: await detailsTrack(page),
+    }, null, 2) + '\n')
     await screen(page, '09-details-closed')
   }, 150_000)
 
@@ -862,5 +922,6 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY || notReady.length > 0)('web smoke
 
   it('stayed clean: no page errors across every flow', () => {
     expect(pageErrors).toEqual([])
+    expect(consoleErrors).toEqual([])
   })
 })

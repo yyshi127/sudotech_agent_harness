@@ -23,6 +23,20 @@
   - button "Copy link":
     - img
 - paragraph:
+  - text: 打开小红书（
+  - link "https://www.xiaohongshu.com":
+    - /url: https://www.xiaohongshu.com
+  - button "Copy link":
+    - img
+  - text: ）。
+- paragraph:
+  - text: 已在 Edge 中打开（
+  - link "https://www.xiaohongshu.com":
+    - /url: https://www.xiaohongshu.com
+  - button "Copy link":
+    - img
+  - text: ），现在应该正显示在屏幕最前面。
+- paragraph:
   - text: "Command:"
   - code: curl {{linkUrl}}
 - paragraph:

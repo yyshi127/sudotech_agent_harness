@@ -28,6 +28,8 @@ The controller refreshes on `usage-accounting/updated`, a `DEEPSEEK_API_KEY` `cr
 
 The wide sidebar displays `今日已使用 <token> token · ¥<费用>` with the token count and cost emphasized, and the collapsed rail keeps the same accessible label. Clicking either control opens a small anchored panel with exact cached-input, uncached-input, and output token and cost rows, plus the daily total and unpriced count. The settings navigation includes “用量”. Its page places the monthly total directly below the local-accounting explanation, then shows the Beijing current month as a Monday-first calendar with daily token and cost, pre-tracking days as “未统计”, and retained unpriced tokens as “未计价”.
 
+The anchored panel uses the shared translucent menu fill, backdrop filter, and elevation stroke.
+
 The UI rounds exact integer nanoyuan values half up to fen and always displays two decimal places without floating-point arithmetic; stored totals retain nanoyuan precision. Old rows recover category costs only after the Host verifies an exact matching historical tariff and total; otherwise they show “明细未统计”. The browser never applies today's tariff itself. Token abbreviations affect display only and never change stored totals.
 
 ## Model Experience

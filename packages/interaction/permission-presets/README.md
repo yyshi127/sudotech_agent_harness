@@ -25,6 +25,8 @@ Offer named permission modes that set sandbox and approval together while each e
 <a id="use-this-package"></a>
 ## Use this package
 
+`registerSessionPreset(name, spec, admit)` lets an integration publish an effect-owned current-session option with a synchronous eligibility check before selection writes. Such options appear in `catalog().options`, never in `defaultOptions`; disposal withdraws them. Their identity is recorded through the existing `permission/preset` event, while the integration owns any additional execution authorization.
+
 Choose this service when a deployment wants to offer users one Permissions selector instead of separate sandbox and approval controls. It bundles the knobs; execution and approval keep their own values, so removing the package later leaves the last selection in effect.
 
 ### Configuring presets

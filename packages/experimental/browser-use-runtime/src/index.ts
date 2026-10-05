@@ -11,6 +11,11 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 export interface OwnedSessionResource<T> {
   /** Provider-private handle exposed to operations. */
   value: T
+  /**
+   * Optional startup after ownership is retained. Failure keeps the resource reserved until close succeeds.
+   * @returns completion before operations may use value.
+   */
+  initialize?: () => Promise<void>
   /** Stop admission, interrupt pending operations, and await resource shutdown. */
   close: () => Promise<void>
 }
@@ -33,6 +38,8 @@ export interface SessionResourceOptions<T> {
 interface Entry<T> {
   controller: AbortController
   ready: Promise<OwnedSessionResource<T>>
+  resource?: OwnedSessionResource<T>
+  failed?: boolean
   tail: Promise<void>
   closing?: Promise<void>
 }
@@ -75,8 +82,11 @@ export class SessionResources<T> {
    * @returns whether this owner can use or acquire the configured browser.
    */
   available(agent: Agent): boolean {
+    const entry = this.entries.get(agent)
     return this.disposing === undefined && !this.disposedOwners.has(agent)
       && this.ctx.get('agents')?.get(agent.id) === agent
+      && entry?.closing === undefined
+      && entry?.failed !== true
       && (this.entries.has(agent) || !this.options.exclusive || this.entries.size === 0)
   }
 
@@ -132,6 +142,18 @@ export class SessionResources<T> {
   }
 
   /**
+   * Close one owner's resource and await its pending operations without disposing the owner.
+   * A live owner can acquire a fresh resource after successful release. Failed cleanup
+   * retains the reservation; releasing an owner without a resource performs no acquisition.
+   * @param agent - exact live owner whose resource is being released.
+   * @returns completion after shutdown, or the retained cleanup failure.
+   */
+  release(agent: Agent): Promise<void> {
+    const entry = this.entries.get(agent)
+    return entry === undefined ? Promise.resolve() : this.closeEntry(agent, entry)
+  }
+
+  /**
    * Stop new acquisitions and await every acquired resource and owned operation.
    * A failed close retains its entry and rejects disposal, preserving exclusive ownership.
    * @returns the shared quiescent disposal promise.
@@ -166,12 +188,16 @@ export class SessionResources<T> {
     const controller = new AbortController()
     const entry: Entry<T> = {
       controller,
-      ready: Promise.resolve().then(() => {
+      ready: Promise.resolve().then(async () => {
         controller.signal.throwIfAborted()
-        return this.options.open(agent, controller.signal)
+        const resource = await this.options.open(agent, controller.signal)
+        entry.resource = resource
+        await resource.initialize?.()
+        return resource
       }).catch((error: unknown) => {
-        // open() owns rollback; a failed acquisition has no remaining resource.
-        this.entries.delete(agent)
+        // open() owns rollback; initialize() failures retain the acquired resource for close.
+        if (entry.resource === undefined) this.entries.delete(agent)
+        else entry.failed = true
         throw error
       }),
       tail: Promise.resolve(),
@@ -185,7 +211,7 @@ export class SessionResources<T> {
   private closeEntry(agent: Agent, entry: Entry<T>): Promise<void> {
     return entry.closing ??= Promise.resolve().then(async () => {
       entry.controller.abort(new Error(`${this.options.label}: Session browser is closing`))
-      const resource = await entry.ready.catch(() => undefined)
+      const resource = await entry.ready.catch(() => entry.resource)
       try {
         await resource?.close()
       } finally {

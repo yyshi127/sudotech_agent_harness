@@ -1444,6 +1444,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-agent-preset AgentPresetLabel id \'agent-preset\'',
       'client-ui-jobs JobListAction id \'job-list\'',
+      'client-ui-permission-presets RunningPermissionSelect id \'running-permission\'',
       'client-ui-subagent SubagentCatalogAction id \'subagent-catalog\'',
       'client-ui-xiaojing-finance-clients FinanceContextLabel id \'finance-client-context\'',
       'experimental-client-ui-agent-team TeamAction id \'agent-team\'',

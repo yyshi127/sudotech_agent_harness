@@ -9,7 +9,7 @@ import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environ
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold, readPersistedEvents,
-  seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace } from './support.ts'
 
@@ -17,6 +17,7 @@ const root = fileURLToPath(new URL('./expected/shortcuts-workspace', import.meta
 const seed = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
 const sourceId = SessionId('shortcuts-workspace-source')
 const mode = webSnapshotMode()
+const XIAOJING = webClientProfile() === 'xiaojing'
 
 describe.skipIf(mode === 'record')('web e2e: workspace shortcuts', () => {
   let scaffold: WebScaffold
@@ -105,7 +106,7 @@ describe.skipIf(mode === 'record')('web e2e: workspace shortcuts', () => {
     await childRow.waitFor()
     expect(await sourceRow.getAttribute('aria-selected')).toBe('true')
     expect(await childRow.getAttribute('aria-selected')).toBe('false')
-    await compareOrRefreshGolden(join(root, 'fork.expected.md'),
+    await compareOrRefreshGolden(join(root, XIAOJING ? 'fork.xiaojing.expected.md' : 'fork.expected.md'),
       await captureStableAria(page, '[data-slot="sidebar.workspaces"]', scaffold.workspaceCwd), mode)
 
     await childRow.click()
@@ -179,7 +180,8 @@ describe.skipIf(mode === 'record')('web e2e: workspace shortcuts', () => {
       { app: 'finder', path: workspace.path }, { app: 'finder', path: workspace.path },
     ])
     await expect.poll(() => opener.getAttribute('data-state')).toBe('idle')
-    await compareOrRefreshGolden(join(root, 'files-open.expected.md'),
+    const filesExpected = process.platform === 'win32' ? 'files-open.windows.expected.md' : 'files-open.expected.md'
+    await compareOrRefreshGolden(join(root, filesExpected),
       await captureStableAria(page, '[data-files-state="tree"]', scaffold.workspaceCwd), mode)
     await opener.getByRole('button', { name: 'More ways to open', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Finder (default)', exact: true }).waitFor()
@@ -201,9 +203,11 @@ it.skipIf(mode === 'record')('explains a first-turn fork refusal and retries fro
     const forkWarnings: string[] = []
     page.on('console', (message) => { if (message.text().startsWith('session fork rejected:')) forkWarnings.push(message.text()) })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     const before = new Set(scaffold.ctx.agents.list().map(agent => agent.id))
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    const source = scaffold.ctx.agents.list().find(agent => !before.has(agent.id))
+    const source = scaffold.ctx.agents.list().find(agent => !before.has(agent.id)
+      && agent.session.header.cwd === join(scaffold.workspaceCwd, 'workspace'))
     if (source === undefined) throw new Error('The workspace did not create a Session')
     source.session.append('turn/start', { turn: 1 })
     const user = source.session.append('user/message', createUserMessage({

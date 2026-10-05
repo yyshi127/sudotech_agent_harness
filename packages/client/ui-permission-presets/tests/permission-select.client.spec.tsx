@@ -35,6 +35,7 @@ function setup(options: {
   catalog?: PermissionCatalog | null
   locked?: boolean
   select?: (preset: string) => Promise<boolean>
+  agentPreset?: string
 } = {}) {
   const selection = createSnapshotStore<{ value: PermissionSelection | undefined }>({
     value: 'selection' in options ? options.selection : { currentValue: 'workspace-write' },
@@ -42,8 +43,8 @@ function setup(options: {
   const catalog = createSnapshotStore<PermissionCatalogState>({
     value: options.catalog === undefined ? CATALOG : options.catalog,
   })
-  const useProjection = (_key: string, selector?: (value: unknown) => unknown) =>
-    bindSnapshotSelector(selection)(state => (selector ?? (value => value))(state.value))
+  const useProjection = (key: string, selector?: (value: unknown) => unknown) =>
+    bindSnapshotSelector(selection)(state => (selector ?? (value => value))(key === 'agentPreset' ? options.agentPreset ?? 'standard' : state.value))
   const select = vi.fn(options.select ?? (() => Promise.resolve(true)))
   const props = {
     locked: options.locked ?? false,
@@ -61,6 +62,35 @@ function trigger(): HTMLButtonElement {
 }
 
 describe('PermissionSelect', () => {
+  it('requires explicit confirmation for automatic approval and permits switching back', async () => {
+    const catalog = { ...CATALOG, options: [...CATALOG.options, { value: 'xiaojing-no-approval', name: 'xiaojing-no-approval' }] }
+    const { select, selection } = setup({ catalog })
+    const choose = () => {
+      fireEvent.click(trigger())
+      fireEvent.click(screen.getByRole('menuitem', { name: '自动审批(实验性)' }))
+    }
+    choose()
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: '启用自动审批' }).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+    expect(select).not.toHaveBeenCalled()
+    choose()
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: '启用自动审批' }))
+    expect(select).toHaveBeenCalledExactlyOnceWith('xiaojing-no-approval')
+    await act(async () => {})
+    act(() => { selection.set({ value: { currentValue: 'xiaojing-no-approval' } }) })
+    expect(trigger().textContent).toBe('自动审批(实验性)')
+    fireEvent.click(trigger())
+    fireEvent.click(screen.getByRole('menuitem', { name: '工作区内修改' }))
+    expect(select).toHaveBeenLastCalledWith('workspace-write')
+    await act(async () => {})
+  })
+
+  it('does not offer automatic approval in Finance mode', () => {
+    setup({ agentPreset: 'finance', catalog: { ...CATALOG, options: [...CATALOG.options, { value: 'xiaojing-no-approval', name: 'xiaojing-no-approval' }] } })
+    fireEvent.click(trigger())
+    expect(screen.queryByRole('menuitem', { name: '自动审批(实验性)' })).toBeNull()
+  })
   it('renders only when both the Session selection and process catalog exist', () => {
     const missingSelection = setup({ selection: undefined })
     expect(missingSelection.view.container.innerHTML).toBe('')

@@ -8,7 +8,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
+import type { SessionListValue } from '@deepseek-ai/dsh-api-session-controller'
 import { REPO_ROOT, newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
+import { webClientProfile } from './scaffold.ts'
 
 class RestartableServer {
   private child: ChildProcess | undefined
@@ -171,7 +173,7 @@ it.each([false, true])('keeps the same revision, Session and page across a serve
   })
   await page.goto(url, { waitUntil: 'load' })
   await page.locator('[data-slot="root"]').waitFor({ state: 'attached', timeout: 20_000 })
-  const notice = page.getByRole('button', { name: 'Continue', exact: true })
+  const notice = page.getByRole('button', { name: webClientProfile() === 'xiaojing' ? 'Get started' : 'Continue', exact: true })
   await notice.click({ timeout: 15_000 })
   const composer = page.locator('[data-composer-input][contenteditable="true"]')
   await writeComposerDraft(page, composer, 'Create a completed turn for the server restart test.')
@@ -233,4 +235,60 @@ it.each([false, true])('keeps the same revision, Session and page across a serve
   expect(errors).toEqual([])
   expect(streamErrors).toEqual([])
   expect(navigations).toBe(0)
+})
+
+it.runIf(webClientProfile() === 'xiaojing')('reuses the reserved Finance blank across canceled Office pickers, reloads, and two Host restarts', async () => {
+  const world = await mkdtemp(join(tmpdir(), 'dsh-first-use-restart-'))
+  onTestFinished(() => rm(world, { recursive: true, force: true }))
+  const server = new RestartableServer(world, 'http://127.0.0.1:1')
+  onTestFinished(() => server.stop())
+  const browser = await chromium.launch()
+  onTestFinished(() => browser.close())
+  const page = await newEnglishPage(browser)
+  const errors: string[] = []
+  page.on('pageerror', (error) => { errors.push(String(error)) })
+  let url = await server.start(0)
+  const port = Number(new URL(url).port)
+  const sessionList = async (): Promise<SessionListValue> => {
+    const response = await page.request.post(new URL('/api/session/list', url).href, {
+      data: { type: 'client-request', rpcId: randomUUID(), method: 'session/list', payload: { args: { _request: {} } } },
+    })
+    const value = await response.json() as { result: { ok: boolean; value: SessionListValue; error?: { message: string } } }
+    if (!value.result.ok) throw new Error(`session/list: ${String(value.result.error?.message)}`)
+    return value.result.value
+  }
+  onTestFailed(() => saveFailureShot(page, 'web-e2e-first-use-server-restart'))
+  await page.goto(url)
+  await page.getByRole('button', { name: 'Get started', exact: true }).click()
+  const choose = page.getByRole('button', { name: 'Choose workspace', exact: true })
+  await choose.waitFor()
+  await expect.poll(async () => (await sessionList()).items.length).toBe(1)
+  const initial = (await sessionList()).items[0]!
+  expect(initial.blank).toBe(true)
+  expect(initial.cwd).toBe(join(world, 'Finance工作区', '标准咨询'))
+  const picker = page.getByRole('dialog', { name: 'Select Workspace Directory' })
+  for (let round = 0; round < 3; round++) {
+    await choose.click()
+    await picker.waitFor()
+    await picker.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await picker.waitFor({ state: 'hidden' })
+    await page.reload()
+    await choose.waitFor()
+    expect((await sessionList()).items.map(item => ({ id: item.sessionId, cwd: item.cwd, blank: item.blank })))
+      .toEqual([{ id: initial.sessionId, cwd: initial.cwd, blank: true }])
+    expect(await page.locator('[data-composer-input][contenteditable="true"]').count()).toBe(0)
+    expect(await page.getByRole('tree', { name: 'Sessions' }).getByRole('treeitem').count()).toBe(0)
+  }
+  for (let round = 0; round < 2; round++) {
+    await server.stop()
+    url = await server.start(port)
+    await page.goto(url)
+    await choose.waitFor()
+    await expect.poll(async () => (await sessionList()).items.map(item => ({ id: item.sessionId, cwd: item.cwd, blank: item.blank })))
+      .toEqual([{ id: initial.sessionId, cwd: initial.cwd, blank: true }])
+    expect(await page.getByRole('dialog', { name: 'First-time setup' }).count()).toBe(0)
+    expect(await page.locator('[data-composer-input][contenteditable="true"]').count()).toBe(0)
+    expect(await page.getByRole('tree', { name: 'Sessions' }).getByRole('treeitem').count()).toBe(0)
+  }
+  expect(errors).toEqual([])
 })

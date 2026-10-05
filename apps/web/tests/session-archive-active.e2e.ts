@@ -31,6 +31,7 @@ const CONTINUED = 'ARCHIVE_ACTIVE_CONTINUED'
 // Long enough for the archive to land mid-call under CI load; the stop must
 // end the call well before it would finish on its own.
 const WAIT_MS = 60_000
+const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
 const HEARTBEAT_MS = 200
 /** The child the Bash call runs: announce, heartbeat, and only finish long after the archive. */
 const WAIT_COMMAND = `node -e "const fs=require('node:fs'); fs.writeFileSync('started.txt', 'started'); setInterval(() => { fs.appendFileSync('heartbeat.txt', '.') }, ${HEARTBEAT_MS}); setTimeout(() => { fs.writeFileSync('finished.txt', 'finished') }, ${WAIT_MS})"`
@@ -46,8 +47,8 @@ function script(): ReplayEntry[] {
   const callId = ToolCallId('call_wait')
   const first: StreamChunk[] = [
     { type: 'block-start', index: 0, blockType: 'tool-call' },
-    { type: 'tool-call-delta', index: 0, id: callId, name: 'bash', argumentsDelta: args },
-    { type: 'block-end', index: 0, block: { type: 'tool-call', id: callId, name: 'bash', arguments: args } },
+    { type: 'tool-call-delta', index: 0, id: callId, name: SHELL_TOOL, argumentsDelta: args },
+    { type: 'block-end', index: 0, block: { type: 'tool-call', id: callId, name: SHELL_TOOL, arguments: args } },
     { type: 'usage', usage: { inputTokens: 10, outputTokens: 10 } },
     { type: 'finish', reason: { kind: 'tool-calls' } },
   ]

@@ -1,6 +1,7 @@
 /** Local Web document and authenticated HTTP forwarding for the application window. */
 import { readFile } from 'node:fs/promises'
 import { extname, resolve, sep } from 'node:path'
+import type { DesktopLocale } from './locale.ts'
 
 const MIME: Readonly<Record<string, string>> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -9,13 +10,19 @@ const MIME: Readonly<Record<string, string>> = {
 }
 const BOOT = '<script>globalThis.__DSH_BOOT_READY__ = Promise.withResolvers()</script>'
 
+/** Escape shell-owned copy inserted into the static application document. */
+function htmlText(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+}
+
 /**
  * Read an application-owned static asset; the index waits for asynchronous Host injections.
  * @param request - Local application request.
  * @param root - Packaged Web dist directory.
+ * @param locale - Application startup copy; omitted for shell documents and plain static responses.
  * @returns Static response, or a missing/invalid path response.
  */
-export async function serveWebDocument(request: Request, root: string): Promise<Response> {
+export async function serveWebDocument(request: Request, root: string, locale?: DesktopLocale): Promise<Response> {
   if (!['GET', 'HEAD'].includes(request.method)) return new Response(null, { status: 405 })
   const url = new URL(request.url)
   let pathname: string
@@ -28,8 +35,16 @@ export async function serveWebDocument(request: Request, root: string): Promise<
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return new Response(null, { status: 404 })
     throw error
   }
-  const content = pathname === '/' || pathname === '/index.html'
-    ? body.toString().replace('<head>', '<head>' + BOOT) : new Uint8Array(body)
+  let content: string | Uint8Array<ArrayBuffer> = new Uint8Array(body)
+  if (pathname === '/' || pathname === '/index.html') {
+    content = body.toString().replace('<head>', '<head>' + BOOT)
+    if (locale !== undefined) {
+      const startup = `<main id="xiaojing-startup" aria-busy="true"><img src="dsh-app://shell/assets/startup-logo.png" alt=""><h1>${htmlText(locale.messages.startupTitle)}</h1><p role="status">${htmlText(locale.messages.startupLoading)}</p><div class="xiaojing-startup-loader" aria-hidden="true"></div></main>`
+      // Keep the kernel boot DOM alone inside #root so React's loading-page hydration stays intact.
+      content = content.replace('<head>', '<head><link rel="stylesheet" href="dsh-app://shell/startup.css">')
+        .replace('<div id="root"></div>', `<div id="root"></div>${startup}`)
+    }
+  }
   return new Response(request.method === 'HEAD' ? null : content, {
     headers: { 'content-type': MIME[extname(target)] ?? 'application/octet-stream' },
   })

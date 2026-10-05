@@ -18,14 +18,18 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { TIMED_WAIT_PARAMETER } from '@deepseek-ai/dsh-user-questions'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import {
   connectFreshWorkspace, expandTurnProcesses, newEnglishPage, saveFailureShot,
 } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS, XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/question-composer', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
+  ? './expected/question-composer-xiaojing'
+  : '../../../snapshots/web/question-composer', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const SIDEBAR_EXPECTED = join(SNAPSHOT_DIR, 'sidebar.expected.md')
 const COMPOSED_EXPECTED = join(SNAPSHOT_DIR, 'composed.expected.md')
@@ -220,18 +224,19 @@ function resettledFixture(fixture: string, outcome: 'cancelled' | 'queued' | 'la
       throw new Error('question fixture tool/result message is invalid')
     }
     if (asked === undefined) throw new Error('question fixture settles a call it never made')
+    const result = message.role === 'tool' ? message : message.content[0]
     if (outcome === 'cancelled') {
-      message.content[0].content = [{
+      result.content = [{
         type: 'text',
         text: 'Error: the user cancelled ask_user_question',
       }]
-      message.content[0].isError = true
+      result.isError = true
       data.error = {
         name: 'UserQuestionError',
         code: 'ASK_CANCELLED',
       }
     } else {
-      message.content[0].content = [{ type: 'text', text: pendingResultText(asked.callId) }]
+      result.content = [{ type: 'text', text: pendingResultText(asked.callId) }]
     }
     replaced = true
     lines.push(JSON.stringify(event))
@@ -262,7 +267,7 @@ interface SeededTranscript {
  * @returns the scaffold, browser, page, and console tripwire teardown closes.
  */
 async function openSeededTranscript(fixtureText: string, seedId: string): Promise<SeededTranscript> {
-  const scaffold = await launchWebScaffold({})
+  const scaffold = await launchWebScaffold(NATIVE_XIAOJING ? XIAOJING_ROUTE_CATALOG : {})
   let browser: Browser | undefined
   try {
     await seedSession(scaffold, fixtureText, seedId)
@@ -294,7 +299,11 @@ describe('web e2e: resident question composer round trip', () => {
   let answeredSession: SessionId | undefined
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true })
+    if (NATIVE_XIAOJING && MODE === 'record') throw new Error('Windows Xiaojing question composer owns an authored keyless fixture')
+    scaffold = await launchWebScaffold(MODE === 'record' ? {} : {
+      replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true,
+      ...(NATIVE_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)

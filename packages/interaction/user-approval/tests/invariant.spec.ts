@@ -103,4 +103,64 @@ describe('approval invariants', () => {
     expect(() => session.append('approval/policy', { policy: 'always' as never }))
       .toThrow(/unknown policy/)
   })
+
+  it('accepts a matching session grant and audited reuse', async () => {
+    const ctx = await setup()
+    const session = ctx.sessions.create()
+    startTurn(session)
+    const reusable = { category: 'fixture:edit', scope: 'fixture:document-A', label: 'Edit document A' }
+    const id = ApprovalRequestId('class-grant')
+    session.append('approval/asked', { id, toolName: 'fixture_edit', reusable })
+    session.append('approval/decided', { id, outcome: 'allowed-once', authorization: {
+      ...reusable, sessionId: session.id, kind: 'session',
+    } })
+    const nextId = ApprovalRequestId('class-reuse')
+    session.append('approval/asked', { id: nextId, toolName: 'fixture_select', reusable })
+    session.append('approval/decided', { id: nextId, outcome: 'allowed-once', authorization: {
+      ...reusable, sessionId: session.id, kind: 'reuse',
+    } })
+  })
+
+  it('rejects empty classifications, unclassified grants, changed scopes, and grants with non-allow outcomes', async () => {
+    const ctx = await setup()
+    const session = ctx.sessions.create()
+    startTurn(session)
+    const reusable = { category: 'fixture:edit', scope: 'fixture:document-A', label: 'Edit document A' }
+    const id = ApprovalRequestId('class-invalid')
+    for (const field of ['category', 'scope', 'label'] as const) {
+      expect(() => session.append('approval/asked', { id, toolName: 'fixture_edit', reusable: { ...reusable, [field]: '' } }))
+        .toThrow(/must be non-empty/)
+    }
+    session.append('approval/asked', { id, toolName: 'fixture_edit' })
+    expect(() => session.append('approval/decided', { id, outcome: 'allowed-once', authorization: {
+      ...reusable, sessionId: session.id, kind: 'session',
+    } })).toThrow(/must match/)
+    session.append('approval/decided', { id, outcome: 'rejected' })
+    const classified = ApprovalRequestId('class-scope')
+    session.append('approval/asked', { id: classified, toolName: 'fixture_edit', reusable })
+    expect(() => session.append('approval/decided', { id: classified, outcome: 'allowed-once', authorization: {
+      ...reusable, scope: 'fixture:document-B', sessionId: session.id, kind: 'session',
+    } })).toThrow(/must match/)
+    expect(() => session.append('approval/decided', { id: classified, outcome: 'cancelled', authorization: {
+      ...reusable, sessionId: session.id, kind: 'session',
+    } })).toThrow(/requires allowed-once/)
+  })
+
+  it('rejects another session owner, unknown authorization kind, and reuse without a committed grant', async () => {
+    const ctx = await setup()
+    const session = ctx.sessions.create()
+    startTurn(session)
+    const reusable = { category: 'fixture:edit', scope: 'fixture:document-A', label: 'Edit document A' }
+    const id = ApprovalRequestId('class-owner')
+    session.append('approval/asked', { id, toolName: 'fixture_edit', reusable })
+    expect(() => session.append('approval/decided', { id, outcome: 'allowed-once', authorization: {
+      ...reusable, sessionId: SessionId('another-session'), kind: 'session',
+    } })).toThrow(/different session/)
+    expect(() => session.append('approval/decided', { id, outcome: 'allowed-once', authorization: {
+      ...reusable, sessionId: session.id, kind: 'global' as never,
+    } })).toThrow(/unknown kind/)
+    expect(() => session.append('approval/decided', { id, outcome: 'allowed-once', authorization: {
+      ...reusable, sessionId: session.id, kind: 'reuse',
+    } })).toThrow(/no committed session grant/)
+  })
 })

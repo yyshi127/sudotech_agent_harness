@@ -15,6 +15,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import { resolvePwshPath } from '@deepseek-ai/dsh-pwsh-local'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { LocalSandboxProvider } from '@deepseek-ai/dsh-sandbox-local'
 import { SandboxPolicyService } from '@deepseek-ai/dsh-sandbox-policy'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
@@ -40,6 +41,7 @@ describe.skipIf(!isWin32 || !pwshAvailable())('pwsh-sandbox real ACL confinement
   let secretFile!: string
   let escapeFile!: string
   let executor!: SandboxPwshExecutor
+  let ctx: Context
 
   beforeAll(async () => {
     // The workspace escape sits under the profile. A separate directory under
@@ -53,7 +55,8 @@ describe.skipIf(!isWin32 || !pwshAvailable())('pwsh-sandbox real ACL confinement
     writeFileSync(secretFile, 'top secret - must stay readable to prove the read boundary')
     escapeFile = join(scratchRoot, 'escaped.txt')
 
-    const ctx = new Context()
+    ctx = new Context()
+    await ctx.plugin(SessionProjectionRegistry)
     await ctx.plugin(LocalSandboxProvider, {})
     await ctx.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot: writableDir })
     await ctx.plugin(LocalSubprocessRuntime)
@@ -61,7 +64,8 @@ describe.skipIf(!isWin32 || !pwshAvailable())('pwsh-sandbox real ACL confinement
     executor = ctx.shell as SandboxPwshExecutor
   })
 
-  afterAll(() => {
+  afterAll(async () => {
+    await ctx?.fiber.dispose()
     rmSync(scratchRoot, { recursive: true, force: true })
     rmSync(outsideTempDir, { recursive: true, force: true })
   })

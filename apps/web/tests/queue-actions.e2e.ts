@@ -14,21 +14,32 @@ import { deriveReplayScript, parseSessionLog, type ReplayEntry } from '@deepseek
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, expectTooltipOnTop, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/queue-actions', import.meta.url))
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
-const COLLAPSED_EXPECTED = join(SNAPSHOT_DIR, 'collapsed.expected.md')
-const EDITING_EXPECTED = join(SNAPSHOT_DIR, 'editing.expected.md')
-const LAYOUT_EXPECTED = join(SNAPSHOT_DIR, 'layout.expected.md')
-const PRESERVED_EXPECTED = join(SNAPSHOT_DIR, 'preserved.expected.md')
-const PRESERVED_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'preserved-expanded.expected.md')
-const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
-const SENDING_EXPECTED = join(SNAPSHOT_DIR, 'sending.expected.md')
-const WRITER_HELD_EXPECTED = join(SNAPSHOT_DIR, 'writer-held.expected.md')
-const FAILED_EXPECTED = join(SNAPSHOT_DIR, 'failed.expected.md')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/queue-actions', import.meta.url))
+const FIXTURE = fileURLToPath(new URL(XIAOJING
+  ? '../../../snapshots/web/xiaojing-live-interactions/session.v4.jsonl'
+  : '../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
+const expected = (name: string) => join(XIAOJING ? PRODUCT_EXPECTED_DIR : SNAPSHOT_DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
+const COLLAPSED_EXPECTED = expected('collapsed')
+const EDITING_EXPECTED = expected('editing')
+const LAYOUT_EXPECTED = expected('layout')
+const PRESERVED_EXPECTED = expected('preserved')
+const PRESERVED_EXPANDED_EXPECTED = expected('preserved-expanded')
+const UI_EXPECTED = expected('ui')
+const SENDING_EXPECTED = expected('sending')
+const WRITER_HELD_EXPECTED = expected('writer-held')
+const FAILED_EXPECTED = expected('failed')
+const REPLAY_CATALOG = XIAOJING ? {
+  replayProviders: [{
+    id: 'deepseek-official', name: 'DeepSeek',
+    models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] as const }],
+  }],
+} : {}
 const MODE = webSnapshotMode()
 
 const ACTIVE_PROMPT = 'Reply with a one-sentence description of event sourcing, then stop.'
@@ -95,13 +106,16 @@ describe('web e2e: queue row actions', () => {
     await writeFile(overridePath, JSON.stringify(replay))
 
     const sessionEvents: SessionEvent[] = []
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false })
+    scaffold = await launchWebScaffold({
+      replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false, ...REPLAY_CATALOG,
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
     onTestFailed(() => saveFailureShot(page, 'web-e2e-queue-actions'))
 
@@ -335,13 +349,16 @@ describe('web e2e: queue row actions', () => {
     await writeFile(overridePath, JSON.stringify([{ kind: 'hang', readyFile } satisfies ReplayEntry]))
 
     const sessionEvents: SessionEvent[] = []
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false })
+    scaffold = await launchWebScaffold({
+      replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false, ...REPLAY_CATALOG,
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
     onTestFailed(() => saveFailureShot(page, 'web-e2e-context-layout'))
 
@@ -353,7 +370,7 @@ describe('web e2e: queue row actions', () => {
     await expect.poll(() => existsSync(readyFile), { timeout: 15_000 }).toBe(true)
     await page.locator('[data-goal-bar]').waitFor({ timeout: 10_000 })
 
-    const sessions = scaffold.ctx.sessions.list()
+    const sessions = scaffold.ctx.sessions.list().filter(session => session.header.cwd === join(scaffold!.workspaceCwd, 'workspace'))
     expect(sessions).toHaveLength(1)
     sessions[0]!.append('todo/write', {
       todos: [
@@ -430,5 +447,8 @@ describe('web e2e: queue row actions', () => {
         'sending.expected.md', 'failed.expected.md', 'writer-held.expected.md',
       ],
     )
+    if (XIAOJING) await assertFixtureInventory(PRODUCT_EXPECTED_DIR, [
+      'collapsed', 'editing', 'layout', 'preserved', 'preserved-expanded', 'ui', 'sending', 'failed', 'writer-held',
+    ].map(name => `${name}.xiaojing.expected.md`))
   })
 })

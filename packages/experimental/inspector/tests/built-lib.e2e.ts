@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
-import { mkdtemp, readdir, rm, symlink, unlink } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import { describe, expect, it } from 'vitest'
@@ -18,13 +18,13 @@ describe.skipIf(!built)('experimental Inspector built artifact', () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-inspector-packed-'))
     const consumer = join(root, 'package')
     const dependencies = join(consumer, 'node_modules')
-    let linked = false
+    const links: string[] = []
     let pending: Promise<string> = Promise.resolve('')
     test.onTestFinished(async () => {
       try {
         await pending
       } finally {
-        if (linked) await unlink(dependencies)
+        for (const path of links.reverse()) await unlink(path)
         await rm(root, { recursive: true, force: true })
       }
     })
@@ -51,8 +51,17 @@ describe.skipIf(!built)('experimental Inspector built artifact', () => {
     expect(archives).toHaveLength(1)
     await run('tar', ['-xzf', join(root, archives[0]!), '-C', root], root)
     expect(existsSync(join(consumer, 'lib/worker.js'))).toBe(true)
-    await symlink(join(packageDirectory, 'node_modules'), dependencies, process.platform === 'win32' ? 'junction' : 'dir')
-    linked = true
+    const manifest = JSON.parse(await readFile(join(consumer, 'package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+      peerDependencies?: Record<string, string>
+    }
+    for (const dependency of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
+      const target = join(dependencies, dependency)
+      await mkdir(dirname(target), { recursive: true })
+      await symlink(await realpath(join(packageDirectory, 'node_modules', dependency)), target,
+        process.platform === 'win32' ? 'junction' : 'dir')
+      links.push(target)
+    }
     const script = `
       const { startInspector } = await import('@deepseek-ai/dsh-experimental-inspector')
       const { default: WebSocket } = await import('ws')

@@ -17,6 +17,27 @@ function fakePanels(): PanelActions {
 }
 
 describe('LayoutController', () => {
+  it('observes navigation without superseding it and follows later requests, selections, and disposal', () => {
+    const panels = fakePanels()
+    const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))
+    const initial = service.navigationSignal
+    expect(service.navigationSignal).toBe(initial)
+    expect(initial.aborted).toBe(false)
+    expect(panels.selectPanel).not.toHaveBeenCalled()
+    const request = service.beginNavigation()
+    expect(initial.aborted).toBe(true)
+    expect(service.navigationSignal).toBe(request)
+    expect(service.navigationSignal).toBe(request)
+    expect(request.aborted).toBe(false)
+    service.selectPanel('panel-a' as MainPanelId)
+    expect(request.aborted).toBe(true)
+    expect(service.navigationSignal).toBe(request)
+    const later = service.beginNavigation()
+    expect(service.navigationSignal).toBe(later)
+    expect(later.aborted).toBe(false)
+    service.dispose()
+    expect(later.aborted).toBe(true)
+  })
   it('forwards right column transitions to the constructor-supplied actions', () => {
     const panels = fakePanels()
     const service = new LayoutController(panels, () => true, createSnapshotStore({ activePanelId: null }))

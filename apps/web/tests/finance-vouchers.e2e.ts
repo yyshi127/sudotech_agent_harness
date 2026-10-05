@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from 'playwright'
+import { chromium, type Locator, type Page } from 'playwright'
 import { expect, it, vi } from 'vitest'
 import { ToolCallId, createUserMessage, LlmAdapter, type GenerateOptions, type LlmModelInfo, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -12,6 +12,44 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-session-title'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, revealToolCallCard, webClientProfile, webSnapshotMode } from './scaffold.ts'
 import { financePresetDefinition } from './xiaojing-agent-presets.ts'
+
+/** Require painted headings and data, then select and copy an actual exported cell. */
+async function expectVoucherPreview(page: Page, excel: Locator): Promise<void> {
+  await excel.locator('.luckysheet-sheets-item-name').getByText('凭证分录', { exact: true }).waitFor()
+  await expect.poll(() => excel.evaluate((node) => {
+    const canvas = node.querySelector('canvas')!
+    const bounds = canvas.getBoundingClientRect()
+    const scale = canvas.width / bounds.width
+    const columnHeader = node.querySelector<HTMLElement>('.fortune-col-header')!
+    const rowHeader = node.querySelector<HTMLElement>('.fortune-row-header')!
+    const left = Number.parseFloat(rowHeader.style.width) + 1.5
+    const top = Number.parseFloat(columnHeader.style.height) + 1.5
+    const context = canvas.getContext('2d')!
+    const ink = (x: number, y: number, width: number, height: number): number => {
+      const pixels = context.getImageData(Math.round(x * scale), Math.round(y * scale),
+        Math.round(width * scale), Math.round(height * scale)).data
+      let count = 0
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i]! < 120 && pixels[i + 1]! < 120 && pixels[i + 2]! < 120 && pixels[i + 3]! > 0) count += 1
+      }
+      return count / scale ** 2
+    }
+    // Exclude grid lines and the selection outline: only dark text counts.
+    return { heading: ink(left + 8, top + 3, 70, 14) > 10,
+      firstDate: ink(left + 8, top + 23, 70, 14) > 10, rowNumber: ink(12, top + 3, 16, 14) > 2 }
+  }), { timeout: 15_000 }).toEqual({ heading: true, firstDate: true, rowNumber: true })
+  const origin = await excel.evaluate((node) => {
+    const left = Number.parseFloat(node.querySelector<HTMLElement>('.fortune-row-header')!.style.width) + 1.5
+    const top = Number.parseFloat(node.querySelector<HTMLElement>('.fortune-col-header')!.style.height) + 1.5
+    return { left, top }
+  })
+  const overlay = excel.locator('.fortune-sheet-overlay')
+  await overlay.click({ position: { x: origin.left + 35, y: origin.top + 30 } })
+  await expect.poll(() => excel.locator('.fortune-name-box').innerText()).toBe('A2')
+  await expect.poll(() => excel.locator('.fortune-fx-input').innerText()).toBe('2022-01-01')
+  await page.keyboard.press('ControlOrMeta+C')
+  await expect.poll(() => page.evaluate(async () => (await navigator.clipboard.readText()).trim())).toBe('2022-01-01')
+}
 
 class VoucherAdapter extends LlmAdapter {
   constructor(readonly beyondLastPage = false, readonly withDetail = false,
@@ -52,9 +90,11 @@ class VoucherAdapter extends LlmAdapter {
     } else {
       const messages = JSON.stringify(options.messages)
       if (this.exportExcel) {
-        expect(messages).toContain('"voucherCount":21')
-        expect(messages).toContain('"rowCount":42')
-        expect(messages).not.toMatch(/sha256|pageSize|pagesRead|notice|hashMatchesBytes/)
+        const receipt = options.messages.filter(message => message.role === 'tool')
+          .flatMap(message => message.content.flatMap(block => block.type === 'text' ? [block.text] : [])).join('\n')
+        expect(receipt).toContain('"voucherCount":21')
+        expect(receipt).toContain('"rowCount":42')
+        expect(receipt).not.toMatch(/sha256|pageSize|pagesRead|notice|hashMatchesBytes/)
       } else {
         expect(messages).toContain(this.beyondLastPage ? 'page\\":3' : '30000.00')
         if (this.beyondLastPage) expect(messages).toContain('voucherCount\\":0')
@@ -145,7 +185,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       const workspace = await ctx.workspaceRegistry.resolveByPath(workspacePath)
       if (workspace === undefined) throw new Error('Client workspace missing')
       await workspace.attachSession(handle.agent.session.id)
-      const page = await browser.newPage({ locale: 'zh-CN' })
+      const page = await browser.newPage({ locale: 'zh-CN', ...exportExcel ? { viewport: { width: 1680, height: 1000 } } : {} })
       // A restored blank selection can outlive the Host's unlogged client staging.
       await page.addInitScript((sessionId) => {
         localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId }))
@@ -185,6 +225,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       await handle.agent.whenIdle()
       expect(adapter.calls).toBe(withDetail ? 3 : 2)
       const events = handle.agent.session.snapshotEvents()
+      if (exportExcel) expect(events.filter(event => event.type === 'turn/end').at(-1)?.data.reason).toEqual({ kind: 'completed' })
       expect(events.find(event => event.type === 'finance/client-bound')?.data).toMatchObject({ client: { id: created.client.id } })
       expect(events.filter(event => event.type === 'tool/call').map(event => event.data.name))
         .toEqual(withDetail ? ['finance_vouchers', 'finance_voucher_detail'] : ['finance_vouchers'])
@@ -230,6 +271,30 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([[false, false, false, false],
       await revealToolCallCard(page, selector)
       await compareOrRefreshGolden(fileURLToPath(new URL(`./snapshots/finance-vouchers/${prefix}card.expected.md`, import.meta.url)),
         await captureStableAria(page, selector, scaffold.workspaceCwd), webSnapshotMode())
+      if (exportExcel) {
+        const file = events.find(event => event.type === 'finance/file-published')!.data.file
+        const evidence = fileURLToPath(new URL('../../../tmp/voucher-preview-regression/', import.meta.url))
+        await mkdir(evidence, { recursive: true })
+        try {
+          const delivery = page.locator('[data-finance-published-file]').getByRole('button')
+          await expect.poll(() => delivery.textContent()).toBe(`打开财务成果 · ${file.name}`)
+          await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(page.url()).origin })
+          await delivery.click()
+          const preview = page.locator('[data-textpreview-url]')
+          await expect.poll(async () => decodeURI(await preview.getAttribute('data-textpreview-url') ?? '')).toContain(file.name)
+          const excel = preview.locator('[data-excel-preview]')
+          await expectVoucherPreview(page, excel)
+          await page.locator('[data-dockkit-tab-close]').click()
+          await excel.waitFor({ state: 'hidden' })
+          await delivery.click()
+          await expectVoucherPreview(page, excel)
+        } catch (error) {
+          await page.screenshot({ path: join(evidence, `failure-${process.pid}.png`), fullPage: true })
+          throw error
+        }
+        await page.screenshot({ path: join(evidence, `success-${process.pid}.png`), fullPage: true })
+        expect(createHash('sha256').update(await readFile(file.path)).digest('hex')).toBe(file.sha256)
+      }
       const standard = await ctx.agents.create({ sessionId: SessionId('voucher-standard'), setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined) })
       try { expect(ctx.tools.schemas(standard.agent).some(tool => tool.name === 'finance_vouchers')).toBe(false) }
       finally { await standard.dispose() }

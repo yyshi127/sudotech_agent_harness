@@ -13,12 +13,16 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/feedback-command', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const SNAPSHOT_DIR = fileURLToPath(new URL(XIAOJING
+  ? './expected/feedback-command-xiaojing'
+  : '../../../snapshots/web/feedback-command', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const ACK_EXPECTED = join(SNAPSHOT_DIR, 'ack.expected.md')
 const ACK_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ack-expanded.expected.md')
 const MODE = webSnapshotMode()
@@ -34,6 +38,7 @@ describe('web e2e: /feedback command acknowledgement', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
       compareReplaySession: true,
+      ...XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
       ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 5 }),
     })
     browser = await chromium.launch()
@@ -81,6 +86,7 @@ describe('web e2e: /feedback command acknowledgement', () => {
     await input.press('Enter')
     await page.getByText(/Feedback recorded for session/).waitFor({ timeout: 10_000 })
     expect(await page.getByText(/Anonymous user: [0-9a-f-]+\.$/i).count()).toBe(1)
+    await page.getByRole('button', { name: '6% of context used', exact: true }).waitFor()
     await expect.poll(() => input.textContent(), { timeout: 10_000 }).toBe('')
     await expect.poll(() => page.getByRole('button', { name: 'Add files or run commands' }).isEnabled(), { timeout: 10_000 }).toBe(true)
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
@@ -98,7 +104,7 @@ describe('web e2e: /feedback command acknowledgement', () => {
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
-      'session.v3.jsonl', 'ack.expected.md', 'ack-expanded.expected.md',
+      XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl', 'ack.expected.md', 'ack-expanded.expected.md',
     ])
   })
 })

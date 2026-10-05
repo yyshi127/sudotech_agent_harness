@@ -8,14 +8,18 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
 
 // Any generation path names the role; the owner's highest committed generation replays.
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/session/skill-load/session.v4.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/skill-tool-row', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/skill-tool-row/ui.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('./expected/skill-tool-row', import.meta.url))
+const UI_EXPECTED = fileURLToPath(new URL(XIAOJING
+  ? './expected/skill-tool-row/ui.xiaojing.expected.md'
+  : '../../../snapshots/web/skill-tool-row/ui.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'skill-tool-row-web-e2e'
 const PROMPT = 'Load the editing-cordis-compositions skill with the skill tool, then reply DONE.'
@@ -69,7 +73,13 @@ describe.skipIf(MODE === 'record')('web e2e: dedicated Skill tool row', () => {
     expect(await output.textContent()).toContain('Agent presets are ordinary `@deepseek-ai/dsh-agent-preset` declarations carried by bundle patches.')
     expect(await output.evaluate(element => getComputedStyle(element.parentElement!).maxHeight)).toBe('260px')
 
-    const snapshot = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd))
+    const resourceSuffix = '/.dsh/skills/editing-cordis-compositions'
+    const snapshot = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd, {
+      ...XIAOJING ? { replacements: [[
+        `Base directory for this skill: ${JSON.stringify(scaffold.workspaceCwd).slice(1, -1)}${resourceSuffix}`,
+        `Base directory for this skill: {{cwd}}${resourceSuffix}`,
+      ]] } : {},
+    }))
       .replace(/\b\d{1,2}\/\d{1,2}(?= \{\{clock\}\})/g, '{{date}}')
       .split(SEED_ID).join('{{seededId}}')
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
@@ -121,5 +131,6 @@ describe.skipIf(MODE === 'record')('web e2e: dedicated Skill tool row', () => {
 
   it('keeps its snapshot inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['ui.xiaojing.expected.md'])
   })
 })

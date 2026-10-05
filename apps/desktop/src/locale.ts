@@ -1,6 +1,8 @@
 /** Typed English and Chinese copy owned by the Electron shell. */
 
 export const en = {
+  startupTitle: 'Xiaojing Accounting — Your AI work companion',
+  startupLoading: 'Starting, please wait…',
   cliCommandMenu: 'Manage dsh Command…',
   cliCommandTitle: 'Manage dsh Command',
   cliCommandLocation: 'Desktop command: {path}',
@@ -172,6 +174,8 @@ export const en = {
 export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
 
 export const zh = {
+  startupTitle: '小兢会计-您的AI办公搭子',
+  startupLoading: '正在启动，请稍候…',
   cliCommandMenu: '管理 dsh 命令…',
   cliCommandTitle: '管理 dsh 命令',
   cliCommandLocation: 'Desktop 命令：{path}',

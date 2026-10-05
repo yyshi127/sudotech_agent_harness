@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp, REFRESHING_GOLDEN } from './assembled-boot.ts'
+import { loadXiaojingAssembledResponses } from './xiaojing-assembled-fixture.client.ts'
 
 const EXPECTED = join(process.cwd(), 'apps/web/tests/expected/home-path-tilde/workspace-hover.expected.txt')
 
@@ -14,7 +15,7 @@ installAssembledBootEnv()
 
 describe('assembled POSIX home-path display', () => {
   it('shows the home-descendant Workspace path as ~ and copies the full path', async () => {
-    mountAssembledApp()
+    loadXiaojingAssembledResponses(mountAssembledApp().mock)
 
     const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
     const group = (await within(tree).findAllByText('project'))

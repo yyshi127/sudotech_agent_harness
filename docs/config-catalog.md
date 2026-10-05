@@ -877,12 +877,28 @@ export interface Config {
 ## `@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp`
 
 - `inject`: `browserUse` · `agents` · `tools` · `systemPrompt`
-- `refs`: `BrowserMcpConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`)
-- `source`: [`packages/experimental/browser-use-chrome-devtools-mcp/src/index.ts:14`](../packages/experimental/browser-use-chrome-devtools-mcp/src/index.ts)
+- `refs`: `BrowserMcpAttachConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`) · `BrowserMcpLaunchConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`)
+- `source`: [`packages/experimental/browser-use-chrome-devtools-mcp/src/index.ts:33`](../packages/experimental/browser-use-chrome-devtools-mcp/src/index.ts)
 
 ```ts config-catalog
-/** Fixed Chromium launch or existing-browser attachment settings. */
-export type Config = BrowserMcpConfig
+/** Fixed Chromium launch, endpoint attachment, or existing-profile connection settings. */
+export type Config = (BrowserMcpLaunchConfig | BrowserMcpAttachConfig | BrowserAutoConnectConfig) & BrowserNamespaceConfig
+
+/** Connection discovered by the pinned server from an externally owned browser profile. */
+export interface BrowserAutoConnectConfig {
+  /** Exclusively connect one live Session to a running browser through its profile metadata. */
+  mode: 'auto-connect'
+  /** Explicit absolute browser user-data directory; no profile contents are imported into the model. */
+  userDataDir: string
+  /** Per-call timeout override in milliseconds; omission uses the MCP client default. */
+  toolCallTimeoutMs?: number
+}
+
+/** Native MCP tool namespace for one provider activation. */
+export interface BrowserNamespaceConfig {
+  /** MCP server identity and native tool namespace; defaults to chrome-devtools-mcp. */
+  serverName: string
+}
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp -->
 
@@ -892,12 +908,50 @@ export type Config = BrowserMcpConfig
 ## `@deepseek-ai/dsh-experimental-browser-use-playwright-mcp`
 
 - `inject`: `browserUse` · `agents` · `tools` · `systemPrompt`
-- `refs`: `BrowserMcpConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`)
-- `source`: [`packages/experimental/browser-use-playwright-mcp/src/index.ts:15`](../packages/experimental/browser-use-playwright-mcp/src/index.ts)
+- `refs`: `BrowserMcpAttachConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`) · `BrowserMcpLaunchConfig` (`@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`)
+- `source`: [`packages/experimental/browser-use-playwright-mcp/src/index.ts:51`](../packages/experimental/browser-use-playwright-mcp/src/index.ts)
 
 ```ts config-catalog
-/** Fixed Chromium launch or existing-browser attachment settings. */
-export type Config = BrowserMcpConfig
+/** Fixed browser route and tool namespace for one provider activation. */
+export type Config = (
+  | BrowserLaunchConfig
+  | BrowserMcpAttachConfig
+  | BrowserExtensionConfig
+) & BrowserNamespaceConfig
+
+/** Isolated Playwright launch with an explicit Chromium-family channel. */
+export interface BrowserLaunchConfig extends BrowserMcpLaunchConfig {
+  /** Browser channel to launch; defaults to Chromium. */
+  browser: BrowserChannel
+}
+
+/** Connection to the browser and tab selected through the Playwright extension. */
+export interface BrowserExtensionConfig {
+  /** Connect through the installed extension instead of launching a browser. */
+  mode: 'extension'
+  /** Browser channel containing the installed extension; defaults to Chromium. */
+  browser: BrowserChannel
+  /** Browser executable used to open the extension connection page. */
+  executablePath?: string
+  /** Optional extension pairing token, passed only through the child environment. */
+  extensionToken?: string
+  /** Node DNS lookup order for the extension relay; defaults to IPv4 first. */
+  dnsResultOrder: DnsResultOrder
+  /** Per-call timeout override in milliseconds; omission uses the MCP client default. */
+  toolCallTimeoutMs?: number
+}
+
+/** MCP namespace shared by the browser route's discovered tools. */
+export interface BrowserNamespaceConfig {
+  /** Unique MCP server name; defaults to playwright-mcp. */
+  serverName: string
+}
+
+/** Chromium-family channels accepted by the pinned Playwright MCP server. */
+export type BrowserChannel = 'chromium' | 'chrome' | 'msedge'
+
+/** Node hostname lookup order for the extension's local connection relay. */
+export type DnsResultOrder = 'verbatim' | 'ipv4first' | 'ipv6first'
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-experimental-browser-use-playwright-mcp -->
 
@@ -2433,7 +2487,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-sandbox-local`
 
-- `source`: [`packages/sandbox/sandbox-local/src/index.ts:45`](../packages/sandbox/sandbox-local/src/index.ts)
+- `source`: [`packages/sandbox/sandbox-local/src/index.ts:47`](../packages/sandbox/sandbox-local/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config. All optional — `static Config` supplies the defaults. */
@@ -4083,7 +4137,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-user-approval`
 
-- `source`: [`packages/interaction/user-approval/src/index.ts:135`](../packages/interaction/user-approval/src/index.ts)
+- `source`: [`packages/interaction/user-approval/src/index.ts:164`](../packages/interaction/user-approval/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config. All optional — `static Config` supplies the defaults. */
@@ -4106,6 +4160,8 @@ export interface Config {
  * - `'never'` — never prompt anyone for an ordinary request: every ordinary
  *   ask resolves `'rejected'` deterministically. Mandatory security
  *   confirmations use {@link ApprovalService.requestMandatory} instead.
+ * Explicit product-owned automatic authorization overrides either policy;
+ * products must derive it from a logged user choice, never from this config.
  */
 export type ApprovalPolicy = 'ask' | 'never'
 ```
@@ -4388,7 +4444,7 @@ export interface Config {
 ## `@deepseek-ai/dsh-xiaojing-computer-control`
 
 - `inject`: `tools` · `subprocess`
-- `source`: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:55`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
+- `source`: [`packages/xiaojing/xiaojing-computer-control/src/index.ts:56`](../packages/xiaojing/xiaojing-computer-control/src/index.ts)
 
 ```ts config-catalog
 /** Windows computer-control configuration. */

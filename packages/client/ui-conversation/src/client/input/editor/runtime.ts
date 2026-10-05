@@ -28,6 +28,7 @@ interface DraftEditorRuntimeDeps {
   readonly activeClaimToken: () => string | null
   readonly lexicon: () => Lexicon
   readonly resolveLexicon: () => ObservableSnapshot<Lexicon> | undefined
+  readonly isRootClosing: () => boolean
 }
 
 /**
@@ -51,6 +52,8 @@ export class DraftEditorRuntime {
   private occurrenceSeq = 0
   /** Live lexicon subscription disposer; undefined until the controller resolves. */
   private lexiconOff: (() => void) | undefined
+  /** The current concrete store, also readable after its root starts unloading. */
+  private subscribedLexicon: ObservableSnapshot<Lexicon> | undefined
 
   /** @param deps - model callbacks used by editor listeners and transforms. */
   constructor(private readonly deps: DraftEditorRuntimeDeps) {
@@ -88,8 +91,17 @@ export class DraftEditorRuntime {
       registerHistory(this.editor, createEmptyHistoryState(), HISTORY_MERGE_DELAY_MS),
       this.editor.registerUpdateListener(() => { this.deps.onUpdate() }),
       registerClaimDecoration(this.editor, () => this.deps.activeClaimToken()),
-      registerTextRefDecoration(this.editor, () => this.deps.lexicon(), () => this.deps.activeClaimToken()),
-      () => { this.lexiconOff?.() },
+      registerTextRefDecoration(this.editor,
+        () => {
+          this.ensureLexiconSubscription()
+          return this.subscribedLexicon?.getSnapshot() ?? this.deps.lexicon()
+        },
+        () => this.deps.activeClaimToken()),
+      () => {
+        this.lexiconOff?.()
+        this.lexiconOff = undefined
+        this.subscribedLexicon = undefined
+      },
     )
     return () => {
       unregister()
@@ -123,16 +135,21 @@ export class DraftEditorRuntime {
   }
 
   /**
-   * Subscribe the text-ref re-scan to the controller's lexicon once the
-   * controller resolves. The deps thunk cannot resolve at construction (the
-   * shell is created inside the sessions provide materialization), so the
-   * first interactive updates retry until it can.
+   * Follow the current controller store while the root is available. An
+   * observed store remains readable during root teardown; provider replacement
+   * while active changes the subscription without changing the editor.
    */
   private ensureLexiconSubscription(): void {
-    if (this.lexiconOff !== undefined) return
+    if (this.subscribedLexicon !== undefined && this.deps.isRootClosing()) return
     const lexicon = this.deps.resolveLexicon()
+    if (lexicon === this.subscribedLexicon) return
+    this.lexiconOff?.()
+    this.lexiconOff = undefined
+    this.subscribedLexicon = lexicon
     if (lexicon === undefined) return
-    this.lexiconOff = lexicon.subscribe(() => { rescanTextRefs(this.editor) })
+    this.lexiconOff = lexicon.subscribe(() => {
+      if (this.subscribedLexicon === lexicon) rescanTextRefs(this.editor)
+    })
   }
 
   /**

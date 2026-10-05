@@ -1,7 +1,8 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import assert from 'node:assert/strict'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, parse } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
@@ -331,6 +332,10 @@ describe.skipIf(!hasPwsh)('terminal-bash pwsh real shell', () => {
         timeoutMs: 8_000,
       }, 'pwsh')
       const created = await ctx.terminals.spawn(agent, { type: 'shell', name: 'main', cwd: root })
+      const shellPid = created.pid
+      assert(shellPid !== undefined, 'The real shell must publish its native PID')
+      expect(shellPid).toBeGreaterThan(0)
+      expect(processIsRunning(shellPid)).toBe(true)
       // stdin_read can precede delivery of the printable prompt to the PTY reader.
       await expect.poll(() => ctx.terminals.read(agent, created.sessionId, { offset: 0, count: 100 }).text,
         { timeout: 8_000 }).toContain('dsh> ')
@@ -345,7 +350,7 @@ describe.skipIf(!hasPwsh)('terminal-bash pwsh real shell', () => {
         submit: true,
       })
       expect(['stdin_read', 'inferred_idle']).toContain((await first.done).waitReason)
-      const expected = 'keep=ok cwd=/ secret=END'
+      const expected = `keep=ok cwd=${parse(root).root} secret=END`
       const command = "Write-Output ('keep={0} cwd={1} secret={2}END' -f $env:KEEP, (Get-Location).Path, $env:DSH_TEST_SECRET)"
       expect(command).not.toContain(expected)
       const second = ctx.terminals.startSend(agent, created.sessionId, { text: command, submit: true })
@@ -363,6 +368,7 @@ describe.skipIf(!hasPwsh)('terminal-bash pwsh real shell', () => {
       await expect.poll(read, { timeout: 8_000 }).toContain(expected)
       expect(read()).not.toContain('must-not-leak')
       expect(await ctx.terminals.kill(agent, created.sessionId)).toBe(true)
+      expect(processIsRunning(shellPid)).toBe(false)
       expect(ctx.terminals.list(agent)).toEqual([])
     } finally {
       if (previous === undefined) delete process.env.DSH_TEST_SECRET

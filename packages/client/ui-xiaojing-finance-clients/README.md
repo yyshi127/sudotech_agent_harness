@@ -64,6 +64,8 @@ The plugin registers a Finance Workspace provider through the generic `Workspace
 
 Selecting the Finance preset in a blank ordinary session opens a blank session in the Finance consultation Workspace. Selecting Standard, Plan, Goal, or another non-Finance preset while a blank Finance session is active returns to the remembered ordinary Workspace. The composer Workspace picker follows the preset: Finance shows only Finance Workspaces and all other presets show only regular Workspaces. Selecting a customer opens that customer's Workspace before staging its context. The generic sidebar owns rendering and search; this product plugin owns membership and navigation, so removing the plugin restores the ordinary Workspace UI without Finance conditions.
 
+The category publishes `ready: false` until its first successful Workspace catalog load. Initial loading or failure never classifies unknown Finance registrations as ordinary Workspaces; the composer picker shows the load error and offers an explicit retry through the provider. The user can still add an ordinary directory or cancel, and saved Session or subagent restoration does not wait for this catalog. A successful catalog remains ready during later refreshes or failures, retaining both visible and hidden Finance membership until a newer successful load replaces it.
+
 Workspace activation selects the Finance preset through `remote.agentPresets`; the Client surface injects that Remote before exposing Finance navigation.
 
 Finance activation and return-to-ordinary navigation open their result only if no later navigation or plugin disposal has superseded them. An obsolete request may finish creating and preparing its blank Session but cannot replace the user's newer selection.

@@ -746,8 +746,11 @@ describe('Finance client plugin composition', () => {
       clientId,
       clientName: '数豆科技',
     }))
+    const initialMembership = Promise.withResolvers<Awaited<ReturnType<FinanceClientsRemote['workspaces']>>>()
     const api = remote({
       list: vi.fn(() => ok(catalog)),
+      workspaces: vi.fn<FinanceClientsRemote['workspaces']>(() => ok(financeWorkspaces))
+        .mockImplementationOnce(() => initialMembership.promise),
       sessionContext,
       stage: vi.fn(() => ok({ state: 'general' as const, locked: false as const })),
       renameWorkspace: renameFinanceWorkspace,
@@ -790,9 +793,25 @@ describe('Finance client plugin composition', () => {
     expect(conversationEvents.entries().map(entry => entry.kind)).toContain('finance-published-file')
     expect(ctx.slots.entries('conversation.session.header.actions')).toHaveLength(1)
     expect(ctx.slots.entries('shell.overlay')).toHaveLength(2)
+    expect(workspaceCategories.store.getSnapshot().categories[0]).toMatchObject({
+      ready: false, retryLoadAvailable: true, workspaceIds: [], reservedWorkspaceIds: [],
+    })
+    expect(workspaceCategories.store.getSnapshot().categories[0]).not.toHaveProperty('loadError')
+    initialMembership.reject(new Error('owned initial membership failure'))
+    await waitFor(() => {
+      expect(workspaceCategories.store.getSnapshot().categories[0]).toMatchObject({
+        ready: false, loadError: 'owned initial membership failure', workspaceIds: [], reservedWorkspaceIds: [],
+      })
+    })
+    workspaceCategories.retryLoad('finance')
+    expect(workspaceCategories.store.getSnapshot().categories[0]).toMatchObject({ ready: false })
+    expect(workspaceCategories.store.getSnapshot().categories[0]).not.toHaveProperty('loadError')
+    expect(api.workspaces).toHaveBeenCalledTimes(2)
     await waitFor(() => {
       expect(workspaceCategories.store.getSnapshot().categories).toEqual([{
         id: 'finance',
+        ready: true,
+        retryLoadAvailable: true,
         label: '财务助手',
         ordinaryLabel: '办公搭子',
         workspaceIds: ['finance-standard', 'finance-client', 'finance-archived'],
@@ -821,6 +840,25 @@ describe('Finance client plugin composition', () => {
           },
         ],
       }])
+    })
+
+    const refreshMembership = Promise.withResolvers<Awaited<ReturnType<FinanceClientsRemote['workspaces']>>>()
+    vi.mocked(api.workspaces).mockImplementationOnce(() => refreshMembership.promise)
+    workspaceCategories.retryLoad('finance')
+    expect(workspaceCategories.store.getSnapshot().categories[0]).toMatchObject({
+      ready: true, reservedWorkspaceIds: ['finance-standard', 'finance-client', 'finance-archived'],
+    })
+    refreshMembership.reject(new Error('owned cached membership refresh failure'))
+    await waitFor(() => {
+      expect(workspaceCategories.store.getSnapshot().categories[0]).toMatchObject({
+        ready: true, loadError: 'owned cached membership refresh failure',
+        reservedWorkspaceIds: ['finance-standard', 'finance-client', 'finance-archived'],
+      })
+    })
+    workspaceCategories.retryLoad('finance')
+    await waitFor(() => {
+      expect(workspaceCategories.store.getSnapshot().categories[0]).toMatchObject({ ready: true })
+      expect(workspaceCategories.store.getSnapshot().categories[0]).not.toHaveProperty('loadError')
     })
 
     api.checkConnection = vi.fn(() => ok({ state: 'connected' as const, accountId: '35581', accountName: '演示账套' }))
@@ -961,6 +999,7 @@ describe('Finance client plugin composition', () => {
     expect(ctx.slots.entries('conversation.session.header.actions')).toHaveLength(0)
     expect(ctx.slots.entries('shell.overlay')).toHaveLength(0)
     expect(workspaceCategories.store.getSnapshot().categories).toEqual([])
+    expect(() => { workspaceCategories.retryLoad('finance') }).toThrow('unknown workspace category')
     await expect(workspaceCategories.activateWorkspaceBadge('finance', 'finance-client' as WorkspaceId)).rejects.toThrow('unknown workspace category')
     expect(unmount).toHaveBeenCalledTimes(1)
     await ctx.fiber.dispose()

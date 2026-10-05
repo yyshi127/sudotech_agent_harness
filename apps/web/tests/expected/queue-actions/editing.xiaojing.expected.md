@@ -1,0 +1,29 @@
+- banner:
+  - navigation "Session hierarchy": Reply with a one-sentence description
+  - text: Standard mode
+  - button "More actions"
+  - button "Open right sidebar"
+  - tablist:
+    - tab "Chat" [selected]
+    - tab "Trajectory"
+- text: Reply with a one-sentence description of event sourcing, then stop. {{clock}}
+- button "Copy"
+- paragraph: partial
+- status: Xiaojing Accounting is thinking
+- text: Xiaojing Accounting is thinking for {{duration}} ···
+- button "2 queued messages" [disabled] [expanded]
+- list:
+  - listitem:
+    - text: Queue item to remove
+    - button "Edit queued message"
+    - button "Remove queued message"
+    - button "Steer queued message"
+  - listitem:
+    - textbox "Edit queued message": Edited queue item
+    - button "Save queued message"
+    - button "Cancel editing"
+- textbox "Cmd/Ctrl+Enter steers all queued messages"
+- button "Add files or run commands"
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Select model, current DeepSeek-V41-Flash": DeepSeek-V41-Flash
+- button "Stop generating"

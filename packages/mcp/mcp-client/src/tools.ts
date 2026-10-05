@@ -14,15 +14,19 @@
 
 import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
-import { specTypeSchemas, type Client, type ImageContent } from '@modelcontextprotocol/client'
+import { SdkError, SdkErrorCode, specTypeSchemas, type Client, type ImageContent } from '@modelcontextprotocol/client'
 import type { Context } from '@deepseek-ai/cordis'
 import { isImageAdmissionError } from '@deepseek-ai/dsh-attachment'
 import type { AttachmentStore, ImageAttachmentRef, ImageMediaType, SaveImageAttachment } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+
+/** Preserve an SDK-confirmed transport loss through ToolRuntime error projection. */
+class McpTransportError extends HarnessError {}
 
 /** Resolved options relevant to tool bridging. */
 export interface ToolBridgeOptions {
@@ -135,10 +139,21 @@ export async function syncTools(
       inputSchema: tool.inputSchema,
       outputSchema: tool.outputSchema,
       taskRequired: tool.execution?.taskSupport === 'required',
-      call: (args, execution) => client.callTool(
-        { name: tool.name, arguments: args },
-        { signal: execution.signal, timeout: opts.toolCallTimeoutMs, toolDefinition: tool },
-      ),
+      async call(args, execution) {
+        try {
+          return await client.callTool(
+            { name: tool.name, arguments: args },
+            { signal: execution.signal, timeout: opts.toolCallTimeoutMs, toolDefinition: tool },
+          )
+        } catch (error) {
+          // The SDK reports an already-detached transport with a plain Error.
+          // Preserve typed SDK failures; classify plain failures by Client state.
+          if (!(error instanceof SdkError) && client.transport === undefined) {
+            throw new McpTransportError(error instanceof Error ? error.message : String(error), SdkErrorCode.NotConnected, { cause: error })
+          }
+          throw error
+        }
+      },
     }))
   }
 
@@ -284,7 +299,16 @@ function createExecutor(
     // string/number/null). Fallback to {} lets the MCP server produce a
     // specific "missing required param" error the model can learn from.
     const argsObj = (typeof args === 'object' && args !== null ? args : {}) as Record<string, unknown>
-    const parsed = specTypeSchemas.CallToolResult['~standard'].validate(await options.call(argsObj, exec))
+    let response: unknown
+    try {
+      response = await options.call(argsObj, exec)
+    } catch (error) {
+      if (error instanceof SdkError && (error.code === SdkErrorCode.NotConnected || error.code === SdkErrorCode.ConnectionClosed)) {
+        throw new McpTransportError(error.message, error.code, { cause: error })
+      }
+      throw error
+    }
+    const parsed = specTypeSchemas.CallToolResult['~standard'].validate(response)
     if (parsed.issues !== undefined) {
       throw new Error(`Tool "${rawName}" returned an invalid MCP result: ${parsed.issues.map(issue => issue.message).join('; ')}`)
     }

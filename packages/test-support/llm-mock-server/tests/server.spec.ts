@@ -205,11 +205,21 @@ describe('mock LLM server wire behaviors', () => {
     expect(server.requests[0]?.body).toEqual({ messages: [{ role: 'user', content: '你好' }] })
   })
 
-  it('formats an IPv6 listener as a valid base URL', async () => {
+  it('formats an IPv6 listener as a valid base URL', async (test) => {
     const server = await start(['success'], { host: '::1' })
 
     expect(server.baseURL).toMatch(/^http:\/\/\[::1\]:\d+$/)
-    expect((await messages(server)).status).toBe(200)
+    let response: Response
+    try { response = await messages(server) }
+    catch (error) {
+      const cause = error instanceof TypeError ? error.cause : undefined
+      if (typeof cause === 'object' && cause !== null
+        && 'code' in cause && cause.code === 'EACCES' && 'address' in cause && cause.address === '::1') {
+        test.skip('The host denies IPv6 loopback connections; IPv4 fixtures still run.')
+      }
+      throw error
+    }
+    expect(response.status).toBe(200)
   })
 
   it('emits reasoning, tool calls, max-token finishes, slow chunks, and a wrong content type', async () => {

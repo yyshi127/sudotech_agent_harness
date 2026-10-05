@@ -39,9 +39,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Services required by account settings. */
 export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.session', 'theme', 'configForms']
-/** Register account UI only in the Desktop renderer. @param ctx - client plugin context. */
+/** Register account UI only in the official Desktop renderer. @param ctx - client plugin context. */
 export function apply(ctx: Context): void {
-  if (!('dshDesktop' in globalThis)) return
+  if (!('dshDesktop' in globalThis) || process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing') return
   ctx.effect(() => ctx.locale.register('settings.account', { en, zh }), 'account: dictionaries')
   const t = ctx.locale.bind('settings.account')
   const page = globalThis as Partial<Record<typeof CONTACT_CONFIG_GLOBAL, unknown>>

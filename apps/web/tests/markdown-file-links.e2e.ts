@@ -6,12 +6,13 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/markdown-file-links', import.meta.url))
 const MODE = webSnapshotMode()
+const PRODUCT_EXPECTED = fileURLToPath(new URL('./expected/markdown-file-links', import.meta.url))
 
 describe('web e2e: Markdown file links', () => {
   let scaffold: WebScaffold
@@ -46,7 +47,8 @@ describe('web e2e: Markdown file links', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-markdown-file-links'))
     const source = page.getByRole('button', { name: 'src/example.txt:24–30', exact: true })
     const prose = await source.locator('..').ariaSnapshot()
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'links.expected.md'), prose, MODE)
+    await compareOrRefreshGolden(join(webClientProfile() === 'xiaojing' ? PRODUCT_EXPECTED : SNAPSHOT_DIR,
+      webClientProfile() === 'xiaojing' ? 'links.xiaojing.expected.md' : 'links.expected.md'), prose, MODE)
     const beforeUrl = page.url()
     await source.click()
     const column = page.locator('[data-rightbar-col]')
@@ -70,12 +72,14 @@ describe('web e2e: Markdown file links', () => {
     await expect.poll(() => column.locator('[data-textpreview-line="1"]').textContent()).toBe('other file\n')
     expect(await column.locator('[data-dockkit-tab-title]').allTextContents()).toEqual(['example.txt', 'example.txt'])
     const preview = await captureStableAria(page, '[data-textpreview-state="text"]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'preview.expected.md'), preview, MODE)
+    await compareOrRefreshGolden(process.platform === 'win32'
+      ? join(PRODUCT_EXPECTED, 'preview.windows.expected.md') : join(SNAPSHOT_DIR, 'preview.expected.md'), preview, MODE)
     await page.getByRole('button', { name: 'Missing file', exact: true }).click()
     await column.locator('[data-textpreview-failed="workspace-file/not-found"]').waitFor()
     expect(page.url()).toBe(beforeUrl)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
     await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'links.expected.md', 'preview.expected.md'])
+    await assertFixtureInventory(PRODUCT_EXPECTED, ['links.xiaojing.expected.md', 'preview.windows.expected.md'])
   })
 })

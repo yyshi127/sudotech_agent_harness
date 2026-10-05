@@ -12,13 +12,15 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
  * reinstalls when it is replaced.
  * @param ctx - booted root Context.
  * @param container - application mount point.
- * @returns resolves once the dependency fiber exists; with `uiRenderer`
+ * @returns the awaited mount disposer once the dependency fiber exists; with `uiRenderer`
  * already provided (as after `bootClient`) the mount effect is installed by
- * then, otherwise it installs when the service arrives.
+ * then, otherwise it installs when the service arrives. Disposal stops future
+ * remounts and completes renderer cleanup before the caller disposes `ctx`.
  */
-export async function mountClient(ctx: Context, container: HTMLElement): Promise<void> {
+export async function mountClient(ctx: Context, container: HTMLElement): Promise<() => Promise<void>> {
   const mounted = ctx.inject(['uiRenderer'], (scope) => {
     scope.effect(() => scope.uiRenderer.mount(container), 'web boot: application mount')
   })
   await mounted
+  return () => mounted.dispose()
 }

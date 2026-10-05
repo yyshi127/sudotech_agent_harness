@@ -66,7 +66,7 @@ import { analyzeBalances, balanceAnalysisSchema, withBalanceReconciliation,
 import { balanceAnalysisWorkbook } from './balance-analysis-workbook.ts'
 import { journalWorkbook, openItemPageWorkbook } from './ledger-page-workbook.ts'
 import { referenceQuerySchema, type ReferenceQuery, type ReferenceResult } from './references.ts'
-import { financeApprovalReason } from './approval-presentation.ts'
+import { financeApprovalReason, financeCreationApprovalScope } from './approval-presentation.ts'
 import {
   FinanceWorkspacePresentationStore,
   type FinanceWorkspacePresentationRecord,
@@ -1386,6 +1386,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         const approval = this.ctx.get('approval')
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_master_data', signal: stopped,
+          reusable: financeCreationApprovalScope('create-master-data', client.id, digest, preview, current.proposal.kind),
           reason: financeApprovalReason('create-master-data', preview) }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的确认，没有发送基础资料。')
         }
@@ -1513,6 +1514,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         const approval = this.ctx.get('approval')
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_open_item', signal: stopped,
+          reusable: financeCreationApprovalScope('create-open-item', client.id, digest, preview, current.input.direction),
           reason: financeApprovalReason('create-open-item', preview) }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的确认，没有发送往来。')
         }
@@ -1646,6 +1648,7 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
       const reserved = await records.reserve(id, request.version, digest, async () => {
         const approval = this.ctx.get('approval')
         if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_journal', signal: stopped,
+          reusable: financeCreationApprovalScope('create-journal', client.id, digest, preview, current.input.direction),
           reason: financeApprovalReason('create-journal', preview) }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的确认，没有发送日记账。')
         }
@@ -1817,7 +1820,9 @@ export class XiaojingFinanceDomain extends TypertRemoteService {
         const approval = this.ctx.get('approval')
         const reason = financeApprovalReason('create-voucher', preview,
           { attachmentsWillUpload: storage !== undefined })
-        if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_voucher', reason, signal: stopped }) !== 'allowed-once') {
+        const reusable = financeCreationApprovalScope('create-voucher', client.id, current.configurationDigest, preview,
+          storage === undefined ? 'no-attachments' : createHash('sha256').update(JSON.stringify(storage)).digest('hex'))
+        if (!approval || await approval.requestMandatory({ agent, toolName: 'finance_create_voucher', reason, reusable, signal: stopped }) !== 'allowed-once') {
           throw new Error('未获得本次准确版本的创建确认，没有发送凭证。')
         }
         await assertUnchanged()

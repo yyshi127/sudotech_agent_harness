@@ -74,6 +74,24 @@ describe('bundleRoster on a scratch installation', () => {
   const scratch = new Scratch()
   afterAll(() => { rmSync(scratch.root, { recursive: true, force: true }) })
 
+  it.each([false, true])('uses the linked bundle own manifest without a self dependency, browser=%s', (browser) => {
+    const linked = new Scratch()
+    onTestFinished(() => { rmSync(linked.root, { recursive: true, force: true }) })
+    const bundle = join(linked.root, 'workspace', 'self')
+    mkdirSync(bundle, { recursive: true })
+    writeFileSync(join(bundle, 'package.json'), JSON.stringify({ name: '@t/self', dsh: {
+      bundle: { patch: './cordis.patch.yml' },
+      ...(browser ? { client: { platform: 'web', immediately: true } } : {}),
+    } }))
+    writeFileSync(join(bundle, 'cordis.patch.yml'), "- insert:\n    - id: self\n      name: '@t/self'\n")
+    linked.bundle('@t/base', '- insert: []\n')
+    symlinkSync(bundle, join(linked.root, 'app', 'node_modules', '@t', 'self'), 'junction')
+    const roster = bundleRoster(['@t/base', '@t/self'], linked.anchor)
+    expect(roster.rows).toEqual(browser ? [{ name: '@t/self', inject: [], immediately: true }] : [])
+    writeFileSync(join(bundle, 'cordis.patch.yml'), "- insert:\n    - id: impostor\n      name: '@t/self-extra'\n")
+    expect(() => linked.roster(['@t/base', '@t/self'])).toThrow('cannot resolve plugin package @t/self-extra')
+  })
+
   it('resolves a linked bundle dependency before an unrelated ancestor package', () => {
     const linked = new Scratch()
     onTestFinished(() => { rmSync(linked.root, { recursive: true, force: true }) })

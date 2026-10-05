@@ -1,8 +1,8 @@
-# 小兢会计产品开发基线（0.3.1 / dsh-v0.2.0-rc.2）
+# 小兢会计产品开发基线（0.3.2 / dsh-v0.2.0-rc.2）
 
 [English](xiaojing-product-development.md) | 中文
 
-本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.2.0-rc.2` 的当前 0.3.1 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
+本文档说明小兢会计如何基于 DeepSeek Harness 完成组合、各类定制应由哪一层源码负责，以及后续开发会话必须保留哪些兼容规则。本文描述基于官方 `dsh-v0.2.0-rc.2` 的当前 0.3.2 源码基线；包级细节由各包 README 负责，[0.1.9 架构决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-product-accounting-and-desktop-upgrades.zh.md)、[rc.8 升级决策](../.agents/notes/implemented/architecture/2026-08-20-xiaojing-rc8-upgrade.zh.md)、[rc.1 原生视觉升级决策](../.agents/notes/implemented/architecture/2026-08-21-xiaojing-rc1-native-vision-upgrade.zh.md)、[rc.2 图片链路及可视化升级决策](../.agents/notes/implemented/architecture/2026-08-24-xiaojing-rc2-files-and-visualization-upgrade.zh.md)与[桌面小兢及系统托盘决策](../.agents/notes/implemented/feature/2026-08-25-xiaojing-desktop-companion-and-tray.zh.md)负责记录原因和被否决的替代方案。
 
 需要快速理解官方核心、小兢插件、Electron 外壳和源码目录之间关系时，先阅读[模块架构与源码结构图](xiaojing-module-architecture.zh.md)。
 
@@ -19,7 +19,7 @@
 
 | 项目 | 当前值 | 真源 |
 |---|---|---|
-| 桌面产品版本 | `0.3.1` | [`apps/desktop/identity.json.productVersion`](../apps/desktop/package.json) |
+| 桌面产品版本 | `0.3.2` | [`apps/desktop/identity.json.productVersion`](../apps/desktop/package.json) |
 | 官方 Harness 基线 | `dsh-v0.2.0-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 官方基线 commit | `dsh-v0.2.0-rc.2` | [`product.json`](../packages/client/xiaojing-product/product.json) |
 | 产品集成基准 | `xiaojing-history-20260930-4` | [`product.json`](../packages/client/xiaojing-product/product.json) |
@@ -351,7 +351,7 @@ pnpm desktop:dist
 - 每个组装后的 agent 都会获得带路由说明的 `browser_control` 和 `computer_control`；允许 runtime context 的预设还会获得组合能力提示。开发组合可以移除任意 Cordis 配置行而不修改 Harness 核心。
 - 假 iLink 测试覆盖绑定、验证码、重连、FIFO 回传、去重、会话关联、微信审批、加密图片／文档收发、结构化手机端文字和持久化恢复，全程不暴露凭据也不联系腾讯。发布前由人工预览确认真实手机绑定和媒体互操作。
 - 两个启动页面、展开和收起的侧边栏、首页、初次使用说明、任务栏标题及任务栏／快捷方式图标显示预期产品身份。
-- 桌面小兢测试覆盖六种状态、终态计时、并发任务、审批优先级、无任务内容快照、设置操作、bridge 校验、50% 默认尺寸和调节范围、偏好原子写入、拖动边界、主窗口内部的初始／重置位置、显示器恢复、收起／唤醒／重置一致性、托盘恢复、第二实例恢复、关闭到托盘和带风险确认的真正退出。产品测试和 Web 快照覆盖 v0.3.1 内测标签、“关于小兢”版本清单及版本一致性门禁。Electron 预览确认不抢焦点的透明窗口只在缩放后的角色和邻近状态提示区域响应交互，且收起后释放 renderer。
+- 桌面小兢测试覆盖六种状态、终态计时、并发任务、审批优先级、无任务内容快照、设置操作、bridge 校验、50% 默认尺寸和调节范围、偏好原子写入、拖动边界、主窗口内部的初始／重置位置、显示器恢复、收起／唤醒／重置一致性、托盘恢复、第二实例恢复、关闭到托盘和带风险确认的真正退出。产品测试和 Web 快照覆盖 v0.3.2 内测标签、“关于小兢”版本清单及版本一致性门禁。Electron 预览确认不抢焦点的透明窗口只在缩放后的角色和邻近状态提示区域响应交互，且收起后释放 renderer。
 - 桌面身份和用户数据检查在版本递增后通过。
 - 全新安装可在默认路径和自定义父路径完成，并自动补齐 `xiaojing-agent-desktop`。
 - 覆盖升级沿用已有安装路径，控制面板中只保留一个条目，并维持同一个应用身份。

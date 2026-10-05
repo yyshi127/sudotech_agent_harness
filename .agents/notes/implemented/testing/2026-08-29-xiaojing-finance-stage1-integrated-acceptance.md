@@ -22,7 +22,7 @@ The Stage 1 acceptance gate is source-readiness evidence, not an installer resul
 
 ## Verification
 
-The assembled snapshot is `apps/cli/tests/finance-stage1-acceptance.snapshot.ts`. Focused Finance tests cover customer storage and binding, official evidence classification, document formats and visual extraction, deterministic calculations, workspace routing, and preset composition. The product regression set covers brand, usage accounting, uploads, native vision, Weixin, Edge, Windows control, Visualize, desktop companion, and desktop lifecycle. The desktop user-data verifier exercises the synthetic upgrade copy through production readers and proves read-only behavior.
+The assembled expected-output test is `apps/cli/tests/finance-stage1-acceptance.expected.e2e.ts`. Focused Finance tests cover customer storage and binding, official evidence classification, document formats and visual extraction, deterministic calculations, workspace routing, and preset composition. The product regression set covers brand, usage accounting, uploads, native vision, Weixin, Edge, Windows control, Visualize, desktop companion, and desktop lifecycle. The desktop user-data verifier exercises the synthetic upgrade copy through production readers and proves read-only behavior.
 
 ## Alternatives considered
 

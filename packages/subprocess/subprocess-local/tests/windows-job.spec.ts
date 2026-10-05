@@ -191,6 +191,13 @@ describe('Windows parent runner contract', () => {
     expect(result.stderr).toBe(child.targetStderr)
   })
 
+  it('passes independent Windows children through the runner start message', () => {
+    const { child } = launch(new FakeChild(), { ...spec, windowsChildLifetime: 'independent' })
+    expect(child.sent).toEqual([{
+      type: 'start', cwd: 'C:\\target', env: { TARGET: 'yes' }, windowsChildLifetime: 'independent',
+    }])
+  })
+
   it('carries a null-device fd 4 for ignored stdin and closes the parent descriptor after spawn', () => {
     const child = new FakeChild()
     const ignored = {

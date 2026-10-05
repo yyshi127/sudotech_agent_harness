@@ -31,8 +31,8 @@
   width: 100%;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
   outline: none;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);

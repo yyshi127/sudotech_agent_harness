@@ -6,12 +6,15 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspaceZh, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/deepseek-messages-chat', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const SNAPSHOT_DIR = fileURLToPath(new URL(WINDOWS_XIAOJING
+  ? './expected/deepseek-messages-chat-xiaojing'
+  : '../../../snapshots/web/deepseek-messages-chat', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()
 
 describe.skipIf(MODE === 'record')('web e2e: DeepSeek Messages conversation', () => {
@@ -24,6 +27,7 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek Messages conversation', ()
   beforeAll(async () => {
     replayFixture = await selectedSessionFixture(FIXTURE, false)
     scaffold = await launchWebScaffold({
+      compareReplaySession: true,
       replayFixture,
       paceMs: 5,
       replayProviders: [{
@@ -70,6 +74,6 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek Messages conversation', ()
   })
 
   it('keeps the recorded-session inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl', 'ui.expected.md'])
   })
 })

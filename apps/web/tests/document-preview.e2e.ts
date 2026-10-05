@@ -8,13 +8,15 @@ import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed, vi } from 'vitest'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
+import { CODE_HIGHLIGHT_EXTENSIONS } from '@deepseek-ai/dsh-util-code-language'
 import { realOfficeBytes } from './office-fixture.ts'
 import { excelFixture, excelFreezeFixture, excelHtmlFixture, excelHtmlText, meetingMinutesFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/excel-fixture.ts'
 import { excelDrawingFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/excel-drawing-fixture.ts'
 import { xlsFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/xls-fixture.ts'
 import { pdfFixture, selectionPdfFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/pdf-fixture.ts'
 import { assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { openSettings, connectFreshWorkspace, connectFreshWorkspaceZh, newEnglishPage, saveFailureShot, scrollIntoView } from './support.ts'
+import { openSettings, newEnglishPage, saveFailureShot, scrollIntoView } from './support.ts'
+import { connectPreviewWorkspace } from './preview-workspace.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome/session.v3.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/document-preview', import.meta.url))
@@ -30,6 +32,11 @@ const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
   'base64',
 )
+
+/** Windows clipboard text uses CRLF for line breaks. */
+async function clipboardText(page: Page): Promise<string> {
+  return (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/gu, '\n')
+}
 
 /** Successful render evidence stays outside the committed snapshot inventory. */
 async function successShot(page: Page, name: string): Promise<void> {
@@ -171,6 +178,23 @@ async function expectExcelLayout(excel: Locator): Promise<void> {
   }))).toBe(true)
 }
 
+/** Cell text must reach the bitmap below the column headings, independently of the formula bar. */
+async function expectExcelCellInk(excel: Locator): Promise<void> {
+  await expect.poll(() => excel.locator('canvas').first().evaluate((node) => {
+    const canvas = node as HTMLCanvasElement
+    const context = canvas.getContext('2d')
+    if (context === null) throw new Error('spreadsheet canvas has no 2D context')
+    const scale = canvas.width / canvas.getBoundingClientRect().width
+    const pixels = context.getImageData(Math.round(45 * scale), Math.round(24 * scale),
+      Math.round(260 * scale), Math.round(76 * scale)).data
+    let ink = 0
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index + 3]! > 0 && Math.max(pixels[index]!, pixels[index + 1]!, pixels[index + 2]!) < 150) ink += 1
+    }
+    return ink
+  })).toBeGreaterThan(8)
+}
+
 it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pane with read-only controls in %s', async (locale) => {
   const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false })
   let browser: Browser | undefined
@@ -180,7 +204,7 @@ it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pan
     const consoleErrors = watchConsole(page)
     onTestFailed(async () => { await saveFailureShot(page, `screenshots/0908-document-preview/excel-resize-${locale}-${process.pid}`) })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await (locale === 'zh-CN' ? connectFreshWorkspaceZh : connectFreshWorkspace)(page, scaffold.workspaceCwd)
+    await connectPreviewWorkspace(page, scaffold.workspaceCwd, locale)
     const settled = scaffold.whenTurnSettled()
     const input = page.locator('[data-composer-input]').first()
     await input.fill(PROMPT)
@@ -192,6 +216,7 @@ it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pan
     await Promise.all([
       writeFile(join(cwd, 'budget.xlsx'), await excelFixture()),
       writeFile(join(cwd, 'meeting.xlsx'), await meetingMinutesFixture()),
+      writeFile(join(cwd, 'minimal.xlsx'), realOfficeBytes('xlsx')),
       writeFile(join(cwd, 'legacy.xls'), xlsFixture()),
       writeFile(join(cwd, 'values.csv'), `${longCellText},2\n3,4\n`),
       writeFile(join(cwd, 'values.tsv'), '1\t2\n3\t4\n'),
@@ -335,10 +360,11 @@ it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pan
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
       await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(colorScheme === 'dark' ? '' : null)
-      for (const name of ['budget.xlsx', 'meeting.xlsx', 'legacy.xls', 'values.csv', 'values.tsv']) {
+      for (const name of ['budget.xlsx', 'meeting.xlsx', 'minimal.xlsx', 'legacy.xls', 'values.csv', 'values.tsv']) {
         await openPreviewFile(column, filesTab, preview, name)
         await excel.locator('.fortune-sheet-overlay').waitFor()
         await expectExcelLayout(excel)
+        await expectExcelCellInk(excel)
         expect(await selection.evaluate(node => ({
           text: getComputedStyle(node).color, background: getComputedStyle(node).backgroundColor,
         }))).toEqual({ text: 'rgb(0, 0, 0)', background: 'rgb(255, 255, 255)' })
@@ -437,7 +463,7 @@ it.skipIf(MODE === 'record').each([1, 2])('keeps frozen headings without divider
     const consoleErrors = watchConsole(page)
     onTestFailed(async () => { await saveFailureShot(page, `screenshots/0908-document-preview/excel-freeze-${deviceScaleFactor}-${process.pid}`) })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await connectFreshWorkspace(page, scaffold.workspaceCwd)
+    await connectPreviewWorkspace(page, scaffold.workspaceCwd)
     const settled = scaffold.whenTurnSettled()
     await page.locator('[data-composer-input]').first().fill(PROMPT)
     await page.locator('[data-composer-input]').first().press('Enter')
@@ -503,6 +529,139 @@ it.skipIf(MODE === 'record').each([1, 2])('keeps frozen headings without divider
   } finally {
     try { await browser?.close() } finally { await scaffold.close() }
   }
+})
+
+it.skipIf(MODE === 'record').each([
+  'images and markup aliases', 'code suffixes (first group)', 'code suffixes (second group)',
+])('renders %s from Files', async (group) => {
+  const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false })
+  let browser: Browser | undefined
+  const failures: unknown[] = []
+  try {
+    browser = await chromium.launch()
+    const page = await newEnglishPage(browser)
+    const consoleErrors = watchConsole(page)
+    onTestFailed(async () => { await saveFailureShot(page, `screenshots/0908-document-preview/all-suffixes-${process.pid}`) })
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+    await connectPreviewWorkspace(page, scaffold.workspaceCwd)
+    const settled = scaffold.whenTurnSettled()
+    const input = page.locator('[data-composer-input]').first()
+    await input.fill(PROMPT)
+    await input.press('Enter')
+    const sessionId = await settled
+    const cwd = scaffold.ctx.agents.get(sessionId)?.session.header.cwd
+    if (cwd === undefined) throw new Error('preview suffix Session has no workspace cwd')
+    await page.getByText('LIGHTHOUSE', { exact: true }).waitFor()
+
+    const encoded = await page.evaluate(() => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 8
+      canvas.height = 8
+      const context = canvas.getContext('2d')!
+      context.fillStyle = '#2463eb'
+      context.fillRect(0, 0, 8, 8)
+      return ['image/png', 'image/jpeg', 'image/webp'].map(type => canvas.toDataURL(type).split(',')[1]!)
+    })
+    const png = Buffer.from(encoded[0]!, 'base64')
+    const iconHeader = Buffer.alloc(22)
+    iconHeader.writeUInt16LE(1, 2)
+    iconHeader.writeUInt16LE(1, 4)
+    iconHeader[6] = 8
+    iconHeader[7] = 8
+    iconHeader.writeUInt16LE(1, 10)
+    iconHeader.writeUInt16LE(32, 12)
+    iconHeader.writeUInt32LE(png.length, 14)
+    iconHeader.writeUInt32LE(22, 18)
+    const bitmap = Buffer.alloc(54 + 8 * 8 * 3)
+    bitmap.write('BM')
+    bitmap.writeUInt32LE(bitmap.length, 2)
+    bitmap.writeUInt32LE(54, 10)
+    bitmap.writeUInt32LE(40, 14)
+    bitmap.writeInt32LE(8, 18)
+    bitmap.writeInt32LE(8, 22)
+    bitmap.writeUInt16LE(1, 26)
+    bitmap.writeUInt16LE(24, 28)
+    for (let offset = 54; offset < bitmap.length; offset += 3) {
+      bitmap[offset] = 235
+      bitmap[offset + 1] = 99
+      bitmap[offset + 2] = 36
+    }
+    const images: Readonly<Record<string, Uint8Array | string>> = {
+      png,
+      jpg: Buffer.from(encoded[1]!, 'base64'),
+      jpeg: Buffer.from(encoded[1]!, 'base64'),
+      gif: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAAAAAAALAAAAAABAAEAAAIBRAA7', 'base64'),
+      webp: Buffer.from(encoded[2]!, 'base64'),
+      bmp: bitmap,
+      ico: Buffer.concat([iconHeader, png]),
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#2463eb"/></svg>',
+    }
+    const specialized = new Set(['md', 'markdown', 'html', 'htm', 'svg', 'csv'])
+    const allCodeSuffixes = CODE_HIGHLIGHT_EXTENSIONS.filter(extension => !specialized.has(extension))
+    const split = Math.ceil(allCodeSuffixes.length / 2)
+    const codeSuffixes = group === 'images and markup aliases' ? []
+      : group === 'code suffixes (first group)' ? allCodeSuffixes.slice(0, split) : allCodeSuffixes.slice(split)
+    const imageEntries = group === 'images and markup aliases' ? Object.entries(images) : []
+    const markdownAliases = group === 'images and markup aliases' ? ['md', 'markdown'] : []
+    const htmlAliases = group === 'images and markup aliases' ? ['html', 'htm'] : []
+    const plainSuffixes = group === 'images and markup aliases' ? ['txt', 'unknown'] : []
+    await Promise.all([
+      ...imageEntries.map(([extension, bytes]) => writeFile(join(cwd, `image.${extension}`), bytes)),
+      ...markdownAliases.map(extension => writeFile(join(cwd, `markup.${extension}`), '# Visible Markdown alias\n\n中文正文')),
+      ...htmlAliases.map(extension => writeFile(join(cwd, `markup.${extension}`), '<h1>Visible HTML alias</h1><p>中文正文</p>')),
+      ...codeSuffixes.map(extension => writeFile(join(cwd, `source.${extension}`), `PREVIEW_${extension} 中文正文\nSecond visible line`)),
+      ...plainSuffixes.map(extension => writeFile(join(cwd, `plain.${extension}`),
+        extension === 'txt' ? 'Plain preview 中文正文' : 'Unknown suffix 中文正文')),
+    ])
+    const column = page.locator('[data-rightbar-col]')
+    await page.locator('[data-sidebar-right-expand]').click()
+    await column.locator('[data-sidebar-right-guide-entry="files"]').click()
+    await column.locator('[data-files-state="tree"]').waitFor({ state: 'visible' })
+    await column.locator('[data-files-reload]').click()
+    const filesTab = column.locator('[data-dockkit-tab]').filter({ has: page.getByText('Files', { exact: true }) })
+    const preview = column.locator('[data-textpreview-url]')
+    const openFile = openPreviewFile.bind(undefined, column, filesTab, preview)
+    for (const [extension] of imageEntries) {
+      await openFile(`image.${extension}`)
+      const image = preview.getByRole('img', { name: `Image preview: image.${extension}`, exact: true })
+      await image.waitFor({ state: 'visible' })
+      await expect.poll(() => image.evaluate((node: HTMLImageElement) =>
+        node.complete && node.naturalWidth > 0 && node.naturalHeight > 0)).toBe(true)
+      expect(await image.evaluate(node => node.getBoundingClientRect().width)).toBeGreaterThan(0)
+    }
+    for (const extension of markdownAliases) {
+      await openFile(`markup.${extension}`)
+      await preview.getByRole('heading', { name: 'Visible Markdown alias', exact: true }).waitFor({ state: 'visible' })
+      await preview.getByText('中文正文', { exact: true }).waitFor({ state: 'visible' })
+    }
+    for (const extension of htmlAliases) {
+      await openFile(`markup.${extension}`)
+      const html = page.frameLocator('[data-html-preview]')
+      await html.getByRole('heading', { name: 'Visible HTML alias', exact: true }).waitFor({ state: 'visible' })
+      await html.getByText('中文正文', { exact: true }).waitFor({ state: 'visible' })
+    }
+    for (const extension of codeSuffixes) {
+      await openFile(`source.${extension}`)
+      const code = preview.locator('[data-code-preview] .shiki')
+      await code.waitFor({ state: 'visible' })
+      await expect.poll(() => code.textContent()).toBe(`PREVIEW_${extension} 中文正文\nSecond visible line`)
+    }
+    for (const extension of plainSuffixes) {
+      await openFile(`plain.${extension}`)
+      await preview.locator('[data-textpreview-line]').getByText(extension === 'txt' ? 'Plain preview 中文正文' : 'Unknown suffix 中文正文', { exact: true }).waitFor({ state: 'visible' })
+    }
+    expect(consoleErrors.pageErrors).toEqual([])
+    await successShot(page, `registered-suffixes-${group.replaceAll(' ', '-')}`)
+  } catch (error) {
+    failures.push(error)
+    const failurePage = browser?.contexts()[0]?.pages()[0]
+    if (failurePage !== undefined) await saveFailureShot(failurePage, `preview-suffix-failure-${process.pid}`)
+  } finally {
+    try { await browser?.close() } catch (error) { failures.push(error) }
+    try { await scaffold.close() } catch (error) { failures.push(error) }
+  }
+  if (failures.length === 1) throw failures[0]
+  if (failures.length > 1) throw new AggregateError(failures, 'Document suffix preview and cleanup failed')
 })
 
 describe.skipIf(MODE === 'record')('web e2e: document preview through Files', () => {
@@ -588,7 +747,7 @@ else process.exit(1);
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await connectFreshWorkspace(page, scaffold.workspaceCwd)
+    await connectPreviewWorkspace(page, scaffold.workspaceCwd)
   })
 
   afterAll(async () => {
@@ -1242,7 +1401,7 @@ else process.exit(1);
     await copyCode.hover()
     await page.getByRole('tooltip', { name: 'Copy', exact: true }).waitFor()
     await copyCode.click()
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(codeLines.join('\n'))
+    await expect.poll(() => clipboardText(page)).toBe(codeLines.join('\n'))
     sections.push([
       '## Code paging', '',
       `- Viewer: ${await viewer.innerText()}`,
@@ -1285,21 +1444,21 @@ else process.exit(1);
     await sheetOverlay.click({ position: { x: 500, y: 110 } })
     await expect.poll(() => formulaInput.innerText()).toBe('=C3/B3')
     await page.keyboard.press('ControlOrMeta+C')
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('80.0%\n')
+    await expect.poll(() => clipboardText(page)).toBe('80.0%\n')
     await sheetTabs.getByText('公式与格式', { exact: true }).click()
     await expect.poll(() => excel.locator('.fortune-name-box').innerText()).toBe('A1')
     await sheetOverlay.click({ position: { x: 140, y: 30 } })
     await expect.poll(() => formulaInput.innerText()).toBe('46281')
     await page.keyboard.press('ControlOrMeta+C')
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('2026-09-16\n')
+    await expect.poll(() => clipboardText(page)).toBe('2026-09-16\n')
     await sheetOverlay.click({ position: { x: 70, y: 30 } })
     await expect.poll(() => formulaInput.innerText()).toBe('=_xlfn.XLOOKUP(1,{1},{42})')
     expect(await formulaInput.getAttribute('contenteditable')).toBe('false')
     await page.keyboard.press('ControlOrMeta+C')
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('42\n')
+    await expect.poll(() => clipboardText(page)).toBe('42\n')
     await page.keyboard.type('999')
     await page.keyboard.press('ControlOrMeta+C')
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('42\n')
+    await expect.poll(() => clipboardText(page)).toBe('42\n')
     await successShot(page, 'excel-cached-formula')
     await openFile('chart-budget.xlsx')
     await sheetTabs.getByText('季度预算', { exact: true }).waitFor({ state: 'visible' })
@@ -1309,7 +1468,7 @@ else process.exit(1);
     await sheetOverlay.click({ position: { x: 500, y: 110 } })
     await expect.poll(() => formulaInput.innerText()).toBe('=C3/B3')
     await page.keyboard.press('ControlOrMeta+C')
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('80.0%\n')
+    await expect.poll(() => clipboardText(page)).toBe('80.0%\n')
     await successShot(page, 'excel-chart-notice')
     await openFile('meeting.xlsx')
     await sheetTabs.getByText('会议信息', { exact: true }).waitFor({ state: 'visible' })
@@ -1343,7 +1502,7 @@ else process.exit(1);
       expect(await formulaInput.locator('img').count()).toBe(0)
       await excel.locator('.fortune-sheet-overlay').click({ position: { x: 70, y: 30 } })
       await page.keyboard.press('ControlOrMeta+C')
-      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(`${copied}\n`)
+      await expect.poll(() => clipboardText(page)).toBe(`${copied}\n`)
       const clipboardTable = excel.locator('#fortune-copy-content table')
       expect(await clipboardTable.locator('td').textContent()).toBe(copied)
       expect(await clipboardTable.locator('img').count()).toBe(0)
@@ -1376,11 +1535,11 @@ else process.exit(1);
       await excel.locator('.fortune-sheet-overlay').click({ position: { x: 70, y: 30 } })
       await expect.poll(() => excel.locator('.fortune-fx-input').innerText()).toBe('00123')
       await page.keyboard.press('ControlOrMeta+C')
-      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('00123\n')
+      await expect.poll(() => clipboardText(page)).toBe('00123\n')
       await page.keyboard.press('ArrowRight')
       await page.keyboard.press('ArrowRight')
       await page.keyboard.press('ControlOrMeta+C')
-      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('=SUM(1,2)\n')
+      await expect.poll(() => clipboardText(page)).toBe('=SUM(1,2)\n')
       await viewer.click()
       await page.getByRole('menuitem', { name: 'Plain text', exact: true }).click()
       await expect.poll(() => preview.locator('[data-textpreview-line]').count()).toBe(2)
@@ -1393,7 +1552,7 @@ else process.exit(1);
       await expect.poll(() => excel.locator('.fortune-fx-input').innerText()).toBe('00999')
       await excel.locator('.fortune-sheet-overlay').click({ position: { x: 70, y: 30 } })
       await page.keyboard.press('ControlOrMeta+C')
-      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('00999\n')
+      await expect.poll(() => clipboardText(page)).toBe('00999\n')
       await successShot(page, `excel-${extension}`)
     }
     sections.push(['## Delimited spreadsheets', '',
@@ -1529,7 +1688,7 @@ describe.skipIf(MODE === 'record')('web e2e: Host Office preview', () => {
       locale: 'en-US', timezoneId: 'Asia/Shanghai' })
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await connectFreshWorkspace(page, scaffold.workspaceCwd)
+    await connectPreviewWorkspace(page, scaffold.workspaceCwd)
     onTestFailed(async () => {
       await saveFailureShot(page, `screenshots/0908-document-preview/office-${process.pid}`)
     })

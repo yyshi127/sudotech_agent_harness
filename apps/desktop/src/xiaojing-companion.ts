@@ -18,17 +18,22 @@ import { assertDesktopSender, XIAOJING_DESKTOP_IPC } from './ipc.ts'
 import {
   IDLE_COMPANION_SNAPSHOT,
   defaultCompanionBounds,
+  composerCompanionBounds,
+  isCompanionLayout,
   isCompanionScale,
   isCompanionSnapshot,
   normalizeCompanionPreferences,
   resolveCompanionBounds,
   type DesktopCompanionBounds,
+  type DesktopCompanionLayout,
   type DesktopCompanionPreferences,
   type DesktopCompanionSnapshot,
 } from './xiaojing-companion-geometry.ts'
 import { XIAOJING_IDENTITY } from './xiaojing-product.ts'
 
 const STREAM_RETRY_MS = 1_000
+const COMPANION_TOPMOST_REFRESH_MS = 1_000
+const COMPANION_PLACEMENT_SETTLE_MS = 150
 const PREFERENCES_MODE = 0o600
 const PREFERENCES_DIRECTORY_MODE = 0o700
 
@@ -63,9 +68,16 @@ export class XiaojingDesktopCompanion {
   private dragState: { pointer: ScreenPoint; bounds: DesktopCompanionBounds } | undefined
   private installed = false
   private disposed = false
+  private composerLayout: DesktopCompanionLayout | undefined
+  private automaticPosition = true
+  private observedMainWindow: BrowserWindow | undefined
+  private mainWindowInteracting = false
+  private placementTimer: ReturnType<typeof setTimeout> | undefined
 
   constructor(private readonly options: XiaojingCompanionOptions) {
     this.preferences = this.readPreferences()
+    // Drag positions belong to this application run; each new launch uses automatic placement.
+    delete this.preferences.position
   }
 
   /** Register application-lifetime IPC, display recovery, tray, and the saved companion visibility. */
@@ -73,6 +85,14 @@ export class XiaojingDesktopCompanion {
     if (this.installed) return
     this.installed = true
     this.registerIpc()
+    this.observedMainWindow = this.options.getMainWindow()
+    this.observedMainWindow?.on('move', this.scheduleDefault)
+    this.observedMainWindow?.on('resize', this.scheduleDefault)
+    this.observedMainWindow?.on('will-move', this.beginMainInteraction)
+    this.observedMainWindow?.on('will-resize', this.beginMainInteraction)
+    this.observedMainWindow?.on('moved', this.endMainInteraction)
+    this.observedMainWindow?.on('resized', this.endMainInteraction)
+    this.observedMainWindow?.on('restore', this.scheduleDefault)
     screen.on('display-removed', this.recoverDisplay)
     screen.on('display-metrics-changed', this.recoverDisplay)
     this.createTray()
@@ -133,6 +153,16 @@ export class XiaojingDesktopCompanion {
   async dispose(): Promise<void> {
     if (this.disposed) return
     this.disposed = true
+    this.cancelPlacement()
+    this.observedMainWindow?.off('move', this.scheduleDefault)
+    this.observedMainWindow?.off('resize', this.scheduleDefault)
+    this.observedMainWindow?.off('will-move', this.beginMainInteraction)
+    this.observedMainWindow?.off('will-resize', this.beginMainInteraction)
+    this.observedMainWindow?.off('moved', this.endMainInteraction)
+    this.observedMainWindow?.off('resized', this.endMainInteraction)
+    this.observedMainWindow?.off('restore', this.scheduleDefault)
+    this.observedMainWindow = undefined
+    ipcMain.off(XIAOJING_DESKTOP_IPC.companionLayout, this.acceptLayout)
     this.streamAbort?.abort()
     this.streamAbort = undefined
     screen.off('display-removed', this.recoverDisplay)
@@ -147,6 +177,7 @@ export class XiaojingDesktopCompanion {
   private readonly recoverDisplay = (): void => {
     const window = this.window
     if (window === undefined || window.isDestroyed()) return
+    if (this.automaticPosition) { this.placeDefault(); return }
     const current = window.getBounds()
     const bounds = resolveCompanionBounds(
       { position: { x: current.x, y: current.y, displayId: screen.getDisplayMatching(current).id } },
@@ -195,7 +226,7 @@ export class XiaojingDesktopCompanion {
       return this.state()
     }
     const placement = this.defaultPlacement()
-    const bounds = resolveCompanionBounds(
+    const bounds = this.automaticPosition ? this.defaultBounds() : resolveCompanionBounds(
       this.preferences,
       screen.getAllDisplays(),
       placement.display,
@@ -206,6 +237,7 @@ export class XiaojingDesktopCompanion {
       show: false,
       transparent: true,
       frame: false,
+      thickFrame: false,
       resizable: false,
       maximizable: false,
       minimizable: false,
@@ -226,10 +258,23 @@ export class XiaojingDesktopCompanion {
     })
     this.window = window
     window.setMenuBarVisibility(false)
-    window.setAlwaysOnTop(true, 'floating')
+    window.setAlwaysOnTop(true, 'screen-saver')
     window.setSkipTaskbar(true)
     window.setIgnoreMouseEvents(true, { forward: true })
+    const restoreTopmost = (): void => {
+      if (window.isDestroyed() || !window.isVisible()) return
+      if (this.mainWindowInteracting || this.placementTimer !== undefined || this.dragState !== undefined) return
+      if (!window.isAlwaysOnTop()) window.setAlwaysOnTop(true, 'screen-saver')
+      window.moveTop()
+    }
+    window.on('show', restoreTopmost)
+    window.on('show', this.placeDefault)
+    // Other topmost applications can reorder this window without changing its topmost flag.
+    const topmostRefresh = setInterval(restoreTopmost, COMPANION_TOPMOST_REFRESH_MS)
+    topmostRefresh.unref()
     window.on('closed', () => {
+      clearInterval(topmostRefresh)
+      this.cancelPlacement()
       if (this.window === window) this.window = undefined
       this.dragState = undefined
       this.broadcast()
@@ -260,6 +305,7 @@ export class XiaojingDesktopCompanion {
   private setScale(scale: unknown): XiaojingDesktopState {
     if (!isCompanionScale(scale)) throw new TypeError('desktop companion scale must be between 0.3 and 1')
     this.preferences.scale = scale
+    this.scheduleDefault()
     this.persistPreferences()
     this.broadcast()
     return this.state()
@@ -267,13 +313,66 @@ export class XiaojingDesktopCompanion {
 
   private async resetPosition(): Promise<XiaojingDesktopState> {
     const placement = this.defaultPlacement()
-    const bounds = defaultCompanionBounds(placement.display, placement.mainWindowBounds)
+    this.automaticPosition = true
+    const bounds = this.defaultBounds()
     this.preferences.position = { x: bounds.x, y: bounds.y, displayId: placement.display.id }
     this.persistPreferences()
     await this.wake()
-    this.window?.setBounds(bounds, false)
+    this.placeDefault()
     this.persistPosition()
     return this.state()
+  }
+
+  private defaultBounds(): DesktopCompanionBounds {
+    const placement = this.defaultPlacement()
+    const main = this.options.getMainWindow()
+    return this.composerLayout === undefined || main === undefined || main.isDestroyed()
+      ? defaultCompanionBounds(placement.display, placement.mainWindowBounds)
+      : composerCompanionBounds(this.composerLayout, main.getContentBounds(), this.preferences.scale, placement.display)
+  }
+
+  private readonly placeDefault = (): void => {
+    this.cancelPlacement()
+    if (!this.automaticPosition || this.mainWindowInteracting || this.disposed
+      || this.window === undefined || this.window.isDestroyed()) return
+    if (this.options.getMainWindow()?.isMinimized()) return
+    const desired = this.defaultBounds()
+    const content = this.window.getContentBounds()
+    if (content.x !== desired.x || content.y !== desired.y
+      || content.width !== desired.width || content.height !== desired.height) {
+      this.window.setContentBounds(desired, false)
+    }
+  }
+
+  private cancelPlacement(): void {
+    if (this.placementTimer !== undefined) clearTimeout(this.placementTimer)
+    this.placementTimer = undefined
+  }
+
+  private readonly scheduleDefault = (): void => {
+    this.cancelPlacement()
+    if (!this.automaticPosition || this.mainWindowInteracting || this.disposed
+      || this.window === undefined || this.window.isDestroyed()) return
+    this.placementTimer = setTimeout(this.placeDefault, COMPANION_PLACEMENT_SETTLE_MS)
+    this.placementTimer.unref()
+  }
+
+  private readonly beginMainInteraction = (): void => {
+    this.mainWindowInteracting = true
+    this.cancelPlacement()
+  }
+
+  private readonly endMainInteraction = (): void => {
+    this.mainWindowInteracting = false
+    this.scheduleDefault()
+  }
+
+  private readonly acceptLayout = (event: IpcMainEvent, layout: unknown): void => {
+    try { this.assertMainSender(event) }
+    catch (_error) { return /* Unowned frames cannot reposition the companion. */ }
+    if (!isCompanionLayout(layout)) return
+    this.composerLayout = layout
+    this.scheduleDefault()
   }
 
   private defaultPlacement(): { display: Electron.Display; mainWindowBounds?: Electron.Rectangle } {
@@ -286,6 +385,7 @@ export class XiaojingDesktopCompanion {
   }
 
   private registerIpc(): void {
+    ipcMain.on(XIAOJING_DESKTOP_IPC.companionLayout, this.acceptLayout)
     ipcMain.handle(XIAOJING_DESKTOP_IPC.applicationInfo, (event) => {
       this.assertMainSender(event)
       return { version: app.isPackaged ? app.getVersion() : XIAOJING_IDENTITY.productVersion }
@@ -321,16 +421,18 @@ export class XiaojingDesktopCompanion {
     })
     ipcMain.on(XIAOJING_DESKTOP_IPC.companionDragStart, (event, point: unknown) => {
       if (!this.isCompanionSender(event) || !isScreenPoint(point) || this.window === undefined) return
+      this.cancelPlacement()
+      this.automaticPosition = false
       this.dragState = { pointer: point, bounds: this.window.getBounds() }
     })
     ipcMain.on(XIAOJING_DESKTOP_IPC.companionDragMove, (event, point: unknown) => {
       if (!this.isCompanionSender(event) || !isScreenPoint(point)
         || this.dragState === undefined || this.window === undefined) return
-      this.window.setPosition(
-        Math.round(this.dragState.bounds.x + point.x - this.dragState.pointer.x),
-        Math.round(this.dragState.bounds.y + point.y - this.dragState.pointer.y),
-        false,
-      )
+      // Electron accepts signed 32-bit integers and rejects JavaScript negative zero.
+      const x = Math.round(this.dragState.bounds.x + point.x - this.dragState.pointer.x) + 0
+      const y = Math.round(this.dragState.bounds.y + point.y - this.dragState.pointer.y) + 0
+      if (x < -0x80000000 || x > 0x7fffffff || y < -0x80000000 || y > 0x7fffffff) return
+      this.window.setPosition(x, y, false)
     })
     ipcMain.on(XIAOJING_DESKTOP_IPC.companionDragEnd, (event) => {
       if (!this.isCompanionSender(event)) return

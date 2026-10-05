@@ -255,6 +255,23 @@ describe('dsh family version coherence', () => {
 })
 
 describe('package payload constraints', () => {
+  it('publishes native browser entries explicitly without admitting other runtime files', () => {
+    const dir = 'packages/xiaojing/xiaojing-browser-control'
+    const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+    const files = ['lib/index.js', 'lib/native.js', 'lib/native-settings.js', 'lib/types/**/*.d.ts']
+    expect(expectedDshPackageFiles(manifest)).toEqual(files)
+    expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+    for (const invalid of [
+      files.filter(file => file !== 'lib/native.js'),
+      files.filter(file => file !== 'lib/native-settings.js'),
+      ['lib/*.js', 'lib/types/**/*.d.ts'],
+      [...files.slice(0, -1), 'lib/unrelated.js', files.at(-1)!],
+    ]) {
+      expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: invalid } }))
+        .toEqual([expect.stringContaining('package.json files must be')])
+    }
+  })
+
   it.each(['./art/icon.svg', 'art/icon.svg'])('includes declared icon %s in the canonical payload', (icon) => {
     expect(expectedDshPackageFiles({ icon, exports: { './locale/*.json': './locale/*.json' } })).toEqual([
       'art/icon.svg', 'locale/*.json', 'lib/index.js', 'lib/types/**/*.d.ts',

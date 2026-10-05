@@ -87,7 +87,7 @@ it('retires only unselected Views without retained bodies and rejects released r
   expect(views.source.getSnapshot()).toEqual([])
 })
 
-it('reports opening failure and releases Views even when committed roots are still present', async () => {
+it.each(['selected', 'retired-mounted'] as const)('reports opening failure and releases the %s View with committed roots', async (state) => {
   const r = await runtime()
   const reference = r.sessions.retain(A, { source: 'sidebarView' })
   const failure = new Error('opening failed')
@@ -105,8 +105,9 @@ it('reports opening failure and releases Views even when committed roots are sti
   views.select(A)
   const view = views.source.getSnapshot()[0]!
   const unmount = views.mount(view.reference)
+  if (state === 'retired-mounted') views.select(undefined)
   await expect(view.reference.ready).rejects.toBe(failure)
-  expect(error).toHaveBeenCalledWith('Sidebar Session opening failed:', failure)
+  expect(error).toHaveBeenCalledExactlyOnceWith('Sidebar Session opening failed:', failure)
   views.dispose()
   expect(release).toHaveBeenCalledOnce()
   unmount()

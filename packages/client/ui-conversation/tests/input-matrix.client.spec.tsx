@@ -9,7 +9,7 @@ import './control-row-dom.ts'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
 import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import {
@@ -38,7 +38,7 @@ Range.prototype.getBoundingClientRect = () => ({
 
 afterEach(cleanup)
 
-const SCTX = {} as Context
+const SCTX = new Context()
 const SID = 's1' as SessionId
 
 /** Standard-props InputBar mount over a real shell (the composer-bar entry shape). */

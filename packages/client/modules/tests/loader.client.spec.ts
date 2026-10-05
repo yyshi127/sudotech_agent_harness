@@ -875,7 +875,8 @@ describe('default transport seam', () => {
     await expect(b.loader.prefetch('dee')).rejects.toThrow(
       `bundle script ${APPLICATION_URL} failed to load`,
     )
-    expect(append).toHaveBeenCalledTimes(2)
+    expect(append.mock.calls.map(([node]) => (node as HTMLScriptElement).getAttribute('src')))
+      .toEqual([APPLICATION_URL, APPLICATION_URL, comboReference(['dee'], '0')])
     expect([...document.querySelectorAll('script')]).toEqual([])
   })
 

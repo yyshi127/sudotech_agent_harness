@@ -11,12 +11,35 @@ import { deriveReplayScript, parseSessionLog } from '@deepseek-ai/dsh-llm-replay
 import {
   parseRemoteStreamClientMessage, parseRemoteStreamServerMessage,
 } from '@deepseek-ai/dsh-api-gateway/stream-protocol'
-import { launchWebScaffold, seedSession, watchConsole, webSnapshotMode } from './scaffold.ts'
+import { launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode } from './scaffold.ts'
 import { newEnglishPage } from './support.ts'
 
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const FIXTURE = fileURLToPath(new URL(XIAOJING
+  ? '../../../snapshots/web/xiaojing-live-interactions/session.v4.jsonl'
+  : '../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
+const REPLAY_CATALOG = XIAOJING ? {
+  replayProviders: [{
+    id: 'deepseek-official', name: 'DeepSeek',
+    models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] as const }],
+  }],
+} : {}
 const SESSION_ID = 'idle-submission-handoff'
 const TEXT = 'IDLE_SUBMISSION_HANDOFF Keep this message in the conversation.'
+
+/** Select the seeded history by its recorded prompt rather than sidebar row positions. */
+async function openSeededHistory(page: Page): Promise<void> {
+  await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+  if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Search sessions', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Search session names', exact: true })
+    .fill('Reply with a one-sentence description of event sourcing, then stop.')
+  const results = page.getByRole('tree', { name: 'Search results' }).getByRole('treeitem')
+  await expect.poll(() => results.count(), { timeout: 30_000 }).toBe(1)
+  await results.click()
+  await page.locator('[data-chat-flow-kind="user"]').first().waitFor()
+  await page.getByRole('button', { name: 'Send message', exact: true }).waitFor()
+}
 
 interface Delivery {
   readonly stream: string
@@ -108,7 +131,7 @@ async function placement(page: Page, input = TEXT) {
 
 it.skipIf(webSnapshotMode() === 'record').each(['inbox-first', 'transcript-first'] as const)(
   'keeps an idle submission in Chat under CPU throttling (%s)', async (order) => {
-    const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: false })
+    const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: false, ...REPLAY_CATALOG })
     const releasePrompt = Promise.withResolvers<undefined>()
     const promptBlocked = Promise.withResolvers<undefined>()
     const gate = new HistoryDeliveryGate()
@@ -120,10 +143,7 @@ it.skipIf(webSnapshotMode() === 'record').each(['inbox-first', 'transcript-first
       const tripwire = watchConsole(page)
       await gate.install(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await page.locator('[role="treeitem"]').first().click()
-      await page.locator('[role="treeitem"]').nth(1).click()
-      await page.locator('[data-chat-flow-kind="user"]').first().waitFor()
-      await page.getByRole('button', { name: 'Send message', exact: true }).waitFor()
+      await openSeededHistory(page)
       const cdp = await page.context().newCDPSession(page)
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 })
       await page.route('**/api/session/prompt', async (route) => {
@@ -205,17 +225,16 @@ it.skipIf(webSnapshotMode() === 'record').each(['ABC', 'ACB', 'BAC', 'BCA', 'CAB
       expect(recorded).toHaveLength(1)
       const override = join(root, 'replay.override.json')
       await writeFile(override, JSON.stringify([recorded[0], recorded[0], recorded[0]]))
-      scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayOverride: override, compareReplaySession: false })
+      scaffold = await launchWebScaffold({
+        replayFixture: FIXTURE, replayOverride: override, compareReplaySession: false, ...REPLAY_CATALOG,
+      })
       await seedSession(scaffold, fixture, SESSION_ID)
       browser = await chromium.launch()
       const page = await newEnglishPage(browser)
       const tripwire = watchConsole(page)
       await gate.install(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await page.locator('[role="treeitem"]').first().click()
-      await page.locator('[role="treeitem"]').nth(1).click()
-      await page.locator('[data-chat-flow-kind="user"]').first().waitFor()
-      await page.getByRole('button', { name: 'Send message', exact: true }).waitFor()
+      await openSeededHistory(page)
       const text = (id: string) => `RAPID_INPUT_${id}`
       await page.route('**/api/session/prompt', async (route) => {
         const request = route.request().postData() ?? ''

@@ -21,7 +21,7 @@ import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import * as hostPlugin from '../src/index.ts'
 import { ONBOARDING_CONFIG_GLOBAL } from '../src/onboarding-config.ts'
 
-afterEach(() => { vi.unstubAllGlobals() })
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
@@ -69,6 +69,24 @@ function declare(slots: SlotRegistry): () => void {
 }
 
 describe('ui-settings-models apply', () => {
+  it.each(['official', 'xiaojing'])('uses the product welcome in Xiaojing Desktop and native onboarding in official Desktop (%s)', async (profile) => {
+    vi.stubGlobal('dshDesktop', {})
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', profile)
+    const { ctx, slots } = await bench()
+    declare(slots)
+    try {
+      await ctx.plugin({ inject: [...inject], apply }).await()
+      expect(slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(
+        profile === 'xiaojing' ? ['welcome-notice', 'deepseek-official'] : ['deepseek-official'],
+      )
+      const onboarding = slots.entries('settings.onboarding').find(entry => entry.options.id === 'deepseek-official')!
+      expect((onboarding.inject as () => { automatic: boolean })().automatic).toBe(false)
+      expect(slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['models'])
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('keeps manual credential onboarding available when the native shell owns automatic onboarding', async () => {
     const { ctx, slots } = await bench()
     declare(slots)

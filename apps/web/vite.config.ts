@@ -18,7 +18,7 @@ function escapeHtmlText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-/** Project the public build title, favicon, and optional boot brand into the initial HTML document. */
+/** Project the public build title, icons, install manifest, and optional boot brand into the initial HTML document. */
 function clientDocumentTitle(): Plugin {
   const title = escapeHtmlText(process.env.DSH_CLIENT_TITLE ?? DEFAULT_CLIENT_TITLE)
   const bootLogo = process.env.DSH_CLIENT_BOOT_LOGO?.trim()
@@ -27,6 +27,9 @@ function clientDocumentTitle(): Plugin {
     name: 'dsh-client-document-title',
     transformIndexHtml(html) {
       let document = html.replace('<title>DSH Local Build</title>', `<title>${title}</title>`)
+      if (process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing') {
+        document = document.replace('href="./manifest.webmanifest"', 'href="./xiaojing-manifest.webmanifest"')
+      }
       if (favicon) document = document.replace(/<link\b[^>]*\brel="icon"[^>]*>/g, '')
       return {
         html: document,

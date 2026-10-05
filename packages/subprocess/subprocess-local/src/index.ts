@@ -44,6 +44,9 @@ import { launchWindowsJob, probeWindowsJob } from './windows-job.ts'
 import { targetEnvironment } from './runner-launch.ts'
 import { createProcessInspector } from './process-inspector.ts'
 import type { ProcessInspector } from './process-inspector.ts'
+
+export { createProcessInspector } from './process-inspector.ts'
+export type { ProcessIdentity, ProcessInspector } from './process-inspector.ts'
 import { LocalTerminalHandle } from './terminal.ts'
 import { prepareShellActivity } from './shell-activity.ts'
 
@@ -181,8 +184,14 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
 
   spawn(spec: SubprocessSpawnSpec): SubprocessHandle {
     validateSubprocessSpec(spec)
+    if (spec.windowsChildLifetime !== undefined && (this.internals.platform ?? process.platform) !== 'win32') {
+      throw new Error('independent Windows children require a local Windows Job')
+    }
     const env = targetEnvironment(spec)
     const containmentMode = this.selectContainmentMode('ordinary')
+    if (spec.windowsChildLifetime !== undefined && containmentMode !== 'windows-job') {
+      throw new Error('independent Windows children require a local Windows Job')
+    }
     let handle: LocalSubprocessHandle
     const internals: SpawnInternals = { ...this.internals, onSpillFailure: this.reportSpillFailure }
     if (containmentMode === 'fallback') {

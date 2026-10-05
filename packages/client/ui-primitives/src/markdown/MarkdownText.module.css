@@ -99,7 +99,7 @@
   margin: -2px 0 -2px 4px;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--dsw-radius-xs);
   color: var(--dsw-alias-label-secondary);
   background: transparent;
   vertical-align: -4px;
@@ -115,7 +115,7 @@
 
 .linkCopy:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
+  box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
   opacity: 1;
 }
 

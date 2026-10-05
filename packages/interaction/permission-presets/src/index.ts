@@ -202,6 +202,7 @@ export class PermissionPresetService extends TypertRemoteService {
 
   private readonly presets: Record<string, PresetSpec>
   private autoAdmit: (() => void) | undefined
+  private readonly sessionPresets = new Map<string, { spec: PresetSpec; admit: (session: Session) => void }>()
   private defaultSettings: () => PermissionSettings
 
   constructor(ctx: Context, config: Config) {
@@ -282,7 +283,7 @@ export class PermissionPresetService extends TypertRemoteService {
    * @returns every switchable preset name.
    */
   get names(): readonly string[] {
-    return [...Object.keys(this.presets), ...(this.autoAdmit === undefined ? [] : [AUTO_PRESET])]
+    return [...Object.keys(this.presets), ...(this.autoAdmit === undefined ? [] : [AUTO_PRESET]), ...this.sessionPresets.keys()]
   }
 
   /**
@@ -314,6 +315,24 @@ export class PermissionPresetService extends TypertRemoteService {
         this.emitCatalogChanged()
       }
     }, 'permissionPresets.registerAuto()')
+  }
+
+  /**
+   * Publish an effect-owned preset for current sessions, excluded from defaults.
+   * @param name - unique identity, distinct from configured and reserved names.
+   * @param spec - the execution knobs written through their canonical setters.
+   * @param admit - synchronous session eligibility check before a selection writes.
+   * @returns disposer that withdraws the option from the process catalog.
+   */
+  registerSessionPreset(name: string, spec: PresetSpec, admit: (session: Session) => void): () => Promise<void> {
+    return this.ctx.effect(() => {
+      if (!name.trim() || name === CUSTOM_PRESET || name === AUTO_PRESET || this.names.includes(name)) {
+        throw new Error(`permission: invalid or duplicate session preset "${name}"`)
+      }
+      this.sessionPresets.set(name, { spec, admit })
+      this.emitCatalogChanged()
+      return () => { this.sessionPresets.delete(name); this.emitCatalogChanged() }
+    }, 'permissionPresets.registerSessionPreset()')
   }
 
   /**
@@ -403,6 +422,7 @@ export class PermissionPresetService extends TypertRemoteService {
   private apply(session: Session, name: string, setApproval: (policy: ApprovalPolicy) => void): void {
     const spec = this.resolve(name)
     if (name === AUTO_PRESET) this.autoAdmit?.()
+    this.sessionPresets.get(name)?.admit(session)
     const current = this.current(session)
     const knobs = this.permissionState(session)
     const updateKnobs = (): void => {
@@ -475,6 +495,7 @@ export class PermissionPresetService extends TypertRemoteService {
   private specOf(name: string): PresetSpec | undefined {
     return this.presets[name]
       ?? (name === AUTO_PRESET && this.autoAdmit !== undefined ? AUTO_PRESET_SPEC : undefined)
+      ?? this.sessionPresets.get(name)?.spec
   }
 }
 

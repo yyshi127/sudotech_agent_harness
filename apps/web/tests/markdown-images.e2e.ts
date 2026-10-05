@@ -20,13 +20,16 @@ import {
   launchWebScaffold,
   seedSession,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, pinBrowserClock, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/markdown-images', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/markdown-images/ui.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = fileURLToPath(new URL(`./expected/markdown-images/ui${XIAOJING ? '.xiaojing' : ''}.expected.md`, import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'markdown-images-web-e2e'
 const REMOTE_ALT = 'Remote test image'
@@ -171,7 +174,7 @@ describe('web e2e: Markdown image rendering', () => {
 
   beforeAll(async () => {
     imageOrigin = await startImageOrigin()
-    scaffold = await launchWebScaffold({})
+    scaffold = await launchWebScaffold({ ...XIAOJING ? XIAOJING_ROUTE_CATALOG : {} })
     await writeFile(join(scaffold.workspaceCwd, 'valid.png'), PNG)
     await writeFile(join(scaffold.workspaceCwd, 'local-image.png'), PNG)
     await mkdir(join(scaffold.workspaceCwd, 'test workspace'))
@@ -228,6 +231,7 @@ describe('web e2e: Markdown image rendering', () => {
   })
 
   it.skipIf(MODE === 'record')('loads permitted images and shows authored text for failures', async () => {
+    onTestFailed(() => { console.error('OWNED_MARKDOWN_MEDIA_RESPONSES', JSON.stringify([...mediaResponses])) })
     onTestFailed(() => saveFailureShot(page, 'web-e2e-markdown-images'))
     await page.getByRole('treeitem').first().click()
     await page.getByRole('treeitem').nth(1).click()
@@ -263,7 +267,9 @@ describe('web e2e: Markdown image rendering', () => {
     expect(imageOrigin.requests).toEqual([{ path: '/image.png', referer: undefined }])
 
     const workspaceImage = page.getByRole('img', { name: WORKSPACE_ALT })
-    await expect.poll(() => mediaResponses.get(join(scaffold.workspaceCwd, 'valid.png'))).toBe(200)
+    // Authored absolute Markdown URLs preserve the forward-slash suffix in the request query.
+    const authoredPath = (relative: string) => `${scaffold.workspaceCwd}/${relative}`
+    await expect.poll(() => mediaResponses.get(authoredPath('valid.png'))).toBe(200)
     await expect.poll(() => workspaceImage.evaluate(element => (element as HTMLImageElement).naturalWidth, undefined, {
       timeout: 1_000,
     }))
@@ -274,16 +280,16 @@ describe('web e2e: Markdown image rendering', () => {
       await page.getByText(`Image preview unavailable · ${alt}`, { exact: true }).waitFor()
       expect(await page.getByRole('img', { name: alt }).count()).toBe(0)
     }
-    await page.getByText(`Image preview unavailable · ${join(scaffold.workspaceCwd, 'corrupt.png')}`, { exact: true }).waitFor()
+    await page.getByText(`Image preview unavailable · ${authoredPath('corrupt.png')}`, { exact: true }).waitFor()
     expect(mediaResponses).toEqual(new Map([
-      [join(scaffold.workspaceCwd, 'valid.png'), 200],
-      [`${scaffold.workspaceCwd}/./local-image.png`, 200],
-      [join(scaffold.workspaceCwd, 'test workspace/测试图.png'), 200],
-      [join(scaffold.workspaceCwd, 'test workspace/测试#100%.png'), 200],
-      [join(scaffold.workspaceCwd, 'oversized.png'), 413],
+      [authoredPath('valid.png'), 200],
+      [`${scaffold.workspaceCwd}${process.platform === 'win32' ? '\\' : '/'}./local-image.png`, 200],
+      [authoredPath('test workspace/测试图.png'), 200],
+      [authoredPath('test workspace/测试#100%.png'), 200],
+      [authoredPath('oversized.png'), 413],
       [join(scaffold.persistenceRoot, 'outside.png'), 200],
-      [join(scaffold.workspaceCwd, 'missing.png'), 404],
-      [join(scaffold.workspaceCwd, 'corrupt.png'), 200],
+      [authoredPath('missing.png'), 404],
+      [authoredPath('corrupt.png'), 200],
     ]))
 
     await page.getByRole('button', { name: `View full image: ${WORKSPACE_ALT}`, exact: true }).click()
@@ -309,7 +315,7 @@ describe('web e2e: Markdown image rendering', () => {
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
     await link.evaluate((element) => { element.scrollIntoView({ block: 'end' }) })
     await page.mouse.move(0, 0)
     await link.hover()

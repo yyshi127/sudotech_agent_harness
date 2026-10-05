@@ -30,8 +30,8 @@
   width: min(100%, 560px);
   margin-top: 12px;
   padding: 11px 14px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-state-business-tertiary);
 }
 
@@ -56,7 +56,7 @@
 .notice {
   margin: 0 0 14px;
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-state-business-tertiary);
   color: var(--dsw-alias-state-business-primary);
   font-size: 13px;
@@ -73,7 +73,7 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--dsw-alias-divider-primary);
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-bg-base);
 }
 

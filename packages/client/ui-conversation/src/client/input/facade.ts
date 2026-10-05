@@ -8,7 +8,7 @@
  * Package-private; the hub alone constructs it and wires the scoped event
  * listeners onto it.
  */
-import type { Context } from '@deepseek-ai/cordis'
+import { FiberState, type Context } from '@deepseek-ai/cordis'
 import type { InboxState } from '@deepseek-ai/dsh-agent/types'
 import {
   createSnapshotStore, type ObservableSnapshot, type SnapshotStore,
@@ -173,6 +173,7 @@ export class SessionInputShell implements SessionInput {
       activeClaimToken: () => this.activeClaimToken(),
       lexicon: () => this.lexicon.getSnapshot(),
       resolveLexicon: () => this.deps.inputTriggers?.()?.lexicon,
+      isRootClosing: () => this.isRootClosing(),
     })
     this.unregister = this.draftEditor.register()
     this.state = createSnapshotStore<InputState>(this.compose())
@@ -180,6 +181,11 @@ export class SessionInputShell implements SessionInput {
   }
 
   // ---- editor plumbing ----
+
+  private isRootClosing(): boolean {
+    const state = this.deps.actx.root.fiber.state
+    return state === FiberState.UNLOADING || state === FiberState.DISPOSED || state === FiberState.FAILED
+  }
 
   /** Re-project, run the claim watch, publish, and feed trigger tracking after every editor commit. */
   private onEditorUpdate(): void {
@@ -197,7 +203,7 @@ export class SessionInputShell implements SessionInput {
       this.dispatchRun(({ type: 'draft-changed', draft: this.projection.clipboardText }))
     }
     const caret = this.projection.caret
-    if (caret !== null) {
+    if (caret !== null && !this.isRootClosing()) {
       this.deps.inputTriggers?.()?.track(
         this.projection.detectText, caret, { tier: guardOf(this.core.state.phase) }, this.rev,
       )

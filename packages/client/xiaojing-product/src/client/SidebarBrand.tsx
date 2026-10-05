@@ -10,11 +10,11 @@ export interface SidebarBrandInjected {
   t: (key: XiaojingProductKey) => string
 }
 
-/** Enlarge the character within its transparent margins, retaining the shell-supplied frame. */
+/** Render the complete icon artwork within the shell-supplied frame. */
 export function SidebarBrandMark({ size }: PropsRuntime<'sidebar.brand.mark'>): ReactNode {
   return (
-    <svg className={css.avatar} width={size} height={size} viewBox="82 82 1090 1090" aria-hidden="true">
-      <image href="/xiaojing-character-logo.png" width="1254" height="1254" />
+    <svg className={css.avatar} width={size} height={size} viewBox="0 0 1254 1254" aria-hidden="true">
+      <image href="./xiaojing-character-logo.png" width="1254" height="1254" />
     </svg>
   )
 }
@@ -25,7 +25,7 @@ export function SidebarBrandName(
 ): ReactNode {
   return (
     <span className={css.name}>
-      <img className={css.wordmark} src="/sudo-logo-gray.png" alt={t('brandAlt')} />
+      <img className={css.wordmark} src="./sudo-logo-gray.png" alt={t('brandAlt')} />
       <span className={css.tagline}>{t('tagline')}</span>
     </span>
   )

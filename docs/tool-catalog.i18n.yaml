@@ -9,20 +9,23 @@
   en: 6cc2cd9ced70bb09
   zh: 1c0e6cb4ba2ed637
 /tool-schema-catalog/tool-package-map:
-  en: 02226f61a3080fc6
-  zh: d960f95e5ce00d9b
+  en: 092617ce813d2adb
+  zh: 24e7e6bf77dd6e2d
 /tool-schema-catalog/deepseek-ai-dsh-xiaojing-browser-control:
   en: 9b853cba0193ee36
   zh: 9b853cba0193ee36
+/tool-schema-catalog/deepseek-ai-dsh-xiaojing-browser-control/browser-connect:
+  en: 8732d1acbb764987
+  zh: 8732d1acbb764987
 /tool-schema-catalog/deepseek-ai-dsh-xiaojing-browser-control/browser-control:
-  en: d25f1691b7d3c9a0
-  zh: 0541cb390878d58d
+  en: 58e7e5dfc21d0e8d
+  zh: 158a28960c2293c1
 /tool-schema-catalog/deepseek-ai-dsh-xiaojing-computer-control:
   en: f0f93c8436c40b0f
   zh: f0f93c8436c40b0f
 /tool-schema-catalog/deepseek-ai-dsh-xiaojing-computer-control/computer-control:
-  en: 836ac0a1159251b8
-  zh: 836ac0a1159251b8
+  en: 423fa76d3a83e421
+  zh: 423fa76d3a83e421
 /tool-schema-catalog/deepseek-ai-dsh-plugin-manager:
   en: e0143916bb634762
   zh: e0143916bb634762

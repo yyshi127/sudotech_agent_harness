@@ -22,7 +22,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionListState, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { ContextPressureProjection } from '@deepseek-ai/dsh-token-meter/client'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SubmitOutcome } from '../src/client/contract/input.ts'
 import { SessionInputShell } from '../src/client/input/facade.ts'
@@ -47,7 +47,7 @@ afterEach(cleanup)
 const ZERO_RECT = (): DOMRect => ({ top: 0, bottom: 0 }) as DOMRect
 Range.prototype.getBoundingClientRect = ZERO_RECT
 
-const SCTX = {} as Context
+const SCTX = new Context()
 const SID = 's1' as SessionId
 
 function snapshotOf(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
@@ -1068,9 +1068,10 @@ describe('running and lock semantics', () => {
   })
 
   it.each([
+    ['ordinary mode', {}],
     ['active plan', { plan: { active: true, pending: false } }],
     ['active goal', { goal: { phase: 'active' as const, objective: 'inspect files' } }],
-  ])('%s keeps ordinary generic-file intake enabled', (_name, projection) => {
+  ])('%s accepts images and documents through the same file picker', (_name, projection) => {
     const added = vi.fn(() => null)
     const { view, slotCalls, shell } = bench({ ...projection, addFiles: added })
     expect(view.container.querySelector<HTMLInputElement>('input[type="file"]')?.disabled).toBe(false)
@@ -1082,6 +1083,16 @@ describe('running and lock semantics', () => {
     expect(shell.pickFiles()).toBe(true)
     expect(click).toHaveBeenCalledOnce()
     click.mockRestore()
+    const files = [
+      new File([Uint8Array.of(1)], 'invoice.png', { type: 'image/png' }),
+      new File([Uint8Array.of(2)], 'invoice.pdf', { type: 'application/pdf' }),
+      new File([Uint8Array.of(3)], 'scan.bmp', { type: 'image/bmp' }),
+      new File([Uint8Array.of(4)], 'briefing.pptx', {
+        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      }),
+    ]
+    fireEvent.change(view.container.querySelector<HTMLInputElement>('input[type="file"]')!, { target: { files } })
+    expect(added).toHaveBeenCalledWith(files, undefined)
   })
 
   it.each([

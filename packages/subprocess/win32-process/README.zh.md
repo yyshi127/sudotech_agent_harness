@@ -34,6 +34,8 @@ kind: "package-library"
 
 进程创建在目标代码运行前设置 `STARTF_USESHOWWINDOW` 和 `SW_HIDE`。它保留控制台继承，不添加可能导致受限令牌下 DLL 初始化失败的 `CREATE_NO_WINDOW` 或 `CREATE_NEW_CONSOLE`。已有的父进程控制台窗口不会被隐藏。
 
+只有普通的当前令牌创建接受 `childLifetime: 'independent'`。其 Job 在保留 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 的同时加入 `JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK`，使目标仍受托管，而新建子进程不属于该 Job。外层宿主 Job 仍可能托管这些子进程。受限令牌创建和能力探测保留原来的后代进程归属限制。
+
 Windows ACL 沙箱在这些原语上增加 SID、DACL、grant、workspace 与公共 child 策略。
 
 - **继承控制描述符**——Job 创建接受可选的 fd-7 管道。`STARTUPINFO.cbReserved2/lpReserved2` 携带八槽 CRT 描述符表，其中包含标准句柄、关闭的槽 3–6，以及槽 7 的控制管道。该表保留到 CreateProcess 返回；临时句柄继承在成功和失败时均恢复。在 Node 启动前初始化该槽可避免覆盖 Node 已分配的描述符。

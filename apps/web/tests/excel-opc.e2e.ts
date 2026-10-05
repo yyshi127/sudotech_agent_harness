@@ -8,7 +8,8 @@ import { excelOpeningCases, excelOpeningFixture } from '../../../packages/client
 import { excelOpcCases, excelOpcFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/excel-opc-fixture.ts'
 import { excelXmlCases, excelXmlFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/excel-xml-fixture.ts'
 import { assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { newEnglishPage } from './support.ts'
+import { connectPreviewWorkspace } from './preview-workspace.ts'
 
 const snapshotDirectory = fileURLToPath(new URL('../../../snapshots/web/excel-opc', import.meta.url))
 const mode = webSnapshotMode()
@@ -29,7 +30,7 @@ describe.skipIf(mode === 'record')('web e2e: independent-writer Excel previews',
     page = await newEnglishPage(browser)
     consoleErrors = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await connectFreshWorkspace(page, scaffold.workspaceCwd)
+    await connectPreviewWorkspace(page, scaffold.workspaceCwd)
   })
 
   afterAll(async () => {

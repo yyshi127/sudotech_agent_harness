@@ -13,7 +13,7 @@ export interface RuntimeShadowPluginFixture {
 }
 
 /**
- * Stage a bundle whose transitive dependency impersonates an app-owned runtime package.
+ * Stage a bundle whose declared DSH peer requires a future runtime version.
  * @returns isolated profile home and plugin spec.
  */
 export function stageRuntimeShadowPlugin(): RuntimeShadowPluginFixture {
@@ -34,6 +34,7 @@ export function stageRuntimeShadowPlugin(): RuntimeShadowPluginFixture {
     dependencies: {
       '@deepseek-ai/dsh-app-boot': `file:${shadow.replaceAll('\\', '/')}`,
     },
+    peerDependencies: { '@deepseek-ai/dsh-app-boot': '^99.0.0' },
     dsh: { bundle: { patch: './cordis.patch.yml' } },
   }))
   writeFileSync(join(plugin, 'cordis.patch.yml'), '[]\n')

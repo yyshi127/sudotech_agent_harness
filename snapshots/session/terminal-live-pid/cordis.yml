@@ -1,0 +1,34 @@
+# Controlled native allocation; terminal services, tools, and persistence stay real.
+- id: llm-deepseek
+  config:
+    thinking: disabled
+    models:
+      - id: deepseek-v4-flash
+        contextWindow: 1000000
+
+- id: llm-deepseek-account
+  disabled: true
+
+- id: plugin-package-inventory-deepseek
+  disabled: true
+
+- id: skill-filesystem
+  config:
+    includeDefaultRoots: false
+
+- insert:
+    - id: terminal-live-pid-native
+      name: './native-fixture.mjs'
+    - id: terminal-live-pid-registry
+      name: '@deepseek-ai/dsh-terminal'
+    - id: terminal-live-pid-shell
+      name: '@deepseek-ai/dsh-terminal-bash'
+      config:
+        shellDialect: bash
+        shellPath: snapshot-controlled-shell
+        pollIntervalMs: 5
+        exactProbeAfterMs: 10
+        idleSilenceMs: 20
+        handoffGraceMs: 10
+        timeoutMs: 1500
+        disposeGraceMs: 20

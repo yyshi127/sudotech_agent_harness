@@ -3,29 +3,29 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/interaction/user-approval/README.md
 /:
-  en: 515e991a5671711d
-  zh: 194d48a8da9b51b0
+  en: 2666821cbcc9ce56
+  zh: 17e76f0bc6255b75
 /deepseek-ai-dsh-user-approval:
   en: 548c7fcc396775de
   zh: ad82c4872acbf83a
 /deepseek-ai-dsh-user-approval/summary:
-  en: 9b438f002e664c9e
-  zh: 1f1adf3db6a56ddc
+  en: d893786a428c1486
+  zh: 06290b49a695c280
 /deepseek-ai-dsh-user-approval/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
 /deepseek-ai-dsh-user-approval/use-this-package:
-  en: dd034141bc1a7634
-  zh: a44f1f90dac2a444
+  en: 43f5d0d80418dcae
+  zh: e1b6cac6825ee847
 /deepseek-ai-dsh-user-approval/use-this-package/composing-answerers:
   en: 3618ddc3386e65f0
   zh: d6c0ac91aae122bb
 /deepseek-ai-dsh-user-approval/use-this-package/setting-the-policy:
-  en: d4ef1901ac78b431
-  zh: 822b97f8bed1b2c9
+  en: b5827795fd5d161b
+  zh: 5617c95e96a9ccbd
 /deepseek-ai-dsh-user-approval/use-this-package/requesting-a-decision:
-  en: dc465de82799bab0
-  zh: 51144cc77bb15689
+  en: 35579ae2253627e9
+  zh: b79cd70a07d75705
 /deepseek-ai-dsh-user-approval/use-this-package/what-the-model-and-user-see:
   en: 016bf3cd1891d3d7
   zh: 33e7e5ffaf95f5e7
@@ -36,8 +36,8 @@
   en: 3abbfecbac6271f1
   zh: b14f235a230f561e
 /deepseek-ai-dsh-user-approval/understand-the-implementation/dispatch:
-  en: 38c3646e45d3dddd
-  zh: 3363dde8c786d6b2
+  en: a188b1dfc531ba15
+  zh: 0e898768670f1d67
 /deepseek-ai-dsh-user-approval/understand-the-implementation/policy-and-the-runtime-context-snapshot:
   en: a8df8823aa0b015d
   zh: ed0906f11645e7fd
@@ -54,8 +54,8 @@
   en: d23980f003b42fbb
   zh: 532f0174de5d87b5
 /deepseek-ai-dsh-user-approval/model-experience/current-approval-policy-context/what-the-model-sees:
-  en: a38775858ccd61f3
-  zh: c19c76827be7aabf
+  en: ce7623b1f568e5c8
+  zh: 6fa2322003b689ab
 /deepseek-ai-dsh-user-approval/model-experience/current-approval-policy-context/what-the-model-sees/ask-policy-contribution:
   en: b9f1262c97ec7568
   zh: 8a6613695f896f70
@@ -81,8 +81,8 @@
   en: f5d5f97a153f7c70
   zh: 4db81881ebdcfcc4
 /deepseek-ai-dsh-user-approval/known-limitations-and-deferred-work:
-  en: c6928515ff91ee7e
-  zh: c23bd844b4907f12
+  en: 3b18f477eb88fb45
+  zh: 618c6f502cab8edc
 /deepseek-ai-dsh-user-approval/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 3bb0c20c93f16f98

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { financeApprovalReason } from '../src/approval-presentation.ts'
+import { financeApprovalReason, financeCreationApprovalScope } from '../src/approval-presentation.ts'
+import { FinanceClientId } from '../src/types.ts'
 import { financeResultContent } from '../src/result-presentation.ts'
 
 const content = (value: unknown) => [{ type: 'text', text: JSON.stringify(value) }]
@@ -90,6 +91,30 @@ describe('finance result presentation', () => {
 })
 
 describe('finance approval presentation', () => {
+  it('groups new records in the same ledger without grouping other operations, configurations or upload targets', () => {
+    const preview = { id: 'prepared-one', account: { id: '35616', name: '演示账套' } }
+    const first = financeCreationApprovalScope('create-voucher', FinanceClientId('client-one'), 'config-one', preview, 'storage-one')
+    const second = financeCreationApprovalScope('create-voucher', FinanceClientId('client-one'), 'config-one',
+      { ...preview, id: 'prepared-two', totalDebit: '200.00' }, 'storage-one')
+    expect([first.category, first.scope]).toEqual([second.category, second.scope])
+    for (const different of [
+      financeCreationApprovalScope('create-journal', FinanceClientId('client-one'), 'config-one', preview, 'storage-one'),
+      financeCreationApprovalScope('create-voucher', FinanceClientId('client-two'), 'config-one', preview, 'storage-one'),
+      financeCreationApprovalScope('create-voucher', FinanceClientId('client-one'), 'config-two', preview, 'storage-one'),
+      financeCreationApprovalScope('create-voucher', FinanceClientId('client-one'), 'config-one', preview, 'storage-two'),
+    ]) expect([first.category, first.scope]).not.toEqual([different.category, different.scope])
+    expect(first.displayLabel?.zh).toContain('演示账套')
+    expect(first.label).not.toMatch(/prepared-one|config-one|storage-one/)
+  })
+
+  it('keeps income and expense, receivables and payables, and master-data kinds distinct', () => {
+    const scope = (action: Parameters<typeof financeCreationApprovalScope>[0], variant: string) =>
+      financeCreationApprovalScope(action, FinanceClientId('client-one'), 'config-one', { accountName: '演示账套' }, variant)
+    expect(scope('create-journal', 'income').scope).not.toBe(scope('create-journal', 'expense').scope)
+    expect(scope('create-open-item', 'receivable').scope).not.toBe(scope('create-open-item', 'payable').scope)
+    expect(scope('create-master-data', 'subject').scope).not.toBe(scope('create-master-data', 'auxiliary-item').scope)
+  })
+
   it('shows a complete voucher in business language without local IDs or storage configuration', () => {
     const reason = financeApprovalReason('create-voucher', {
       id: 'local-id', version: 2, account: { id: '35616', name: '演示账套' },

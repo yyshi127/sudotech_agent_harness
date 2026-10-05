@@ -7,12 +7,18 @@
 
 import { existsSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, join, sep } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import type { SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import { LocalSandboxProvider } from '@deepseek-ai/dsh-sandbox-local'
+import type { SandboxMode, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import ToolRuntime, { defineContentToolFixture, TOOL_ABORTED_BEFORE_DISPATCH, type ToolExecutionInput } from '@deepseek-ai/dsh-tools'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import SandboxPolicyService, { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
+import ApprovalService, { type ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
+import { LocalSandboxProvider, type Config } from '@deepseek-ai/dsh-sandbox-local'
 
 /** Cross-file state shared with the vi.mock factory (hoisting contract). */
 const mockState = vi.hoisted(() => ({
@@ -66,9 +72,9 @@ vi.mock('@deepseek-ai/dsh-sandbox-windows-acl', () => {
 
 const WORKSPACE_SID = 'S-1-4-42-42'
 
-async function setup() {
+async function setup(config: Config = {}) {
   const ctx = new Context()
-  const fiber = await ctx.plugin(LocalSandboxProvider, {})
+  const fiber = await ctx.plugin(LocalSandboxProvider, config)
   const sandbox = ctx.sandbox as LocalSandboxProvider
   sandbox.internals = { platform: 'win32', windowsAclRunnerArgs: ['node', 'windows-acl-runner.js'] }
   return { ctx, sandbox, fiber }
@@ -81,6 +87,30 @@ function workspaceRoot(): string {
 function flag(argv: readonly string[], name: string): string | undefined {
   const index = argv.indexOf(name)
   return index < 0 ? undefined : argv[index + 1]
+}
+
+async function toolSession(ctx: Context, ws: string, mode: SandboxMode = 'workspace-write') {
+  await ctx.plugin(SystemPrompt)
+  await ctx.plugin(ToolRuntime)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(SandboxPolicyService, { mode, workspaceRoot: ws })
+  await ctx.plugin(ApprovalService)
+  const id = SessionId('observe-first')
+  const session = Session.create(id, undefined, { version: 4, id, createdAt: 0, isSeeded: false, cwd: ws })
+  session.append('turn/start', { turn: 1 })
+  // The dispatcher and approval seam use only these fields of the live agent.
+  const agent = { id, ctx, session } as NonNullable<ToolExecutionInput['agent']>
+  const execute = (signal = new AbortController().signal, subject = agent) => ctx.tools.execute({
+    agent: subject, signal, callId: ToolCallId('observe'), name: 'observe', arguments: {},
+  })
+  return { agent, session, execute }
+}
+
+function registerObserver(ctx: Context, execute: () => void) {
+  return ctx.tools.register(defineContentToolFixture({
+    name: 'observe', description: 'Observe an owned workspace', parameters: {},
+    async execute() { execute(); return [] },
+  }))
 }
 
 describe('windows-acl write grants (LocalSandboxProvider)', () => {
@@ -102,6 +132,172 @@ describe('windows-acl write grants (LocalSandboxProvider)', () => {
     }
     for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true })
   }
+
+  it('prepares the standing workspace grant before the dispatched tool observes a file version', async () => {
+    const { ctx, fiber } = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute, agent } = await toolSession(ctx, ws)
+      const body = vi.fn(() => {
+        expect(mockState.grants).toEqual([
+          expect.objectContaining({ writeSid: WORKSPACE_SID, added: [{ path: ws, standing: true }], disposed: false }),
+        ])
+      })
+      registerObserver(ctx, body)
+      expect((await execute()).isError).toBe(false)
+      expect((await execute()).isError).toBe(false)
+      const aliasId = SessionId('same-workspace-alias')
+      const alias = Session.create(aliasId, undefined, { version: 4, id: aliasId, createdAt: 0, isSeeded: false, cwd: `${ws}${sep}.` })
+      expect((await execute(new AbortController().signal, { ...agent, id: aliasId, session: alias })).isError).toBe(false)
+      expect(body).toHaveBeenCalledTimes(3)
+      expect(mockState.grants).toHaveLength(1)
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
+
+  it.each(['deny', 'cancel', 'rejected', 'guard'] as const)('does not grant a workspace when the registry ends the call through %s', async (kind) => {
+    const { ctx, fiber } = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute } = await toolSession(ctx, ws)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      if (kind === 'guard') ctx.tools.guard(() => 'workspace observation denied')
+      else if (kind === 'rejected') {
+        ctx.on('tools/pre-execute', async () => ({ kind: 'ask' }))
+        ctx.on('approval/request', async () => 'rejected')
+      } else ctx.on('tools/pre-execute', async () => ({ kind, reason: 'workspace observation denied' }))
+      expect((await execute()).isError).toBe(true)
+      expect(body).not.toHaveBeenCalled()
+      expect(mockState.grants).toEqual([])
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
+
+  it('does not grant when cancellation overtakes an awaited pre-execute gate', async () => {
+    const { ctx, fiber } = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute } = await toolSession(ctx, ws)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      const entered = Promise.withResolvers<undefined>()
+      const release = Promise.withResolvers<undefined>()
+      ctx.on('tools/pre-execute', async (_exec, next) => { entered.resolve(undefined); await release.promise; return next() })
+      const controller = new AbortController()
+      const pending = execute(controller.signal)
+      await entered.promise
+      controller.abort(new Error('owned cancellation'))
+      release.resolve(undefined)
+      await expect(pending).resolves.toMatchObject({ isError: true, error: { info: { code: TOOL_ABORTED_BEFORE_DISPATCH } } })
+      expect(body).not.toHaveBeenCalled()
+      expect(mockState.grants).toEqual([])
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
+
+  it.each(['linux', 'configured-runner'] as const)('does not prepare Windows ACLs with %s', async (kind) => {
+    const { ctx, sandbox, fiber } = await setup(kind === 'configured-runner'
+      ? { runnerCommand: ['custom-runner'], runnerFailureSignatures: ['custom failure'] } : {})
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      if (kind === 'linux') sandbox.internals.platform = 'linux'
+      const { execute } = await toolSession(ctx, ws)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      expect((await execute()).isError).toBe(false)
+      expect(body).toHaveBeenCalledTimes(1)
+      expect(mockState.grants).toEqual([])
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
+
+  it.each(['read-only', 'danger-full-access'] as const)('does not prepare ACLs in %s and resolves a later approved workspace-write switch', async (mode) => {
+    const { ctx, fiber } = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute, session } = await toolSession(ctx, ws, mode)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      expect((await execute()).isError).toBe(false)
+      expect(mockState.grants).toEqual([])
+      const entered = Promise.withResolvers<undefined>()
+      const release = Promise.withResolvers<ApprovalOutcome>()
+      ctx.on('tools/pre-execute', async () => ({ kind: 'ask' }))
+      ctx.on('approval/request', () => { entered.resolve(undefined); return release.promise })
+      const pending = execute()
+      await entered.promise
+      expect(mockState.grants).toEqual([])
+      setSandboxMode(session, 'workspace-write')
+      release.resolve('allowed-once')
+      expect((await pending).isError).toBe(false)
+      expect(mockState.grants).toHaveLength(1)
+      expect(body).toHaveBeenCalledTimes(2)
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
+
+  it('does not prepare a workspace downgraded while approval is pending', async () => {
+    const { ctx, fiber } = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute, session } = await toolSession(ctx, ws)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      const entered = Promise.withResolvers<undefined>()
+      const release = Promise.withResolvers<ApprovalOutcome>()
+      ctx.on('tools/pre-execute', async () => ({ kind: 'ask' }))
+      ctx.on('approval/request', () => { entered.resolve(undefined); return release.promise })
+      const pending = execute()
+      await entered.promise
+      expect(mockState.grants).toEqual([])
+      setSandboxMode(session, 'read-only')
+      release.resolve('allowed-once')
+      expect((await pending).isError).toBe(false)
+      expect(body).toHaveBeenCalledTimes(1)
+      expect(mockState.grants).toEqual([])
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
+
+  it('does not prepare a different provider realm or an agentless call', async () => {
+    const { ctx, fiber } = await setup()
+    const foreign = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute, agent } = await toolSession(ctx, ws)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      expect((await execute(new AbortController().signal, { ...agent, ctx: foreign.ctx })).isError).toBe(false)
+      expect((await ctx.tools.execute({ signal: new AbortController().signal, callId: ToolCallId('agentless'), name: 'observe', arguments: {} })).isError).toBe(false)
+      expect(body).toHaveBeenCalledTimes(2)
+      expect(mockState.grants).toEqual([])
+    } finally {
+      await foreign.fiber.dispose(); await foreign.ctx.fiber.dispose()
+      await fiber.dispose(); await ctx.fiber.dispose(); cleanup()
+    }
+  })
+
+  it('stops before the tool body on ACL failure and removes preparation on provider disposal', async () => {
+    const { ctx, fiber } = await setup()
+    const ws = workspaceRoot()
+    scratch.push(ws)
+    try {
+      const { execute } = await toolSession(ctx, ws)
+      const body = vi.fn()
+      registerObserver(ctx, body)
+      mockState.addFailure = new Error('standing workspace grant refused')
+      expect(await execute()).toMatchObject({ isError: true, error: { message: 'standing workspace grant refused' } })
+      expect(body).not.toHaveBeenCalled()
+      expect(mockState.grants).toHaveLength(1)
+      expect(mockState.grants[0]?.disposed).toBe(true)
+      await fiber.dispose()
+      expect((await execute()).isError).toBe(false)
+      expect(body).toHaveBeenCalledTimes(1)
+      expect(mockState.grants).toHaveLength(1)
+    } finally { await fiber.dispose(); await ctx.fiber.dispose(); cleanup() }
+  })
 
   it('does not create grants for a cancelled confinement request', async () => {
     const { sandbox, fiber } = await setup()

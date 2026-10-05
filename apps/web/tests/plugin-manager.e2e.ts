@@ -357,7 +357,11 @@ describe('web e2e: plugin manager', () => {
       .toMatchObject({ enabled: true, error: { code: 'operation-error' }, rows: [] })
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'missing-bundle.expected.md'),
       await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
-        replacements: [[scaffold.harnessHome, '{{home}}']],
+        replacements: [
+          [join(scaffold.harnessHome, 'profiles', 'scaffold').replaceAll('\\', '\\\\'), '{{home}}/profiles/scaffold'],
+          [join(scaffold.harnessHome, 'profiles', 'scaffold'), '{{home}}/profiles/scaffold'],
+          [scaffold.harnessHome, '{{home}}'],
+        ],
       }), MODE)
     await toggle.click()
     await expect.poll(async () => (JSON.parse(await homeFile('profiles', 'scaffold', 'package.json')) as {
@@ -609,7 +613,7 @@ describe('web e2e: plugin manager', () => {
     try {
       await teamPage.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await connectFreshWorkspaceZh(teamPage, scaffold.workspaceCwd)
-      const agent = scaffold.ctx.agents.list()[0]
+      const agent = scaffold.ctx.agents.list().find(candidate => candidate.session.header.cwd === join(scaffold.workspaceCwd, 'workspace'))
       if (agent === undefined) throw new Error('connected Team workspace did not create an Agent')
       // Session actions render only after the conversation leaves its blank state.
       agent.session.append('turn/start', { turn: 1 })

@@ -11,6 +11,8 @@ kind: "package-reference"
 
 为当前 Web 会话或未来会话选择权限预设。通用设置行只更改之后创建会话所用的默认值；composer 与 `/permission` 选择器切换当前会话。默认 Web 提供仅可查看、工作区内修改与完全权限。显式加载实验 Auto integration 后，当前会话选择器会增加带 `EXP` 标记的 Auto review。通过可见选项选择完全权限或 Auto 时，需要分别确认对应风险；完整的 `/permission <preset>` 命令直接执行。宿主通过 Session 投影确认每次变更。
 
+小兢的办公专用 `xiaojing-no-approval` 选项在两个选择器中显示为**自动审批(实验性)**，并要求单独确认风险；composer 选择器使用重叠双对勾的盾牌图标，财务会话不显示此项。小兢任务执行中，会话顶部也提供同一个权限选择器，因此审批替换输入框时仍能启用或撤销该模式。
+
 ## 目录
 
 - [使用本包](#use-this-package)

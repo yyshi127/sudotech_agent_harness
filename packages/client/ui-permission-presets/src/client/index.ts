@@ -36,7 +36,7 @@ import type { CommandUiContract, SelectOption } from '@deepseek-ai/dsh-client-ui
 import type { ClientSessionContext } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { PermissionCatalogDirectory } from './catalog.ts'
-import { PermissionSelect } from './PermissionSelect.tsx'
+import { NO_APPROVAL_PRESET, PermissionSelect, RunningPermissionSelect } from './PermissionSelect.tsx'
 import type { PermissionSelectInjected } from './PermissionSelect.tsx'
 import { PermissionRow } from './PermissionRow.tsx'
 import type { PermissionRowInjected } from './PermissionRow.tsx'
@@ -83,22 +83,22 @@ function optionsOf(
   return catalog.options
     .map(option => ({
       id: option.value,
-      label: option.value === AUTO_REVIEW_PRESET
+      label: option.value === NO_APPROVAL_PRESET ? t('noApproval.label') : option.value === AUTO_REVIEW_PRESET
         ? t('auto.label')
         : displayPermissionPreset(option.value, option.name, t),
       ...(option.value === AUTO_REVIEW_PRESET ? { badge: t('auto.badge') } : {}),
-      ...(option.value === AUTO_REVIEW_PRESET
+      ...(option.value === NO_APPROVAL_PRESET ? { detail: t('noApproval.description') } : option.value === AUTO_REVIEW_PRESET
         ? { detail: t('auto.description') }
         : option.description !== undefined ? { detail: option.description } : {}),
       ...(option.value === currentValue ? { active: true } : {}),
-      ...(option.value === FULL_ACCESS_PRESET || option.value === AUTO_REVIEW_PRESET
+      ...(option.value === FULL_ACCESS_PRESET || option.value === AUTO_REVIEW_PRESET || option.value === NO_APPROVAL_PRESET
         ? {
           confirmation: {
-            title: t(option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.title' : 'confirm.title'),
-            description: t(option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.description' : 'confirm.description'),
-            acknowledgeLabel: t(option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.acknowledge' : 'confirm.acknowledge'),
+            title: t(option.value === NO_APPROVAL_PRESET ? 'noApproval.confirm.title' : option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.title' : 'confirm.title'),
+            description: t(option.value === NO_APPROVAL_PRESET ? 'noApproval.confirm.description' : option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.description' : 'confirm.description'),
+            acknowledgeLabel: t(option.value === NO_APPROVAL_PRESET ? 'noApproval.confirm.acknowledge' : option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.acknowledge' : 'confirm.acknowledge'),
             cancelLabel: t('confirm.cancel'),
-            confirmLabel: t(option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.enable' : 'confirm.enable'),
+            confirmLabel: t(option.value === NO_APPROVAL_PRESET ? 'noApproval.confirm.enable' : option.value === AUTO_REVIEW_PRESET ? 'auto.confirm.enable' : 'confirm.enable'),
           },
         }
         : {}),
@@ -173,6 +173,17 @@ export function apply(ctx: ClientContext): void {
     }),
   }, PermissionSelect))
 
+  ctx.slots.inject('conversation.session.header.actions', () => ctx.slots.register({
+    name: 'conversation.session.header.actions',
+    id: 'running-permission',
+    order: 90,
+    locale: PERMISSION_ACCESS_NS,
+    inject: (sessionId: SessionId): PermissionSelectInjected => ({
+      hooks: { permissionCatalog: catalog.store },
+      select: preset => submit(sessionId, preset),
+    }),
+  }, RunningPermissionSelect))
+
   ctx.effect(() => command.decorate({
     name: 'permission',
     // The Session's current value alone decides availability. A missing catalog
@@ -184,7 +195,9 @@ export function apply(ctx: ClientContext): void {
       options: async (session) => {
         const selection = selectionOf(sessionFor(session))
         if (selection === undefined) throw new Error('permission presets are not available on this host')
-        return optionsOf(await catalog.load(), selection.currentValue, t)
+        const options = optionsOf(await catalog.load(), selection.currentValue, t)
+        const preset = sessionFor(session)?.projections.faceOf('agentPreset').getSnapshot()
+        return preset === 'finance' ? options.filter(option => option.id !== NO_APPROVAL_PRESET) : options
       },
       onSelect: (option, session) => submit(session.sessionId, option.id).then(() => undefined),
     },

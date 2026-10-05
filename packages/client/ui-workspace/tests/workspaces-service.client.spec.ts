@@ -18,7 +18,7 @@ import { LayoutController } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { RowToast } from '../src/client/contract/slots.ts'
 import { DirectoryBrowseError, UiWorkspaceService } from '../src/client/navigation.ts'
-import { WorkspaceCategoryRegistry } from '../src/client/category-registry.ts'
+import { WorkspaceCategoryRegistry, type WorkspaceCategoryState } from '../src/client/category-registry.ts'
 import { createWorkspaceViewStore, FLAT_SESSION_ORDER_KEY } from '../src/client/stores.ts'
 import { UNGROUPED_KEY } from '../src/client/tree.ts'
 
@@ -267,10 +267,12 @@ class FakeDirectoryPicker {
 }
 
 interface BenchOptions {
+  readonly configureLayout?: (layout: LayoutController) => void
   readonly configureWorkspaces?: (workspaces: FakeWorkspaces) => void
   readonly workspaces?: WorkspaceSnapshot
   readonly sessions?: SessionListState
   readonly configureSessions?: (sessions: FakeSessions) => void
+  readonly configureCategories?: (categories: WorkspaceCategoryRegistry) => void
 }
 
 function bench(options: BenchOptions = {}) {
@@ -284,12 +286,14 @@ function bench(options: BenchOptions = {}) {
   const selectPanel = vi.spyOn(layout, 'selectPanel')
   ctx.provide('layout', layout)
   ctx.effect(() => () => { layout.dispose() })
+  options.configureLayout?.(layout)
   const directoryPicker = new FakeDirectoryPicker()
   const workspaces = new FakeWorkspaces(options.workspaces ?? workspaceState([], [], 'pending'))
   const sessions = new FakeSessions(options.sessions ?? sessionState([], 'pending'))
   options.configureWorkspaces?.(workspaces)
   options.configureSessions?.(sessions)
   const categories = new WorkspaceCategoryRegistry()
+  options.configureCategories?.(categories)
   const view = createWorkspaceViewStore().create()
   const notify = vi.fn<(toast: RowToast) => void>()
   const uiWorkspace = new UiWorkspaceService(
@@ -477,6 +481,40 @@ describe('UiWorkspaceService', () => {
     expect(b.workspaces.list.getSnapshot().items).toEqual([workspace('default')])
     expect(b.notify).not.toHaveBeenCalled()
     expect(b.sessions.retain).not.toHaveBeenCalled()
+  })
+
+  it('releases a startup reference silently when retention supersedes its navigation', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const b = bench({ workspaces: workspaceState([workspace('a')]), sessions: sessionState([], 'pending') })
+    const retain = b.sessions.retain.getMockImplementation()!
+    b.sessions.retain.mockImplementationOnce((target, options) => {
+      const reference = retain(target, options)
+      b.layout.selectPanel('other-panel' as MainPanelId)
+      return reference
+    })
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(b.sessions.retained).toHaveLength(1)
+    expect(b.sessions.retained[0]!.release).toHaveBeenCalledOnce()
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith('other-panel')
+    expect(warning).not.toHaveBeenCalled()
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledOnce()
+  })
+
+  it('reports an unrelated startup retention failure after navigation is superseded', async () => {
+    const failure = new Error('retention failed')
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const b = bench({ workspaces: workspaceState([workspace('a')]), sessions: sessionState([], 'pending') })
+    b.sessions.retain.mockImplementationOnce(() => {
+      b.layout.selectPanel('other-panel' as MainPanelId)
+      throw failure
+    })
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(warning).toHaveBeenCalledExactlyOnceWith('initial Session restoration failed:', failure)
+    expect(b.sessions.retained).toHaveLength(0)
   })
 
   it('retains an explicit main target before revealing its Conversation', () => {
@@ -825,6 +863,286 @@ describe('UiWorkspaceService', () => {
     ])
     expect(b.sessions.retained[0]!.release).toHaveBeenCalledOnce()
     expect(b.sessions.retained[1]!.release).not.toHaveBeenCalled()
+  })
+
+
+  it.each(['listed', 'hidden'])('does not implicitly open an only %s reserved Workspace at startup', async (visibility) => {
+    const b = bench()
+    b.categories.register({ id: 'finance', order: 10, activate: async () => {},
+      source: new MutableSource({ label: 'Finance', workspaceIds: visibility === 'listed' ? [wid('finance')] : [],
+        reservedWorkspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] }),
+    })
+    b.workspaces.list.set(workspaceState([workspace('finance')]))
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
+    expect(b.workspaces.initializeDefault).not.toHaveBeenCalled()
+  })
+
+  it('chooses the recent ordinary Workspace instead of newer listed or hidden category history', async () => {
+    const b = bench()
+    b.categories.register({ id: 'finance', order: 10, activate: async () => {},
+      source: new MutableSource({ label: 'Finance', workspaceIds: [wid('finance')],
+        reservedWorkspaceIds: [wid('finance'), wid('hidden-finance')], newSessionDisabledWorkspaceIds: [] }),
+    })
+    b.workspaces.list.set(workspaceState([
+      workspace('office', [sid('office-history')]), workspace('finance', [sid('finance-history')]),
+      workspace('hidden-finance', [sid('hidden-history')]),
+    ]))
+    b.sessions.list.set(sessionState([
+      summary('office-history', { updatedAt: 1 }), summary('finance-history', { updatedAt: 100 }),
+      summary('hidden-history', { updatedAt: 200 }),
+    ]))
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('office') })
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-office'), { source: 'mainView' })
+  })
+
+  it.each([false, true])('preserves an explicit saved reserved Session with blank=%s', async (blank) => {
+    const saved = sid('saved-finance')
+    const backing = persistSelection({ sessionId: saved })
+    const b = bench({
+      configureCategories: (categories) => { categories.register({ id: 'finance', order: 10, activate: async () => {},
+        source: new MutableSource({ label: 'Finance', ready: false, loadError: 'catalog unavailable',
+          workspaceIds: [], newSessionDisabledWorkspaceIds: [] }),
+      }) },
+      workspaces: workspaceState([workspace('finance', [saved])]),
+      sessions: sessionState([summary('saved-finance', { blank, cwd: '/w/finance' })]),
+    })
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(saved, { source: 'mainView' })
+    if (blank) expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('finance'), sessionId: saved })
+    else expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(JSON.parse(backing.get('dsh.sessions.current')!)).toEqual({ sessionId: saved })
+  })
+
+  it.each([false, true])('restores saved ordinary history while category membership is pending with blank=%s', async (blank) => {
+    persistSelection({ sessionId: sid('saved-office') })
+    const b = bench({
+      configureCategories: (categories) => { categories.register({ id: 'finance', order: 10, activate: async () => {},
+        source: new MutableSource({ label: 'Finance', ready: false, loadError: 'catalog unavailable',
+          workspaceIds: [], newSessionDisabledWorkspaceIds: [] }),
+      }) },
+      workspaces: workspaceState([workspace('office', [sid('saved-office')])]),
+      sessions: sessionState([summary('saved-office', { blank, cwd: '/w/office' })]),
+    })
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('saved-office'), { source: 'mainView' })
+  })
+
+  it('restores a saved subagent address without waiting for category membership', async () => {
+    const address: SubagentAddress = { parentSessionId: sid('parent'), childSessionId: sid('child'), mode: 'continuable' }
+    persistSelection({ sessionId: address.childSessionId, subagentAddress: address })
+    const b = bench({
+      configureCategories: (categories) => { categories.register({ id: 'finance', order: 10, activate: async () => {},
+        source: new MutableSource({ label: 'Finance', ready: false, workspaceIds: [], newSessionDisabledWorkspaceIds: [] }),
+      }) },
+      workspaces: workspaceState(), sessions: sessionState(),
+    })
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(address, { source: 'mainView' })
+    expect(b.workspaces.initializeDefault).not.toHaveBeenCalled()
+  })
+
+  it.each(['reserved-only', 'ordinary'])('waits for late category membership before %s startup fallback', async (destination) => {
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: false,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({ configureCategories: (categories) => { categories.register({
+      id: 'finance', order: 10, activate: async () => {}, source,
+    }) } })
+    b.workspaces.list.set(workspaceState(destination === 'ordinary'
+      ? [workspace('office'), workspace('finance', [], '2026-03-01T00:00:00.000Z')]
+      : [workspace('finance')]))
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
+    source.set({ label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    await setImmediate()
+    if (destination === 'ordinary') {
+      expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('office') })
+      expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-office'), { source: 'mainView' })
+    } else {
+      expect(b.sessions.create).not.toHaveBeenCalled()
+      expect(b.sessions.retain).not.toHaveBeenCalled()
+    }
+    expect(b.workspaces.initializeDefault).not.toHaveBeenCalled()
+  })
+
+  it('does not replace a manual Workspace selection after late category membership arrives', async () => {
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: false,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({ configureCategories: (categories) => { categories.register({
+      id: 'finance', order: 10, activate: async () => {}, source,
+    }) } })
+    b.workspaces.list.set(workspaceState([workspace('finance'), workspace('chosen-office')]))
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    b.uiWorkspace.openSession(sid('chosen-history'))
+    source.set({ label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    await setImmediate()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen-history'), { source: 'mainView' })
+  })
+
+  it('preserves an in-flight manually chosen Workspace when late membership arrives', async () => {
+    const created = Promise.withResolvers<SessionId>()
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: false,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({
+      configureCategories: (categories) => { categories.register({ id: 'finance', order: 10, activate: async () => {}, source }) },
+      configureSessions: (sessions) => { sessions.create.mockReturnValueOnce(created.promise) },
+    })
+    b.workspaces.list.set(workspaceState([
+      workspace('chosen-office'), workspace('recent-office', [], '2026-03-01T00:00:00.000Z'), workspace('finance'),
+    ]))
+    b.sessions.list.set(sessionState())
+    const opening = b.uiWorkspace.openWorkspace(wid('chosen-office'))
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('chosen-office') })
+    source.set({ label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    created.resolve(sid('chosen-blank'))
+    await opening
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('chosen-office') })
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen-blank'), { source: 'mainView' })
+  })
+
+  it.each(['default', 'ordinary'])('restores %s startup behind a panel selected before the Workspace observer', async (destination) => {
+    const panel = 'prior-panel' as MainPanelId
+    const item = workspace(destination)
+    const b = bench({
+      configureLayout: (layout) => { layout.selectPanel(panel) },
+      configureWorkspaces: (workspaces) => {
+        workspaces.initializeDefault.mockImplementation(async () => {
+          workspaces.list.set(workspaceState([item]))
+          return item
+        })
+      },
+    })
+    expect(b.layout.navigationSignal.aborted).toBe(true)
+    b.workspaces.list.set(workspaceState(destination === 'ordinary' ? [item] : []))
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-' + destination), { source: 'mainView' })
+    expect(b.workspaces.initializeDefault).toHaveBeenCalledTimes(destination === 'default' ? 1 : 0)
+    expect(b.selectPanel.mock.calls).toEqual([[panel]])
+  })
+
+  it('yields to a later provider navigation even if the captured signal was already aborted', async () => {
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: false,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({
+      configureLayout: (layout) => { layout.selectPanel('prior-panel' as MainPanelId) },
+      configureCategories: (categories) => { categories.register({
+        id: 'finance', order: 10, activate: async () => {}, source,
+      }) },
+    })
+    b.workspaces.list.set(workspaceState([workspace('office'), workspace('finance')]))
+    b.sessions.list.set(sessionState())
+    const providerNavigation = b.layout.beginNavigation()
+    source.set({ label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    await setImmediate()
+    expect(providerNavigation.aborted).toBe(false)
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
+  })
+
+  it('retries an active ordinary startup failure only after a new catalog without mistaking its own navigation for a user request', async () => {
+    const failure = new Error('owned ordinary startup failed')
+    const warning = vi.spyOn(console, 'warn')
+    const b = bench({
+      workspaces: workspaceState([workspace('office')]),
+      sessions: sessionState(),
+      configureSessions: (sessions) => { sessions.create.mockRejectedValueOnce(failure) },
+    })
+    await setImmediate()
+    expect(warning).toHaveBeenCalledExactlyOnceWith('initial Session restoration failed:', failure)
+    expect(b.sessions.create).toHaveBeenCalledOnce()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
+    b.sessions.list.set(b.sessions.list.getSnapshot())
+    await setImmediate()
+    expect(b.sessions.create).toHaveBeenCalledTimes(2)
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-office'), { source: 'mainView' })
+  })
+
+  it.each(['reserved-only', 'ordinary'])('does not supersede an external provider navigation at %s startup', async (destination) => {
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: false,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({ configureCategories: (categories) => { categories.register({
+      id: 'finance', order: 10, activate: async () => {}, source,
+    }) } })
+    b.workspaces.list.set(workspaceState(destination === 'ordinary' ? [workspace('office'), workspace('finance')] : [workspace('finance')]))
+    b.sessions.list.set(sessionState())
+    const providerNavigation = b.layout.beginNavigation()
+    source.set({ label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    await setImmediate()
+    expect(providerNavigation.aborted).toBe(false)
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
+    b.uiWorkspace.openSession(sid('chosen-finance'))
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen-finance'), { source: 'mainView' })
+  })
+
+  it.each([false, true])('restores saved history behind a chosen panel while membership is pending with blank=%s', async (blank) => {
+    persistSelection({ sessionId: sid('saved-office') })
+    const b = bench({ configureCategories: (categories) => { categories.register({
+      id: 'finance', order: 10, activate: async () => {},
+      source: new MutableSource({ label: 'Finance', ready: false, workspaceIds: [], newSessionDisabledWorkspaceIds: [] }),
+    }) } })
+    const panel = 'chosen-panel' as MainPanelId
+    b.layout.selectPanel(panel)
+    b.workspaces.list.set(workspaceState([workspace('office', [sid('saved-office')])]))
+    b.sessions.list.set(sessionState([summary('saved-office', { blank, cwd: '/w/office' })]))
+    await setImmediate()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('saved-office'), { source: 'mainView' })
+    expect(b.selectPanel.mock.calls).toEqual([[panel]])
+  })
+
+  it('keeps explicit Finance Workspace opening available after reserved-only startup settles', async () => {
+    const b = bench()
+    b.categories.register({ id: 'finance', order: 10, activate: async () => {},
+      source: new MutableSource({ label: 'Finance', workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] }),
+    })
+    b.workspaces.list.set(workspaceState([workspace('finance')]))
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    await b.uiWorkspace.openWorkspace(wid('finance'))
+    expect(b.sessions.create).toHaveBeenCalledExactlyOnceWith({ workspaceId: wid('finance') })
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('created-finance'), { source: 'mainView' })
+  })
+
+  it('does not reconnect settled empty startup when category membership changes', async () => {
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: true,
+      workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({ configureCategories: (categories) => { categories.register({
+      id: 'finance', order: 10, activate: async () => {}, source,
+    }) } })
+    b.workspaces.list.set(workspaceState([workspace('finance')]))
+    b.sessions.list.set(sessionState())
+    await setImmediate()
+    source.set({ label: 'Finance', ready: false, workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    b.workspaces.list.set(workspaceState([workspace('finance'), workspace('office')]))
+    source.set({ label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [] })
+    await setImmediate()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
+  })
+
+  it('withdraws pending category startup observation when its owner is disposed', async () => {
+    const source = new MutableSource<WorkspaceCategoryState>({ label: 'Finance', ready: false,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    const b = bench({ configureCategories: (categories) => { categories.register({
+      id: 'finance', order: 10, activate: async () => {}, source,
+    }) } })
+    b.workspaces.list.set(workspaceState([workspace('office')]))
+    b.sessions.list.set(sessionState())
+    await b.ctx.fiber.dispose()
+    source.set({ label: 'Finance', ready: true, workspaceIds: [], newSessionDisabledWorkspaceIds: [] })
+    await setImmediate()
+    expect(b.sessions.create).not.toHaveBeenCalled()
+    expect(b.sessions.retain).not.toHaveBeenCalled()
   })
 
   it('opens the most recent Workspace after both startup catalogs become ready', async () => {

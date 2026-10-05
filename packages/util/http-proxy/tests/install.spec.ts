@@ -1,3 +1,4 @@
+import './reserved-dns.ts'
 import { spawnSync } from 'node:child_process'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'

@@ -114,6 +114,161 @@ describe('Session browser resource ownership', () => {
     expect(close).toHaveBeenCalledTimes(1)
   })
 
+  it('retains ownership before initialization and shares its startup across callers', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const b = await owner('b')
+    const entered = Promise.withResolvers<undefined>()
+    const initialized = Promise.withResolvers<undefined>()
+    const initialize = vi.fn(async () => { entered.resolve(undefined); await initialized.promise })
+    const close = vi.fn(async () => {})
+    const resources = new SessionResources(ctx, {
+      label: 'attached', exclusive: true, open: async () => ({ value: 1, initialize, close }),
+    })
+    const first = resources.get(a.agent)
+    const second = resources.get(a.agent)
+    await entered.promise
+    await expect(resources.get(b.agent)).rejects.toThrow('already reserved')
+    initialized.resolve(undefined)
+    expect(await first).toBe(1)
+    expect(await second).toBe(1)
+    expect(initialize).toHaveBeenCalledOnce()
+    await resources.dispose()
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('retains a failed initialization until its acquired resource is successfully closed', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const b = await owner('b')
+    const initialize = vi.fn(async (): Promise<void> => { throw new Error('startup failed') })
+    const close = vi.fn(async () => {})
+    const resources = new SessionResources(ctx, {
+      label: 'attached', exclusive: true, open: async () => ({ value: 1, initialize, close }),
+    })
+    await expect(resources.get(a.agent)).rejects.toThrow('startup failed')
+    expect(resources.available(a.agent)).toBe(false)
+    await expect(resources.get(b.agent)).rejects.toThrow('already reserved')
+    await resources.release(a.agent)
+    expect(close).toHaveBeenCalledOnce()
+    initialize.mockResolvedValue(undefined)
+    expect(await resources.get(b.agent)).toBe(1)
+    await resources.dispose()
+  })
+
+  it('keeps a failed initialization reserved when cleanup cannot stop the acquired resource', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const b = await owner('b')
+    const open = vi.fn(async () => ({
+      value: 1, initialize: async () => { throw new Error('startup failed') },
+      close: async () => { throw new Error('owned cleanup failed') },
+    }))
+    const resources = new SessionResources(ctx, { label: 'attached', exclusive: true, open })
+    await expect(resources.get(a.agent)).rejects.toThrow('startup failed')
+    await expect(resources.release(a.agent)).rejects.toThrow('owned cleanup failed')
+    await expect(resources.get(a.agent)).rejects.toThrow('startup failed')
+    await expect(resources.get(b.agent)).rejects.toThrow('already reserved')
+    expect(open).toHaveBeenCalledOnce()
+    await expect(resources.dispose()).rejects.toThrow('browser cleanup failed')
+  })
+
+  it('releases only one owner and lets that live owner acquire a fresh resource', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const b = await owner('b')
+    const closes = new Map<Agent, ReturnType<typeof vi.fn>>()
+    const open = vi.fn(async (agent: Agent) => {
+      const close = vi.fn(async () => {})
+      closes.set(agent, close)
+      return { value: {}, close }
+    })
+    const resources = new SessionResources(ctx, { label: 'test', exclusive: false, open })
+    const first = await resources.get(a.agent)
+    const second = await resources.get(b.agent)
+    const firstClose = closes.get(a.agent)!
+    await resources.release(a.agent)
+    expect(firstClose).toHaveBeenCalledOnce()
+    expect(closes.get(b.agent)).not.toHaveBeenCalled()
+    expect(await resources.get(b.agent)).toBe(second)
+    expect(resources.available(a.agent)).toBe(true)
+    expect(await resources.get(a.agent)).not.toBe(first)
+    const reacquiredClose = closes.get(a.agent)!
+    await a.dispose()
+    expect(reacquiredClose).toHaveBeenCalledOnce()
+    expect(firstClose).toHaveBeenCalledOnce()
+    await resources.dispose()
+  })
+
+  it('retains an attachment until single-owner release interrupts work and finishes cleanup', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const b = await owner('b')
+    const entered = Promise.withResolvers<undefined>()
+    const closing = Promise.withResolvers<undefined>()
+    const closed = Promise.withResolvers<undefined>()
+    const close = vi.fn(async () => { closing.resolve(undefined); await closed.promise })
+    const resources = new SessionResources(ctx, {
+      label: 'attached', exclusive: true,
+      open: async () => ({ value: {}, close }),
+    })
+    const running = resources.run(a.agent, new AbortController().signal, async (_value, signal) => {
+      entered.resolve(undefined)
+      await closing.promise
+      signal.throwIfAborted()
+    })
+    const interrupted = expect(running).rejects.toThrow('closing')
+    try {
+      await entered.promise
+      const releasing = resources.release(a.agent)
+      const repeated = resources.release(a.agent)
+      await closing.promise
+      expect(resources.available(a.agent)).toBe(false)
+      expect(resources.available(b.agent)).toBe(false)
+      await expect(resources.get(b.agent)).rejects.toThrow('already reserved')
+      closed.resolve(undefined)
+      await Promise.all([releasing, repeated, interrupted])
+      expect(close).toHaveBeenCalledOnce()
+      expect(resources.available(b.agent)).toBe(true)
+      await resources.get(b.agent)
+    } finally {
+      closed.resolve(undefined)
+      await resources.dispose()
+      await interrupted
+    }
+  })
+
+  it('keeps a failed single-owner release reserved instead of handing out the browser again', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const b = await owner('b')
+    const close = vi.fn(async () => { throw new Error('close failed') })
+    const resources = new SessionResources(ctx, {
+      label: 'attached', exclusive: true,
+      open: async () => ({ value: {}, close }),
+    })
+    await resources.get(a.agent)
+    await expect(resources.release(a.agent)).rejects.toThrow('close failed')
+    await expect(resources.release(a.agent)).rejects.toThrow('close failed')
+    expect(close).toHaveBeenCalledOnce()
+    expect(resources.available(a.agent)).toBe(false)
+    expect(resources.available(b.agent)).toBe(false)
+    await expect(resources.get(a.agent)).rejects.toThrow('closing')
+    await expect(resources.get(b.agent)).rejects.toThrow('already reserved')
+    await expect(resources.dispose()).rejects.toThrow('browser cleanup failed')
+  })
+
+  it('does not acquire a resource when releasing an owner without one', async () => {
+    const { ctx, owner } = await fixture()
+    const a = await owner('a')
+    const open = vi.fn(async () => ({ value: {}, close: async () => {} }))
+    const resources = new SessionResources(ctx, { label: 'test', exclusive: false, open })
+    await resources.release(a.agent)
+    expect(open).not.toHaveBeenCalled()
+    expect(resources.available(a.agent)).toBe(true)
+    await resources.dispose()
+  })
+
   it('quiesces disposal when an in-flight acquisition fails during rollback', async () => {
     const { ctx, owner } = await fixture()
     const a = await owner('a')

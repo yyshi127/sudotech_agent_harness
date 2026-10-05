@@ -8,6 +8,7 @@ import type z from '@deepseek-ai/schemastery'
 import { interpolate, type Entry } from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-config-editor'
 import type {} from '@deepseek-ai/dsh-app-boot'
+import type {} from '@deepseek-ai/dsh-hmr'
 import { redactSecrets, type RedactedSecret } from './redact.ts'
 import { isVolatilePath, plainConfig, projectForm, volatileForm } from './schema.ts'
 import type { SettingsNamespace } from './types.ts'
@@ -295,6 +296,13 @@ export class SettingsForms extends Service {
    */
   prepareDocument(): Promise<string> { return Promise.resolve(this.documentPath) }
 
+  private notify(ns: SettingsNamespace, revision: number): void {
+    const emit = (): void => { this.ownerContext.emit('settings/document-updated', ns, revision) }
+    const hmr = this.ownerContext.get('hmr')
+    if (hmr === undefined) emit()
+    else hmr.runOutsideTransaction(emit)
+  }
+
   /** Read active plugin schemas and their live values.
    * @param options Redaction required for remote callers.
    * @returns Forms keyed by unique profile entry ids.
@@ -314,7 +322,7 @@ export class SettingsForms extends Service {
       const revision = previous === undefined ? 0 : previous.revision + Number(previous.raw !== raw)
       this.revisions.set(entry.id, { raw, revision, ns: entry.options.id as SettingsNamespace, autoGenerate })
       if (previous?.raw !== raw || previous.autoGenerate !== autoGenerate) {
-        this.ownerContext.emit('settings/document-updated', entry.options.id as SettingsNamespace, revision)
+        this.notify(entry.options.id as SettingsNamespace, revision)
       }
       const value = projectForm(form, plainConfig(entry.fiber.config))
       const resolved: unknown = interpolate(entry.fiber.ctx, inherited)
@@ -334,7 +342,7 @@ export class SettingsForms extends Service {
       if (active.has(id) || previous.raw === undefined) continue
       const revision = previous.revision + 1
       this.revisions.set(id, { ...previous, raw: undefined, revision })
-      this.ownerContext.emit('settings/document-updated', previous.ns, revision)
+      this.notify(previous.ns, revision)
     }
     return descriptors
   }

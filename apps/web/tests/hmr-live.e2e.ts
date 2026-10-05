@@ -1,7 +1,8 @@
 /** Built dsh web + the `pnpm run dev:web --no-serve` watchers → browser HMR, with no page reload. */
 
 import { existsSync, globSync, statSync } from 'node:fs'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
@@ -28,6 +29,17 @@ function clientArtifactPaths(): string[] {
     .map(path => join(REPO_ROOT, path))
     .filter(path => statSync(path).isFile())
     .sort()
+}
+
+/** Replace complete fixture bytes without truncating Windows memory-mapped files. */
+async function replaceFixtureFile(path: string, content: string | Buffer): Promise<void> {
+  const temporary = `${path}.${randomUUID()}.tmp`
+  try {
+    await writeFile(temporary, content, { flag: 'wx', mode: statSync(path).mode })
+    await rename(temporary, path)
+  } finally {
+    await rm(temporary, { force: true })
+  }
 }
 
 function spawnSpec(argv: readonly string[], cwd: string, env?: Record<string, string>): SubprocessSpawnSpec {
@@ -87,18 +99,21 @@ async function stopTree(child: SubprocessHandle): Promise<void> {
 
 it('hot-reloads a real client-plugin source edit without refreshing the page', async () => {
   const world = await mkdtemp(join(tmpdir(), 'dsh-web-hmr-world-'))
-  const sourcePath = join(REPO_ROOT, 'packages/client/ui-conversation/src/client/locales.ts')
+  const clientBuildEnvironment = readClientBuildRecord(REPO_ROOT).environment
+  const xiaojing = clientBuildEnvironment.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+  const sourcePath = join(REPO_ROOT, xiaojing
+    ? 'packages/client/xiaojing-product/src/client/locales.ts'
+    : 'packages/client/ui-conversation/src/client/locales.ts')
   const binPath = join(REPO_ROOT, 'apps/cli/lib/bin.js')
   if (!existsSync(binPath)) throw new Error('HMR browser test needs the built dsh bin; run pnpm run build first')
-  const clientBuildEnvironment = readClientBuildRecord(REPO_ROOT).environment
   const originalClientArtifacts = await Promise.all(clientArtifactPaths()
     .map(async path => [path, await readFile(path)] as const))
   const originalClientArtifactPaths = new Set(originalClientArtifacts.map(([path]) => path))
   const originalSource = await readFile(sourcePath)
-  const oldText = 'Into the Unknown'
-  const sourceNeedle = "'hero.headline': 'Into the Unknown'"
+  const oldText = xiaojing ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown'
+  const sourceNeedle = xiaojing ? `heroTitle: '${oldText}'` : `'hero.headline': '${oldText}'`
   const newText = `HMR UPDATED ${'x'.repeat(80)}`
-  const updatedSource = originalSource.toString().replace(sourceNeedle, `'hero.headline': '${newText}'`)
+  const updatedSource = originalSource.toString().replace(sourceNeedle, xiaojing ? `heroTitle: '${newText}'` : `'hero.headline': '${newText}'`)
   if (updatedSource === originalSource.toString()) throw new Error(`HMR source lacks ${JSON.stringify(sourceNeedle)}`)
 
   const subprocessCtx = new Context()
@@ -124,6 +139,7 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
       {
         DEEPSEEK_API_KEY: 'keyless-hmr-no-call',
         DSH_HOME: join(world, '.dsh'),
+        DSH_CLIENT_BUILD_PROFILE: xiaojing ? 'xiaojing' : 'official',
       },
     ))
     const baseUrl = await waitForOutput(host, /dsh web: (http:\/\/[^\s]+)/, 'built dsh web')
@@ -141,7 +157,7 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
       return identity
     })
 
-    await writeFile(sourcePath, updatedSource)
+    await replaceFixtureFile(sourcePath, updatedSource)
     await page.getByText(newText, { exact: true }).waitFor({ timeout: 30_000 })
     expect(await page.evaluate(() => (window as Window & { __dshHmrPageIdentity?: string }).__dshHmrPageIdentity))
       .toBe(pageIdentity)
@@ -149,17 +165,17 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
   } catch (error) {
     failures.push(error)
   } finally {
-    await writeFile(sourcePath, originalSource).catch((error: unknown) => failures.push(error))
     if (watcher !== undefined) await stopTree(watcher).catch((error: unknown) => failures.push(error))
     if (host !== undefined) await stopTree(host).catch((error: unknown) => failures.push(error))
     await browser?.close().catch((error: unknown) => failures.push(error))
     await subprocessFiber?.dispose().catch((error: unknown) => failures.push(error))
+    await replaceFixtureFile(sourcePath, originalSource).catch((error: unknown) => failures.push(error))
     await Promise.all(clientArtifactPaths()
       .filter(path => !originalClientArtifactPaths.has(path))
       .map(async (path) => { await rm(path, { force: true }) }))
       .catch((error: unknown) => failures.push(error))
     await Promise.all(originalClientArtifacts.map(async ([path, content]) => {
-      await writeFile(path, content)
+      await replaceFixtureFile(path, content)
     })).catch((error: unknown) => failures.push(error))
     try {
       readClientBuildRecord(REPO_ROOT)

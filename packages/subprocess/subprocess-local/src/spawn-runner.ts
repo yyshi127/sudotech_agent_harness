@@ -314,6 +314,7 @@ class WindowsJobRunner {
         cwd: request.cwd,
         env: request.env,
         stdio: { stdin: 4, stdout: 5, stderr: 6, ...request.control === 'pipe' ? { control: SUBPROCESS_CONTROL_FD } : {} },
+        ...request.windowsChildLifetime === undefined ? {} : { childLifetime: request.windowsChildLifetime },
       })
       this.processHandle = spawned.process
       this.jobHandle = spawned.job

@@ -11,7 +11,7 @@ import { en, zh, type BrowserControlKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
-    /** Edge browser-control and background-operation copy. */
+    /** Native Chrome and Edge settings copy. */
     'xiaojing.browser-control': BrowserControlKey
   }
 }
@@ -27,8 +27,8 @@ export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
   if (!connection.isLoopback) return
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-xiaojing-browser-control: dictionaries')
-  const controller = new BrowserControlController(connection.rpc)
   const t = ctx.locale.bind(NS)
+  const controller = new BrowserControlController(connection.rpc, t('invalidStatus'))
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'browser-control',

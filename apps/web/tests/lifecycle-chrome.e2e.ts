@@ -20,27 +20,36 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria,
   captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import {
   connectFreshWorkspace, connectFreshWorkspaceZh, expandOwningTurnProcess, newEnglishPage, saveFailureShot,
   writeComposerDraft, ZH_BROWSER_LOCALE,
 } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS, XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const HERO_TITLE = XIAOJING ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown'
+const STOCK_DIR = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome', import.meta.url))
+const SNAPSHOT_DIR = XIAOJING
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-lifecycle-native', import.meta.url))
+  : STOCK_DIR
+const EXPECTED_DIR = XIAOJING
+  ? fileURLToPath(new URL('./expected/lifecycle-chrome-xiaojing', import.meta.url))
+  : STOCK_DIR
+const FIXTURE = join(SNAPSHOT_DIR, XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const REPLAY_OVERRIDE = join(SNAPSHOT_DIR, 'replay.override.json')
-const HERO_EXPECTED = join(SNAPSHOT_DIR, 'hero.expected.md')
-const COMMAND_MENU_EXPECTED = join(SNAPSHOT_DIR, 'command-menu.expected.md')
-const COMMAND_MENU_ZH_EXPECTED = join(SNAPSHOT_DIR, 'command-menu-zh.expected.md')
-const FUZZY_COMMAND_MENU_EXPECTED = join(SNAPSHOT_DIR, 'command-menu-fuzzy.expected.md')
-const PLAN_ACTIVE_EXPECTED = join(SNAPSHOT_DIR, 'plan-active.expected.md')
-const PLAN_ACTIVE_ZH_EXPECTED = join(SNAPSHOT_DIR, 'plan-active-zh.expected.md')
-const CONNECTION_ERROR_EXPECTED = join(SNAPSHOT_DIR, 'connection-error.expected.md')
+const HERO_EXPECTED = join(EXPECTED_DIR, 'hero.expected.md')
+const COMMAND_MENU_EXPECTED = join(EXPECTED_DIR, 'command-menu.expected.md')
+const COMMAND_MENU_ZH_EXPECTED = join(EXPECTED_DIR, 'command-menu-zh.expected.md')
+const FUZZY_COMMAND_MENU_EXPECTED = join(EXPECTED_DIR, 'command-menu-fuzzy.expected.md')
+const PLAN_ACTIVE_EXPECTED = join(EXPECTED_DIR, 'plan-active.expected.md')
+const PLAN_ACTIVE_ZH_EXPECTED = join(EXPECTED_DIR, 'plan-active-zh.expected.md')
+const CONNECTION_ERROR_EXPECTED = join(EXPECTED_DIR, 'connection-error.expected.md')
 // Post-reload golden: the same settled conversation rebuilt purely from
 // persistence + history — byte-equal rendering is exactly the recovery claim.
-const RELOADED_EXPECTED = join(SNAPSHOT_DIR, 'reloaded.expected.md')
-const RELOADED_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'reloaded-expanded.expected.md')
+const RELOADED_EXPECTED = join(EXPECTED_DIR, 'reloaded.expected.md')
+const RELOADED_EXPANDED_EXPECTED = join(EXPECTED_DIR, 'reloaded-expanded.expected.md')
 const MODE = webSnapshotMode()
 
 const PROMPT = 'Reply with the single word LIGHTHOUSE and stop.'
@@ -56,7 +65,9 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   beforeAll(async () => {
     scaffold = await launchWebScaffold(MODE === 'record'
       ? {}
-      : { replayFixture: FIXTURE, replayOverride: REPLAY_OVERRIDE, paceMs: REPLAY_PACE_MS })
+      : { replayFixture: FIXTURE, replayOverride: REPLAY_OVERRIDE, paceMs: REPLAY_PACE_MS,
+        ...(XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
+      })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -198,7 +209,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   })
 
   it.skipIf(MODE === 'record')('shows active Plan as the business-state status action', async () => {
-    const activeScaffold = await launchWebScaffold()
+    const activeScaffold = await launchWebScaffold(XIAOJING ? XIAOJING_ROUTE_CATALOG : {})
     const activePage = await newEnglishPage(browser)
     const activeTripwire = watchConsole(activePage)
     try {
@@ -267,7 +278,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   })
 
   it.skipIf(MODE === 'record')('shows the active Plan chip with the Chinese copy', async () => {
-    const zhScaffold = await launchWebScaffold()
+    const zhScaffold = await launchWebScaffold(XIAOJING ? XIAOJING_ROUTE_CATALOG : {})
     const zhPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     const zhTripwire = watchConsole(zhPage)
     try {
@@ -306,11 +317,12 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
     }
     // The blank frame renders the hero, not the resident composer: the
     // headline plus the guidance placeholder are the empty state's anchors.
-    await expect.poll(() => page.getByText('Into the Unknown', { exact: false }).count(), { timeout: 15_000 }).toBe(1)
+    await expect.poll(() => page.getByText(HERO_TITLE, { exact: false }).count(), { timeout: 15_000 }).toBe(1)
     const input = page.locator('[data-composer-input]').first()
     await input.waitFor({ timeout: 10_000 })
     if (MODE !== 'record') {
-      await page.getByText('Into the Unknown', { exact: false }).hover()
+      await input.and(page.locator('[contenteditable="true"][data-lexical-editor="true"]')).waitFor()
+      await page.getByText(HERO_TITLE, { exact: false }).hover()
       await expect.poll(() => page.getByRole('tooltip').count()).toBe(0)
       // Golden of the hero's stable waiting state (captured before any send;
       // the conversation-region goldens belong to the other scenarios).
@@ -378,7 +390,8 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
     // flow created and adopted (<workspaceCwd>/workspace) — the proof the
     // send went through workspace materialization rather than a bare
     // default-cwd session.
-    const cwds = scaffold.ctx.sessions.list().map(session => session.header.cwd)
+    const cwds = scaffold.ctx.sessions.list().filter(session => !XIAOJING
+      || session.header.cwd === join(scaffold.workspaceCwd, 'workspace')).map(session => session.header.cwd)
     expect(cwds).toEqual([join(scaffold.workspaceCwd, 'workspace')])
     const turnEnds = sessionEvents.filter(e => e.type === 'turn/end')
     expect(turnEnds).toHaveLength(1)
@@ -603,8 +616,10 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, [
-      'session.v3.jsonl', 'replay.override.json', 'command-menu.expected.md',
+    if (XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl', 'replay.override.json'])
+    await assertFixtureInventory(EXPECTED_DIR, [
+      ...XIAOJING ? [] : ['session.v3.jsonl', 'replay.override.json'],
+      'command-menu.expected.md',
       'command-menu-fuzzy.expected.md', 'command-menu-zh.expected.md', 'connection-error.expected.md',
       'hero.expected.md', 'plan-active.expected.md', 'plan-active-zh.expected.md',
       'reloaded.expected.md', 'reloaded-expanded.expected.md',

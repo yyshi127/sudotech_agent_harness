@@ -118,7 +118,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-client-ui-weixin-channel` | no | Xiaojing settings page for the local Weixin iLink channel |
 | `@deepseek-ai/dsh-client-ui-workflow-run` | no | Durable workflow-run Conversation Node and nested member disclosure for dsh web |
 | `@deepseek-ai/dsh-client-ui-workspace` | no | Workspace picker plugin: one WorkspacePicker registered into the sidebar and empty-state workspace slots |
-| `@deepseek-ai/dsh-client-ui-xiaojing-browser-control` | no | Xiaojing settings page for Microsoft Edge automation |
+| `@deepseek-ai/dsh-client-ui-xiaojing-browser-control` | no | Xiaojing settings for controlling existing Chrome and Edge tabs |
 | `@deepseek-ai/dsh-client-ui-xiaojing-finance-clients` | no | Xiaojing Finance client management and immutable session-context surfaces |
 | `@deepseek-ai/dsh-client-xiaojing-product` | no | Xiaojing Accounting product branding, onboarding, theme, and default persona |
 
@@ -270,7 +270,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
 | `@deepseek-ai/dsh-commands` | no | Plugin-owned human command registry for DeepSeek Harness UIs |
 | `@deepseek-ai/dsh-permission-presets` | yes | User-facing permission presets (ctx.permissionPresets) for the DeepSeek Harness: one product-level Permissions select bundling the sandbox-mode and approval-policy knobs, written through to their own session events |
 | `@deepseek-ai/dsh-tool-ask-user` | yes | Model-facing ask_user_question tool over the ctx.userQuestions seam |
-| `@deepseek-ai/dsh-user-approval` | yes | User-approval seam (ctx.approval) for the DeepSeek Harness: one-shot permission decisions dispatched to composed answerers over the approval/request waterfall, fail-closed by default |
+| `@deepseek-ai/dsh-user-approval` | yes | User-approval service for DeepSeek Harness: fail-closed one-shot decisions and trusted operation-class authorization within one session |
 | `@deepseek-ai/dsh-user-questions` | no | Abstract user-questions seam (ctx.userQuestions) for asking the human during agent runs |
 
 ## jobs

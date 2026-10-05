@@ -23,7 +23,7 @@ import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-terminal'
-import { launchWebScaffold, readPersistedEvents, type WebScaffold } from './scaffold.ts'
+import { launchWebScaffold, readPersistedEvents, webClientProfile, type WebScaffold } from './scaffold.ts'
 import { AUTO_REVIEW_FIXTURE } from './auto-review-fixture.ts'
 import { REPO_ROOT } from './support.ts'
 
@@ -47,6 +47,10 @@ const AUTO_PARENT_ADJUST = 'AUTO_PARENT_ADJUST'
 const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
 const DELETE_PREFIX = process.platform === 'win32' ? 'Remove-Item -LiteralPath ' : 'rm -- '
 const EXFIL_PREFIX = process.platform === 'win32' ? 'Invoke-WebRequest ' : 'curl '
+const XIAOJING = webClientProfile() === 'xiaojing'
+const GLOBAL_TOOLS = XIAOJING
+  ? ['computer_control', 'visualize', 'browser_control', 'document_reader']
+  : []
 
 function deleteCommand(target: string): string {
   return process.platform === 'win32'
@@ -613,19 +617,15 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
       "mode": "always",
     }
   `)
-  // The catalog belongs to an AGENT, not to the process: every model-facing row
-  // now lives in a preset mounted under one session's scope, so the global
-  // layer holds nothing and a caller must name the agent to see anything. This
-  // composes from the deployment default — what a session that names no preset
-  // gets — which is the shape this test has always been about.
-  expect(ctx.tools.schemas().map(schema => schema.name)).toEqual([])
+  // Xiaojing adds global built-ins; the remaining catalog belongs to the agent's preset.
+  expect(ctx.tools.schemas().map(schema => schema.name)).toEqual(GLOBAL_TOOLS)
   const handle = await ctx.agents.create({
     sessionId: SessionId('shipped-composition'),
     setup: agentCtx => ctx.agentPresets.mount(agentCtx).then(() => undefined),
   })
   try {
     const names = ctx.tools.schemas(handle.agent).map(schema => schema.name).sort()
-    expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual([...EXPECTED_TOOLS].sort())
+    expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual([...EXPECTED_TOOLS, ...GLOBAL_TOOLS].sort())
     // The packaged ripgrep binary ships with the dependency, so the pair is a
     // fixed roster member on every host.
     expect(names.filter(name => RIPGREP_TOOLS.includes(name))).toEqual(RIPGREP_TOOLS)
@@ -815,10 +815,13 @@ it('routes one browser-authored Auto request through the same model and asks the
     .join('') ?? ''
   expect(reviewInput).toContain('PENDING_ACTION')
   expect(reviewInput).toContain(requestId)
-  expect(reviewInput).toContain(targetPath)
-  expect(approvalReasons).toEqual([`Auto review denied tool "bash": ${AUTO_RAW_REASON}`])
+  expect(reviewInput).toContain(JSON.stringify(targetPath).slice(1, -1))
+  expect(approvalReasons).toEqual([XIAOJING
+    ? `删除操作必须进行本次二次确认，即使当前会话为“从不审批”也不能跳过。即将执行：${deleteCommand(targetPath)}`
+    : `Auto review denied tool "${SHELL_TOOL}": ${AUTO_RAW_REASON}`])
+  const rejectedReason = XIAOJING ? '删除操作已被用户拒绝，未执行。' : `the user rejected tool "${SHELL_TOOL}"`
   const finalModelInput = JSON.stringify(finalMain?.messages)
-  expect(finalModelInput).toContain('the user rejected tool \\"bash\\"')
+  expect(finalModelInput).toContain(JSON.stringify(rejectedReason).slice(1, -1))
   expect(finalModelInput).not.toContain('direct user authorized inspection only')
   expect(finalModelInput).not.toContain('TEST_ONLY_SECRET_')
 
@@ -836,13 +839,14 @@ it('routes one browser-authored Auto request through the same model and asks the
   ))
   expect(result?.data.error).toBeUndefined()
   const durableModelResult = JSON.stringify(result?.data.message)
-  expect(durableModelResult).toContain('the user rejected tool \\"bash\\"')
+  expect(durableModelResult).toContain(JSON.stringify(rejectedReason).slice(1, -1))
   expect(durableModelResult).not.toContain('direct user authorized inspection only')
   expect(durableModelResult).not.toContain('TEST_ONLY_SECRET_')
   expect(events.some(event => (
     event.type === 'assistant/message'
       && JSON.stringify(event.data.message).includes(AUTO_FINAL_TEXT)
   ))).toBe(true)
+  expect(await readPersistedEvents(scaffold, sessionId)).toEqual(events)
   expect(await readFile(targetPath, 'utf8')).toBe('PRE_EXISTING_MUST_REMAIN\n')
 }, 120_000)
 

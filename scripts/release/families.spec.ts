@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { officialClientBuildEnvironment, writeClientBuildRecord } from '../client-build-environment.ts'
+import { officialClientBuildEnvironment, resolveClientBuildEnvironment, writeClientBuildRecord } from '../client-build-environment.ts'
 import { releaseFamily, type ReleaseMember } from './families.ts'
 import { compareVersions, nextVendorVersion, planShared, reachesPayload } from './bump.ts'
 
@@ -198,6 +198,21 @@ describe('release families', () => {
 
     write(join(official, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')
     expect(() => { dsh.verifyBuildArtifacts(official) }).toThrow(/artifacts differ/)
+  })
+
+  it('accepts Xiaojing desktop artifacts only when explicitly selected', () => {
+    const dsh = releaseFamily('dsh')
+    const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
+    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
+    const xiaojing = buildFixture(resolveClientBuildEnvironment(officialEnvironment, 'xiaojing'))
+    const official = buildFixture(officialEnvironment)
+
+    expect(() => { dsh.verifyBuildArtifacts(xiaojing, 'xiaojing') }).not.toThrow()
+    expect(() => { dsh.verifyBuildArtifacts(xiaojing) }).toThrow(/DSH_CLIENT_TITLE/)
+    expect(() => { dsh.verifyBuildArtifacts(official, 'xiaojing') }).toThrow(/DSH_CLIENT_TITLE/)
+    expect(() => { dsh.verifyBuildArtifacts(xiaojing, 'unknown') }).toThrow(/unknown client build profile/)
+    write(join(xiaojing, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')
+    expect(() => { dsh.verifyBuildArtifacts(xiaojing, 'xiaojing') }).toThrow(/artifacts differ/)
   })
 
   it('publishes a dependency before its consumer, and orders ties by name', () => {

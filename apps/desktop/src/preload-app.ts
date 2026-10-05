@@ -2,7 +2,7 @@
 
 import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+import { DESKTOP_IPC, SCHEME, XIAOJING_DESKTOP_IPC, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
 import { PLATFORM_IPC } from './platform-ipc.ts'
 import { markDocumentPlatform, syncWindowFullscreen } from './preload-platform.ts'
 import { syncNativeTheme } from './preload-theme.ts'
@@ -10,6 +10,7 @@ import { syncWindowsAppearance } from './preload-windows.ts'
 import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
 import { exposeXiaojingDesktopBridge, exposeXiaojingOpenPath } from './xiaojing-preload.ts'
+import { installXiaojingCompanionLayout } from './xiaojing-companion-layout.ts'
 
 function createProductApi(): DshDesktopProductApi {
   return {
@@ -81,6 +82,10 @@ if (location.protocol === `${SCHEME}:` && location.hostname === 'app') {
   })
   exposeXiaojingOpenPath()
   exposeXiaojingDesktopBridge()
+  const disposeCompanionLayout = installXiaojingCompanionLayout((layout) => {
+    ipcRenderer.send(XIAOJING_DESKTOP_IPC.companionLayout, layout)
+  })
+  window.addEventListener('beforeunload', disposeCompanionLayout, { once: true })
   // The composer cites dropped, picked, and pasted files and folders that
   // have a real path as `@path` references instead of uploading them; a
   // File without one (pasted bytes) answers '' and uploads as before.

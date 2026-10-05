@@ -73,6 +73,8 @@ The boot page is plain DOM with local CSS whose fallback fonts and colors match 
 
 The boot kernel delegates manifest entry creation to Client Modules so live graph synchronization owns the same entry identities after startup. The initial activation audit remains strict; later page-local failures appear in Settings → Plugins → Plugin list.
 
+The mount dependency fiber remounts the application when `uiRenderer` changes. Its awaited disposer stops remounting and unmounts React before root services are released. `AppWebEntry.dispose()` removes the boot page even after cleanup fails and reports every cleanup failure.
+
 ### Source map
 
 | File | Role |

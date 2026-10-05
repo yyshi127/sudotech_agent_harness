@@ -274,6 +274,9 @@ export class SshSubprocessRuntime extends SubprocessRuntime {
   override spawn(spec: SubprocessSpawnSpec): SubprocessHandle {
     this.lifetime.signal.throwIfAborted()
     spec.signal?.throwIfAborted()
+    if (spec.windowsChildLifetime !== undefined) {
+      throw new Error('independent Windows children require a local Windows Job')
+    }
     const handle = new RemoteProcess(this.ctx.ssh, spec)
     this.live.add(handle)
     void handle.done.then(() => handle.waitForExit()).then(() => handle.streamsClosed)

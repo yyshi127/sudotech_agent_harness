@@ -19,6 +19,12 @@
     personaSuffix: Your working directory is {{cwd}}.
     personaPrefix: !!js "process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing' ? '' : 'You are a coding agent powered by the {{model}} model.'"
 
+- id: llm-deepseek-account
+  disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+
+- id: session-log-deepseek
+  disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a
 # deployment enabling content search overrides `openAt` to `first-search` in a
@@ -114,12 +120,36 @@
 
     - id: xiaojing-browser-control
       name: '@deepseek-ai/dsh-xiaojing-browser-control'
-      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+      disabled: true
       config:
         profileDir: !!js dshHomePath('browser-control', 'profile')
         executablePath: !!js process.env.XIAOJING_BROWSER_EXECUTABLE
         extensionDir: !!js process.env.XIAOJING_EDGE_EXTENSION_DIR
         headless: false
+
+    - id: xiaojing-native-browser-use
+      name: '@deepseek-ai/dsh-browser-use'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+
+    - id: xiaojing-native-browser-control
+      name: '@deepseek-ai/dsh-xiaojing-browser-control/native'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
+      config:
+        requireUserSettings: true
+        edge:
+          existingConnection: auto-connect
+          executablePath: !!js process.env.XIAOJING_NATIVE_EDGE_EXECUTABLE ?? process.env.XIAOJING_BROWSER_EXECUTABLE
+          existingEndpoint: !!js process.env.XIAOJING_EDGE_CDP_ENDPOINT
+          extensionToken: !!js process.env.XIAOJING_EDGE_PLAYWRIGHT_EXTENSION_TOKEN
+        chrome:
+          existingConnection: auto-connect
+          executablePath: !!js process.env.XIAOJING_CHROME_EXECUTABLE
+          existingEndpoint: !!js process.env.XIAOJING_CHROME_CDP_ENDPOINT
+          extensionToken: !!js process.env.XIAOJING_CHROME_PLAYWRIGHT_EXTENSION_TOKEN
+
+    - id: xiaojing-native-browser-settings
+      name: '@deepseek-ai/dsh-xiaojing-browser-control/native-settings'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
 
     - id: xiaojing-computer-control
       name: '@deepseek-ai/dsh-xiaojing-computer-control'
@@ -458,6 +488,7 @@
 
     - id: ui-xiaojing-browser-control
       name: '@deepseek-ai/dsh-client-ui-xiaojing-browser-control'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
 
     # Model selection: the /model popupSelect + composer seat over session.models.
     - id: ui-model-selection
@@ -476,6 +507,7 @@
       disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE !== 'xiaojing'
     - id: ui-settings-session-log
       name: '@deepseek-ai/dsh-client-ui-settings-session-log'
+      disabled: !!js process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
 
     # The Built-in plugins settings section: the navigation entry and the tab
     # row the inventory tab registers into. The official configuration pages

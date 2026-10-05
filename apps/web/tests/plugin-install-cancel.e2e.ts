@@ -6,8 +6,10 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Locator, type Page, type Route } from 'playwright'
 import { expect, it } from 'vitest'
-import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
+import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webClientProfile, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE } from './support.ts'
+
+const SNAPSHOT_PROFILE = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
 
 async function invalidInputStyles(page: Page, input: Locator) {
   const styles = []
@@ -135,7 +137,7 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
       await packageName.press('Enter')
       await expect.poll(() => packageName.getAttribute('aria-invalid')).toBe('true')
       const packageStyles = await invalidInputStyles(page, packageName)
-      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-cancel/invalid-registry.expected.md', import.meta.url)),
+      await compareOrRefreshGolden(fileURLToPath(new URL(`./expected/plugin-install-cancel/invalid-registry${SNAPSHOT_PROFILE}.expected.md`, import.meta.url)),
         `${invalidRegistryAria}\n\n${JSON.stringify({ registry: registryStyles, packageName: packageStyles }, null, 2)}`, webSnapshotMode())
       await packageName.fill('slow-package')
       await dialog.getByRole('button', { name: '安装', exact: true }).click()
@@ -251,7 +253,7 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
             styles.push({ colorScheme, reducedMotion, boxShadow: style.boxShadow, animated: style.animationName !== 'none' })
           }
         }
-        await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-cancel/highlight.expected.md', import.meta.url)),
+        await compareOrRefreshGolden(fileURLToPath(new URL(`./expected/plugin-install-cancel/highlight${SNAPSHOT_PROFILE}.expected.md`, import.meta.url)),
           `${await captureStableAria(page, '[data-plugin-package="slow-package"]', scaffold.workspaceCwd)}\n\n${JSON.stringify(styles, null, 2)}`, webSnapshotMode())
         await page.clock.runFor(2400)
         await card.waitFor({ state: 'detached' })

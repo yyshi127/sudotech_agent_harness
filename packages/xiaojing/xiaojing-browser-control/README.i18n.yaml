@@ -3,20 +3,32 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/xiaojing/xiaojing-browser-control/README.md
 /:
-  en: 72ac9008384562fe
-  zh: 72ac9008384562fe
+  en: 05c97b70950e05f7
+  zh: 05c97b70950e05f7
 /deepseek-ai-dsh-xiaojing-browser-control:
   en: 0b80cab286b70028
   zh: 6ff9ab33f3a95bdd
 /deepseek-ai-dsh-xiaojing-browser-control/summary:
-  en: d75997328105e24a
-  zh: 0af59cc19680956b
+  en: f06768122c72b2f6
+  zh: 7d8c0edab4470ff7
 /deepseek-ai-dsh-xiaojing-browser-control/table-of-contents:
   en: f1d967a7e5342ebc
   zh: 86774d5ea1aab22d
 /deepseek-ai-dsh-xiaojing-browser-control/capabilities:
-  en: 568b5ac94bebdff9
-  zh: 948e8770d631f0b0
+  en: b9528c52bde43425
+  zh: 328ed5e3dd7e417e
+/deepseek-ai-dsh-xiaojing-browser-control/native-browser-connections:
+  en: 65fd838f4571e711
+  zh: 64f24f496bba8989
+/deepseek-ai-dsh-xiaojing-browser-control/native-browser-connections/connecting-already-open-tabs:
+  en: 185a0f29f9f701b4
+  zh: ac3cdcb741f748ac
+/deepseek-ai-dsh-xiaojing-browser-control/native-browser-connections/native-configuration-and-approvals:
+  en: 7a510d737ff1dbc5
+  zh: 4b39f124a026c0aa
+/deepseek-ai-dsh-xiaojing-browser-control/legacy-edge-entry:
+  en: 2e19c81428fd3cc2
+  zh: 32b6f1695b57d2bd
 /deepseek-ai-dsh-xiaojing-browser-control/edge-routes:
   en: 8c3e21b63bd95c83
   zh: 17159efdaa9a08a2
@@ -24,8 +36,8 @@
   en: 6594e3f3899a131f
   zh: 3820a1397603368c
 /deepseek-ai-dsh-xiaojing-browser-control/approval-and-network-policy:
-  en: 598bd6fa6e1b7093
-  zh: 13a74e22937e4600
+  en: 726d693a3ba24ebb
+  zh: 6f6a68d5a3f5dd64
 /deepseek-ai-dsh-xiaojing-browser-control/personal-edge-bridge-security:
   en: 8d08486b0ef00e13
   zh: 6429fe0980816824
@@ -35,6 +47,18 @@
 /deepseek-ai-dsh-xiaojing-browser-control/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
+/deepseek-ai-dsh-xiaojing-browser-control/model-experience/native-browser-tool-discovery:
+  en: 57ab2d3a089bc153
+  zh: 4b9f116738d6d50a
+/deepseek-ai-dsh-xiaojing-browser-control/model-experience/native-browser-tool-discovery/what-the-model-sees:
+  en: 1b2cb9404ea0cf77
+  zh: 8987ff9c695b8888
+/deepseek-ai-dsh-xiaojing-browser-control/model-experience/native-browser-tool-discovery/token-effect:
+  en: 184a05eff5bb60df
+  zh: 68731562e89cedb9
+/deepseek-ai-dsh-xiaojing-browser-control/model-experience/native-browser-tool-discovery/kv-cache-effect:
+  en: 8ec5cd944568d539
+  zh: 269a262efa72ab78
 /deepseek-ai-dsh-xiaojing-browser-control/model-experience/browser-control-schema:
   en: ce2cf6e7908468b6
   zh: de09002971b19186
@@ -48,8 +72,8 @@
   en: f0e93f3f39639ac0
   zh: 0447e1c96334447c
 /deepseek-ai-dsh-xiaojing-browser-control/known-limitations-and-deferred-work:
-  en: f1403eb499d0694a
-  zh: a538353b5467c021
+  en: 5c7c7af416083fe0
+  zh: 0dd93d84697f68bf
 /deepseek-ai-dsh-xiaojing-browser-control/known-limitations-and-deferred-work/dev-note:
   en: 6c98eefd36da35e8
   zh: 97b281ca4fb06ce2

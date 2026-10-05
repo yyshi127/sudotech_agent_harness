@@ -1,0 +1,15 @@
+{
+  "name": "小兢会计-您的AI办公搭子",
+  "short_name": "小兢会计",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "xiaojing-character-logo.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

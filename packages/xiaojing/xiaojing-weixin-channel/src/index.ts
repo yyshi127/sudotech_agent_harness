@@ -20,7 +20,7 @@ import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
-import type { ApprovalOutcome, ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
+import type { ApprovalAnswer, ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
 import QRCode from 'qrcode'
 import { z } from 'zod'
 import { formatWeixinText, splitWeixinText } from './formatter.ts'
@@ -146,14 +146,15 @@ interface ActiveTurn {
 }
 
 interface ApprovalReply {
-  action: '确认' | '拒绝'
+  action: '确认' | '始终确认' | '拒绝'
   code: string
 }
 
 interface PendingApproval {
   code: string
   taskId: string
-  resolve: (outcome: ApprovalOutcome) => void
+  resolve: (outcome: ApprovalAnswer) => void
+  reusable: boolean
   timer: ReturnType<typeof setTimeout>
   removeAbort?: () => void
 }
@@ -221,9 +222,9 @@ function browserSafeError(error: unknown): string {
 function parseApprovalReply(text: string | undefined): ApprovalReply | 'malformed' | undefined {
   const value = text?.trim()
   if (value === undefined || value === '') return undefined
-  const match = value.match(/^(确认|拒绝)(?:码)?[\s:：-]*([0-9]{6})$/u)
+  const match = value.match(/^(始终确认|确认|拒绝)(?:码)?[\s:：-]*([0-9]{6})$/u)
   if (match !== null) return { action: match[1] as ApprovalReply['action'], code: match[2] as string }
-  return /^(?:确认|拒绝)(?:码)?[\s:：-]*[0-9]*$/u.test(value) ? 'malformed' : undefined
+  return /^(?:始终确认|确认|拒绝)(?:码)?[\s:：-]*[0-9]*$/u.test(value) ? 'malformed' : undefined
 }
 
 function failed(error: unknown): ConnectionRpcResult<never> {
@@ -950,8 +951,14 @@ export class XiaojingWeixinChannel {
       await this.complete(id)
       return true
     }
-    this.finishApproval(action === '确认' ? 'allowed-once' : 'rejected')
-    await this.sendRaw(action === '确认' ? '已确认，继续执行。' : '已拒绝，本次操作不会执行。', contextToken)
+    if (action === '始终确认' && !pending.reusable) {
+      await this.sendRaw(`本次操作仅支持单次确认。请回复“确认 ${code}”或“拒绝 ${code}”。`, contextToken)
+      await this.complete(id)
+      return true
+    }
+    this.finishApproval(action === '始终确认' ? 'allowed-session' : action === '确认' ? 'allowed-once' : 'rejected')
+    await this.sendRaw(action === '始终确认' ? '已批准本会话内同类且同范围的操作，继续执行。'
+      : action === '确认' ? '已确认，继续执行。' : '已拒绝，本次操作不会执行。', contextToken)
     await this.complete(id)
     return true
   }
@@ -1025,7 +1032,7 @@ export class XiaojingWeixinChannel {
         await this.sendRaw([
           '⚠️ 确认启用 Full access',
           '',
-          '启用后可访问工作区以外的本机文件，并关闭本会话的普通审批提问；删除等强制安全确认仍会在微信中要求一次性确认，其他仍要求普通审批的操作会被系统拒绝。',
+          '启用后可访问工作区以外的本机文件，并关闭本会话的普通审批提问；强制安全确认仍会通过微信请求。明确批准过的同类且同范围操作可在本会话复用授权，其他强制确认仍逐次请求；仍要求普通审批的操作会被系统拒绝。',
           `确认码：${code}`,
           '',
           `请在 ${Math.round(this.config.approvalTimeoutMs / 60_000)} 分钟内回复：`,
@@ -1116,9 +1123,17 @@ export class XiaojingWeixinChannel {
       this.state.sessionReady = false
       await this.persist()
     }
-    const created = await this.ctx.sessionController.create({ sessionId: SessionId(id) })
-    const agent = this.ctx.agents.get(created.sessionId)
-    if (agent === undefined) throw new Error('微信助手会话未能启动。')
+    const resolved = await this.ctx.sessionController.resolveAgent(SessionId(id))
+    let agent: Agent
+    if ('agent' in resolved) {
+      agent = resolved.agent
+    } else {
+      if (resolved.error.code !== 'session/not-found') throw resolved.error
+      const created = await this.ctx.sessionController.create({ sessionId: SessionId(id) })
+      const createdAgent = this.ctx.agents.get(created.sessionId)
+      if (createdAgent === undefined) throw new Error('微信助手会话未能启动。')
+      agent = createdAgent
+    }
     this.configureAgent(agent)
     if (!this.state.sessionReady) {
       await this.ctx.sessionController.rename({ sessionId: agent.session.id, title: SESSION_TITLE })
@@ -1383,24 +1398,33 @@ export class XiaojingWeixinChannel {
     return { found: targetTurn !== undefined, ended, text }
   }
 
-  private async requestApproval(request: ApprovalRequest): Promise<ApprovalOutcome> {
-    if (this.active === undefined || this.approval !== undefined) return 'unavailable'
+  private async requestApproval(request: ApprovalRequest): Promise<ApprovalAnswer> {
+    if (request.signal?.aborted === true) return 'cancelled'
+    const active = this.active
+    if (active === undefined || this.approval !== undefined) return 'unavailable'
     const code = String(randomInt(100000, 1000000))
     const reason = request.reason?.trim() || '该操作可能修改数据或触发外部行为。'
-    const outcome = Promise.withResolvers<ApprovalOutcome>()
-    const timer = setTimeout(() => { this.finishApproval('unavailable') }, this.config.approvalTimeoutMs)
+    const outcome = Promise.withResolvers<ApprovalAnswer>()
+    const timer = setTimeout(() => { this.finishApproval('unavailable', pending) }, this.config.approvalTimeoutMs)
     const pending: PendingApproval = {
       code,
-      taskId: this.active.task.id,
+      taskId: active.task.id,
+      reusable: request.reusable !== undefined,
       resolve: outcome.resolve,
       timer,
     }
+    this.approval = pending
     if (request.signal !== undefined) {
-      const abort = (): void => { this.finishApproval('cancelled') }
+      const abort = (): void => { this.finishApproval('cancelled', pending) }
       request.signal.addEventListener('abort', abort, { once: true })
       pending.removeAbort = () => request.signal?.removeEventListener('abort', abort)
+      try {
+        request.signal.throwIfAborted()
+      } catch {
+        abort()
+      }
     }
-    this.approval = pending
+    if (this.approval !== pending) return await outcome.promise
     try {
       await this.sendRaw([
         '⚠️ 需要确认',
@@ -1411,18 +1435,20 @@ export class XiaojingWeixinChannel {
         '',
         `请在 ${Math.round(this.config.approvalTimeoutMs / 60_000)} 分钟内回复：`,
         `确认 ${code}`,
+        ...request.reusable === undefined ? [] : [
+          `始终确认 ${code}（仅本会话同类操作）`,
+          `适用范围：${request.reusable.displayLabel?.zh ?? request.reusable.label}`,
+        ],
         `拒绝 ${code}`,
-      ].join('\n'), this.active.task.contextToken)
+      ].join('\n'), active.task.contextToken, request.signal)
     } catch {
-      this.finishApproval('unavailable')
-      return 'unavailable'
+      this.finishApproval('unavailable', pending)
     }
     return await outcome.promise
   }
 
-  private finishApproval(outcome: ApprovalOutcome): void {
-    const pending = this.approval
-    if (pending === undefined) return
+  private finishApproval(outcome: ApprovalAnswer, pending = this.approval): void {
+    if (pending === undefined || this.approval !== pending) return
     this.approval = undefined
     clearTimeout(pending.timer)
     pending.removeAbort?.()

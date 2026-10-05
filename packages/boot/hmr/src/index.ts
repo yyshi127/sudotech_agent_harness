@@ -146,6 +146,15 @@ class Hmr extends Service {
     return task
   }
 
+  /** Schedule independent follow-up work without inheriting the current transaction.
+   * Do not await a follow-up transaction from inside the transaction that scheduled it.
+   * @param operation Callback that emits notifications or schedules follow-up work.
+   * @returns The callback result.
+   */
+  runOutsideTransaction<T>(operation: () => T): T {
+    return this.executing.exit(operation)
+  }
+
   private runReload(operation: () => Promise<void>): Promise<void> {
     return this.runExclusive(async () => {
       if (await this.applicationReady) await operation()

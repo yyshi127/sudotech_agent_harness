@@ -1,0 +1,53 @@
+{
+  "initial": [
+    {
+      "name": "terminal_close",
+      "description": "Close one persistent terminal and wait until its captured owned process tree is gone.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Terminal session id."
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      }
+    },
+    {
+      "name": "terminal_list",
+      "description": "List persistent terminal sessions owned by the current agent.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "terminal_open",
+      "description": "Create a persistent, owner-isolated terminal session from a registered backend type. Use this for shell or REPL state that must survive across tool calls.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Registered terminal backend type, usually \"shell\"."
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional owner-local display name such as \"main\" or \"gdb\"."
+          },
+          "cwd": {
+            "type": "string",
+            "description": "Initial working directory. Defaults to the deployment workspace root."
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    }
+  ],
+  "changes": []
+}

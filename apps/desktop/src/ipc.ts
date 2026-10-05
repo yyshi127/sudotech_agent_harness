@@ -40,6 +40,7 @@ export const XIAOJING_DESKTOP_IPC = {
   companionWake: 'xiaojing-desktop:wake-companion',
   companionTuck: 'xiaojing-desktop:tuck-companion',
   companionReset: 'xiaojing-desktop:reset-companion-position',
+  companionLayout: 'xiaojing-desktop:companion-layout',
   companionScale: 'xiaojing-desktop:set-companion-scale',
   showMain: 'xiaojing-desktop:show-main-window',
   companionChanged: 'xiaojing-desktop:companion-state-changed',

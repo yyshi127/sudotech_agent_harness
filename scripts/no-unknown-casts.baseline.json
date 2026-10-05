@@ -2,7 +2,7 @@
   "apps/cli/tests/built-bin.e2e.ts": {
     "e3b3858336ae260253abe549d2b763f5087ab4e8650f4eb5b323339eff0a6ce4": 1
   },
-  "apps/cli/tests/plugin-runtime-shadow.snapshot.ts": {
+  "apps/cli/tests/plugin-runtime-shadow.expected.e2e.ts": {
     "def6ff1b34cfc9555954cee1863bc36c7318518af925c8b7f2f7320f672dda1c": 1
   },
   "apps/cli/tests/profiles/acp/tests/acp.e2e.ts": {
@@ -93,9 +93,6 @@
     "203f87d9e4f18ce1f00bf575fe96f724975341cbb67b8c51ea45d4cbb8e60005": 1,
     "56cede35ce34488cdae4b19aec217c9c939377eb891fe68827fbd64cd019170c": 1,
     "fda84896a47e7f9d046fcd7e10e9096c8b002bc5f1ea0c7753e57abe87528dea": 1
-  },
-  "apps/web/tests/dsh-file-upload-routing.client.spec.ts": {
-    "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 1
   },
   "apps/web/tests/finance-journal-preparation.e2e.ts": {
     "9d869eacbf28551a3803ab1466e82ec18a4646704624812960cd14d8ab45b3e6": 1
@@ -846,9 +843,6 @@
   },
   "packages/client/xiaojing-product/src/client/application-info.ts": {
     "326597b335539db945b2e3b7c86638d40849d2077c0a5670d064e45486f4e407": 1
-  },
-  "packages/client/xiaojing-product/tests/product.host.spec.ts": {
-    "9a7580dc2b91cb41fb1343d624bdf41611444ea08e34dd320a5fb9c80d373879": 1
   },
   "packages/compaction/command-compact/tests/command-compact.spec.ts": {
     "439249ecfa0f0b09db43b475a9c50602ae19f2d7d6919522a8c44bc71912aad4": 1
@@ -2295,13 +2289,7 @@
     "e82b77ed78a607e3b8941ce40ec65663a470c3631044f06ae79852149c841296": 1
   },
   "packages/xiaojing/xiaojing-weixin-channel/tests/channel-media.integration.spec.ts": {
-    "4f89ede5bd883c6b8026b13e8065763b9687b7c3a23536988f4d29a8a52ad9cf": 1,
-    "629289e9c914a9f4166568f35e1b0c7be19c1f4149e3e948fb581fae4142cced": 2,
-    "b30d0e7c51f294775f0ac0344689332a2c33bf5b11f15554b168f6ef71a19fa2": 1
-  },
-  "packages/xiaojing/xiaojing-weixin-channel/tests/channel.integration.spec.ts": {
-    "5619054a4391042e5ba6510938001b47f5efe31eb4575461f7ca258a6692906e": 1,
-    "93723d9d52602903f7516126ddedf60e360fde69f5e6b0ebe648ecab88324291": 1
+    "4f89ede5bd883c6b8026b13e8065763b9687b7c3a23536988f4d29a8a52ad9cf": 1
   },
   "packages/xiaojing/xiaojing-weixin-channel/tests/media.spec.ts": {
     "15cd3b95bd353e3f72d692d957eb3250cdf2fcf1bef6b1767a5f463adce1ecbf": 1,

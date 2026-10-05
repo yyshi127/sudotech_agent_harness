@@ -2,6 +2,7 @@
 // Record: DSH_SNAPSHOT=record writes session.v3.jsonl, then a keyless
 // DSH_SNAPSHOT=refresh regenerates ui.expected.md.
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
@@ -12,16 +13,31 @@ import {
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/ptc-round/session.v3.jsonl', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/ptc-round/ui.expected.md', import.meta.url))
-const TRAJECTORY_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/ptc-round/trajectory.expected.md', import.meta.url))
-const CODE_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/ptc-round/code.expected.md', import.meta.url))
-const PREPARING_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/ptc-round/preparing.expected.md', import.meta.url))
+const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+const EXPECTED_DIR = fileURLToPath(new URL(WINDOWS_XIAOJING ? './expected/ptc-round-xiaojing/' : '../../../snapshots/web/ptc-round/', import.meta.url))
+const FIXTURE = join(EXPECTED_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
+const UI_EXPECTED = join(EXPECTED_DIR, 'ui.expected.md')
+const TRAJECTORY_EXPECTED = join(EXPECTED_DIR, 'trajectory.expected.md')
+const CODE_EXPECTED = join(EXPECTED_DIR, 'code.expected.md')
+const PREPARING_EXPECTED = join(EXPECTED_DIR, 'preparing.expected.md')
 const MODE = webSnapshotMode()
+const SHELL_TOOL = WINDOWS_XIAOJING ? 'pwsh' : 'bash'
+const SHELL_COMMAND = WINDOWS_XIAOJING ? "Write-Output 'CODE_ROUND_OK'" : 'echo CODE_ROUND_OK'
+
+/** Redact only this owned missing-file path after aria escapes Windows backslashes. */
+function ownedPathReplacements(cwd: string): [string, string][] {
+  const path = join(cwd, 'workspace', 'missing.txt')
+  const escaped = JSON.stringify(path).slice(1, -1)
+  return [
+    [escaped.replaceAll('\\', '\\\\'), '{{cwd}}/workspace/missing.txt'],
+    [escaped, '{{cwd}}/workspace/missing.txt'],
+  ]
+}
 
 // Elicits the successful and failed sub-rows this scenario asserts.
-const PROMPT = 'Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt '
+const PROMPT = `Using ONE run_code program: run ${SHELL_TOOL} \`${SHELL_COMMAND}\`, then read the file missing.txt `
   + 'catching its error in the program. Return an object with both outcomes. Then reply DONE and stop.'
 
 describe('web e2e: PTC mode round renders nested sub-calls', () => {
@@ -36,6 +52,7 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
     scaffold = await launchWebScaffold({
       agentPresets: { default: 'ptc' },
       compareReplaySession: true,
+      ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
       ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15 }),
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
@@ -49,8 +66,11 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
 
   afterAll(async () => {
     releasePreparation?.()
-    await browser?.close()
-    await scaffold?.close()
+    const failures: unknown[] = []
+    await browser?.close().catch((error: unknown) => failures.push(error))
+    await scaffold?.close().catch((error: unknown) => failures.push(error))
+    if (failures.length === 1) throw failures[0]
+    if (failures.length > 1) throw new AggregateError(failures, 'PTC round teardown failed')
   })
 
   it('drives the recorded prompt to a settled turn (all modes)', async () => {
@@ -122,10 +142,21 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
       expect(Array.isArray(data.content)).toBe(true)
       expect(typeof data.isError).toBe('boolean')
     }
-    const bash = dispatches.find(dispatch => (dispatch.data as { name: string }).name === 'bash')
+    expect(dispatches.map(dispatch => dispatch.data.name)).toEqual([SHELL_TOOL, 'read'])
+    expect(dispatches.map(dispatch => dispatch.data.isError)).toEqual([false, true])
+    const bash = dispatches.find(dispatch => dispatch.data.name === SHELL_TOOL)
     expect(bash).toBeDefined()
     const bashContent = (bash!.data as { content: { type: string; text?: string }[] }).content
     expect(bashContent.filter(block => block.type === 'text').map(block => block.text).join('')).toContain('CODE_ROUND_OK')
+    const result = sessionEvents.find(event => event.type === 'tool/result')
+    if (result?.type !== 'tool/result') throw new Error('PTC parent produced no durable result')
+    expect(result.data.message.isError).toBe(false)
+    const outcome = result.data.message.content.find(block => block.type === 'text')
+    if (outcome?.type !== 'text') throw new Error('PTC parent produced no text result')
+    expect(outcome.text).toBe(JSON.stringify({
+      [SHELL_TOOL]: 'CODE_ROUND_OK',
+      readError: { toolName: 'read', message: `cannot read "${join(scaffold.workspaceCwd, 'workspace', 'missing.txt')}": not found` },
+    }, null, 2) + (WINDOWS_XIAOJING ? '\nFile sandbox enforcement is partial on this host.' : ''))
   })
 
   it.skipIf(MODE === 'record')('renders the code parent row with always-visible nested sub-rows', async () => {
@@ -138,8 +169,8 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
     await codeRow.waitFor({ timeout: 10_000 })
     const nest = page.locator('[data-subcalls]').first()
     await nest.waitFor({ timeout: 10_000 })
-    expect(await nest.locator('[data-sample="bash"]').count()).toBeGreaterThanOrEqual(1)
-    expect(await nest.locator('[data-state="error"]').count()).toBeGreaterThanOrEqual(1)
+    expect(await nest.locator(WINDOWS_XIAOJING ? '[data-tool="pwsh"]' : '[data-sample="bash"]').count()).toBe(1)
+    expect(await nest.locator('[data-state="error"]').count()).toBe(1)
   }, 60_000)
 
   it.skipIf(MODE === 'record')('expands the nested bash terminal inline before and after reload', async () => {
@@ -157,14 +188,15 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
       const frame = page.locator('[style*="grid-template-columns"]').first()
       expect(await frame.getAttribute('data-rightbar-collapsed')).toBe('true')
       await expandOwningTurnProcess(page, nest)
-      const row = nest.locator('[data-sample="bash"]').first()
-      await expect.poll(() => row.getAttribute('data-state')).toBe('ok')
+      const shell = nest.locator(WINDOWS_XIAOJING ? '[data-tool="pwsh"]' : '[data-sample="bash"]').first()
+      const row = WINDOWS_XIAOJING ? shell.locator('[data-disclosure-row]') : shell
+      await expect.poll(() => shell.getAttribute('data-state')).toBe('ok')
       await expect.poll(() => row.getAttribute('aria-expanded')).toBe('false')
       await row.click()
       await expect.poll(() => row.getAttribute('aria-expanded')).toBe('true')
       const terminal = row.locator('xpath=..').locator('[data-terminal]')
       await terminal.waitFor()
-      await terminal.getByText('echo CODE_ROUND_OK', { exact: true }).waitFor()
+      await terminal.getByText(SHELL_COMMAND, { exact: true }).waitFor()
       await terminal.getByText('CODE_ROUND_OK', { exact: true }).waitFor()
       await expect.poll(() => terminal.locator('[data-state]').getAttribute('data-state')).toBe('done')
       await expect.poll(() => frame.getAttribute('data-rightbar-collapsed'), { timeout: 5_000 }).toBe('true')
@@ -176,7 +208,8 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
 
   it.skipIf(MODE === 'record')('matches the expanded conversation aria golden with stable anchors', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-ptc-aria'))
-    const row = page.locator('[data-subcalls] [data-sample="bash"]').first()
+    const shell = page.locator(WINDOWS_XIAOJING ? '[data-subcalls] [data-tool="pwsh"]' : '[data-subcalls] [data-sample="bash"]').first()
+    const row = WINDOWS_XIAOJING ? shell.locator('[data-disclosure-row]') : shell
     await expandOwningTurnProcess(page, row)
     if (await row.getAttribute('aria-expanded') !== 'true') await row.click()
     const snapshot = await captureExpandedTurnProcessAria(
@@ -184,7 +217,9 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
       '[class*="centerCol"]',
       scaffold.workspaceCwd,
     )
-    await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
+    const ownedSnapshot = ownedPathReplacements(scaffold.workspaceCwd)
+      .reduce((text, [path, replacement]) => text.replaceAll(path, replacement), snapshot)
+    await compareOrRefreshGolden(UI_EXPECTED, ownedSnapshot, MODE)
   })
 
   it.skipIf(MODE === 'record')('inspects recorded PTC source, wrapping, and original JSON in the trajectory', async () => {
@@ -201,6 +236,7 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
       .toEqual(['Hierarchy', 'Status'])
     const overview = await Promise.all([1, 2].map(index => captureStableAria(
       page, `[role="tabpanel"] [class*="overviewSections"] > section:nth-child(${index})`, scaffold.workspaceCwd,
+      { replacements: ownedPathReplacements(scaffold.workspaceCwd) },
     )))
     await compareOrRefreshGolden(TRAJECTORY_EXPECTED, overview.join('\n'), MODE)
 

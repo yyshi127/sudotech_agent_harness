@@ -25,6 +25,8 @@
  * not kill the prewarm other consumers will hit, so it carries its own
  * abort (fired only on invalidation/teardown) while a candidates caller
  * with an aborted signal just returns early.
+ * Catalog dispatch starts after the current synchronous stack. Invalidated
+ * or unloading entries cannot retain a Session or publish a lexicon.
  * Catalog RPCs retain an existing Client Session through completion and
  * wait for its initial history open to succeed before contacting the Host.
  *
@@ -33,6 +35,7 @@
  */
 // Type-only: the carrier types, the forwarded Host-event face and the ctx.remote merge.
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import { FiberState } from '@deepseek-ai/cordis'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { SkillEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
@@ -90,8 +93,12 @@ export function apply(ctx: ClientContext): void {
   const fetches = new Map<SessionId, CatalogFetch>()
   // Per-session lexicon invalidation listeners (subscribeLexicon consumers).
   const lexiconListeners = new Map<SessionId, Set<() => void>>()
+  let closed = false
+  const isClosed = (): boolean => closed || ctx.fiber.state === FiberState.UNLOADING
+    || ctx.fiber.state === FiberState.DISPOSED || ctx.fiber.state === FiberState.FAILED
 
   const notifyLexicon = (sessionId: SessionId): void => {
+    if (isClosed()) return
     for (const listener of [...(lexiconListeners.get(sessionId) ?? [])]) {
       try {
         listener()
@@ -109,6 +116,9 @@ export function apply(ctx: ClientContext): void {
     if (existing !== undefined) return existing
     const abort = new AbortController()
     const promise = (async () => {
+      await Promise.resolve()
+      if (isClosed()) throw new Error('skill catalog is disposed')
+      abort.signal.throwIfAborted()
       if (sessions.binding(sessionId) === undefined) {
         throw new Error(`skill catalog requires a retained session "${sessionId}"`)
       }
@@ -129,6 +139,7 @@ export function apply(ctx: ClientContext): void {
     promise.then(
       // Settled snapshot backs the synchronous lexicon reads.
       (skills) => {
+        if (isClosed() || abort.signal.aborted || fetches.get(sessionId) !== entry) return
         entry.settled = skills
         notifyLexicon(sessionId)
       },
@@ -161,6 +172,7 @@ export function apply(ctx: ClientContext): void {
     name: 'skill',
     order: 2,
     async candidates(session, { query, signal }) {
+      if (isClosed()) throw new Error('skill catalog is disposed')
       if (sessions.subagentAddress(session.sessionId) !== undefined) return []
       const skills = await fetchCatalog(session.sessionId).promise
       // Superseded keystroke: the shared fetch stays warm, this caller yields.
@@ -176,15 +188,18 @@ export function apply(ctx: ClientContext): void {
         }))
     },
     warm(session) {
+      if (isClosed()) return
       // Fire-and-forget scope-birth prewarm; the shared fetch reports
       // through candidates.
       if (sessions.subagentAddress(session.sessionId) !== undefined) return
       fetchCatalog(session.sessionId).promise.catch(() => {})
     },
     lexicon(session) {
+      if (isClosed()) return undefined
       return fetches.get(session.sessionId)?.settled?.map(skill => skill.name)
     },
     subscribeLexicon(session, listener) {
+      if (isClosed()) return () => {}
       const key = session.sessionId
       const listeners = lexiconListeners.get(key) ?? new Set()
       listeners.add(listener)
@@ -195,6 +210,7 @@ export function apply(ctx: ClientContext): void {
       }
     },
     openReference(session, { ref }) {
+      if (isClosed()) return false
       if (sessions.subagentAddress(session.sessionId) !== undefined) return false
       const cwd = sessions.list.getSnapshot().byId[session.sessionId]?.cwd
       const open = (catalog: readonly SkillEntry[]): boolean => {
@@ -232,8 +248,10 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     const unregister = inputTriggers.registerSource(source)
     return () => {
+      closed = true
       unregister()
       clearAll()
+      lexiconListeners.clear()
     }
   }, 'ui-skill: source')
 }

@@ -9,10 +9,11 @@
 /* oxlint-disable typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any. */
 
 import { Context } from '@deepseek-ai/cordis'
+import { setImmediate } from 'node:timers/promises'
 import { describe, expect, it, vi } from 'vitest'
 import type {
   ApprovalRequestId, CordisDynamicPackageId, CordisDynamicPluginId, CordisDynamicPluginRunId,
-  DynamicCordisInvokeResult, SessionId,
+  CordisInspectProviderManifest, DynamicCordisInvokeResult, SessionId,
 } from '@deepseek-ai/dsh-api-remotes/client'
 // Type-only: resolves the `ctx.remote.$on` surface.
 import type {} from '@deepseek-ai/dsh-api-gateway/client'
@@ -68,7 +69,7 @@ interface Bench {
 }
 
 /** Mount the browser half over a module table and a loader standing on real fibers. */
-async function boot(): Promise<Bench> {
+async function boot(inspectSync?: (providers: readonly CordisInspectProviderManifest[]) => Promise<void>): Promise<Bench> {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry)
   const factories = new Map<string, () => unknown>()
@@ -112,7 +113,10 @@ async function boot(): Promise<Bench> {
   // its own failures into the error branch, and only an assembly fault rejects.
   const answered = <T>(value: T): Promise<{ ok: true; value: T }> => Promise.resolve({ ok: true as const, value })
   const namespace = {
-    syncInspectManifest: () => answered(null),
+    syncInspectManifest: async (providers: readonly CordisInspectProviderManifest[]) => {
+      await inspectSync?.(providers)
+      return answered(null)
+    },
     resolveInspectQuery: () => answered({ accepted: true }),
     runHostHalf: () => answered({
       ok: true, pluginId: PLUGIN, packageId: PACKAGE, pluginRunId: RUN, waitingFor: [], startedHere: true,
@@ -194,6 +198,33 @@ async function boot(): Promise<Bench> {
 }
 
 describe('browser half', () => {
+  it('joins manifest publication during unload and prevents later transport calls', async () => {
+    const started = Promise.withResolvers<undefined>()
+    const release = Promise.withResolvers<undefined>()
+    const publications: { providerCount: number; ownerDisposed: boolean }[] = []
+    let ownerDisposed = false
+    const bench = await boot(async (providers) => {
+      publications.push({ providerCount: providers.length, ownerDisposed })
+      if (publications.length === 1) {
+        started.resolve(undefined)
+        await release.promise
+      }
+    })
+    await started.promise
+    const disposal = bench.dispose().then(() => { ownerDisposed = true })
+    try {
+      // The first transport call remains held while all available disposal
+      // microtasks run. Unload must still owe that call's completion.
+      await setImmediate()
+      expect(ownerDisposed).toBe(false)
+    } finally {
+      release.resolve(undefined)
+      await disposal
+    }
+    await setImmediate()
+    expect(publications).toEqual([{ providerCount: publications[0]!.providerCount, ownerDisposed: false }])
+  })
+
   it('provides the load engine as the page run-state face', async () => {
     const bench = await boot()
     expect(bench.ctx.dynamicCordisRunner.getSnapshot()).toEqual([])

@@ -1,6 +1,55 @@
 /** Business-readable mandatory approval text for finance writes. */
 
-/** Finance operations that require a one-time confirmation. */
+import type { ApprovalRequest } from '@deepseek-ai/dsh-user-approval'
+import type { FinanceClientId } from './types.ts'
+
+type FinanceCreationAction = Extract<FinanceApprovalAction, `create-${string}`>
+
+const CREATION_LABELS: Record<FinanceCreationAction, { en: string; zh: string }> = {
+  'create-master-data': { en: 'Create master data', zh: '新增基础资料' },
+  'create-open-item': { en: 'Create receivables or payables', zh: '新增应收或应付' },
+  'create-journal': { en: 'Create journal entries', zh: '新增日记账' },
+  'create-voucher': { en: 'Create vouchers', zh: '创建凭证' },
+}
+
+const VARIANT_LABELS: Record<string, { en: string; zh: string }> = {
+  subject: { en: 'accounting subjects', zh: '会计科目' },
+  'auxiliary-item': { en: 'auxiliary items', zh: '辅助核算项目' },
+  income: { en: 'income', zh: '收入' },
+  expense: { en: 'expense', zh: '支出' },
+  receivable: { en: 'receivables', zh: '应收' },
+  payable: { en: 'payables', zh: '应付' },
+}
+
+/**
+ * Identify repeatable finance creation within one verified ledger configuration.
+ * Each subsequent preparation still reserves and rechecks its exact version before dispatch.
+ * @param action - Host-selected creation operation, excluding deletion and settlement.
+ * @param clientId - Bound client identity.
+ * @param configurationDigest - Verified ledger, credentials and client revision digest.
+ * @param preview - Host-verified account presentation.
+ * @param variant - Direction or master-data kind, or attachment storage configuration digest.
+ * @returns The session authorization classification and localized scope label.
+ */
+export function financeCreationApprovalScope(action: FinanceCreationAction, clientId: FinanceClientId,
+  configurationDigest: string, preview: unknown, variant: string): NonNullable<ApprovalRequest['reusable']> {
+  const name = accountName(record(preview) ?? {})
+  const labels = CREATION_LABELS[action]
+  const variantLabel = action === 'create-voucher'
+    ? variant === 'no-attachments' ? { en: 'without attachments', zh: '不上传附件' }
+      : { en: 'attachments to the current storage', zh: '附件上传到当前存储' }
+    : VARIANT_LABELS[variant]
+  const en = `${labels.en} in ledger “${name}”${variantLabel === undefined ? '' : ` (${variantLabel.en})`}`
+  const zh = `${labels.zh}：账套“${name}”${variantLabel === undefined ? '' : `（${variantLabel.zh}）`}`
+  return {
+    category: `xiaojing-finance:${action}`,
+    scope: JSON.stringify([clientId, configurationDigest, variant]),
+    label: en,
+    displayLabel: { en, zh },
+  }
+}
+
+/** Finance operations whose prepared versions require approval. */
 export type FinanceApprovalAction =
   | 'create-master-data'
   | 'create-open-item'

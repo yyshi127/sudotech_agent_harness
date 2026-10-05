@@ -10,12 +10,15 @@ import { deriveReplayScript, parseSessionLog } from '@deepseek-ai/dsh-llm-replay
 import {
   assertFinalWorkspaceSnapshot, captureExpandedTurnProcessAria, compareOrRefreshGolden,
   fixtureUserPrompts, launchWebScaffold, recordFixture, watchConsole,
-  webSnapshotMode, type WebScaffold,
+  webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspaceZh, ZH_BROWSER_LOCALE } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const DIR = fileURLToPath(new URL('../../../snapshots/web/present-svg', import.meta.url))
-const FIXTURE = join(DIR, 'session.v3.jsonl')
+const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const DIR = fileURLToPath(new URL(NATIVE_XIAOJING
+  ? './expected/present-svg-xiaojing' : '../../../snapshots/web/present-svg', import.meta.url))
+const FIXTURE = join(DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()
 const RECORD_PROMPT = '简单画一个 SVG 表示冯诺依曼架构，保存为 von-neumann.svg，并提供独立文件卡片，方便打开。'
 const FILE = 'von-neumann.svg'
@@ -30,8 +33,9 @@ describe('web e2e: requested SVG is explicitly delivered', () => {
   const connectionDiagnostics: string[] = []
 
   beforeAll(async () => {
+    if (NATIVE_XIAOJING && MODE === 'record') throw new Error('The Windows Xiaojing fixture is independently authored')
     let replayOverride: string | undefined
-    if (MODE !== 'record') {
+    if (MODE !== 'record' && !NATIVE_XIAOJING) {
       replayRoot = await mkdtemp(join(tmpdir(), 'dsh-present-svg-replay-'))
       replayOverride = join(replayRoot, 'replay.override.json')
       const script = deriveReplayScript(parseSessionLog(await readFile(FIXTURE, 'utf8')))
@@ -41,6 +45,7 @@ describe('web e2e: requested SVG is explicitly delivered', () => {
     }
     scaffold = await launchWebScaffold({
       compareReplaySession: true,
+      ...(NATIVE_XIAOJING ? { replayFixture: FIXTURE, replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
       extraOverlayPath: fileURLToPath(new URL('./present-svg.overlay.yml', import.meta.url)),
       ...(replayOverride === undefined ? {} : { replayFixture: FIXTURE, replayOverride }),
     })

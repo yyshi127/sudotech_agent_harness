@@ -58,6 +58,45 @@ function spec(command: string, overrides: Partial<SubprocessSpawnSpec> = {}): Su
 }
 
 describe('LocalSubprocessRuntime', () => {
+  it.each(['linux', 'darwin', 'win32'] as const)('rejects unsupported independent Windows children on %s before launch', async (platform) => {
+    const probeWindowsJob = vi.fn(() => false)
+    const launchWindowsJob = vi.fn()
+    const spawnSubprocess = vi.fn()
+    const launchLinuxScope = vi.fn()
+    vi.resetModules()
+    mockWin32ForIsolatedRuntime()
+    vi.doMock('../src/windows-job.ts', () => ({ launchWindowsJob, probeWindowsJob }))
+    vi.doMock('../src/linux-scope.ts', async importOriginal => ({
+      ...await importOriginal<typeof import('../src/linux-scope.ts')>(),
+      launchLinuxScope, probeLinuxNative: vi.fn(() => true),
+    }))
+    vi.doMock('../src/spawn.ts', async importOriginal => ({
+      ...await importOriginal<typeof import('../src/spawn.ts')>(), spawnSubprocess,
+    }))
+    let fiber: { dispose(): Promise<void> } | undefined
+    try {
+      const { default: IsolatedLocalSubprocessRuntime } = await import('../src/index.ts')
+      const ctx = new Context()
+      vi.spyOn(ctx.logger, 'warn').mockImplementation(() => {})
+      fiber = await ctx.plugin(IsolatedLocalSubprocessRuntime)
+      const runtime = ctx.subprocess as InstanceType<typeof IsolatedLocalSubprocessRuntime>
+      runtime.internals = { platform }
+      expect(() => runtime.spawn(spec('true', { windowsChildLifetime: 'independent' })))
+        .toThrow('independent Windows children require a local Windows Job')
+      expect(launchWindowsJob).not.toHaveBeenCalled()
+      expect(launchLinuxScope).not.toHaveBeenCalled()
+      expect(spawnSubprocess).not.toHaveBeenCalled()
+    } finally {
+      await fiber?.dispose()
+      vi.doUnmock('../src/windows-job.ts')
+      vi.doUnmock('../src/linux-scope.ts')
+      vi.doUnmock('../src/spawn.ts')
+      unmockWin32ForIsolatedRuntime()
+      vi.resetModules()
+      vi.restoreAllMocks()
+    }
+  })
+
   it('discovers the platform shell without inventing a missing default and honors cancellation', async () => {
     let loginShell: string | null = '/account/shell'
     const userInfo = vi.spyOn(os, 'userInfo').mockImplementation(() => ({

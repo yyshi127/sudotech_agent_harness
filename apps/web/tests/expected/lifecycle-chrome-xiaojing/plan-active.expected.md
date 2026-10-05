@@ -1,0 +1,32 @@
+- button "New session"
+- button "Collapse sidebar"
+- button "New session": New Session
+- button "Office Companion"
+- button "Finance Assistant"
+- button "Search sessions"
+- textbox "Search session names"
+- button "View options"
+- button "Add workspace"
+- tree "Sessions":
+  - treeitem "workspace" [expanded]
+  - treeitem "New Session" [selected]
+- button "Today 0 token · ¥0.00":
+  - text: Today
+  - strong: "0"
+  - text: token ·
+  - strong: ¥0.00
+- navigation "Global panels":
+  - button "Plugins"
+- button "Settings"
+- banner:
+  - button "Open right sidebar"
+- img "Xiaojing Accounting"
+- text: Xiaojing Accounting, Your AI Workmate Internal Beta v0.3.2
+- button "Choose workspace": workspace
+- button "Standard mode"
+- textbox "Describe what you want to build, / commands, @ files or sessions"
+- button "Add files or run commands"
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Plan mode on, press to turn off": Plan
+- button "Select model, current DeepSeek-V41-Flash": DeepSeek-V41-Flash
+- button "Send message" [disabled]

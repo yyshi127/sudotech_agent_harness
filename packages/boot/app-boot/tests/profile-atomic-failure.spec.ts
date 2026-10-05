@@ -1,6 +1,6 @@
 /** Atomic shipped-profile migration cleanup when the filesystem rejects replacement. */
 
-import { mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -31,11 +31,12 @@ describe('shipped profile migration', () => {
     mkdirSync(dir, { recursive: true })
     const original = {
       name: 'web',
-      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
+      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-file-uploads'] } },
     }
     writeProfileManifest(dir, original)
 
     expect(() => loadProfile('dsh', 'web', join(home, 'unused-anchor.json'), home)).toThrow(renameFailure)
     expect(readdirSync(dir)).toEqual(['package.json'])
+    expect(JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))).toEqual(original)
   })
 })

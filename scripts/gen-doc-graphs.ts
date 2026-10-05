@@ -124,6 +124,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns browser actions and their approval policy over the configured product browser.',
   },
   {
+    key: 'xiaojingNativeBrowserSettings',
+    pkg: 'xiaojing-browser-control',
+    title: 'Existing browser permission and connection state',
+    mode: 'core',
+    consumers: ['xiaojing-browser-control'],
+    note: 'Owns per-browser permission, observed connection state, and verified settings-page navigation.',
+  },
+  {
     key: 'xiaojingComputerControl',
     pkg: 'xiaojing-computer-control',
     title: 'Windows desktop automation',

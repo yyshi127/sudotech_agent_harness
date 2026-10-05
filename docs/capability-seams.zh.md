@@ -14,6 +14,7 @@ flowchart LR
   pkg_client_ui_usage_accounting["client-ui-usage-accounting"]
   pkg_xiaojing_browser_control["xiaojing-browser-control"]
   svc_xiaojingBrowserControl["ctx.xiaojingBrowserControl<br/>Product browser automation"]
+  svc_xiaojingNativeBrowserSettings["ctx.xiaojingNativeBrowserSettings<br/>Existing browser permission and connection state"]
   pkg_xiaojing_computer_control["xiaojing-computer-control"]
   svc_xiaojingComputerControl["ctx.xiaojingComputerControl<br/>Windows desktop automation"]
   pkg_xiaojing_desktop_companion["xiaojing-desktop-companion"]
@@ -450,6 +451,7 @@ flowchart LR
   pkg_workspace --> svc_workspaceRegistry
   pkg_workspace_changes --> svc_workspaceChanges
   pkg_xiaojing_browser_control --> svc_xiaojingBrowserControl
+  pkg_xiaojing_browser_control --> svc_xiaojingNativeBrowserSettings
   pkg_xiaojing_computer_control --> svc_xiaojingComputerControl
   pkg_xiaojing_desktop_companion --> svc_xiaojingDesktopCompanion
   pkg_xiaojing_finance_calculations --> svc_xiaojingFinanceCalculations
@@ -614,6 +616,7 @@ flowchart LR
   svc_xiaojingFinanceDomain --> pkg_xiaojing_finance_documents
   svc_xiaojingFinanceDomain --> pkg_xiaojing_finance_evidence
   svc_xiaojingFinanceEvidence --> pkg_xiaojing_finance_evidence
+  svc_xiaojingNativeBrowserSettings --> pkg_xiaojing_browser_control
   svc_xiaojingWeixinChannel --> pkg_client_ui_weixin_channel
   svc_xiaojingWeixinChannel --> pkg_xiaojing_desktop_companion
   svc_fs -. event gate .-> pkg_fs_observation_policy
@@ -623,6 +626,7 @@ flowchart LR
 | --- | --- | --- | --- | --- | --- | --- |
 | `ctx.usageAccounting` | `core` | [`usage-accounting`](../packages/llm/usage-accounting) | - | [`client-ui-usage-accounting`](../packages/client/ui-usage-accounting) | - | 记录官方 API Key 路由的用量并提供结算快照。 |
 | `ctx.xiaojingBrowserControl` | `core` | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | 管理小兢浏览器连接和浏览器操作。 |
+| `ctx.xiaojingNativeBrowserSettings` | `core` | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | [`xiaojing-browser-control`](../packages/xiaojing/xiaojing-browser-control) | - | 管理每种浏览器的许可、连接状态，以及经过验证的设置页打开操作。 |
 | `ctx.xiaojingComputerControl` | `core` | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | [`xiaojing-computer-control`](../packages/xiaojing/xiaojing-computer-control) | - | 提供小兢桌面交互工具。 |
 | `ctx.xiaojingDesktopCompanion` | `core` | [`xiaojing-desktop-companion`](../packages/xiaojing/xiaojing-desktop-companion) | - | [`xiaojing-weixin-channel`](../packages/xiaojing/xiaojing-weixin-channel) | - | 投影桌面伴侣的状态、任务和连接。 |
 | `ctx.xiaojingFinanceCalculations` | `core` | [`xiaojing-finance-calculations`](../packages/xiaojing/xiaojing-finance-calculations) | - | [`xiaojing-finance-calculations`](../packages/xiaojing/xiaojing-finance-calculations) | - | 通过产品工具提供确定性财务计算。 |

@@ -1,6 +1,6 @@
 /**
  * Service Definition for the approval capability seam, covering requests, cancellation, audit, and per-session policy. Missing
- * answerers fail closed; grants apply only to the requested action.
+ * answerers fail closed; trusted operation classifications support authorization within one session.
  * @module @deepseek-ai/dsh-user-approval
  */
 
@@ -46,13 +46,34 @@ declare module '@deepseek-ai/dsh-session/types' {
 }
 
 import { ApprovalRequestId } from './types.ts'
-import type { ApprovalOutcome, ApprovalRequestEvent } from './types.ts'
+import type { ApprovalAnswer, ApprovalAuthorization, ApprovalOutcome, ApprovalRequestEvent, ApprovalReuse, ApprovalReuseAudit } from './types.ts'
 
 export { ApprovalRequestId } from './types.ts'
-export type { ApprovalOutcome } from './types.ts'
+export type { ApprovalAnswer, ApprovalAuthorization, ApprovalOutcome, ApprovalReuse, ApprovalReuseAudit } from './types.ts'
 
-/** Every {@link ApprovalOutcome}, for runtime normalization of answerer returns. */
-const OUTCOMES: readonly ApprovalOutcome[] = ['allowed-once', 'rejected', 'cancelled', 'unavailable']
+/** Accepted answerer choices; request consumers still receive ApprovalOutcome. */
+const ANSWERS: readonly ApprovalAnswer[] = ['allowed-once', 'allowed-session', 'rejected', 'cancelled', 'unavailable']
+
+/** Omit localized presentation from durable approval classification. */
+function auditReuse(reusable: ApprovalReuse): ApprovalReuseAudit {
+  return { category: reusable.category, scope: reusable.scope, label: reusable.label }
+}
+
+/** Await service-owned work until either request or service cancellation. */
+async function cancellable<T>(pending: Promise<T>, signal: AbortSignal, cancelled: T): Promise<T> {
+  if (signal.aborted) return cancelled
+  return await new Promise<T>((resolve, reject) => {
+    const onAbort = () => { signal.removeEventListener('abort', onAbort); resolve(cancelled) }
+    signal.addEventListener('abort', onAbort, { once: true })
+    void pending.then(
+      (value) => { signal.removeEventListener('abort', onAbort); resolve(value) },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(error instanceof Error ? error : new Error('approval decision failed', { cause: error }))
+      },
+    )
+  })
+}
 
 /**
  * A session's approval policy — what happens to an {@link ApprovalService}
@@ -63,6 +84,8 @@ const OUTCOMES: readonly ApprovalOutcome[] = ['allowed-once', 'rejected', 'cance
  * - `'never'` — never prompt anyone for an ordinary request: every ordinary
  *   ask resolves `'rejected'` deterministically. Mandatory security
  *   confirmations use {@link ApprovalService.requestMandatory} instead.
+ * Explicit product-owned automatic authorization overrides either policy;
+ * products must derive it from a logged user choice, never from this config.
  */
 export type ApprovalPolicy = 'ask' | 'never'
 
@@ -73,13 +96,19 @@ export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never']
 const NEVER_SENTENCE = 'Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.'
 /** Model-facing statement for an interactive policy that may still fail closed. */
 const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
+/** Model context changes only when this session has an effective reusable authorization. */
+const AUTHORIZED_ASK_SENTENCE = 'Approval policy: ask. A user-approved operation class and target scope may reuse authorization only within this session. Other requests require a separate decision through the configured answerers and fail closed without an available answerer.'
+/** Ordinary never remains deterministic; unclassified mandatory confirmations remain per action. */
+const AUTHORIZED_NEVER_SENTENCE = 'Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations still apply; only trusted operation classes and target scopes explicitly authorized in this session can reuse approval. Unclassified confirmations, including deletion confirmation, require approval for each action.'
+/** Explicit user authorization supplied by the owning product from logged session intent. */
+const AUTOMATIC_SENTENCE = 'The user enabled automatic approval for this session. Ordinary and mandatory tool approvals are granted automatically, including deletion, upload, and submission. Do not ask again for the same authorization. When an ordinary application confirmation is observed and can be operated through available tools, confirm it as needed to complete the authorized task. Browser connection permission and operating-system administrator privileges still require their own supported authorization; do not claim that this session mode grants them.'
 
 /**
  * Whether the log currently sits inside an open turn (a `turn/start` not yet
  * closed by a `turn/end`) — the {@link ApprovalService.request} precondition.
- * The audit pair must be turn-enclosed: the turn is the durable log's
- * commit/replay boundary, so a bare event appended between turns is
- * indistinguishable from a crash tail and silently dropped on reload.
+ * The audit pair must be turn-enclosed so history identifies its live action
+ * and whether that turn ended before restart. Persistence retains valid
+ * interrupted history; only originally closed turns restore authorization.
  */
 function hasOpenTurn(session: Session): boolean {
   for (let seq = session.seq - 1; seq >= 0; seq -= 1) {
@@ -148,12 +177,23 @@ export interface Config {
  * changes to the model through the runtime-context snapshot and switch notices.
  */
 export class ApprovalService extends Service {
+  private readonly stopped = new AbortController()
+  private readonly pending = new Set<Promise<ApprovalOutcome>>()
+  private readonly queues = new WeakMap<Session, Map<string, Promise<void>>>()
+  private readonly liveGrants = new WeakMap<Session, Set<string>>()
+  private readonly automatic = new WeakSet<Session>()
+  private readonly waiting = new WeakMap<Session, Set<() => void>>()
   static Config: z<Config> = z.object({
     policy: z.union(['ask', 'never'] as const).default('ask'),
   })
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'approval')
+
+    ctx.effect(() => async () => {
+      this.stopped.abort()
+      await Promise.allSettled(this.pending)
+    })
 
     const effective = (agent: Agent): ApprovalPolicy => this.effectivePolicy(agent.session)
 
@@ -167,7 +207,9 @@ export class ApprovalService extends Service {
           const agent = context.agent
           // A bare assemble() (tests, diagnostics) has no session to state.
           if (agent === undefined) return ''
+          if (this.automatic.has(agent.session)) return AUTOMATIC_SENTENCE
           const policy = effective(agent)
+          if (this.hasAuthorization(agent.session)) return policy === 'never' ? AUTHORIZED_NEVER_SENTENCE : AUTHORIZED_ASK_SENTENCE
           return policy === 'never' ? NEVER_SENTENCE : ASK_SENTENCE
         },
       })
@@ -195,10 +237,26 @@ export class ApprovalService extends Service {
   }
 
   /**
+   * Project explicit, logged user authorization into this service. The owning
+   * product must restore and revoke this value from its session history;
+   * calling this method alone does not persist authorization. Enabling settles
+   * pending questions and overrides both ordinary `never` and mandatory asks.
+   * Cancellation and failed audit commits still prevent execution.
+   * @param session - the exact session authorized by the product.
+   * @param enabled - whether its explicit automatic authorization is effective.
+   */
+  setAutomaticApproval(session: Session, enabled: boolean): void {
+    if (!enabled) { this.automatic.delete(session); return }
+    this.automatic.add(session)
+    for (const allow of this.waiting.get(session) ?? []) allow()
+  }
+
+  /**
    * Ask the composed answerers to decide one readonly same-process request.
-   * The service borrows the request, agent, session, and live signal directly.
-   * The request requires an open turn because the audit pair must be enclosed
-   * by the durable log's commit/replay boundary; an idle ask rejects before
+   * The service borrows the agent, session, and readonly request data. Answerers
+   * receive a request projection with cancellation combined with service disposal.
+   * The request requires an open turn because the audit pair must identify
+   * its action's turn; an idle ask rejects before
    * appending anything. The answerer phase always produces an outcome: an
    * aborted signal yields `'cancelled'`, a missing or throwing answerer yields
    * `'unavailable'` (fail closed), and a rogue non-vocabulary return value is
@@ -207,38 +265,55 @@ export class ApprovalService extends Service {
    * violate the pair. Session contains post-commit observer failures, so an
    * authoritative append cannot reject the request or suppress its matching
    * audit event.
-   * @param req - the pending decision (agent, tool identity, reason, signal).
+   * Trusted requester classifications may reuse an explicitly authorized
+   * operation class and target scope within this session, including after a
+   * restart. Unclassified requests remain one-shot. Creation and reuse are
+   * audited; cancellation, disposal, and failed audit commits cannot create
+   * authorization. Session policy is checked before reuse and after an answer.
+   * @param req - the pending decision (agent, tool identity, reason, signal, optional classification).
    * @returns the closed outcome; `'allowed-once'` is the only grant.
    * @throws when no turn is open or either audit event fails before the session
    *   append commit point.
    */
   async request(req: ApprovalRequest): Promise<ApprovalOutcome> {
-    return await this.requestWithPolicy(req, true)
+    return await this.track(req, true)
   }
 
   /**
    * Ask for a security confirmation that the session's ordinary approval
-   * policy cannot suppress. This method is reserved for product security
+   * policy cannot suppress. Explicit product-owned automatic authorization
+   * applies to these requests too. This method is reserved for product security
    * invariants such as deletion confirmation; it does not grant the action
    * and still fails closed when no answerer is available, the user rejects,
    * or the request is cancelled. Audit and turn-enclosure behavior are the
-   * same as {@link request}.
+   * same as {@link request}. A trusted classification explicitly supplied by
+   * the security consumer may reuse session authorization; omission requires
+   * a separate answer for each action.
    * @param req - the mandatory decision (agent, tool identity, reason, signal).
    * @returns the closed outcome; `'allowed-once'` is the only grant.
    * @throws when no turn is open or either audit event fails before the session
    *   append commit point.
    */
   async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome> {
-    return await this.requestWithPolicy(req, false)
+    return await this.track(req, false)
+  }
+
+  /** Track audited requests so service disposal waits for cancellation decisions to commit. */
+  private track(req: ApprovalRequest, respectSessionPolicy: boolean): Promise<ApprovalOutcome> {
+    const pending = this.requestWithPolicy(req, respectSessionPolicy)
+    this.pending.add(pending)
+    void pending.then(() => { this.pending.delete(pending) }, () => { this.pending.delete(pending) })
+    return pending
   }
 
   /** Run one audited request with or without the ordinary session-policy gate. */
   private async requestWithPolicy(req: ApprovalRequest, respectSessionPolicy: boolean): Promise<ApprovalOutcome> {
+    if (this.stopped.signal.aborted) throw new Error('approval service is disposed')
     const session = req.agent.session
     if (!hasOpenTurn(session)) {
       throw new Error(
         'approval request outside an open turn: the approval/asked + approval/decided audit pair '
-        + 'must be turn-enclosed (a bare event between turns is crash-tail garbage on reload). '
+        + 'must be turn-enclosed so authorization can be restored only from an originally closed turn. '
         + 'Ask from inside the turn that needs the decision.',
       )
     }
@@ -248,10 +323,84 @@ export class ApprovalService extends Service {
       toolName: req.toolName,
       ...req.callId !== undefined ? { callId: req.callId } : {},
       ...req.reason !== undefined ? { reason: req.reason } : {},
+      ...req.reusable !== undefined ? { reusable: auditReuse(req.reusable) } : {},
     })
-    const outcome = await this.decide(req, session, respectSessionPolicy)
-    session.append('approval/decided', { id, outcome })
+    const signal = AbortSignal.any([this.stopped.signal, ...req.signal !== undefined ? [req.signal] : []])
+    const reusable = req.reusable
+    if (reusable === undefined) return await this.commitDecision(req, id, signal, respectSessionPolicy)
+    const key = JSON.stringify([reusable.category, reusable.scope])
+    const queue = this.queues.get(session) ?? new Map<string, Promise<void>>()
+    this.queues.set(session, queue)
+    const previous = queue.get(key) ?? Promise.resolve()
+    const pending = this.commitDecision(req, id, signal, respectSessionPolicy, previous)
+    // A cancelled waiter must not let later requests overtake the active question.
+    const tail = Promise.allSettled([previous, pending]).then(() => {})
+    queue.set(key, tail)
+    void tail.then(() => { if (queue.get(key) === tail) queue.delete(key) })
+    return await pending
+  }
+
+  /** Resolve and commit one decision before its classification queue is released. */
+  private async commitDecision(
+    req: ApprovalRequest,
+    id: ApprovalRequestId,
+    signal: AbortSignal,
+    respectSessionPolicy: boolean,
+    previous?: Promise<void>,
+  ): Promise<ApprovalOutcome> {
+    const session = req.agent.session
+    if (previous !== undefined) await cancellable(previous, signal, undefined)
+    let authorization: ApprovalAuthorization | undefined
+    let automatic = false
+    let answer: ApprovalAnswer
+    if (signal.aborted) answer = 'cancelled'
+    else if (this.automatic.has(session)) { answer = 'allowed-once'; automatic = true }
+    else if (respectSessionPolicy && this.effectivePolicy(session) === 'never') answer = 'rejected'
+    else if (req.reusable !== undefined && this.hasAuthorization(session, req.reusable)) {
+      answer = 'allowed-once'
+      authorization = { ...auditReuse(req.reusable), sessionId: session.id, kind: 'reuse' }
+    } else {
+      const decision = await this.decide(req, signal)
+      answer = decision.answer
+      automatic = decision.automatic
+      if (answer === 'allowed-session' && req.reusable !== undefined) {
+        authorization = { ...auditReuse(req.reusable), sessionId: session.id, kind: 'session' }
+      }
+    }
+    if (signal.aborted) { answer = 'cancelled'; authorization = undefined }
+    else if ((automatic && !this.automatic.has(session))
+      || (respectSessionPolicy && this.effectivePolicy(session) === 'never' && !this.automatic.has(session))) {
+      answer = 'rejected'
+      authorization = undefined
+    }
+    const outcome: ApprovalOutcome = answer === 'allowed-session'
+      ? authorization === undefined ? 'unavailable' : 'allowed-once'
+      : answer
+    session.append('approval/decided', { id, outcome, ...authorization !== undefined ? { authorization } : {} })
+    if (authorization?.kind === 'session') {
+      const grants = this.liveGrants.get(session) ?? new Set<string>()
+      grants.add(JSON.stringify([authorization.category, authorization.scope]))
+      this.liveGrants.set(session, grants)
+    }
     return outcome
+  }
+
+  /** Fold committed grants belonging to this exact session, including after reopening. */
+  private hasAuthorization(session: Session, reusable?: ApprovalReuse): boolean {
+    const live = this.liveGrants.get(session)
+    if (reusable === undefined ? (live?.size ?? 0) > 0 : live?.has(JSON.stringify([reusable.category, reusable.scope]))) return true
+    let originallyClosed = false
+    for (let seq = session.seq - 1; seq >= 0; seq -= 1) {
+      // oxlint-disable-next-line typescript/no-deprecated -- Approval authorization is reconstructed from committed history.
+      const event = session.eventAt(SessionSeq(seq))
+      if (event?.type === 'turn/end') originallyClosed = event.data.reason.kind !== 'interrupted' && event.data.reason.kind !== 'forked'
+      else if (event?.type === 'turn/start') originallyClosed = false
+      if (event?.type !== 'approval/decided' || event.data.outcome !== 'allowed-once') continue
+      const authorization = event.data.authorization
+      if (originallyClosed && authorization?.kind === 'session' && authorization.sessionId === session.id
+        && (reusable === undefined || (authorization.category === reusable.category && authorization.scope === reusable.scope))) return true
+    }
+    return false
   }
 
   /**
@@ -282,53 +431,49 @@ export class ApprovalService extends Service {
   /**
    * Dispatch the waterfall, contained and raced against the request signal.
    * @param req - the borrowed public request.
-   * @param session - the request agent's session used for policy lookup.
-   * @returns the normalized closed outcome.
+   * @param signal - request cancellation combined with service disposal.
+   * @returns the normalized choice and whether automatic authorization supplied it.
    */
   private async decide(
     req: ApprovalRequest,
-    session: Session,
-    respectSessionPolicy: boolean,
-  ): Promise<ApprovalOutcome> {
-    const signal = req.signal
-    if (signal?.aborted) return 'cancelled'
-    // The 'never' policy is decided HERE, before any dispatch: a listener
-    // registered with `prepend: true` after this service mounts would sit
-    // ahead of any gate LISTENER, so a listener-shaped gate cannot keep the
-    // documented promise that 'never' rejects deterministically regardless
-    // of registration order — only the service's own request path can.
-    if (respectSessionPolicy && this.effectivePolicy(session) === 'never') return 'rejected'
+    signal: AbortSignal,
+  ): Promise<{ answer: ApprovalAnswer; automatic: boolean }> {
+    if (signal.aborted) return { answer: 'cancelled', automatic: false }
+    const automatic = Promise.withResolvers<ApprovalAnswer>()
+    const allow = (): void => { automatic.resolve('allowed-once') }
+    const session = req.agent.session
+    const waiting = this.waiting.get(session) ?? new Set<() => void>()
+    this.waiting.set(session, waiting)
+    waiting.add(allow)
+    const question = new AbortController()
+    const questionSignal = AbortSignal.any([signal, question.signal])
     // Enter the promise chain BEFORE dispatching: a listener that throws
     // SYNCHRONOUSLY (before its first await) must land in the same rejection
     // path as an async one — `Promise.resolve(call())` would let it escape
     // the containment into the caller.
-    const answer: Promise<ApprovalOutcome> = Promise.resolve().then(
+    const answer: Promise<ApprovalAnswer> = Promise.resolve().then(
       () => this.ctx.waterfall(
-        scopeTarget(req.agent, req.agent), 'approval/request', req,
-        () => Promise.resolve<ApprovalOutcome>('unavailable'),
+        scopeTarget(req.agent, req.agent), 'approval/request', { ...req, signal: questionSignal },
+        () => Promise.resolve<ApprovalAnswer>('unavailable'),
       ),
     ).then(
       // Normalize a rogue (non-vocabulary) answerer return to the fail-closed
       // outcome instead of leaking it into callers' closed-union switches.
-      outcome => OUTCOMES.includes(outcome) ? outcome : 'unavailable',
+      outcome => ANSWERS.includes(outcome) ? outcome : 'unavailable',
       // A throwing answerer must fail the QUESTION closed, not the caller's
       // tool call open — the seam contains its callbacks.
       () => 'unavailable',
     )
-    if (signal === undefined) return answer
-    return await new Promise<ApprovalOutcome>((resolve) => {
-      const onAbort = () => {
-        signal.removeEventListener('abort', onAbort)
-        resolve('cancelled')
-      }
-      signal.addEventListener('abort', onAbort, { once: true })
-      void answer.then((outcome) => {
-        signal.removeEventListener('abort', onAbort)
-        // After an abort won the race this resolve is a settled-promise no-op:
-        // the late answer is discarded by construction.
-        resolve(outcome)
-      })
-    })
+    try {
+      const decision = await cancellable<{ answer: ApprovalAnswer; automatic: boolean }>(Promise.race([
+        answer.then(answer => ({ answer, automatic: false })),
+        automatic.promise.then(answer => ({ answer, automatic: true })),
+      ]), signal, { answer: 'cancelled', automatic: false })
+      if (decision.automatic) question.abort()
+      return decision
+    } finally {
+      waiting.delete(allow)
+    }
   }
 }
 

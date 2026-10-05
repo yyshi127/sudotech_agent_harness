@@ -16,7 +16,7 @@
   padding: 0 8px;
   overflow: hidden;
   border: none;
-  border-radius: 16px;
+  border-radius: var(--dsw-radius-lg);
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font-size: 13px;

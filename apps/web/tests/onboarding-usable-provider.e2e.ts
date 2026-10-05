@@ -12,11 +12,14 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/onboarding-usable-provider', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const SNAPSHOT_DIR = fileURLToPath(new URL(XIAOJING
+  ? './expected/onboarding-usable-provider-xiaojing'
+  : './expected/onboarding-usable-provider', import.meta.url))
 const DISMISSED_EXPECTED = join(SNAPSHOT_DIR, 'dismissed.expected.md')
 const MODE = webSnapshotMode()
 const CREDENTIAL_STEP = '添加一个 API Key 开始使用'
@@ -46,6 +49,7 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
     onTestFailed(() => saveFailureShot(page, 'web-e2e-onboarding-setup-card-cancel'))
     const credentialStep = page.getByRole('dialog', { name: CREDENTIAL_STEP })
     await credentialStep.waitFor({ timeout: 15_000 })
+    if (XIAOJING) expect(await page.locator('html').getAttribute('data-dsh-client-build-profile')).toBe('xiaojing')
     expect(await page.getByRole('dialog', { name: '开始你的创作' }).count()).toBe(0)
     expect(await page.getByRole('button', { name: '账号菜单', exact: true }).count()).toBe(0)
     await credentialStep.getByRole('button', { name: '稍后配置' }).click()

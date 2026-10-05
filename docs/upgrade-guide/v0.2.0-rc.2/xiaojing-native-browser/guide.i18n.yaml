@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.0-rc.2/xiaojing-native-browser/guide.md
+/:
+  en: b1b78c65f6faf7a2
+  zh: b1b78c65f6faf7a2
+/xiaojing-native-browser-connections:
+  en: ccf667d54d77b9c8
+  zh: 9e817404e40266f7
+/xiaojing-native-browser-connections/change:
+  en: d94441edc90d3ed2
+  zh: e3b09b3971886919
+/xiaojing-native-browser-connections/migration:
+  en: e1af78c12444daeb
+  zh: 8522759f3ac7cd88

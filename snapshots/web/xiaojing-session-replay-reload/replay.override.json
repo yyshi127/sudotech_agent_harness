@@ -1,0 +1,233 @@
+[
+  {
+    "kind": "chunks",
+    "chunks": [
+      {
+        "type": "block-start",
+        "index": 0,
+        "blockType": "reasoning"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "The user wants me to run a simple PowerShell command and reply with \"DONE\"."
+      },
+      {
+        "type": "block-start",
+        "index": 1,
+        "blockType": "tool-call"
+      },
+      {
+        "type": "tool-call-delta",
+        "index": 1,
+        "id": "call_00_BYXlxjFaalMg95YVqEeF2495",
+        "name": "pwsh",
+        "argumentsDelta": "{\"command\":\"Write-Output 'WEB_E2E_OK'\",\"description\":\"Echo the test string\"}"
+      },
+      {
+        "type": "block-end",
+        "index": 0,
+        "block": {
+          "type": "reasoning",
+          "text": "The user wants me to run a simple PowerShell command and reply with \"DONE\"."
+        }
+      },
+      {
+        "type": "block-end",
+        "index": 1,
+        "block": {
+          "type": "tool-call",
+          "id": "call_00_BYXlxjFaalMg95YVqEeF2495",
+          "name": "pwsh",
+          "arguments": "{\"command\":\"Write-Output 'WEB_E2E_OK'\",\"description\":\"Echo the test string\"}"
+        }
+      },
+      {
+        "type": "usage",
+        "usage": {
+          "inputTokens": 122,
+          "outputTokens": 85,
+          "cacheReadTokens": 7680,
+          "reasoningTokens": 17
+        }
+      },
+      {
+        "type": "finish",
+        "reason": {
+          "kind": "tool-calls"
+        }
+      }
+    ]
+  },
+  {
+    "kind": "chunks",
+    "chunks": [
+      {
+        "type": "block-start",
+        "index": 0,
+        "blockType": "reasoning"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "The"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " command"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " executed"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " successfully"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " and"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " output"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " \""
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "WEB"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "_E"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "2"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "E"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "_OK"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "\"."
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " I"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " just"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " need"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " to"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " reply"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " with"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": " \""
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "D"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "ONE"
+      },
+      {
+        "type": "reasoning-delta",
+        "index": 0,
+        "text": "\"."
+      },
+      {
+        "type": "block-start",
+        "index": 1,
+        "blockType": "text"
+      },
+      {
+        "type": "text-delta",
+        "index": 1,
+        "text": "D"
+      },
+      {
+        "type": "text-delta",
+        "index": 1,
+        "text": "ONE"
+      },
+      {
+        "type": "block-end",
+        "index": 0,
+        "block": {
+          "type": "reasoning",
+          "text": "The command executed successfully and output \"WEB_E2E_OK\". I just need to reply with \"DONE\"."
+        }
+      },
+      {
+        "type": "block-end",
+        "index": 1,
+        "block": {
+          "type": "text",
+          "text": "DONE"
+        }
+      },
+      {
+        "type": "usage",
+        "usage": {
+          "inputTokens": 97,
+          "outputTokens": 26,
+          "cacheReadTokens": 7808,
+          "reasoningTokens": 23
+        }
+      },
+      {
+        "type": "finish",
+        "reason": {
+          "kind": "stop"
+        }
+      }
+    ]
+  }
+]

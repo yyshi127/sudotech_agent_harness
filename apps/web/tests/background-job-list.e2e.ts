@@ -12,14 +12,17 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import { JobId } from '@deepseek-ai/dsh-jobs'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/background-job-list', import.meta.url))
-const RUNNING_EXPECTED = join(SNAPSHOT_DIR, 'running.expected.md')
-const SETTLED_EXPECTED = join(SNAPSHOT_DIR, 'settled.expected.md')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const NATIVE = XIAOJING && process.platform === 'win32'
+const EXPECTED_DIR = NATIVE ? fileURLToPath(new URL('./expected/background-job-list-xiaojing', import.meta.url)) : SNAPSHOT_DIR
+const RUNNING_EXPECTED = join(EXPECTED_DIR, 'running.expected.md')
+const SETTLED_EXPECTED = join(EXPECTED_DIR, 'settled.expected.md')
 const MODE = webSnapshotMode()
 const SEED_ID = 'background-job-list-web-e2e'
 // A hold on a barrier file the test owns in the job's cwd: the process never
@@ -27,7 +30,10 @@ const SEED_ID = 'background-job-list-web-e2e'
 // The bounded loop only caps an orphan's lifetime if the runner dies before
 // `afterAll` releases the barrier.
 const RELEASE = '.background-job-list.release'
-const COMMAND = `for _ in $(seq 1 3000); do [ -e ${RELEASE} ] && break; sleep 0.2; done`
+const TOOL = NATIVE ? 'pwsh' : 'bash'
+const COMMAND = NATIVE
+  ? `for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath '${RELEASE}') { break }; Start-Sleep -Milliseconds 200 }`
+  : `for _ in $(seq 1 3000); do [ -e ${RELEASE} ] && break; sleep 0.2; done`
 
 /**
  * Wait for opening a session to publish its live Agent.
@@ -61,12 +67,22 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
 
-    const groupRow = page.locator('[role="treeitem"]').first()
-    await groupRow.waitFor({ timeout: 15_000 })
-    await groupRow.click()
-    const sessionRow = page.locator('[role="treeitem"]').nth(1)
-    await sessionRow.waitFor({ timeout: 10_000 })
-    await sessionRow.click()
+    if (XIAOJING) {
+      await connectFreshWorkspace(page, scaffold.workspaceCwd)
+      const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, 'Background acceptance')
+      await workspace.attachSession(SessionId(SEED_ID))
+      const group = page.locator(`[data-row-key="workspace:${workspace.id}"][role="treeitem"]`)
+      if (await group.getAttribute('aria-expanded') !== 'true') await group.click()
+      await page.locator(`[data-row-key="workspace:${workspace.id}"][aria-expanded="true"]`).waitFor()
+      await page.locator(`[data-row-key="session:${SEED_ID}"][role="treeitem"]`).click()
+    } else {
+      const groupRow = page.locator('[role="treeitem"]').first()
+      await groupRow.waitFor({ timeout: 15_000 })
+      await groupRow.click()
+      const sessionRow = page.locator('[role="treeitem"]').nth(1)
+      await sessionRow.waitFor({ timeout: 10_000 })
+      await sessionRow.click()
+    }
 
     // Opening the session drives the Host's ordinary Agent resolution; the
     // job owner must be that exact live instance, never a second one.
@@ -90,14 +106,18 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
     const started = await scaffold.ctx.tools.execute({
       signal: new AbortController().signal,
       callId: ToolCallId('background-job-list-e2e'),
-      name: 'bash',
+      name: TOOL,
       arguments: { command: COMMAND, description: 'Hold a background slot open', run_in_background: true },
       agent,
     })
     const reported = started.content.map(block => block.type === 'text' ? block.text : '').join('')
-    const matched = /\bbash-\d+\b/.exec(reported)
-    if (matched === null) throw new Error(`background bash reported no job id: ${reported}`)
+    expect(started.isError, reported).toBe(false)
+    const matched = new RegExp(`\\b${TOOL}-\\d+\\b`).exec(reported)
+    if (matched === null) throw new Error(`background ${TOOL} reported no job id: ${reported}`)
     const jobId = JobId(matched[0])
+    if (started.isError) throw new Error(reported)
+    expect(started.value).toMatchObject({ kind: 'background', jobId })
+    expect(scaffold.ctx.jobs.get(jobId, agent.id).status).toBe('running')
 
     await trigger.waitFor({ timeout: 15_000 })
     await trigger.click()
@@ -137,5 +157,6 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
 
   it('keeps its snapshot inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, ['running.expected.md', 'settled.expected.md'])
+    if (NATIVE) await assertFixtureInventory(EXPECTED_DIR, ['running.expected.md', 'settled.expected.md'])
   })
 })

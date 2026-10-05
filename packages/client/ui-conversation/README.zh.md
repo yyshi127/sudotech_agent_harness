@@ -58,6 +58,8 @@ target package 通过 declaration merge 扩展 snapshot 与 Location data map，
 
 `SessionInputShell` 通过私有 [DraftEditorRuntime](src/client/input/editor/runtime.ts) 为每个 Session 持有一个 Lexical editor，同时保留提交、附件选择和恢复决策。[DraftEditor](src/client/input/editor/DraftEditor.tsx) 呈现借用的 editor；InputBar 保留钩子与 refs，并通过 [view-binding](src/client/input/editor/view-binding.ts) 安装 DOM 行为。编辑器类型位于 [draft-editor.ts](src/client/contract/draft-editor.ts)，共享输入和提交类型位于 [input.ts](src/client/contract/input.ts)。编辑器后台更新会保留草稿选区，不修改文档选区或从其他控件夺回焦点；显式聚焦 Composer 时恢复其选区。这一拆分不支持同一 Session 同时挂载多个可编辑 root；[两阶段隔离提案](../../../.agents/notes/proposed/architecture/2026-09-14-composer-model-and-draft-editor.zh.md) 定义剩余工作。
 
+Client 根仍处于活动状态时，文本引用装饰解析当前控制器的词汇表，并在存储身份变化时更换订阅。来源添加、移除与目录更新读取已订阅存储的最新快照。整个根开始卸载、失败或已释放后，先前观察的存储为剩余装饰重扫提供快照，不再解析根服务。已观察存储的编辑器在根卸载期间仍提交待完成的投影、草稿修订与输入状态更新，但不再启动新的光标触发跟踪。取消注册会释放订阅与观察。存储尚不可观察时，初始惰性读取及其错误仍然可见；订阅后的活动期解析错误也不会隐藏。
+
 已认领的命令在仅删除参数和末尾分隔空格时保留身份与高亮，改动命令名才会释放认领。所有命令和语言使用相同规则，包括 `/goal`、`/目标`、`/plan` 和 `/计划`。输入法组合输入期间，命令提示和普通占位文字持续隐藏，直到编辑器提交最终文字且对应输入为空时才重新显示。
 
 工作区选择使用 `uiWorkspace.openWorkspace` 准备目标并提交导航。草稿文字和附件仅在该请求仍为当前请求时，通过它的同步准备回调搬移；后续导航或所有者释放会保留原草稿。

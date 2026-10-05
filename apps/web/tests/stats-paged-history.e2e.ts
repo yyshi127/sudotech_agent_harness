@@ -7,6 +7,7 @@
 // the counter. Zero model calls; the seed is generated, not recorded, because
 // no line of it is model output.
 import { fileURLToPath } from 'node:url'
+import { basename } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { createSystemMessage } from '@deepseek-ai/dsh-llm'
@@ -14,12 +15,14 @@ import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/stats-paged-history', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/stats-paged-history/ui.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = fileURLToPath(new URL(`./expected/stats-paged-history/ui${XIAOJING ? '.xiaojing' : ''}.expected.md`, import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'stats-paged-history-web-e2e'
 
@@ -93,7 +96,7 @@ describe('web e2e: whole-session stats survive history paging', () => {
 
   beforeAll(async () => {
     if (MODE === 'record') throw new Error('stats-paged-history is a keyless assembled snapshot')
-    scaffold = await launchWebScaffold({})
+    scaffold = await launchWebScaffold(XIAOJING ? XIAOJING_ROUTE_CATALOG : {})
     await seedSession(scaffold, buildSeed(TURNS), SEED_ID)
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -138,7 +141,9 @@ describe('web e2e: whole-session stats survive history paging', () => {
 
   it('matches the paged-stats aria golden', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-stats-paged-aria'))
-    const snapshot = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd))
+    const snapshot = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd, {
+      replacements: [[basename(scaffold.workspaceCwd), '{{workspace}}']],
+    }))
       .split(SEED_ID).join('{{seededId}}')
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
   })
@@ -146,6 +151,6 @@ describe('web e2e: whole-session stats survive history paging', () => {
   it('issued zero model calls and stayed clean', async () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
   })
 })

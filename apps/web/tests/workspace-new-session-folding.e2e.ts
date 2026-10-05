@@ -13,13 +13,14 @@ import {
   launchWebScaffold,
   seedSession,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const EXPECTED_DIR = fileURLToPath(new URL('./expected/workspace-new-session-folding', import.meta.url))
-const SIDEBAR_EXPECTED = join(EXPECTED_DIR, 'sidebar.expected.md')
+const SIDEBAR_EXPECTED = join(EXPECTED_DIR, webClientProfile() === 'xiaojing' ? 'sidebar.xiaojing.expected.md' : 'sidebar.expected.md')
 const SEED = fileURLToPath(new URL('../../../snapshots/web/message-feedback-protocol/session.v3.jsonl', import.meta.url))
 const MODE = webSnapshotMode()
 const EXISTING_SESSION_COUNT = 16
@@ -42,6 +43,7 @@ describe('web e2e: blank New Session folding quota', () => {
       ))
     }
     const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
+    if (webClientProfile() === 'xiaojing') await workspace.setTitle('Folding acceptance')
     for (const sessionId of sessionIds) await workspace.attachSession(sessionId)
 
     browser = await chromium.launch()
@@ -50,7 +52,7 @@ describe('web e2e: blank New Session folding quota', () => {
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
 
-    const workspaceTitle = basename(scaffold.workspaceCwd)
+    const workspaceTitle = webClientProfile() === 'xiaojing' ? 'Folding acceptance' : basename(scaffold.workspaceCwd)
     const workspaceRow = page.getByText(workspaceTitle, { exact: true }).first()
       .locator('xpath=ancestor::*[@role="treeitem"][1]')
     await workspaceRow.waitFor({ timeout: 15_000 })
@@ -97,7 +99,7 @@ describe('web e2e: blank New Session folding quota', () => {
     // not the scenario; hover the row the golden records instead.
     await sidebar.getByRole('treeitem').nth(7).hover()
     await compareOrRefreshGolden(
-      join(EXPECTED_DIR, 'first-batch.expected.md'),
+      join(EXPECTED_DIR, webClientProfile() === 'xiaojing' ? 'first-batch.xiaojing.expected.md' : 'first-batch.expected.md'),
       await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
       MODE,
     )
@@ -107,7 +109,9 @@ describe('web e2e: blank New Session folding quota', () => {
     await expect.poll(() => sidebar.getByRole('treeitem').count()).toBe(18)
     await sidebar.getByRole('button', { name: 'Show less' }).click()
     await expect.poll(() => sidebar.getByRole('treeitem').count()).toBe(7)
-    await assertFixtureInventory(EXPECTED_DIR, ['sidebar.expected.md', 'first-batch.expected.md'])
+    await assertFixtureInventory(EXPECTED_DIR, [
+      'sidebar.expected.md', 'first-batch.expected.md', 'sidebar.xiaojing.expected.md', 'first-batch.xiaojing.expected.md',
+    ])
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

@@ -1,0 +1,8 @@
+version: 1
+scenario: xiaojing-no-approval
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-session-approval
+  pin: true

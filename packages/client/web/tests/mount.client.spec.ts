@@ -44,4 +44,43 @@ describe('mountClient', () => {
     await ctx.fiber.dispose()
     expect(second.unmount).toHaveBeenCalledOnce()
   })
+
+  it('stops remounting after the awaited mount disposer and unmounts only once', async () => {
+    const ctx = new Context()
+    const first = { unmount: vi.fn(), mount: vi.fn(() => first.unmount) }
+    const second = { unmount: vi.fn(), mount: vi.fn(() => second.unmount) }
+    const renderer = provideRenderer(ctx, first.mount)
+    const stop = await mountClient(ctx, document.createElement('div'))
+    await stop()
+    expect(first.unmount).toHaveBeenCalledOnce()
+    await stop()
+    await renderer.dispose()
+    await provideRenderer(ctx, second.mount)
+    expect(second.mount).not.toHaveBeenCalled()
+    await ctx.fiber.dispose()
+    expect(first.unmount).toHaveBeenCalledOnce()
+  })
+
+  it('waits for renderer cleanup before the mount disposer resolves', async () => {
+    const ctx = new Context()
+    const started = Promise.withResolvers<undefined>()
+    const finish = Promise.withResolvers<undefined>()
+    provideRenderer(ctx, () => async () => {
+      started.resolve(undefined)
+      await finish.promise
+    })
+    const stop = await mountClient(ctx, document.createElement('div'))
+    let stopped = false
+    const stopping = stop().then(() => { stopped = true })
+    try {
+      await started.promise
+      expect(stopped).toBe(false)
+      expect(ctx.get('uiRenderer')).toBeDefined()
+    } finally {
+      finish.resolve(undefined)
+      await stopping
+      await ctx.fiber.dispose()
+    }
+    expect(stopped).toBe(true)
+  })
 })

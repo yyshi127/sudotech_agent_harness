@@ -1,0 +1,17 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`native browser settings page > shows fixed chrome setup instructions without launching until the explicit open button is clicked 1`] = `
+{
+  "address": "chrome://inspect/#remote-debugging",
+  "instructions": "设置 Chrome 标签页控制小兢会计会打开对应浏览器的设置页。首次使用请完成以下设置。打开 Chrome 设置页复制地址在新打开的 Chrome 设置页中继续；未打开时可点击上方按钮重试。在页面中勾选“允许远程调试”（Allow remote debugging）。返回小兢会计，保持对应开关开启；任务连接时，在浏览器弹窗中允许连接。知道了",
+  "title": "设置 Chrome 标签页控制",
+}
+`;
+
+exports[`native browser settings page > shows fixed edge setup instructions without launching until the explicit open button is clicked 1`] = `
+{
+  "address": "edge://inspect/#remote-debugging",
+  "instructions": "设置 Edge 标签页控制小兢会计会打开对应浏览器的设置页。首次使用请完成以下设置。打开 Edge 设置页复制地址在新打开的 Edge 设置页中继续；未打开时可点击上方按钮重试。在页面中勾选“允许远程调试”（Allow remote debugging）。返回小兢会计，保持对应开关开启；任务连接时，在浏览器弹窗中允许连接。知道了",
+  "title": "设置 Edge 标签页控制",
+}
+`;

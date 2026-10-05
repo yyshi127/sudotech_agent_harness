@@ -39,6 +39,8 @@ A run surface can answer a pending host request — approving it, optionally cov
 
 Loading is idempotent: asking to load a revision this page already runs changes nothing, a newer revision replaces the loaded one, and the same revision after a retract loads afresh. Operations on a definition serialize. A refresh starts clean by design — the host still holds the definition, this page does not run it until asked again.
 
+The inspect registry closes with its Client plugin: it stops queued manifest publications, cancels active provider queries, and waits for started publications and queries, including result delivery. Removing providers during unload cannot start a later transport call. Runtime transport failures remain visible to their callers and the manifest publisher's error log.
+
 -----
 
 <a id="understand-the-implementation"></a>

@@ -1,0 +1,40 @@
+- dialog "v0.3.1 更新说明":
+  - heading "v0.3.1 更新说明" [level=2]
+  - button "关闭"
+  - paragraph: 全新工作面板，扩展文档处理与插件能力
+  - heading "新增功能" [level=3]
+  - list:
+    - listitem:
+      - heading "多标签工作面板与文档预览" [level=4]
+      - paragraph: 文件、网页、子助手会话和计划集中在侧边栏，支持多标签、分栏及浮动查看。可预览 Word、Excel、PowerPoint、PDF、图片和本地 HTML。
+    - listitem:
+      - heading "任务文件改动审阅" [level=4]
+      - paragraph: 任务完成后列出修改的文件及增删行数，可逐个打开差异对比；文件交付与改动记录更容易查找。
+    - listitem:
+      - heading "文件上传与成果交付" [level=4]
+      - paragraph: 可在一次消息中同时上传图片和文件，查看进度或取消上传。生成的成果可直接预览、打开或定位到本机目录。
+    - listitem:
+      - heading "工作区交互终端" [level=4]
+      - paragraph: 在侧边栏直接使用终端，支持多个标签和 Shell 选择。刷新页面后可重新连接仍在运行的终端。
+    - listitem:
+      - heading "插件安装与管理" [level=4]
+      - paragraph: 在独立页面安装、配置、启用、停用和卸载插件，并查看安装进度及失败原因；支持指定版本、Git 地址和本地安装来源。
+    - listitem:
+      - heading "会话与工作区整理" [level=4]
+      - paragraph: 支持会话归档、查找与恢复，以及多层工作区管理；搜索可定位所属工作区，分支会话保留所选位置的历史。
+    - listitem:
+      - heading "MCP 外部资源接入" [level=4]
+      - paragraph: 已连接的 MCP 服务除了提供工具，还可发现和读取资源，并通过带参数的 URI 模板获取所需内容。
+  - heading "体验改进" [level=3]
+  - list:
+    - listitem:
+      - heading "DeepSeek V4.1 Flash 与图片处理" [level=4]
+      - paragraph: 默认模型升级为 V4.1 Flash 图文模型，增强图片压缩、长截图缩放与图片用量估算；保留历史会话的模型选择。
+    - listitem:
+      - heading "任务中继续补充要求" [level=4]
+      - paragraph: 任务执行时可排队发送或插入补充消息，包括图片；多步提问保留回答草稿，切换会话后可继续填写。
+    - listitem:
+      - heading "多助手协作增强" [level=4]
+      - paragraph: 主助手与子助手可双向发送后续消息和图片，配置子助手模型，并在侧栏查看子助手会话。
+  - paragraph: 底座升级至 DeepSeek Harness 0.1.6-alpha.2。
+  - button "关闭"

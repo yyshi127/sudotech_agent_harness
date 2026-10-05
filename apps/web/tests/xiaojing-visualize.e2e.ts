@@ -87,20 +87,20 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     await page.getByRole('button', { name: `New session in ${workspaceTitle}` }).click()
     const officeLogo = page.getByRole('img', { name: 'Xiaojing Accounting', exact: true })
     await officeLogo.waitFor()
-    expect(await officeLogo.locator('image').getAttribute('href')).toBe('/xiaojing-office-robot-logo.png')
+    expect(await officeLogo.locator('image').getAttribute('href')).toBe('./xiaojing-office-robot-logo.png')
     expect((await officeLogo.boundingBox())?.height).toBe(145)
-    const officeAsset = await page.request.get(new URL('/xiaojing-office-robot-logo.png', scaffold.authenticatedUrl).href)
+    const officeAsset = await page.request.get(new URL('./xiaojing-office-robot-logo.png', scaffold.authenticatedUrl).href)
     expect(officeAsset.ok()).toBe(true)
     expect(await officeAsset.body()).toEqual(await readFile(new URL('../public/xiaojing-office-robot-logo.png', import.meta.url)))
-    const financeAsset = await page.request.get(new URL('/xiaojing-finance-robot-logo.png', scaffold.authenticatedUrl).href)
+    const financeAsset = await page.request.get(new URL('./xiaojing-finance-robot-logo.png', scaffold.authenticatedUrl).href)
     expect(financeAsset.ok()).toBe(true)
     expect(await financeAsset.body()).toEqual(await readFile(new URL('../public/xiaojing-finance-robot-logo.png', import.meta.url)))
-    expect(await financeAsset.body()).not.toEqual(await officeAsset.body())
+    expect(await financeAsset.body()).toEqual(await officeAsset.body())
     for (const mode of ['Standard mode', 'Finance模式']) {
       const finance = mode === 'Finance模式'
       if (finance) await page.getByRole('button', { name: 'Finance Assistant', exact: true }).click()
       await expect.poll(() => officeLogo.locator('image').getAttribute('href')).toBe(
-        finance ? '/xiaojing-finance-robot-logo.png' : '/xiaojing-office-robot-logo.png',
+        finance ? './xiaojing-finance-robot-logo.png' : './xiaojing-office-robot-logo.png',
       )
       const titleText = finance ? 'Xiaojing Accounting, Your AI Finance Assistant' : 'Xiaojing Accounting, Your AI Workmate'
       const title = page.getByText(titleText, { exact: true })
@@ -124,7 +124,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     await page.getByRole('button', { name: 'Office Companion', exact: true }).click()
     await workspaceRow.hover()
     await page.getByRole('button', { name: `New session in ${workspaceTitle}` }).click()
-    await expect.poll(() => officeLogo.locator('image').getAttribute('href')).toBe('/xiaojing-office-robot-logo.png')
+    await expect.poll(() => officeLogo.locator('image').getAttribute('href')).toBe('./xiaojing-office-robot-logo.png')
     const input = page.locator('[data-composer-input][contenteditable="true"]').last()
     const settled = scaffold.whenTurnSettled()
     await input.fill('Create an interactive counter visualization.')

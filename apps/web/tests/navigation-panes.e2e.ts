@@ -8,7 +8,7 @@
 // trajectory ledger/timing lanes), turn 2 a markdown-rich reply.
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import type { Browser, Page, Response } from 'playwright'
 import { chromium } from 'playwright'
 import { strFromU8, unzipSync } from 'fflate'
@@ -86,9 +86,16 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
   let page: Page
   let tripwire: ReturnType<typeof watchConsole> = { warnings: [], pageErrors: [] }
   let slotErrors: string[] = []
+  let ariaReplacements: readonly (readonly [value: string, token: string])[]
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
+    // Native paths, ARIA-escaped paths, and display basenames share this owned directory.
+    ariaReplacements = [
+      [scaffold.workspaceCwd.replaceAll('\\', '\\\\'), '{{cwd}}'],
+      [scaffold.workspaceCwd, '{{cwd}}'],
+      [basename(scaffold.workspaceCwd), '{{workspace}}'],
+    ]
     // The workspace-aware flow runs sessions in <workspaceCwd>/workspace;
     // the read targets must live in that session cwd (pre-creation is safe
     // because the picker adopts an existing directory by path).
@@ -207,7 +214,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await expect.poll(() => result.getByText('WATERFALL', { exact: false }).count(), {
       timeout: 10_000,
     }).toBeGreaterThanOrEqual(1)
-    const snapshot = (await captureStableAria(page, '[class*="listArea"]', scaffold.workspaceCwd))
+    const snapshot = (await captureStableAria(page, '[class*="listArea"]', scaffold.workspaceCwd, { replacements: ariaReplacements }))
       .split(SEED_ID).join('{{seededId}}')
     await compareOrRefreshGolden(SEARCH_EXPECTED, snapshot, MODE)
 
@@ -291,7 +298,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     await page.getByRole('tab', { name: 'Result' }).click()
     await expect.poll(() => page.getByText('NAVIGATION_OK', { exact: false }).count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(1)
     expect(await page.locator('[data-timeline-span="message"][data-assistant-timing="true"]').count()).toBeGreaterThan(0)
-    const snapshot = (await captureStableAria(page, '[class*="viewArea"]', scaffold.workspaceCwd))
+    const snapshot = (await captureStableAria(page, '[class*="viewArea"]', scaffold.workspaceCwd, { replacements: ariaReplacements }))
       .split(SEED_ID).join('{{seededId}}')
     await compareOrRefreshGolden(TRAJECTORY_EXPECTED, snapshot, MODE)
     await details.getByRole('button', { name: 'Close details' }).click()
@@ -532,7 +539,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     expect(dot.color).toBe(dot.success)
     // Golden of the card at rest — captured before the copy click, whose
     // confirmation label self-reverts on a timer and would not hold still.
-    const snapshot = (await captureStableAria(page, '[data-terminal]', scaffold.workspaceCwd))
+    const snapshot = (await captureStableAria(page, '[data-terminal]', scaffold.workspaceCwd, { replacements: ariaReplacements }))
       .split(SEED_ID).join('{{seededId}}')
     await compareOrRefreshGolden(TERMINAL_EXPECTED, snapshot, MODE)
     // Copy writes the raw output through the browser's own clipboard, which in

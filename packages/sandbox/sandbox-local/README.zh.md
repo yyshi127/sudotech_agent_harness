@@ -52,6 +52,8 @@ kind: "package-reference"
 
 挂载提供方后，命令在你逐调用解析的模式下运行。强制执行是报告的事实，而非承诺：`full` 表示后端管辖模式承诺的每个文件操作，`partial` 表示它只管辖子集——Windows ACL 档（硬链接、读取不受限与 AppContainer ACL 边界）与较旧的 Landlock ABI 是当前的部分强制执行情形，因此需要绝对边界的消费方可以拒绝或向上暴露它们。被拒绝的文件操作通过后端的拒绝方言呈现，执行命令前失败的 runner 会报告结构化的 runner 失败签名。
 
+同时挂载 `tools` 和 `sandboxPolicy` 时，内置 Windows 后端会在 Agent 工具通过审批与执行检查后、工具正文观察文件版本前准备常驻工作区根目录 ACL。准备仅采用 Agent 当前的 `workspace-write` 策略，且其沙箱必须解析为本提供方；此时不创建私有临时目录。只读、完全访问、无 Agent 和其他提供方的调用不会通过此监听器新增授权。读取后切换到 workspace-write 可能改变文件元数据，因此带版本保护的编辑仍需重新读取。文件版本比较保持不变。
+
 ### 失败与恢复
 
 不受支持的平台或不可用的 runner 会拒绝执行：`confine()` 以 `SANDBOX_UNAVAILABLE` 拒绝 并列出该平台的 runner 选项，消费方会呈现该错误，而不是让命令不受限制地运行。启动后拒绝自身 profile 的 runner 由其致命 stderr 签名与退出码识别，因此损坏的沙箱不会被误认为被拒绝的命令。`runnerCommand` 覆盖是操作方断言：它跳过功能探测，并假定配置的 runner 诚实实现与 bwrap 兼容的 profile。

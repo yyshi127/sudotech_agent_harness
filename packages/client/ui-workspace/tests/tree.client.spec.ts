@@ -393,6 +393,32 @@ describe('deriveGroups', () => {
     expect(counts(statuses)).toEqual([0, 0, 0])
   })
 
+  it('surfaces a child approval on its completed parent and clears it when the child settles', () => {
+    const parent = summary('parent', 1)
+    const child = summary('child', 2)
+    const sessions = { ...list(parent, child), projectionsBySession: { [parent.id]: catalog('child') } }
+    const statuses = new Map<SessionId, SessionStatus>([
+      [parent.id, status(undefined, { running: false })],
+      [child.id, status({ key: 'approval:child', kind: 'approval', sessionId: child.id } as SessionPendingInteraction, { running: true })],
+    ])
+    const rows = () => [
+      deriveGroups(sessions, [workspace('first', ['parent'])], noRows, statuses, view(['first']))[0]!.sessions[0]!,
+      deriveFlat(sessions, [parent.id], noRows, statuses)[0]!,
+      deriveSearchResults(sessions, [], 'parent', noArchive, 'default', statuses, { items: [], hasMore: false }, 10).items[0]!,
+    ]
+    for (const row of rows()) expect(row).toMatchObject({ running: false, runningSubagentCount: 1, pendingInteraction: 'approval' })
+    statuses.set(parent.id, status({ key: 'question:parent', kind: 'question', sessionId: parent.id } as SessionPendingInteraction))
+    for (const row of rows()) expect(row.pendingInteraction).toBe('question')
+    statuses.set(parent.id, status(undefined, { running: false }))
+    statuses.set(child.id, status(undefined, { running: false }))
+    for (const row of rows()) {
+      expect(row).toMatchObject({ running: false, runningSubagentCount: 0 })
+      expect(row.pendingInteraction).toBeUndefined()
+    }
+    statuses.set(sid('unrelated'), status({ key: 'approval:unrelated', kind: 'approval', sessionId: sid('unrelated') } as SessionPendingInteraction))
+    for (const row of rows()) expect(row.pendingInteraction).toBeUndefined()
+  })
+
   it('ignores fork lineage and sorts every ungrouped session as a top-level row', () => {
     const parent = summary('parent', 1)
     const oldChild = { ...summary('old-child', 10), parentId: parent.id }

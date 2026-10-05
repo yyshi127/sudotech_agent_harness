@@ -50,7 +50,9 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('acp-agent e2e: a PreToolUse hook
     // `configPath` is process-relative, so placing the match-all hook in the
     // launch cwd selects it; hook commands themselves run in the session cwd.
     await writeFile(join(workdir, 'hooks.json'), JSON.stringify({
-      hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: 'echo "bash blocked by policy" >&2; exit 2' }] }] },
+      hooks: { PreToolUse: [{ hooks: [{ type: 'command', command: process.platform === 'win32'
+        ? '[Console]::Error.WriteLine("shell blocked by policy"); exit 2'
+        : 'echo "shell blocked by policy" >&2; exit 2' }] }] },
     }))
 
     spawned = launchAcpTestAgent({

@@ -43,6 +43,33 @@
     },
     {
       "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../core/scope"
+    },
+    {
+      "path": "../../subprocess/subprocess"
+    },
+    {
+      "path": "../../subprocess/subprocess-local"
+    },
+    {
+      "path": "../../browser-use/browser-use"
+    },
+    {
+      "path": "../../experimental/browser-use-runtime"
+    },
+    {
+      "path": "../../experimental/browser-use-playwright-mcp"
+    },
+    {
+      "path": "../../experimental/browser-use-chrome-devtools-mcp"
+    },
+    {
+      "path": "../../mcp/mcp-client"
+    },
+    {
+      "path": "../../settings/settings"
     }
   ]
 }

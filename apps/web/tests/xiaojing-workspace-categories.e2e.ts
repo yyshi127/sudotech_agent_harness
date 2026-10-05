@@ -6,7 +6,7 @@ import { chromium, type Browser } from 'playwright'
 import { afterEach, expect, it, vi } from 'vitest'
 import { launchWebScaffold, seedSession, watchConsole, webClientProfile } from './scaffold.ts'
 import { financePresetDefinition } from './xiaojing-agent-presets.ts'
-import { newEnglishPage } from './support.ts'
+import { newEnglishPage, saveFailureShot } from './support.ts'
 
 const SEED = fileURLToPath(new URL('../../../snapshots/web/message-feedback-protocol/session.v3.jsonl', import.meta.url))
 afterEach(() => { vi.unstubAllEnvs() })
@@ -20,6 +20,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps Finance history out of ordin
     },
   })
   let browser: Browser | undefined
+  let failurePage: Awaited<ReturnType<typeof newEnglishPage>> | undefined
   try {
     const officePath = join(scaffold.workspaceCwd, 'office')
     await mkdir(officePath)
@@ -34,9 +35,11 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps Finance history out of ordin
 
     browser = await chromium.launch()
     const page = await newEnglishPage(browser)
+    failurePage = page
     page.setDefaultTimeout(15_000)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl)
+    await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await page.getByRole('button', { name: 'Finance Assistant', exact: true }).click()
     await page.getByText('Xiaojing Accounting, Your AI Finance Assistant', { exact: true }).waitFor()
     const finance = scaffold.ctx.workspaceRegistry.list().find(workspace => workspace.id !== office.id)
@@ -45,6 +48,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps Finance history out of ordin
     await finance!.attachSession(greetingId)
     await scaffold.ctx.sessionController.rename({ sessionId: greetingId, title: 'Greeting' })
     await page.reload()
+    await page.getByText('Xiaojing Accounting, Your AI Finance Assistant', { exact: true }).waitFor()
 
     const tree = page.getByRole('tree', { name: 'Sessions' })
     const newSession = page.getByRole('button', { name: 'New session', exact: true }).filter({ hasText: 'New Session' })
@@ -85,6 +89,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps Finance history out of ordin
     expect(office.sessionIds).toContain(ordinaryId)
     expect(office.sessionIds).not.toContain(greetingId)
     expect(tripwire.pageErrors).toEqual([])
+  } catch (error) {
+    if (failurePage !== undefined && !failurePage.isClosed()) {
+      console.error(`workspace categories failure: ${await failurePage.locator('body').innerText()}`)
+      await saveFailureShot(failurePage, 'web-e2e-xiaojing-workspace-categories')
+    }
+    throw error
   } finally {
     await browser?.close()
     await scaffold.close()

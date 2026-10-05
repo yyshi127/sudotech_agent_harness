@@ -27,6 +27,8 @@ kind: "package-reference"
 
 把提供方与它的消费方挂载在同一组合中，并完全按子进程服务的规定启动进程；本包只决定这些进程在宿主机上如何运行。在 Windows 上，非终端子进程与 `taskkill` 辅助进程会隐藏窗口，因此后台操作不会抢占焦点。遵循进程启动可见性设置的 GUI 窗口也会被隐藏。
 
+自行拥有可见原生启动器的宿主消费方可使用 `createProcessInspector()` 保留进程创建身份、检查启动器的后代、仅向这些身份发送信号，并验证它们已退出。检查器不会取得进程所有权，也无法观察在进程表快照之前逃离的后代；消费方须保留启动器句柄，并等待该句柄和已保留的进程身份全部退出后，才能删除自己拥有的文件。
+
 ### 挂载提供方
 
 在与消费方相同的组合中加载本提供方。它没有任何配置字段：每项选择都随 spawn 请求到达，因此随部署变化的决策留在调用方的配置里。 `terminalEnvironment()` 在 POSIX 读取非空的 `SHELL`，缺失时使用账户登录 shell；在 Windows 读取非空的 `ComSpec`。空值会被省略，由消费者选择平台回退。
@@ -57,6 +59,8 @@ Windows 普通子进程通过 `windowsHide` 启动私有 Job runner，并为原�
 
 `spawnTerminal` 分配真实 PTY 并桥接 UTF-8 文本；你可以检查当前前台进程组并向其发送信号，还可以等待一次 `terminate()` 操作。在受支持的 Linux 宿主上，原始终端 argv 直接在 user-systemd scope 内运行；node-pty PID、会话 leader、控制终端、前台 `inputWaiting` 与就绪状态保持不变，而 scope 会拥有已重新设定父进程或调用 `setsid` 的后代。在 fallback 宿主上，清理会保留根进程树和可观察会话中的精确身份，但无法重新发现每个已经逃逸的后代。Linux 的精确输入等待要求前台线程的 fd 0 标识 shell 的控制终端，且线程当前的 syscall 正在等待该 fd；如果内核拒绝 syscall 探测，上层 PTY 后端会改用空闲推断。在 Windows 上，SIGINT 以 Ctrl-C 输入写入投递，SIGTSTP 与 SIGHUP 不受支持，拆卸会通过进程表验证 shell 已终止，因为被外部终止的 shell 可能永远不会触发 PTY 退出通知。
 
+原生终端分配最初可能报告 `pid: 0`。句柄固定首个正 PID，并只在 shell 活跃时尝试一次启动身份捕获；捕获失败后不重试，已观察到退出或已开始清理后不会采纳后续身份。正 PID 本身不能确认活动空闲或终止已得到验证。
+
 使用 `shellActivity: true` 时，普通非登录的 `bash -i` 与 `zsh -i` 会安装私有生命周期记录，同时保留用户启动文件和提示符配置。Bash 需要 4.4 或更高版本，并允许写入提示符 hook；Zsh 观察空的顶层 ZLE 提示符，排除 `vared`、选择和续行提示符。输入、shell 状态迁移和进程观察变化都会推进活动 revision。前台、后台及停止的后代任务阻止空闲判断；原生 Linux 还要求 systemd scope 中恰好只有一个 task，覆盖进程树以外仍归其所有的工作；进程表扫描不完整、自定义 trap 和 Zsh 异步文件描述符 handler 会返回 unknown。进程表枚举失败会拒绝本次观察；活动保持 unknown，清理保留所有权，直到进程表可读并能完成验证。进程清理成功后删除私有文件。其他 shell、Windows、自定义参数以及经 sandbox 包装的可执行文件仍可使用，但活动为 unknown。
 
 启用后，根进程退出不会终止仍在运行的后代。明确为空的 Linux 受管范围或完整且为空的 Linux 会话可允许回收保留的记录；macOS 无法在根进程退出后确认未观察到的进程范围，会将该记录保持为 unknown。原有 fallback 可见性限制仍然适用：shell 生命周期记录不能让已逃逸且未观察到的后代变得可发现。这些记录协调普通 shell 行为，不用于防御同一用户的恶意进程。
@@ -84,6 +88,8 @@ Linux 普通进程和终端进程即使在 bootstrap 消费启动请求前被取
 ### 设计理念
 
 每次 spawn 都为信号发送与完全停稳选择同一个 owner。受支持的 Linux 普通命令与终端启动使用临时 user-systemd scope，受支持的 Windows 普通命令使用由 helper 持有、关闭时终止成员的 Job。macOS、旧版或不可用的 user-systemd，以及不可用的 Windows 原生支持使用既有 detached 进程组、`taskkill` 或终端会话观察，并只告警一次。native 路径可能已经启动命令后，本提供方绝不会通过 fallback 重放该命令。
+
+本地 Windows 桌面启动辅助程序可请求 `windowsChildLifetime: 'independent'`，使辅助程序仍归属关闭时终止成员的 Job，而新建子进程不加入该 Job。这些应用不属于 `terminate()`、`waitForExit()` 或提供方销毁的范围，但仍受外层宿主 Job 约束。非 Windows 执行和不可用的 Windows 原生托管会在任何启动前拒绝此请求，不会选择降级路径。未传此选项的普通请求仍托管后代进程。
 
 ### 源码地图
 

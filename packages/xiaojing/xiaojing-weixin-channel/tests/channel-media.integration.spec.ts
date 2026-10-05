@@ -2,7 +2,8 @@ import { createCipheriv, randomBytes } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-session-controller/types'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -171,7 +172,7 @@ describe('Xiaojing Weixin media assembly', () => {
       })
       return { accepted: true }
     })
-    const ctx = {
+    const ctx = new Context().extend({
       attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: () => () => undefined } },
       credentials: {
@@ -179,6 +180,7 @@ describe('Xiaojing Weixin media assembly', () => {
         unset: vi.fn(),
       },
       sessionController: {
+        resolveAgent: vi.fn(async () => ({ agent })),
         create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
@@ -189,7 +191,7 @@ describe('Xiaojing Weixin media assembly', () => {
       logger: { warn: vi.fn() },
       on,
       effect: (factory: () => unknown) => { factory() },
-    } as unknown as Context
+    })
     const channel = new XiaojingWeixinChannel(ctx, {
       stateDir: root,
       requestTimeoutMs: 1_000,
@@ -343,7 +345,7 @@ describe('Xiaojing Weixin media assembly', () => {
       })
       return { accepted: true }
     })
-    const ctx = {
+    const ctx = new Context().extend({
       attachments: { imageLimits: { ...IMAGE_LIMITS, maxImageBytes: 16 } },
       connection: { rpc: { handle: () => () => undefined } },
       credentials: {
@@ -351,6 +353,7 @@ describe('Xiaojing Weixin media assembly', () => {
         unset: vi.fn(),
       },
       sessionController: {
+        resolveAgent: vi.fn(async () => ({ agent })),
         create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
@@ -361,7 +364,7 @@ describe('Xiaojing Weixin media assembly', () => {
       logger: { warn: vi.fn() },
       on,
       effect: (factory: () => unknown) => { factory() },
-    } as unknown as Context
+    })
     const channel = new XiaojingWeixinChannel(ctx, {
       stateDir: root,
       requestTimeoutMs: 1_000,
@@ -528,7 +531,7 @@ describe('Xiaojing Weixin media assembly', () => {
       })
       return { accepted: true }
     })
-    const ctx = {
+    const ctx = new Context().extend({
       attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: () => () => undefined } },
       credentials: {
@@ -536,6 +539,7 @@ describe('Xiaojing Weixin media assembly', () => {
         unset: vi.fn(),
       },
       sessionController: {
+        resolveAgent: vi.fn(async () => ({ agent })),
         create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
@@ -546,7 +550,7 @@ describe('Xiaojing Weixin media assembly', () => {
       logger: { warn: vi.fn() },
       on,
       effect: (factory: () => unknown) => { factory() },
-    } as unknown as Context
+    })
     const channel = new XiaojingWeixinChannel(ctx, {
       stateDir: root,
       requestTimeoutMs: 1_000,

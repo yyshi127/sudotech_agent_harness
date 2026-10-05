@@ -26,9 +26,11 @@ const OFFICIAL_CLIENT_BUILD_ENVIRONMENT = {
 const XIAOJING_CLIENT_BUILD_ENVIRONMENT = {
   DSH_CLIENT_BUILD_PROFILE: 'xiaojing',
   DSH_CLIENT_TITLE: '小兢会计-您的AI办公搭子',
-  DSH_CLIENT_BOOT_LOGO: '/sudo-logo-gray.png',
+  DSH_CLIENT_BOOT_LOGO: './sudo-logo-gray.png',
   DSH_CLIENT_BOOT_LOGO_ALT: '数豆科技',
-  DSH_CLIENT_FAVICON: '/xiaojing-character-logo.png',
+  DSH_CLIENT_FAVICON: './xiaojing-character-logo.png',
+  DSH_CLIENT_RUNNING_LABEL_ZH: '小兢会计思考中',
+  DSH_CLIENT_RUNNING_LABEL_EN: 'Xiaojing Accounting is thinking',
 } as const
 
 /** Public variable carrying the source commit embedded in client artifacts. */

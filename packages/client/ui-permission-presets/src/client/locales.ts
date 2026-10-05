@@ -40,6 +40,12 @@ export const en = {
 
 /** Simplified Chinese dictionary for the current-session popup gate. */
 export const accessZh = {
+  'noApproval.label': '自动审批(实验性)',
+  'noApproval.description': '自动批准当前办公会话及其子任务的全部工具操作。',
+  'noApproval.confirm.title': '确认启用自动审批(实验性)？',
+  'noApproval.confirm.description': '本会话及其子任务的操作将自动批准，包括命令执行、文件修改与删除、网页提交和上传。当前待审批操作也会继续。不会影响其他会话；可随时切回其他权限模式。浏览器连接和 Windows 提权仍受系统授权限制。',
+  'noApproval.confirm.acknowledge': '我允许本会话自动执行上述操作',
+  'noApproval.confirm.enable': '启用自动审批',
   'mode': '访问模式，当前：{name}',
   'close': '关闭',
   'preset.readOnly': '仅可查看',
@@ -64,6 +70,12 @@ export type PermissionAccessKey = keyof typeof accessZh
 
 /** English dictionary for the current-session popup gate. */
 export const accessEn = {
+  'noApproval.label': 'Automatic approval (experimental)',
+  'noApproval.description': 'Automatically approve all tool operations in this office session and its subtasks.',
+  'noApproval.confirm.title': 'Enable automatic approval (experimental)?',
+  'noApproval.confirm.description': 'Automatically approve this session and its subtasks, including commands, file changes and deletion, web submissions, and uploads. Pending approvals will proceed too. Other sessions are unaffected; switch back at any time. Browser connections and Windows elevation remain subject to system authorization.',
+  'noApproval.confirm.acknowledge': 'I authorize this session to perform these operations automatically',
+  'noApproval.confirm.enable': 'Enable automatic approval',
   'mode': 'Access mode, current: {name}',
   'close': 'Close',
   'preset.readOnly': 'Read Only',

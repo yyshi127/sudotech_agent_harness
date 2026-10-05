@@ -44,7 +44,8 @@ function bench() {
     pulls.set(key, queue)
     return d.promise
   })
-  const pull = (key: SessionId, i: number) => {
+  const pull = async (key: SessionId, i: number) => {
+    await Promise.resolve()
     const d = pulls.get(key)?.[i]
     if (d === undefined) throw new Error(`no pull #${i} for ${key}`)
     return d
@@ -62,14 +63,14 @@ describe('status and resolve (per key)', () => {
     const exact = { name: 'goal', description: 'independent exact-name entry' }
     const { dir, pull } = bench()
     const refreshed = dir.refresh(S1)
-    pull(S1, 0).resolve([goal])
+    await pull(S1, 0).then((pending) => { pending.resolve([goal]) })
     await refreshed
     expect(dir.resolve(S1, '目标')).toEqual(goal)
     expect(dir.resolve(S1, 'goal')).toEqual(goal)
     expect(dir.resolve(S1, '计划')).toBeUndefined()
     expect(dir.resolve(S1, 'unregistered')).toBeUndefined()
     const next = dir.refresh(S1)
-    pull(S1, 1).resolve([goal, exact])
+    await pull(S1, 1).then((pending) => { pending.resolve([goal, exact]) })
     await next
     expect(dir.resolve(S1, 'goal')).toEqual(exact)
     expect(dir.resolve(S1, '目标')).toEqual(goal)
@@ -85,7 +86,7 @@ describe('status and resolve (per key)', () => {
     const { dir, pull } = bench()
     const refreshed = dir.refresh(S1)
     expect(dir.status(S1)).toBe('pending')
-    pull(S1, 0).resolve(CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
     await refreshed
     expect(dir.status(S1)).toBe('ready')
     expect(dir.resolve(S1, 'goal')).toEqual(CMDS[1])
@@ -95,7 +96,7 @@ describe('status and resolve (per key)', () => {
   it('drops the snapshot and records failure on a failed pull', async () => {
     const { dir, pull } = bench()
     const refreshed = dir.refresh(S1)
-    pull(S1, 0).reject(new Error('boom'))
+    await pull(S1, 0).then((pending) => { pending.reject(new Error('boom')) })
     await refreshed
     expect(dir.status(S1)).toBe('failed')
     expect(dir.resolve(S1, 'plan')).toBeUndefined()
@@ -104,13 +105,13 @@ describe('status and resolve (per key)', () => {
   it('keys are isolated: one session catalog landing leaves another cold', async () => {
     const { dir, pull } = bench()
     const refreshed = dir.refresh(S1)
-    pull(S1, 0).resolve(CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
     await refreshed
     expect(dir.status(S2)).toBe('cold')
     expect(dir.resolve(S2, 'plan')).toBeUndefined()
 
     const other = dir.refresh(S2)
-    pull(S2, 0).resolve(S2_CMDS)
+    await pull(S2, 0).then((pending) => { pending.resolve(S2_CMDS) })
     await other
     expect(dir.resolve(S2, 'attach')).toBeDefined()
     expect(dir.resolve(S1, 'attach')).toBeUndefined()
@@ -121,11 +122,12 @@ describe('epoch guard (per key)', () => {
   it('a superseded pull cannot overwrite the newer one (old resolves after new)', async () => {
     const { dir, pull } = bench()
     const first = dir.refresh(S1)
+    await Promise.resolve()
     const second = dir.refresh(S1)
-    pull(S1, 1).resolve(CMDS)
+    await pull(S1, 1).then((pending) => { pending.resolve(CMDS) })
     await second
     expect(dir.resolve(S1, 'plan')).toBeDefined()
-    pull(S1, 0).resolve([{ name: 'stale', description: 'old world' }])
+    await pull(S1, 0).then((pending) => { pending.resolve([{ name: 'stale', description: 'old world' }]) })
     await first
     expect(dir.resolve(S1, 'stale')).toBeUndefined()
     expect(dir.resolve(S1, 'plan')).toBeDefined()
@@ -134,10 +136,11 @@ describe('epoch guard (per key)', () => {
   it('a superseded failure cannot demote the newer success', async () => {
     const { dir, pull } = bench()
     const first = dir.refresh(S1)
+    await Promise.resolve()
     const second = dir.refresh(S1)
-    pull(S1, 1).resolve(CMDS)
+    await pull(S1, 1).then((pending) => { pending.resolve(CMDS) })
     await second
-    pull(S1, 0).reject(new Error('late failure'))
+    await pull(S1, 0).then((pending) => { pending.reject(new Error('late failure')) })
     await first
     expect(dir.status(S1)).toBe('ready')
     expect(dir.resolve(S1, 'plan')).toBeDefined()
@@ -148,7 +151,7 @@ describe('epoch guard (per key)', () => {
     const one = dir.refresh(S1)
     void dir.refresh(S2)
     void dir.refresh(S2) // supersedes the s2 pull only
-    pull(S1, 0).resolve(CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
     await one
     expect(dir.status(S1)).toBe('ready')
   })
@@ -159,17 +162,18 @@ describe('invalidateAll (commands-changed soft)', () => {
     const { dir, pull, countOf } = bench()
     const a = dir.refresh(S1)
     const b = dir.refresh(S2)
-    pull(S1, 0).resolve(CMDS)
-    pull(S2, 0).resolve(S2_CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
+    await pull(S2, 0).then((pending) => { pending.resolve(S2_CMDS) })
     await Promise.all([a, b])
 
     dir.invalidateAll()
+    await Promise.resolve()
     expect(countOf(S1)).toBe(2)
     expect(countOf(S2)).toBe(2)
     expect(dir.status(S1)).toBe('ready')
     expect(dir.resolve(S2, 'attach')).toBeDefined()
 
-    pull(S1, 1).resolve([{ name: 'fresh', description: 'new world' }])
+    await pull(S1, 1).then((pending) => { pending.resolve([{ name: 'fresh', description: 'new world' }]) })
     await Promise.resolve()
     await Promise.resolve()
     expect(dir.resolve(S1, 'fresh')).toBeDefined()
@@ -188,8 +192,8 @@ describe('resetConnected (reconnect hard)', () => {
     const { dir, pull, countOf } = bench()
     const a = dir.refresh(S1)
     const b = dir.refresh(S2)
-    pull(S1, 0).resolve(CMDS)
-    pull(S2, 0).resolve(S2_CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
+    await pull(S2, 0).then((pending) => { pending.resolve(S2_CMDS) })
     await Promise.all([a, b])
 
     dir.resetConnected()
@@ -198,11 +202,12 @@ describe('resetConnected (reconnect hard)', () => {
     expect(dir.resolve(S1, 'plan')).toBeUndefined()
     expect(dir.status(S2)).toBe('pending')
     expect(dir.resolve(S2, 'attach')).toBeUndefined()
+    await Promise.resolve()
     expect(countOf(S1)).toBe(2)
     expect(countOf(S2)).toBe(2)
 
-    pull(S1, 1).resolve(CMDS)
-    pull(S2, 1).resolve(S2_CMDS)
+    await pull(S1, 1).then((pending) => { pending.resolve(CMDS) })
+    await pull(S2, 1).then((pending) => { pending.resolve(S2_CMDS) })
     await Promise.resolve()
     await Promise.resolve()
     expect(dir.status(S1)).toBe('ready')
@@ -215,8 +220,8 @@ describe('resetSession (preset-change hard)', () => {
     const { dir, pull, countOf } = bench()
     const first = dir.refresh(S1)
     const second = dir.refresh(S2)
-    pull(S1, 0).resolve(CMDS)
-    pull(S2, 0).resolve(S2_CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
+    await pull(S2, 0).then((pending) => { pending.resolve(S2_CMDS) })
     await Promise.all([first, second])
 
     dir.resetSession(S1)
@@ -224,10 +229,11 @@ describe('resetSession (preset-change hard)', () => {
     expect(dir.resolve(S1, 'plan')).toBeUndefined()
     expect(dir.status(S2)).toBe('ready')
     expect(dir.resolve(S2, 'attach')).toBeDefined()
+    await Promise.resolve()
     expect(countOf(S1)).toBe(2)
     expect(countOf(S2)).toBe(1)
 
-    pull(S1, 1).resolve([{ name: 'fresh', description: 'new composition' }])
+    await pull(S1, 1).then((pending) => { pending.resolve([{ name: 'fresh', description: 'new composition' }]) })
     await Promise.resolve()
     await Promise.resolve()
     expect(dir.resolve(S1, 'fresh')).toBeDefined()
@@ -238,27 +244,31 @@ describe('warm', () => {
   it('launches a pull from cold, again after failure, and never over pending/ready', async () => {
     const { dir, pull, countOf } = bench()
     dir.warm(S1)
-    expect(countOf(S1)).toBe(1)
+    expect(countOf(S1)).toBe(0)
+    expect(dir.status(S1)).toBe('pending')
     dir.warm(S1) // pending → no second pull
+    await Promise.resolve()
     expect(countOf(S1)).toBe(1)
 
-    pull(S1, 0).reject(new Error('boom'))
+    await pull(S1, 0).then((pending) => { pending.reject(new Error('boom')) })
     await Promise.resolve()
     await Promise.resolve()
     expect(dir.status(S1)).toBe('failed')
     dir.warm(S1) // failed → retry
+    await Promise.resolve()
     expect(countOf(S1)).toBe(2)
 
-    pull(S1, 1).resolve(CMDS)
+    await pull(S1, 1).then((pending) => { pending.resolve(CMDS) })
     await Promise.resolve()
     await Promise.resolve()
     dir.warm(S1) // ready → no-op
     expect(countOf(S1)).toBe(2)
   })
 
-  it('warms keys independently', () => {
+  it('warms keys independently', async () => {
     const { dir, countOf } = bench()
     dir.warm(S2)
+    await Promise.resolve()
     expect(countOf(S2)).toBe(1)
     expect(countOf(S1)).toBe(0)
   })
@@ -270,7 +280,7 @@ describe('ensureReady (per key)', () => {
   it('returns the hot snapshot at once when ready', async () => {
     const { dir, pull, countOf } = bench()
     const warm = dir.refresh(S1)
-    pull(S1, 0).resolve(CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
     await warm
     await expect(dir.ensureReady(S1, signal())).resolves.toEqual(CMDS)
     expect(countOf(S1)).toBe(1)
@@ -280,7 +290,7 @@ describe('ensureReady (per key)', () => {
     const { dir, pull, countOf } = bench()
     const wait = dir.ensureReady(S2, signal())
     expect(dir.status(S2)).toBe('pending')
-    pull(S2, 0).resolve(S2_CMDS)
+    await pull(S2, 0).then((pending) => { pending.resolve(S2_CMDS) })
     await expect(wait).resolves.toEqual(S2_CMDS)
     expect(countOf(S1)).toBe(0)
   })
@@ -289,25 +299,26 @@ describe('ensureReady (per key)', () => {
     const { dir, pull, countOf } = bench()
     void dir.refresh(S1)
     const wait = dir.ensureReady(S1, signal())
+    await Promise.resolve()
     expect(countOf(S1)).toBe(1)
-    pull(S1, 0).resolve(CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
     await expect(wait).resolves.toEqual(CMDS)
   })
 
   it('rejects when the awaited pull fails (no silent downgrade)', async () => {
     const { dir, pull } = bench()
     const wait = dir.ensureReady(S1, signal())
-    pull(S1, 0).reject(new Error('warmup boom'))
+    await pull(S1, 0).then((pending) => { pending.reject(new Error('warmup boom')) })
     await expect(wait).rejects.toThrow('command directory warmup failed: warmup boom')
   })
 
   it('retries from failed state with a fresh pull', async () => {
     const { dir, pull } = bench()
     const first = dir.ensureReady(S1, signal())
-    pull(S1, 0).reject(new Error('boom'))
+    await pull(S1, 0).then((pending) => { pending.reject(new Error('boom')) })
     await expect(first).rejects.toThrow()
     const second = dir.ensureReady(S1, signal())
-    pull(S1, 1).resolve(CMDS)
+    await pull(S1, 1).then((pending) => { pending.resolve(CMDS) })
     await expect(second).resolves.toEqual(CMDS)
   })
 
@@ -322,7 +333,7 @@ describe('ensureReady (per key)', () => {
   it('rejects immediately on an already-aborted signal', async () => {
     const { dir, pull } = bench()
     const warm = dir.refresh(S1)
-    pull(S1, 0).reject(new Error('irrelevant'))
+    await pull(S1, 0).then((pending) => { pending.reject(new Error('irrelevant')) })
     await warm
     const ac = new AbortController()
     ac.abort() // bare abort: the DOMException reason is itself an Error and travels as-is
@@ -332,9 +343,66 @@ describe('ensureReady (per key)', () => {
   it('keeps waiting across a superseded pull and settles on the winner', async () => {
     const { dir, pull } = bench()
     const wait = dir.ensureReady(S1, signal())
+    await Promise.resolve()
     void dir.refresh(S1) // supersedes pull #0 with pull #1
-    pull(S1, 0).resolve([{ name: 'stale', description: 'loser' }])
-    pull(S1, 1).resolve(CMDS)
+    await pull(S1, 0).then((pending) => { pending.resolve([{ name: 'stale', description: 'loser' }]) })
+    await pull(S1, 1).then((pending) => { pending.resolve(CMDS) })
     await expect(wait).resolves.toEqual(CMDS)
+  })
+})
+
+describe('deferred dispatch and disposal', () => {
+  it('dispatches only the winning pull when a queued pull is superseded', async () => {
+    const { dir, pull, calls } = bench()
+    const first = dir.refresh(S1)
+    const second = dir.refresh(S1)
+    expect(calls).toEqual([])
+    expect(dir.status(S1)).toBe('pending')
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
+    await Promise.all([first, second])
+    expect(calls).toEqual([S1])
+    expect(dir.resolve(S1, 'plan')).toEqual(CMDS[0])
+  })
+
+  it('never starts a fetch after closing in the queued dispatch interval', async () => {
+    const { dir, calls } = bench()
+    const refreshing = dir.refresh(S1)
+    dir.dispose()
+    await refreshing
+    expect(calls).toEqual([])
+    await expect(dir.ensureReady(S1, new AbortController().signal)).rejects.toThrow('directory is disposed')
+  })
+
+  it('rejects readiness waiters and clears previously served commands on close', async () => {
+    const { dir, pull, calls } = bench()
+    const ready = dir.refresh(S1)
+    await pull(S1, 0).then((pending) => { pending.resolve(CMDS) })
+    await ready
+    const waiting = dir.ensureReady(S2, new AbortController().signal)
+    const rejected = expect(waiting).rejects.toThrow('directory is disposed')
+    dir.dispose()
+    await rejected
+    expect(dir.resolve(S1, 'plan')).toBeUndefined()
+    dir.warm(S1)
+    dir.resetSession(S1)
+    dir.resetConnected()
+    dir.invalidateAll()
+    await dir.refresh(S1)
+    expect(calls).toEqual([S1])
+  })
+
+  it.each(['success', 'failure'] as const)('discards an already-started pull after close (%s)', async (outcome) => {
+    const { dir, pull } = bench()
+    const refreshing = dir.refresh(S1)
+    const active = await pull(S1, 0)
+    const waiting = dir.ensureReady(S1, new AbortController().signal)
+    const rejected = expect(waiting).rejects.toThrow('directory is disposed')
+    dir.dispose()
+    await rejected
+    if (outcome === 'success') active.resolve(CMDS)
+    else active.reject(new Error('late catalog failure'))
+    await refreshing
+    expect(dir.status(S1)).toBe('cold')
+    expect(dir.resolve(S1, 'plan')).toBeUndefined()
   })
 })

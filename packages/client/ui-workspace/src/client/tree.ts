@@ -47,7 +47,7 @@ export interface SessionNode {
   title: string
   /** The provisional blank session (renderer shows the localized New Session title). */
   blank: boolean
-  /** A Session-scoped UI consumer is awaiting this user. */
+  /** This Session or a direct child has a UI consumer awaiting this user. */
   pendingInteraction?: SessionPendingInteractionStatus
   running: boolean
   /** Running direct children in the loaded subagent catalog. */
@@ -394,6 +394,17 @@ function runningChildCount(list: SessionListState, parentId: SessionId, statuses
   ) ?? 0
 }
 
+/** Keep the parent's own interaction primary; otherwise surface a waiting direct child. */
+function pendingKind(list: SessionListState, sessionId: SessionId, statuses: SessionStatuses): SessionPendingInteractionStatus | undefined {
+  const own = visiblePendingKind(statuses.get(sessionId)?.pendingInteraction?.kind)
+  if (own !== undefined) return own
+  for (const child of list.projectionsBySession[sessionId]?.values.subagentCatalog ?? []) {
+    const kind = visiblePendingKind(statuses.get(child.id)?.pendingInteraction?.kind)
+    if (kind !== undefined) return kind
+  }
+  return undefined
+}
+
 function sessionNode(
   s: SessionSummary,
   list: SessionListState,
@@ -402,7 +413,7 @@ function sessionNode(
   archived: ReadonlySet<SessionId>,
 ): SessionNode {
   const status = statuses.get(s.id)
-  const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+  const pendingInteraction = pendingKind(list, s.id, statuses)
   return {
     id: s.id,
     title: sessionTitle(s),
@@ -601,7 +612,7 @@ export function deriveSearchResults(
     items: ordered.slice(0, limit).map((summary) => {
       const match = contentBySession.get(summary.id)
       const status = statuses.get(summary.id)
-      const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+      const pendingInteraction = pendingKind(list, summary.id, statuses)
       return {
         id: summary.id,
         title: sessionTitle(summary),

@@ -15,15 +15,21 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/plan-review', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/plan-review', import.meta.url))
+const SNAPSHOT_DIR = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('./expected/plan-review-xiaojing', import.meta.url))
+  : STOCK_SNAPSHOT_DIR
+const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 // The waiting golden owns the decision card; the approved golden owns the
 // transcript the approval leaves behind — the state the card cannot see.
 const REVIEW_EXPECTED = join(SNAPSHOT_DIR, 'review.expected.md')
@@ -52,7 +58,10 @@ describe('web e2e: plan review takeover round trip', () => {
   let reviewedSession: SessionId
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true })
+    scaffold = await launchWebScaffold(MODE === 'record' ? {} : {
+      replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true,
+      ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     // English page: the decision copy is the surface under test, and the
@@ -257,8 +266,12 @@ describe('web e2e: plan review takeover round trip', () => {
   }, 60_000)
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, [
+    await assertFixtureInventory(STOCK_SNAPSHOT_DIR, [
       'session.v3.jsonl', 'review.expected.md', 'sidebar.expected.md', 'preview.expected.md',
+      'approved.expected.md', 'approved-expanded.expected.md',
+    ])
+    if (WINDOWS_XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, [
+      'session.v4.jsonl', 'review.expected.md', 'sidebar.expected.md', 'preview.expected.md',
       'approved.expected.md', 'approved-expanded.expected.md',
     ])
   })
@@ -274,15 +287,19 @@ describe.skipIf(MODE === 'record')('web e2e: pending plan review across Sidebar 
   let tripwire: ReturnType<typeof watchConsole>
   let planned: SessionId
   let other: SessionId
+  let workspaceId: WorkspaceId | undefined
   const crashes: string[] = []
   const row = (session: SessionId) => page.locator(`[data-row-key="session:${session}"]`)
 
   async function showSessions(): Promise<void> {
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     // Expand the Workspace group by its state, not by whether its rows have rendered yet.
-    const group = page.locator('[data-row-key^="workspace:"]').first()
+    const group = workspaceId === undefined
+      ? page.locator('[data-row-key^="workspace:"]').first()
+      : page.locator(`[data-row-key="workspace:${workspaceId}"]`)
     await group.waitFor({ timeout: 15_000 })
-    if (await group.getAttribute('aria-expanded') !== 'true') await group.click()
+    // Xiaojing opens the current ordinary workspace during startup.
+    if (!WINDOWS_XIAOJING && await group.getAttribute('aria-expanded') !== 'true') await group.click()
     await row(planned).waitFor({ timeout: 15_000 })
   }
 
@@ -342,6 +359,12 @@ describe.skipIf(MODE === 'record')('web e2e: pending plan review across Sidebar 
     scaffold = await launchWebScaffold({})
     planned = await seedSession(scaffold, await readFile(FIXTURE, 'utf8'), 'plan-review-seat-planned')
     other = await seedSession(scaffold, await readFile(OTHER_FIXTURE, 'utf8'), 'plan-review-seat-other')
+    if (WINDOWS_XIAOJING) {
+      const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, 'Plan review acceptance')
+      workspaceId = workspace.id
+      await workspace.attachSession(planned)
+      await workspace.attachSession(other)
+    }
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
@@ -391,7 +414,10 @@ describe.skipIf(MODE === 'record')('web e2e: pending plan review across Sidebar 
 describe('web e2e: dismissed plan history', () => {
   it.skipIf(MODE === 'record')('reopens the permanent plan card after dismissing its review', async () => {
     // Replay supplies a finite continuation; the real question rejection and retained document are the assertions.
-    const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: false, paceMs: 15 })
+    const scaffold = await launchWebScaffold({
+      replayFixture: FIXTURE, compareReplaySession: false, paceMs: 15,
+      ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
+    })
     let browser: Browser | undefined
     const events: SessionEvent[] = []
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })

@@ -17,6 +17,7 @@ import { hasTypertRemoteNavigation, isForbiddenPublicationFile } from './publica
 import type { DshBundleManifest } from '../packages/util/package-manifest/src/types.ts'
 import { OPTIONAL_BUNDLES, bundlePatchFiles } from '../packages/boot/app-boot/src/profile.ts'
 import { collectProjectReferenceFaceViolations } from './project-reference-faces.ts'
+import { isAdoptedNativeBrowserDependency, isAdoptedNativeBrowserPackage } from './xiaojing-native-browser-adoption.ts'
 
 const root = resolve(import.meta.dirname, '..')
 // Publication rules cover these package trees; dependency rules read all pnpm members.
@@ -174,6 +175,7 @@ export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifes
 }
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
+  '@deepseek-ai/dsh-xiaojing-browser-control': ['lib/native.js', 'lib/native-settings.js'],
   // Product tool rows and worker entries are imported separately by Loader and Workers.
   '@deepseek-ai/dsh-xiaojing-finance-calculations': ['lib/tool.js'],
   '@deepseek-ai/dsh-xiaojing-finance-documents': ['lib/parser-worker.js', 'lib/tool.js', 'lib/general-tool.js'],
@@ -559,7 +561,9 @@ const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies
 const runtimeDependencySections = ['dependencies', 'optionalDependencies', 'peerDependencies'] as const
 
 /**
- * Prevent an official runtime from requiring an experimental package. The dsh installation's `dependencies`
+ * Prevent an official runtime from requiring an unadopted experimental package. Xiaojing's exact native-browser
+ * consumer/provider edges are checked separately; all other experimental dependencies remain forbidden.
+ * The dsh installation's `dependencies`
  * may hold the bundles the launcher's `OPTIONAL_BUNDLES` names: shipped switched off, they are not a requirement
  * ([rationale](../.agents/notes/implemented/process/2026-09-15-shipped-optional-bundles.md)).
  * @param manifests - release, private experimental, and deployment-root manifests.
@@ -575,12 +579,17 @@ export function checkExperimentalDependencyIsolation(
     .filter(name => name !== undefined))
   const errors: string[] = []
   for (const { dir, manifest } of manifests) {
-    if (!standardReleaseMemberDirectory.test(dir) && dir !== 'python/sdk-runtime') continue
+    if (!standardReleaseMemberDirectory.test(dir) && dir !== 'python/sdk-runtime'
+      && !isAdoptedNativeBrowserPackage({ dir, name: manifest.name })) continue
     const offered = manifest.name === '@deepseek-ai/dsh' ? new Set(optionalBundles) : new Set<string>()
     for (const section of runtimeDependencySections) {
       for (const name of Object.keys(manifest[section] ?? {})) {
-        if (!experimentalNames.has(name)) continue
+        if (!experimentalNames.has(name) && !name.startsWith(experimentalPackageNamePrefix)) continue
         if (section === 'dependencies' && offered.has(name)) continue
+        const target = manifests.find(entry => entry.manifest.name === name)
+        if (target !== undefined && isAdoptedNativeBrowserDependency(
+          { dir, name: manifest.name }, section, { dir: target.dir, name: target.manifest.name }, name,
+        )) continue
         errors.push(`${manifest.name ?? dir}: ${section}.${name} must not reference an experimental package`)
       }
     }

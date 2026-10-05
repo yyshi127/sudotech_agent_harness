@@ -338,6 +338,9 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   private watchNavigation(): () => void {
     let initial: 'waiting' | 'connecting' | 'done' = 'waiting'
+    const initialNavigationRevision = this.navigationRevision
+    let initialNavigation = this.ctx.layout.navigationSignal
+    let initialNavigationAborted = initialNavigation.aborted
     const reconcile = (): void => {
       if (this.lifetime.signal.aborted) return
       if (this.clearArchivedCurrent()) return
@@ -345,12 +348,24 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       const workspace = this.workspaces.list.getSnapshot()
       const sessions = this.sessions.list.getSnapshot()
       if (workspace.phase !== 'ready' || sessions.phase !== 'ready') return
-      if (this.mainReference !== undefined) {
+      if (this.mainReference !== undefined || this.navigationRevision !== initialNavigationRevision) {
         initial = 'done'
         return
       }
+      const saved = this.selection.getSnapshot()
+      const savedTarget = saved.subagentAddress !== undefined
+        || (saved.sessionId !== undefined && sessions.byId[saved.sessionId] !== undefined)
+      if (!savedTarget && (this.ctx.layout.navigationSignal !== initialNavigation
+        || (!initialNavigationAborted && initialNavigation.aborted))) {
+        initial = 'done'
+        return
+      }
+      if (!savedTarget && this.categories.store.getSnapshot().categories.some(category => category.ready === false)) return
       initial = 'connecting'
-      void this.restoreSelection(workspace, sessions).then(
+      void this.restoreSelection(workspace, sessions, (navigation) => {
+        initialNavigation = navigation
+        initialNavigationAborted = navigation.aborted
+      }).then(
         () => { initial = 'done' },
         (reason: unknown) => {
           if (this.lifetime.signal.aborted) return
@@ -362,15 +377,21 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
     const disposeWorkspaces = this.workspaces.list.subscribe(reconcile)
     const disposeSessions = this.sessions.list.subscribe(reconcile)
+    const disposeCategories = this.categories.store.subscribe(reconcile)
     reconcile()
     return () => {
       this.lifetime.abort()
+      disposeCategories()
       disposeSessions()
       disposeWorkspaces()
     }
   }
 
-  private async restoreSelection(workspaces: WorkspaceSnapshot, sessions: SessionListState): Promise<void> {
+  private async restoreSelection(
+    workspaces: WorkspaceSnapshot,
+    sessions: SessionListState,
+    observeNavigation: (signal: AbortSignal) => void,
+  ): Promise<void> {
     const saved = this.selection.getSnapshot()
     if (saved.subagentAddress !== undefined) {
       this.replaceMain(saved.subagentAddress, this.lifetime.signal, 'preserve')
@@ -383,21 +404,32 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       this.replaceMain(summary.id, this.lifetime.signal, 'preserve')
       return
     }
-    const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
+    const layoutNavigation = this.ctx.layout.beginNavigation()
+    observeNavigation(layoutNavigation)
+    const navigation = AbortSignal.any([layoutNavigation, this.lifetime.signal])
     let sessionId: SessionId | undefined
     if (summary !== undefined && workspace !== undefined && summary.cwd === workspace.path
       && !workspaces.archivedSessionIds.includes(summary.id)) {
       sessionId = await this.reuseBlank(workspace.workspaceId, summary.id)
     }
-    let target = workspace?.workspaceId ?? recentWorkspace(workspaces.items, sessions.byId)
+    const reserved = new Set(this.categories.store.getSnapshot().categories.flatMap(
+      category => category.reservedWorkspaceIds ?? category.workspaceIds,
+    ))
+    const ordinary = workspaces.items.filter(item => !reserved.has(item.workspaceId))
+    let target = workspace?.workspaceId ?? recentWorkspace(ordinary, sessions.byId)
     if (target === undefined && workspaces.items.length === 0 && sessions.ids.length === 0) {
       const prepared = await this.initializeDefaultWorkspace(navigation)
       if (navigation.aborted) return
       target = prepared?.workspaceId
     }
     if (sessionId === undefined && target !== undefined) sessionId = await this.connectWorkspace(target)
-    if (sessionId !== undefined && !navigation.aborted) {
-      this.replaceMain(sessionId, navigation, 'preserve')
+    if (sessionId !== undefined) {
+      try {
+        this.replaceMain(sessionId, navigation, 'preserve')
+      } catch (error: unknown) {
+        // Retention observers can synchronously replace this startup navigation.
+        if (!navigation.aborted || error !== navigation.reason) throw error
+      }
     }
   }
 

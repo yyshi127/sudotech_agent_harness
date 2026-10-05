@@ -75,6 +75,18 @@ function api(overrides: Partial<CurrentTokenProcessBindings> = {}): CurrentToken
 }
 
 describe('ordinary Job process operations', () => {
+  it.each([undefined, 'independent'] as const)('keeps the target owned with child lifetime %s', (childLifetime) => {
+    const setInformationJobObject = vi.fn((_job: NativePtr, _cls: number, _information: Buffer) => 1)
+    const assignProcessToJobObject = vi.fn(() => 1)
+    const resumeThread = vi.fn(() => 0)
+    const bindings = api({ setInformationJobObject, assignProcessToJobObject, resumeThread })
+    spawnCurrentTokenJobProcess(bindings, options({ childLifetime }))
+    const information = vi.mocked(setInformationJobObject).mock.calls[0]?.[2]
+    expect(information?.readUInt32LE(16)).toBe(childLifetime === 'independent' ? 0x3000 : 0x2000)
+    expect(assignProcessToJobObject).toHaveBeenCalledWith(50n, 60n)
+    expect(resumeThread).toHaveBeenCalledWith(61n)
+  })
+
   it.each([3, 2])('supplies fd 7 with standard handle type %s and releases its temporary inheritance', (standardType) => {
     let descriptorBytes: Buffer | undefined
     const flags = vi.fn(() => 1)
@@ -262,8 +274,10 @@ describe('ordinary Job process operations', () => {
 
   it('probes an unnamed Job and closes its handle', () => {
     const closeHandle = vi.fn(() => 1)
-    const bindings = api({ closeHandle })
+    const setInformationJobObject = vi.fn((_job: NativePtr, _cls: number, _information: Buffer) => 1)
+    const bindings = api({ closeHandle, setInformationJobObject })
     expect(() => { probeCurrentTokenJobSupport(bindings) }).not.toThrow()
+    expect(setInformationJobObject.mock.calls[0]?.[2].readUInt32LE(16)).toBe(0x2000)
     expect(closeHandle).toHaveBeenCalledExactlyOnceWith(50n)
   })
 

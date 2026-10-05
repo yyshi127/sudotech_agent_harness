@@ -1,5 +1,5 @@
 ---
-description: "Xiaojing semantic browser automation over Microsoft Edge"
+description: "Xiaojing native Edge and Chrome browser control and the optional legacy Edge adapter"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-DOM-first Microsoft Edge automation for Xiaojing. One removable Cordis plugin owns the `browser_control` tool, a global page registry, per-turn page leases, a dedicated Playwright Edge adapter, and an optional personal Edge extension adapter. It does not modify `agent-loop`, official UI packages, or a person's Edge profile.
+Xiaojing's `./native` entry connects Edge or Chrome through the Harness browser MCP providers. Its `./native-settings` service supplies persisted operator permissions to the product settings Client. The product disables the legacy `browser_control` Host; the package root retains that adapter for explicit deployments. These entries do not modify `agent-loop` or browser enterprise policies.
 
 
 ## Table of Contents
@@ -19,6 +19,46 @@ DOM-first Microsoft Edge automation for Xiaojing. One removable Cordis plugin ow
 
 <a id="capabilities"></a>
 ## Capabilities
+
+<a id="native-browser-connections"></a>
+## Native browser connections
+
+`browser_connect` defaults to `browser: "edge"`. An omitted `surface` uses existing tabs when the operator has enabled that browser in Browser Control settings; otherwise it uses `managed`. The product prompt chooses Chrome only when the user names Chrome or 谷歌浏览器, and chooses `surface: "existing"` for already-open tabs. Ordinary chat opens no browser or MCP process. A successful connection records the native tab list and returns its tool prefix.
+
+Managed browsers, configured CDP endpoints, and native profile discovery use the [Harness Chrome DevTools provider](../../experimental/browser-use-chrome-devtools-mcp/README.md). Explicit deployments can select the [Harness Playwright provider](../../experimental/browser-use-playwright-mcp/README.md) in official extension mode. The selected upstream schemas expose snapshots, scripts, screenshots, forms, tabs, and other native operations.
+
+Managed Edge starts the installed browser visibly with an owned temporary profile and loopback CDP endpoint, retaining the browser sandbox. Native DevTools performs all webpage operations through that endpoint. `managedBrowserTimeoutMs` bounds executable discovery, policy checks, and managed Edge startup and cleanup, and defaults to 30000 milliseconds; failed cleanup retains the profile and its ownership instead of deleting files before process exit. Windows Chrome policies that force `UserDataDir` prevent managed launch; use `existing` to connect to that personal browser.
+
+<a id="connecting-already-open-tabs"></a>
+### Connecting already-open tabs
+
+Enable the requested browser in Xiaojing's Browser Control settings. Manage shows instructions and the fixed `chrome://inspect/#remote-debugging` or `edge://inspect/#remote-debugging` address. On Windows, the explicit Open settings button opens and verifies that page in a new normal browser window; the user still enables remote debugging and approves connections. It validates the installation, unique new window, process identity, blank address bar, fixed navigation, and loaded inspect document through Windows UI Automation; it never navigates an existing window. Chromium rejects internal command-line launch URLs, so only `about:blank` is passed at launch. Failed verification reports failure and retains the copy action without closing browser windows. Other platforms use the manual address. Native auto-connect discovers the existing profile. Chrome requires version 144 or later; Edge must support the remote debugging permission page. No extension, port, or token entry is required. New connections can require approval; the product switch does not guarantee permanent approval. Closing the switch disconnects existing-tab control without closing the personal browser.
+
+Profile discovery reads only Windows `UserDataDir` and `RemoteDebuggingAllowed` policy metadata. An explicit absolute directory takes precedence over policy, then the stable LocalAppData directory. Prohibited debugging and failed or invalid policy queries refuse acquisition. The application does not read Preferences or credentials, change policy, automatically enable debugging, or bypass browser approval. Variable-based policy directories require an explicit absolute override.
+
+Explicit deployments can configure an enabled `existingEndpoint` or select `existingConnection: "extension"` and install the [official Playwright browser extension](https://github.com/microsoft/playwright-mcp#browser-extension). Its connection requires approval and tab selection. The old Xiaojing Edge extension and its pairing code cannot establish this connection.
+
+Connection failure revokes the Session's selection. It never selects another browser, opens a replacement window, or replays completed actions. Diagnostics identify the selected browser; a native HTTP 403 reports connection rejection without claiming its cause. Explicitly reconnect before using browser tools. Managed connections belong to one live Agent; existing-browser connections have one owner until release. Calls queue per connection and re-check their selected route before execution. Disposal waits for in-flight work, closes owned managed browsers, and disconnects existing browsers without closing their tabs.
+
+### Native configuration and approvals
+
+The product explicitly adopts the three upstream experimental native-browser packages under the [exact source and installed-dependency policy](../../../.agents/notes/implemented/process/2026-10-03-xiaojing-native-browser-adoption.md); their API status and isolation from other consumers remain unchanged.
+
+The package publishes three independent Host bundles: `lib/index.js`, `lib/native.js`, and `lib/native-settings.js`, plus their declarations. Native imports do not start browser processes or mount the legacy adapter; connections begin with `browser_connect`. Settings imports do not establish a browser connection.
+
+`NativeBrowser` identifies `edge` or `chrome`. The Host-only `NativeBrowserSettingsRuntime` registration supplies installation inspection, observed connection state, and revocation callbacks to the settings service; its disposer removes only that runtime's registration. These declarations are owned by `src/native-settings-types.ts` rather than the generic subsystems type catalog.
+
+`edge` and `chrome` accept optional `executablePath`, `existingEndpoint`, `existingConnection`, absolute `userDataDir`, and secret `extensionToken`. An omitted `existingConnection` preserves the explicit extension deployment; Xiaojing sets `auto-connect`. Its `requireUserSettings` refuses existing access when the permission service is unavailable or the browser is disabled. `./native-settings` persists its live `edge` and `chrome` booleans in the profile, initially false. Its `openSettingsTimeoutMs` defaults to 30000 milliseconds and bounds fixed settings-page navigation; overlapping open requests are refused, and disposal cancels and joins the pending operation. Status includes the required `canOpenSettings` boolean, true only on Windows; ship the matching Host and Client together. The authenticated `open-settings` RPC accepts only a browser brand and does not establish a native connection or grant permission. Settings reports installation and setup readiness separately from a successful native connection; reading status does not acquire browser resources. Failed installation inspection reports an unknown installation state without blocking the other browser or revocation. Disabling saves the permission before releasing connections; repeating an already-disabled request does not release again. Enabling saves intent without launching a browser or enabling debugging.
+
+`connectTimeoutMs` defaults to 600000 milliseconds for the connection probe, including browser approval; `toolCallTimeoutMs` defaults to 60000 milliseconds for subsequent native calls. The product composition accepts `XIAOJING_NATIVE_EDGE_EXECUTABLE`, `XIAOJING_CHROME_EXECUTABLE`, `XIAOJING_EDGE_CDP_ENDPOINT`, `XIAOJING_CHROME_CDP_ENDPOINT`, and the corresponding `XIAOJING_EDGE_PLAYWRIGHT_EXTENSION_TOKEN` / `XIAOJING_CHROME_PLAYWRIGHT_EXTENSION_TOKEN`. `allowPrivateHosts` remains false in production.
+
+Actions are classified from native observations rather than model-written element descriptions. Uploads, browser code, coordinate actions, unverified targets, and external-impact or deletion controls require mandatory approval. Password entry remains manual. Private destinations require approval; this application-level check does not isolate every request made by scripts or redirects. Browser-policy restrictions and stale references report failure rather than falling back to desktop clicking.
+
+A mandatory control approval offers session authorization only when the current native snapshot uniquely identifies each control and the observed page has an HTTP(S) origin. Authorization covers the same browser, managed or existing route, origin, complete control labels, and operation category; refreshed native references retain that classification. Scripts and coordinate tools also offer “Always allow”: their displayed scope covers the entire connected browser for that operation class, not one website. Browser brand, managed or existing route, script or coordinate class, and Session remain distinct. Each protected call still invokes the approval service and the exact execution-token guard. Uploads, unverified destinations or targets, duplicate labels, and unfocused keyboard actions remain one-shot. Approval explanations follow the interface language without changing logged model-facing reasons.
+
+## Legacy Edge entry
+
+The following sections describe the optional package-root entry, disabled in the current product composition.
 
 The personal Edge settings RPC registers a Web route through Connection, so the Host plugin requires both `connection` and `webServer` at startup.
 
@@ -51,6 +91,8 @@ The page registry is process-global, so a new session can discover a page left b
 
 ## Approval and network policy
 
+When an office session explicitly enables No approvals, the approval service automatically grants the tool approvals described below, including mandatory confirmations; browser connection permission and Windows elevation remain controlled by those platforms.
+
 Reading, opening public pages, normal menu clicks, and ordinary field edits do not require approval. Local file upload and actions labelled as saving, approving, sending, publishing, paying, transferring, purchasing, signing, or submitting require one approval before execution, including under a `never` approval policy. A batch receives one decision before its first protected step. Delete keys and controls labelled for deletion, removal, uninstall, erase, or clearing always use mandatory confirmation, including under Full access or the `never` policy. Protected requests made directly through the Host service fail closed; only the registered `browser_control` tool can complete the approval path.
 
 Private and loopback destinations require approval unless `allowPrivateHosts` is enabled in deterministic tests. Service Worker traffic is classified without assuming a frame and may reach a private host only when its origin belongs to an open page that already has approval for that host.
@@ -69,6 +111,20 @@ The Host validates the fixed extension ID and protocol version, then both sides 
 - `allowPrivateHosts` exists only for deterministic local tests and must remain false in the product composition.
 
 ## Model Experience
+
+### Native browser tool discovery
+
+#### What the model sees
+
+Before connection, the model sees `browser_connect`. Acquiring a connection adds its native MCP catalog and instructions to the owning Agent; the connection result records the tab list. Inactive routes contribute no MCP instructions and cannot execute tools. Results and approval events use the normal tool and Session logging paths. Native tool presentation excludes inactive route schemas. PTC's generated SDK can retain previously acquired route names; calls through them still fail the selected-route check.
+
+#### Token effect
+
+Connection adds the selected upstream tool schemas and instructions. Snapshots add upstream content to the conversation.
+
+#### KV Cache effect
+
+Changing the connection changes MCP instructions and available schemas, which may change the request prefix.
 
 ### `browser_control` schema
 
@@ -89,10 +145,10 @@ The schema remains stable for the plugin lifetime. Page observations appear afte
 - Finance reports are not a browser-control capability. D01–D06 require supported supplier APIs; the rejected browser route is recorded in the [browser-report decision](../../../.agents/notes/rejected/architecture/2026-09-14-native-finance-reports.md).
 
 - Microsoft Edge must be installed and allowed by device policy; the application does not bundle a browser runtime.
-- Personal Edge takeover requires one manual unpacked-extension installation and pairing. Silent installation on an unmanaged Windows device is not supported.
+- Native existing-tab control requires the browser's remote debugging permission and connection approval; explicit deployments can instead use an enabled CDP endpoint or the official extension. The legacy adapter requires its separate unpacked extension and pairing.
 - Closed Shadow DOM, canvas-only pages, CAPTCHAs, UKey and certificate prompts, secure browser surfaces, and operating-system dialogs require user handling.
 - A browser or another DevTools client may deny `chrome.debugger` attachment. The plugin reports that failure and does not switch routes or repeat already completed actions.
-- Pixel interpretation is not part of browser control. The model's vision capability may explain a user-provided image, but it does not authorize coordinate clicks.
+- The legacy adapter excludes pixel interaction. Native coordinate and browser-code tools remain available with mandatory approval.
 
 <a id="dev-note"></a>
 ### Dev Note

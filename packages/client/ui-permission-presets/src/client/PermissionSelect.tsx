@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import {
-  IconChevronDownOutlineRegular, Menu, PermissionIconFullAccessRegular,
+  IconChevronDownOutlineRegular, Menu, PermissionIconAutoApprovalRegular, PermissionIconFullAccessRegular,
   PermissionIconReadOnlyRegular, PermissionIconWorkspaceWriteRegular, RiskConfirmation,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -22,6 +22,9 @@ import {
 } from './presentation.ts'
 import css from './PermissionSelect.module.css'
 
+/** Product-specific, session-only permission identity published by Xiaojing. */
+export const NO_APPROVAL_PRESET = 'xiaojing-no-approval'
+
 /* Permission glyphs follow currentColor so the trigger and menu rows tint the
    shared product artwork with their own text color. */
 
@@ -29,6 +32,7 @@ const permissionGlyphs = new Map<string, ReactNode>([
   ['read-only', <PermissionIconReadOnlyRegular />],
   ['workspace-write', <PermissionIconWorkspaceWriteRegular />],
   [FULL_ACCESS, <PermissionIconFullAccessRegular />],
+  [NO_APPROVAL_PRESET, <PermissionIconAutoApprovalRegular />],
 ])
 
 /** Glyph for a permission option value; host-configured names outside the design set get none. */
@@ -42,6 +46,7 @@ function permissionLabel(
   t: PermissionSelectProps['t'],
 ): string {
   if (value === AUTO_REVIEW) return t('auto.label')
+  if (value === NO_APPROVAL_PRESET) return t('noApproval.label')
   return displayPermissionPreset(value, name, key => t(key))
 }
 
@@ -54,7 +59,8 @@ function optionDescription(
   option: PresetOption,
   t: PermissionSelectProps['t'],
 ): string | undefined {
-  return option.value === AUTO_REVIEW ? t('auto.description') : option.description
+  return option.value === NO_APPROVAL_PRESET ? t('noApproval.description')
+    : option.value === AUTO_REVIEW ? t('auto.description') : option.description
 }
 
 /** Business face injected by the permission package's slot registration. */
@@ -73,10 +79,26 @@ export type PermissionSelectProps =
   & InjectFace<PermissionSelectInjected>
   & PropsLocale<typeof PERMISSION_ACCESS_NS>
 
+/** Header entry keeps the permission picker reachable when an approval replaces the composer. */
+type RunningPermissionProps = PropsRuntime<'conversation.session.header.actions'>
+  & InjectFace<PermissionSelectInjected> & PropsLocale<typeof PERMISSION_ACCESS_NS>
+
+/**
+ * Render the current-session picker during a Xiaojing task.
+ * @param props - session hooks, catalog, and the existing preset command writer.
+ * @returns the same picker used by the composer, or no header entry while idle.
+ */
+export function RunningPermissionSelect(props: RunningPermissionProps) {
+  const running = props.useSession(session => session.running)
+  const available = props.usePermissionCatalog(state => state.value?.options.some(option => option.value === NO_APPROVAL_PRESET) === true)
+  return running && available ? <PermissionSelect {...props} locked={false} /> : null
+}
+
 export function PermissionSelect({
   locked, select, usePermissionCatalog, useProjection, t,
 }: PermissionSelectProps) {
   const selection = useProjection('permissions')
+  const agentPreset = useProjection('agentPreset')
   const catalog = usePermissionCatalog(state => state.value)
   const [pick, setPick] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -101,7 +123,7 @@ export function PermissionSelect({
     : permissionLabel(current.value, current.name, t)
   const busy = pick !== null || confirmation !== null
 
-  const items: MenuEntry[] = catalog.options.map((option) => {
+  const items: MenuEntry[] = catalog.options.filter(option => option.value !== NO_APPROVAL_PRESET || agentPreset !== 'finance').map((option) => {
     const icon = permissionGlyph(option.value)
     const label = permissionLabel(option.value, option.name, t)
     const badge = optionBadge(option.value, t)
@@ -129,7 +151,7 @@ export function PermissionSelect({
   const choose = (id: string): void => {
     setOpen(false)
     if (id === selection.currentValue) return
-    if (id === FULL_ACCESS || id === AUTO_REVIEW) {
+    if (id === FULL_ACCESS || id === AUTO_REVIEW || id === NO_APPROVAL_PRESET) {
       setAcknowledged(false)
       setConfirmation(id)
       return
@@ -147,16 +169,16 @@ export function PermissionSelect({
     submit(id)
   }
 
-  const confirmationTitle = confirmation === AUTO_REVIEW
+  const confirmationTitle = confirmation === NO_APPROVAL_PRESET ? t('noApproval.confirm.title') : confirmation === AUTO_REVIEW
     ? t('auto.confirm.title')
     : t('confirm.title')
-  const confirmationDescription = confirmation === AUTO_REVIEW
+  const confirmationDescription = confirmation === NO_APPROVAL_PRESET ? t('noApproval.confirm.description') : confirmation === AUTO_REVIEW
     ? t('auto.confirm.description')
     : t('confirm.description')
-  const confirmationAcknowledge = confirmation === AUTO_REVIEW
+  const confirmationAcknowledge = confirmation === NO_APPROVAL_PRESET ? t('noApproval.confirm.acknowledge') : confirmation === AUTO_REVIEW
     ? t('auto.confirm.acknowledge')
     : t('confirm.acknowledge')
-  const confirmationEnable = confirmation === AUTO_REVIEW
+  const confirmationEnable = confirmation === NO_APPROVAL_PRESET ? t('noApproval.confirm.enable') : confirmation === AUTO_REVIEW
     ? t('auto.confirm.enable')
     : t('confirm.enable')
   const currentBadge = optionBadge(currentValue, t)

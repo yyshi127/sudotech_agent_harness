@@ -1,6 +1,7 @@
 /**
  * Keep experimental packages outside default installations, runtime imports, and shipped compositions.
- * The one declared exception is a bundle the launcher names in `OPTIONAL_BUNDLES`: shipped for the person to
+ * Xiaojing adopts only its exact native-browser consumer/provider edges; their complete outgoing graph remains checked.
+ * An optional exception is a bundle the launcher names in `OPTIONAL_BUNDLES`: shipped for the person to
  * switch on, selected by no shipped template, its own dependency graph outside the default product's.
  */
 
@@ -19,6 +20,7 @@ import {
   collectRuntimeLocalSourceSpecifiers,
   collectRuntimeSourceSpecifiers,
 } from './verify-client-packages.ts'
+import { isAdoptedNativeBrowserDependency, isAdoptedNativeBrowserSource } from './xiaojing-native-browser-adoption.ts'
 
 const EXPERIMENTAL_PREFIX = '@deepseek-ai/dsh-experimental-'
 // The independently published entry package owns platform-engine dependencies.
@@ -42,6 +44,8 @@ interface Package {
   directory: string
   manifest: Manifest
 }
+
+type NativeReference = { section: string } | { sourcePath: string }
 
 /** Counts and violations from the default product's source and configuration inputs. */
 export interface ProductIsolationResult {
@@ -109,8 +113,8 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
   let webPluginCount = 0
   const isExperimental = (pkg: Package): boolean => pkg.manifest.name.startsWith(EXPERIMENTAL_PREFIX)
     || display(pkg.directory).startsWith('packages/experimental/')
-  const add = (pkg: Package, origin: string): void => {
-    if (isExperimental(pkg)) {
+  const add = (pkg: Package, origin: string, adopted = false): void => {
+    if (isExperimental(pkg) && !adopted) {
       failures.push(`${origin} -> ${pkg.manifest.name}: default product must not include experimental packages`)
     } else if (!visited.has(pkg.directory)) {
       visited.add(pkg.directory)
@@ -127,26 +131,37 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
       directory = parent
     }
   }
-  const reference = (name: string, origin: string, owner?: Package): void => {
+  const reference = (name: string, origin: string, owner?: Package, nativeReference?: NativeReference): void => {
     if (name.startsWith('.') || name.startsWith('/') || /^(?:file|link):/.test(name)) {
       const target = name.startsWith('file://') ? fileURLToPath(name)
         : resolve(owner?.directory ?? root, name.replace(/^(?:file|link):/, ''))
       const pkg = directories.get(target) ?? ownerOf(target)
-      if (pkg !== undefined) add(pkg, origin)
+      if (pkg !== undefined && pkg !== owner) add(pkg, origin)
       return
     }
     const packageName = barePackageName(name)
-    if (packageName.startsWith(EXPERIMENTAL_PREFIX)) {
+    const pkg = packages.get(packageName)
+    if (pkg === owner && nativeReference !== undefined && 'sourcePath' in nativeReference) return
+    const adopted = owner !== undefined && pkg !== undefined && nativeReference !== undefined
+      && ('section' in nativeReference
+        ? isAdoptedNativeBrowserDependency(
+          { dir: display(owner.directory), name: owner.manifest.name }, nativeReference.section,
+          { dir: display(pkg.directory), name: pkg.manifest.name }, name,
+        )
+        : isAdoptedNativeBrowserSource(
+          { dir: display(owner.directory), name: owner.manifest.name }, nativeReference.sourcePath,
+          { dir: display(pkg.directory), name: pkg.manifest.name }, name,
+        ))
+    if (packageName.startsWith(EXPERIMENTAL_PREFIX) && !adopted) {
       failures.push(`${origin} -> ${name}: default product must not include experimental packages`)
       return
     }
-    const pkg = packages.get(packageName)
-    if (pkg !== undefined) add(pkg, origin)
+    if (pkg !== undefined) add(pkg, origin, adopted)
     else if (EXTERNAL_KIT_PACKAGES.has(packageName)) return
     else if (packageName.startsWith('@deepseek-ai/')) failures.push(`${origin}: unknown workspace package ${name}`)
   }
-  const dependency = (name: string, range: string, owner: Package, origin: string): void => {
-    reference(name, origin, owner)
+  const dependency = (name: string, range: string, owner: Package, origin: string, nativeReference?: NativeReference): void => {
+    reference(name, origin, owner, nativeReference)
     if (/^(?:file:|link:|workspace:\.)/.test(range)) {
       reference(range.replace(/^workspace:/, ''), origin, owner)
     } else if (/^(?:npm:|workspace:)(?:@|[a-zA-Z])/.test(range)) {
@@ -156,11 +171,11 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
   const sourceReference = (specifier: string, path: string): void => {
     const owner = ownerOf(path)
     if (owner === undefined) return
-    reference(specifier, display(path), owner)
+    reference(specifier, display(path), owner, { sourcePath: display(path) })
     const name = barePackageName(specifier)
     const range = [...RUNTIME_SECTIONS, 'devDependencies' as const]
       .map(section => owner.manifest[section]?.[name]).find(value => value !== undefined)
-    if (range !== undefined) dependency(name, range, owner, display(path))
+    if (range !== undefined) dependency(specifier, range, owner, display(path), { sourcePath: display(path) })
   }
   const scanSource = (path: string, followLocal = false, inlineSource?: string): void => {
     if (sources.has(path)) return
@@ -174,7 +189,7 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
       const target = resolveSource(local)
       const resolved = target ?? local
       const owner = directories.get(resolved) ?? ownerOf(resolved)
-      if (owner !== undefined && isExperimental(owner)) add(owner, display(path))
+      if (owner !== undefined && owner !== ownerOf(path) && isExperimental(owner)) add(owner, display(path))
       if (/cordis[^/]*\.ya?ml$/.test(basename(resolved))) scanConfig(resolved)
       if (followLocal && target !== undefined) scanSource(target, true)
     }
@@ -294,7 +309,7 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
     for (const section of RUNTIME_SECTIONS) {
       for (const [name, range] of Object.entries(manifest[section] ?? {})) {
         if (pkg === cli && section === 'dependencies' && optionalBundles.has(name)) continue
-        dependency(name, range, pkg, `${manifest.name} ${section}`)
+        dependency(name, range, pkg, `${manifest.name} ${section}`, { section })
       }
     }
     for (const file of manifest.dsh?.bundle === undefined ? [] : bundlePatchPaths(pkg.directory, manifest.dsh.bundle)) scanConfig(file)
@@ -416,6 +431,6 @@ if (import.meta.main) {
   } else {
     console.log(`verify-default-product-isolation: ${String(result.packageCount)} packages, `
       + `${String(result.sourceCount)} runtime sources, ${String(result.configCount)} configurations, `
-      + `${String(result.webPluginCount)} composed Web plugins exclude experimental packages.`)
+      + `${String(result.webPluginCount)} composed Web plugins exclude unadopted experimental packages.`)
   }
 }

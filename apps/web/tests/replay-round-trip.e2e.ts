@@ -19,9 +19,11 @@ import type { Browser, Page, Route, WebSocketRoute } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { ToolCallId, expandAssistantStream } from '@deepseek-ai/dsh-llm'
-import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
+import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import type { SessionListValue } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import { XIAOJING_PERSONA } from '@deepseek-ai/dsh-client-xiaojing-product'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
@@ -30,23 +32,28 @@ import {
 import {
   connectFreshWorkspace, expandTurnProcesses, newEnglishPage, REPO_ROOT, saveFailureShot,
 } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS, XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip', import.meta.url))
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/ui.expected.md', import.meta.url))
-const ECHO_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/submission-echo.expected.md', import.meta.url))
+const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip', import.meta.url))
+const SNAPSHOT_DIR = WINDOWS_XIAOJING ? fileURLToPath(new URL('./expected/fresh-round-trip-xiaojing', import.meta.url)) : STOCK_SNAPSHOT_DIR
+const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
+const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
+const ECHO_EXPECTED = join(SNAPSHOT_DIR, 'submission-echo.expected.md')
 const ACCEPTED_RECONNECT_EXPECTED = join(SNAPSHOT_DIR, 'accepted-reconnect.expected.md')
 const BLANK_EXPECTED = join(SNAPSHOT_DIR, 'blank-reload.expected.md')
-const UI_EXPANDED_EXPECTED = fileURLToPath(
-  new URL('../../../snapshots/web/fresh-round-trip/ui-expanded.expected.md', import.meta.url),
-)
-const WEB_CONTEXT_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/web-context.expected.md', import.meta.url))
+const UI_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ui-expanded.expected.md')
+const WEB_CONTEXT_EXPECTED = join(SNAPSHOT_DIR, 'web-context.expected.md')
 const MODE = webSnapshotMode()
+const SHELL_TOOL = WINDOWS_XIAOJING ? 'pwsh' : 'bash'
+const MODEL_LABEL = WINDOWS_XIAOJING ? 'DeepSeek-V41-Flash' : 'DeepSeek-V4-Flash'
 
 // The scenario's one drive prompt. Record sends it; replay asserts the
 // committed fixture recorded exactly it, so drive script and fixture cannot
 // drift apart.
-const PROMPT = 'Use the bash tool to run exactly: echo WEB_E2E_OK. Then reply with the single word DONE and stop.'
+const PROMPT = WINDOWS_XIAOJING
+  ? "Use the pwsh tool to run exactly: Write-Output 'WEB_E2E_OK'. Then reply with the single word DONE and stop."
+  : 'Use the bash tool to run exactly: echo WEB_E2E_OK. Then reply with the single word DONE and stop.'
 
 type SessionListResponse = { result: RemoteResult<SessionListValue> }
 
@@ -69,6 +76,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
       compareReplaySession: true,
+      ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
       ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15 }),
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
@@ -87,8 +95,11 @@ describe('web e2e: fresh round trip through the real assembly', () => {
   }, 120_000)
 
   afterAll(async () => {
-    await browser?.close()
-    await scaffold?.close()
+    const failures: unknown[] = []
+    await browser?.close().catch((error: unknown) => failures.push(error))
+    await scaffold?.close().catch((error: unknown) => failures.push(error))
+    if (failures.length === 1) throw failures[0]
+    if (failures.length > 1) throw new AggregateError(failures, 'fresh round teardown failed')
   })
 
   it('drives the recorded prompt to a settled turn (all modes)', async () => {
@@ -102,7 +113,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     await page.reload({ waitUntil: 'load' })
     await page.locator('[data-composer-input]').first().waitFor({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Standard mode', exact: true }).waitFor({ timeout: 15_000 })
-    await page.getByRole('button', { name: 'Select model, current DeepSeek-V4-Flash' }).waitFor({ timeout: 15_000 })
+    await page.getByRole('button', { name: `Select model, current ${MODEL_LABEL}` }).waitFor({ timeout: 15_000 })
     await expect.poll(() => page.evaluate(() => localStorage.getItem('dsh.sessions.current'))).toBe(beforeReload)
     if (MODE !== 'record') {
       await compareOrRefreshGolden(BLANK_EXPECTED,
@@ -220,11 +231,17 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     const system = systemPromptText(agent.session)
     if (system === undefined) throw new Error('the settled Web request has no system prompt')
     const paragraphs = system.split('\n\n')
-    expect(paragraphs.slice(0, 2)).toEqual([
+    if (WINDOWS_XIAOJING) expect(paragraphs.slice(0, XIAOJING_PERSONA.split('\n\n').length)).toEqual(XIAOJING_PERSONA.split('\n\n'))
+    else expect(paragraphs.slice(0, 2)).toEqual([
       'You are an AI agent powered by DeepSeek Harness.',
       'You are a coding agent powered by the deepseek-v4-flash model.',
     ])
-    const suffix = paragraphs.slice(-3).join('\n\n')
+    if (WINDOWS_XIAOJING) {
+      expect(system).not.toContain('You are an AI agent powered by DeepSeek Harness.')
+      expect(system).not.toContain(REPO_ROOT)
+      expect(system).not.toContain(scaffold.baseUrl)
+    }
+    const suffix = paragraphs.slice(WINDOWS_XIAOJING ? -1 : -3).join('\n\n')
       .split(REPO_ROOT).join('{{sourceRoot}}')
       .split(join(scaffold.workspaceCwd, 'workspace')).join('{{cwd}}')
       .split(scaffold.baseUrl).join('{{webUrl}}')
@@ -238,16 +255,52 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     const result = await scaffold.ctx.tools.execute({
       signal: AbortSignal.timeout(5_000),
       callId: ToolCallId('web-url-probe'),
-      name: 'bash',
+      name: SHELL_TOOL,
       arguments: {
-        command: 'printf \'%s\\n\' "$DSH_WEB_URL"',
+        command: WINDOWS_XIAOJING ? 'Write-Output $env:DSH_WEB_URL' : 'printf \'%s\\n\' "$DSH_WEB_URL"',
         description: 'Print current Web runtime',
       },
       agent,
     })
     expect(result.isError).toBe(false)
-    expect(result.content.filter(block => block.type === 'text').map(block => block.text).join(''))
-      .toBe(`${scaffold.baseUrl}\n`)
+    const text = result.content.filter(block => block.type === 'text').map(block => block.text).join('')
+    if (!WINDOWS_XIAOJING) {
+      expect(text).toBe(`${scaffold.baseUrl}\n`)
+      return
+    }
+    // Xiaojing disables the generic surface by configuration. The explicit
+    // enabled composition must still publish its own URL to a real shell.
+    expect(text).toBe('(no output)')
+    expect(scaffold.ctx.shellEnv.list().map(variable => variable.key)).not.toContain('DSH_WEB_URL')
+    let enabled: WebScaffold | undefined
+    let handle: AgentHandle | undefined
+    const failures: unknown[] = []
+    try {
+      enabled = await launchWebScaffold({
+        ...XIAOJING_ROUTE_CATALOG,
+        extraOverlayPath: fileURLToPath(new URL('./fixtures/fresh-round-trip-surface-enabled.overlay.yml', import.meta.url)),
+      })
+      handle = await enabled.ctx.agents.create({
+        sessionId: SessionId('fresh-surface-enabled-probe'),
+        meta: { cwd: enabled.workspaceCwd, agentPreset: 'standard' },
+        agentOptions: { provider: 'deepseek-official', model: 'deepseek-flash' },
+        setup: agentCtx => enabled!.ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
+      })
+      const output = await enabled.ctx.tools.execute({
+        signal: AbortSignal.timeout(5_000), callId: ToolCallId('enabled-web-url-probe'), name: 'pwsh',
+        arguments: { command: 'Write-Output $env:DSH_WEB_URL', description: 'Print configured local Web runtime' },
+        agent: handle.agent,
+      })
+      expect(output.isError).toBe(false)
+      expect(output.content.filter(block => block.type === 'text').map(block => block.text).join('')).toBe(`${enabled.baseUrl}\r\n`)
+    } catch (error) {
+      failures.push(error)
+    } finally {
+      await handle?.dispose().catch((error: unknown) => failures.push(error))
+      await enabled?.close().catch((error: unknown) => failures.push(error))
+    }
+    if (failures.length === 1) throw failures[0]
+    if (failures.length > 1) throw new AggregateError(failures, 'enabled Web surface probe failed')
   })
 
   it.skipIf(MODE === 'record')('rendered the settled turn: markdown, tool row, composer restore', async () => {
@@ -260,14 +313,14 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     await expect.poll(() => page.getByText('DONE', { exact: true }).count(), { timeout: 15_000 }).toBeGreaterThanOrEqual(1)
     // World state, not self-report: the real bash executor returned the exact
     // command output, and the turn closed cleanly.
-    const bashCall = sessionEvents.find(event => event.type === 'tool/call' && event.data.name === 'bash')
+    const bashCall = sessionEvents.find(event => event.type === 'tool/call' && event.data.name === SHELL_TOOL)
     if (bashCall?.type !== 'tool/call') throw new Error('the replayed turn did not call the bash tool')
     const bashResult = sessionEvents.find(event =>
       event.type === 'tool/result' && event.data.message.source.callId === bashCall.data.callId)
     if (bashResult?.type !== 'tool/result') throw new Error('the bash tool call produced no durable result')
     expect(bashResult.data.message.isError).toBe(false)
     expect(bashResult.data.message.content.filter(block => block.type === 'text').map(block => block.text).join(''))
-      .toBe('WEB_E2E_OK\n')
+      .toBe(WINDOWS_XIAOJING ? 'WEB_E2E_OK\r\n' : 'WEB_E2E_OK\n')
     const turnEnds = sessionEvents.filter(e => e.type === 'turn/end')
     expect(turnEnds.length).toBe(1)
     expect((turnEnds[0] as SessionEvent & { data: { reason: { kind: string } } }).data.reason.kind).toBe('completed')
@@ -284,7 +337,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     await expect(page.getByRole('textbox').first().isVisible()).resolves.toBe(true)
     expect(await page.getByText('WEB_E2E_OK', { exact: false }).count()).toBeGreaterThanOrEqual(1)
     await page.getByRole('button', {
-      name: 'Select model, current DeepSeek-V4-Flash',
+      name: `Select model, current ${MODEL_LABEL}`,
     }).waitFor({ timeout: 10_000 })
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
@@ -323,7 +376,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
   it.skipIf(MODE === 'record')('stayed clean after the intentional reconnect: no pageerrors or server errors', async () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, [
+    await assertFixtureInventory(STOCK_SNAPSHOT_DIR, [
       'blank-reload.expected.md',
       'session.v3.jsonl',
       'accepted-reconnect.expected.md',
@@ -333,6 +386,10 @@ describe('web e2e: fresh round trip through the real assembly', () => {
       'web-context.expected.md',
       'ui.expected.md',
       'ui-expanded.expected.md',
+    ])
+    if (WINDOWS_XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, [
+      'session.v4.jsonl', 'blank-reload.expected.md', 'accepted-reconnect.expected.md', 'submission-echo.expected.md',
+      'web-context.expected.md', 'ui.expected.md', 'ui-expanded.expected.md',
     ])
   })
 })

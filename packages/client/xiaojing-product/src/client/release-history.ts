@@ -1,63 +1,87 @@
-/** Xiaojing product release history shown in the About settings section. */
+/** Incremental release changes and the current release's configurable capabilities. */
 
 import type { XiaojingProductKey } from './locales.ts'
 
 interface ReleaseFeature {
-  readonly label: string
+  readonly category: 'added' | 'improved' | 'fixed' | 'available'
+  readonly titleKey: XiaojingProductKey
   readonly copyKey: XiaojingProductKey
 }
 
 interface ProductRelease {
   readonly version: string
+  readonly summaryKey: XiaojingProductKey
+  readonly noteKey?: XiaojingProductKey
   readonly features: readonly ReleaseFeature[]
 }
 
-/**
- * Product releases in newest-first order.
- *
- * A new release is prepended. Existing entries remain unchanged so the About
- * page continues to distinguish each release's incremental features.
- */
+/** Newest-first records; changes retain their introduction release, while available entries describe current capabilities. */
 export const XIAOJING_RELEASE_HISTORY = [
   {
-    version: '0.3.1',
+    version: '0.3.2', summaryKey: 'summary032', noteKey: 'note032',
     features: [
-      { label: '底座', copyKey: 'featureHarnessPlugins' },
-      { label: '文件', copyKey: 'featureHarnessChanges' },
-      { label: '预览', copyKey: 'featureHarnessOfficePreview' },
-      { label: '模型', copyKey: 'featureFlash41' },
+      { category: 'added', titleKey: 'titleNativeBrowser', copyKey: 'featureNativeBrowser' },
+      { category: 'added', titleKey: 'titleSessionApproval', copyKey: 'featureSessionApproval' },
+      { category: 'added', titleKey: 'titleNoApproval', copyKey: 'featureNoApproval' },
+      { category: 'fixed', titleKey: 'titleChildApprovalStatus', copyKey: 'featureChildApprovalStatus' },
+      { category: 'improved', titleKey: 'titleLiveJobs', copyKey: 'featureLiveJobs' },
+      { category: 'improved', titleKey: 'titleTablePreview', copyKey: 'featureTablePreview' },
+      { category: 'improved', titleKey: 'titleArchiveManagement', copyKey: 'featureArchiveManagement' },
+      { category: 'improved', titleKey: 'titleChangeReview', copyKey: 'featureChangeReview' },
+      { category: 'improved', titleKey: 'titlePluginSources', copyKey: 'featurePluginSources' },
+      { category: 'improved', titleKey: 'titleShortcutSettings', copyKey: 'featureShortcutSettings' },
+      { category: 'improved', titleKey: 'titleProcessSettings', copyKey: 'featureProcessSettings' },
+      { category: 'fixed', titleKey: 'titleWeixinRestore', copyKey: 'featureWeixinRestore' },
+      { category: 'fixed', titleKey: 'titleTaskRecovery', copyKey: 'featureTaskRecovery' },
+      { category: 'fixed', titleKey: 'titleWindowsReliability', copyKey: 'featureWindowsReliability' },
+      { category: 'available', titleKey: 'titleAgentTeam', copyKey: 'featureAgentTeam' },
+      { category: 'available', titleKey: 'titleAutoReview', copyKey: 'featureAutoReview' },
+      { category: 'available', titleKey: 'titleScheduledTasks', copyKey: 'featureScheduledTasks' },
+      { category: 'available', titleKey: 'titleVoiceInput', copyKey: 'featureVoiceInput' },
+      { category: 'available', titleKey: 'titleTerminalSettings', copyKey: 'featureTerminalSettings' },
+      { category: 'available', titleKey: 'titleAgentLoop', copyKey: 'featureAgentLoop' },
+      { category: 'available', titleKey: 'titleSubagentSettings', copyKey: 'featureSubagentSettings' },
+      { category: 'available', titleKey: 'titleWebSearch', copyKey: 'featureWebSearch' },
     ],
   },
   {
-    version: '0.2.4',
+    version: '0.3.1', summaryKey: 'summary031', noteKey: 'note031',
     features: [
-      { label: 'F2', copyKey: 'featureFinanceYouchengCore' },
-      { label: 'F3', copyKey: 'featureFinanceYouchengMaintenance' },
-      { label: 'F4', copyKey: 'featureFinanceCapabilityInventory' },
-      { label: 'UI', copyKey: 'featureFinanceWorkspaceIdentity' },
+      { category: 'added', titleKey: 'titleWorkPanel', copyKey: 'featureWorkPanel' },
+      { category: 'added', titleKey: 'titleFileReview', copyKey: 'featureFileReview' },
+      { category: 'added', titleKey: 'titleFileDelivery', copyKey: 'featureFileDelivery' },
+      { category: 'added', titleKey: 'titleWorkspaceTerminal', copyKey: 'featureWorkspaceTerminal' },
+      { category: 'added', titleKey: 'titlePluginManagement', copyKey: 'featurePluginManagement' },
+      { category: 'added', titleKey: 'titleSessionManagement', copyKey: 'featureSessionManagement' },
+      { category: 'added', titleKey: 'titleExternalResources', copyKey: 'featureExternalResources' },
+      { category: 'improved', titleKey: 'titleFlash41', copyKey: 'featureFlash41' },
+      { category: 'improved', titleKey: 'titleTaskMessages', copyKey: 'featureTaskMessages' },
+      { category: 'improved', titleKey: 'titleSubagentCollaboration', copyKey: 'featureSubagentCollaboration' },
     ],
   },
   {
-    version: '0.2.3',
+    version: '0.2.4', summaryKey: 'summary024',
     features: [
-      { label: 'F1-0', copyKey: 'featureFinanceFoundation' },
-      { label: 'F1-1', copyKey: 'featureFinancePreset' },
-      { label: 'F1-2', copyKey: 'featureFinanceClients' },
-      { label: 'F1-3', copyKey: 'featureFinanceEvidence' },
-      { label: 'F1-4', copyKey: 'featureFinanceDocuments' },
-      { label: 'F1-5', copyKey: 'featureFinanceSkills' },
-      { label: 'F1-6', copyKey: 'featureFinanceAcceptance' },
+      { category: 'added', titleKey: 'titleYouchengQueries', copyKey: 'featureYouchengQueries' },
+      { category: 'added', titleKey: 'titleYouchengMaintenance', copyKey: 'featureYouchengMaintenance' },
+      { category: 'improved', titleKey: 'titleFinanceScope', copyKey: 'featureFinanceScope' },
     ],
   },
   {
-    version: '0.2.2',
+    version: '0.2.3', summaryKey: 'summary023',
     features: [
-      { label: '01', copyKey: 'featureVision' },
-      { label: '02', copyKey: 'featureWeixin' },
-      { label: '03', copyKey: 'featureEdge' },
-      { label: '04', copyKey: 'featureUsage' },
-      { label: '05', copyKey: 'featureVisualize' },
-      { label: '06', copyKey: 'featureCompanion' },
+      { category: 'added', titleKey: 'titleFinanceMode', copyKey: 'featureFinanceMode' },
+      { category: 'added', titleKey: 'titleFinanceClients', copyKey: 'featureFinanceClients' },
+      { category: 'added', titleKey: 'titleFinanceEvidence', copyKey: 'featureFinanceEvidence' },
+      { category: 'added', titleKey: 'titleFinanceDocuments', copyKey: 'featureFinanceDocuments' },
+      { category: 'added', titleKey: 'titleFinanceCalculations', copyKey: 'featureFinanceCalculations' },
+    ],
+  },
+  {
+    version: '0.2.2', summaryKey: 'summary022',
+    features: [
+      { category: 'added', titleKey: 'titleDesktopCompanion', copyKey: 'featureDesktopCompanion' },
+      { category: 'added', titleKey: 'titleSystemTray', copyKey: 'featureSystemTray' },
     ],
   },
 ] as const satisfies readonly ProductRelease[]

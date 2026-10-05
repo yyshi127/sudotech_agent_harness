@@ -82,6 +82,13 @@ export interface SubprocessSpawnSpec {
   /** Per-stream stdio dispositions. */
   stdio: SubprocessStdio
   /**
+   * Keep children launched by a local Windows command outside its managed Job.
+   * The command itself remains owned; termination and wait observe only that Job.
+   * Omission retains descendant ownership. Unsupported providers reject before
+   * spawning. This does not remove children from an enclosing host Job.
+   */
+  windowsChildLifetime?: 'independent' | undefined
+  /**
    * Positive finite grace period in milliseconds, no greater than
    * `MAX_TIMER_DELAY_MS`, available to the provider's termination procedure
    * and used for draining still-open collected pipes after the process exits
@@ -255,7 +262,7 @@ export interface SubprocessTerminalActivity {
  * piped stdio without substrate-specific process control.
  */
 export interface SubprocessTerminalHandle {
-  /** Top-level terminal process id. */
+  /** Top-level terminal process id; may be 0 until native allocation publishes it, then remains fixed. */
   readonly pid: number
   /** UTF-8 terminal output bytes in delivery order; ends after queued output when the terminal exits. */
   readonly output: Readable

@@ -1423,6 +1423,13 @@ describe('coverage seams 2', () => {
 })
 
 describe('argv validation', () => {
+  it('rejects independent Windows children before invoking the fallback spawner', () => {
+    const spawn = vi.fn()
+    expect(() => spawnSubprocess(spec('true', { windowsChildLifetime: 'independent' }), { spawn }))
+      .toThrow('independent Windows children require a local Windows Job')
+    expect(spawn).not.toHaveBeenCalled()
+  })
+
   it('rejects an empty argv before spawning', () => {
     expect(() => { validateSubprocessSpec({ ...spec('true'), argv: [] }) }).toThrow(/non-empty program name/)
   })

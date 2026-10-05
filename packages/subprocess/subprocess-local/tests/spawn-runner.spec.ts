@@ -126,6 +126,14 @@ async function runWindows(
 }
 
 describe('closed runner protocol', () => {
+  it('preserves independent Windows children and rejects unknown child lifetime values', () => {
+    const start = { type: 'start', cwd: 'C:\\target', env: {}, windowsChildLifetime: 'independent' }
+    expect(parseWindowsStartRequest(start)).toEqual(start)
+    for (const windowsChildLifetime of ['tree', true, null, {}]) {
+      expect(() => parseWindowsStartRequest({ ...start, windowsChildLifetime })).toThrow('invalid Windows start request')
+    }
+  })
+
   it('preserves the explicit control request and rejects other transport values', () => {
     const files = track(createLinuxLaunchFiles({ cwd: '/target', env: {}, control: 'pipe' }))
     expect(consumeLinuxLaunchRequest(files.requestPath)).toEqual({ cwd: '/target', env: {}, control: 'pipe' })
@@ -621,6 +629,16 @@ describe('Linux one-shot exec bootstrap', () => {
 })
 
 describe('Windows Job runner protocol owner', () => {
+  it('passes independent Windows children to the native launcher', async () => {
+    const native = internals()
+    await runWindows(new FakeRunnerHost(), native, {
+      type: 'start', cwd: 'C:\\target', env: {}, windowsChildLifetime: 'independent',
+    })
+    expect(native.spawnCurrentTokenJobProcess).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      childLifetime: 'independent',
+    }))
+  })
+
   it('publishes a Node-shaped path-search miss before loading Win32 bindings', async () => {
     const host = new FakeRunnerHost()
     const loadWin32ProcessBindings = vi.fn(() => ({} as CurrentTokenProcessBindings))

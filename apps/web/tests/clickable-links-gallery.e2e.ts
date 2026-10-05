@@ -32,13 +32,16 @@ import {
   launchWebScaffold,
   seedSession,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, expandTurnProcesses, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/clickable-links-gallery', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/clickable-links-gallery/ui.expected.md', import.meta.url))
+const UI_FILE = webClientProfile() === 'xiaojing' ? 'ui.xiaojing.expected.md' : 'ui.expected.md'
+const UI_EXPECTED = fileURLToPath(new URL(`./expected/clickable-links-gallery/${UI_FILE}`, import.meta.url))
 // The golden holds the show-in-folder affordance; pin the native-opener
 // capability so headless Linux CI and desktop developer hosts expose the same
 // UI branch.
@@ -313,7 +316,10 @@ describe('web e2e: clickable links gallery', () => {
   let tripwire: ReturnType<typeof watchConsole>
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ extraOverlayPath: OVERLAY })
+    scaffold = await launchWebScaffold({
+      extraOverlayPath: OVERLAY,
+      ...(webClientProfile() === 'xiaojing' ? XIAOJING_ROUTE_CATALOG : {}),
+    })
     imageUrl = new URL('/favicon.svg', scaffold.baseUrl).toString()
     await seedSession(scaffold, galleryFixture(imageUrl), SEED_ID, undefined, { createdAt: GALLERY_TIME })
     browser = await chromium.launch()
@@ -424,7 +430,7 @@ describe('web e2e: clickable links gallery', () => {
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
 
     // The link language itself — ARIA records none of it, so pin the computed
     // styles: link-blue 500-weight text, no underline at rest, dotted underline

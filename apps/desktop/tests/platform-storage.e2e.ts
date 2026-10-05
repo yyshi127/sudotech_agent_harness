@@ -8,7 +8,7 @@ import { createServer } from 'node:http'
 import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execa } from 'execa'
@@ -21,7 +21,8 @@ const hasDisplay = process.platform !== 'linux' || Boolean(process.env.DISPLAY |
 
 // Linux Electron needs a display server; the test runs under xvfb in headless environments.
 it.skipIf(!hasDisplay)('retains dismissed notices across view and process restarts without sharing accounts', { retry: 0 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-platform-storage-'))
+  // Windows CacheStorage adds nested UUID and entry filenames below this root.
+  const root = await mkdtemp(join(tmpdir(), 'ps-'))
   const server = createServer((_request, response) => {
     response.setHeader('content-type', 'text/html')
     response.end(`<!doctype html><html><body><script>
@@ -51,13 +52,13 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
     const fixture = fileURLToPath(new URL('./fixtures/platform-storage-smoke.mjs', import.meta.url))
     const observed: string[] = []
     for (const phase of ['first', 'restart']) {
-      const result = await execa(electron, [fixture, builtView, userData, origin, phase], {
+      const result = await execa(electron, [fixture, '--', builtView, userData, origin, phase], {
         // The unbundled tsc artifact reads the client version from the environment; the packaged
         // build inlines the same value at bundle time.
         env: { ELECTRON_RUN_AS_NODE: undefined, DSH_CLIENT_VERSION: '1.2.3' },
         timeout: 45_000, forceKillAfterDelay: 5_000, reject: false,
       })
-      expect(result.timedOut, result.stderr).toBe(false)
+      expect(result.timedOut, `${result.stdout}\n${result.stderr}`).toBe(false)
       expect(result.signal, result.stderr).toBeUndefined()
       expect(result.exitCode, result.stderr).toBe(0)
       const line = result.stdout.split('\n').find(value => value.startsWith('PLATFORM_STORAGE_RESULT '))
@@ -74,6 +75,9 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
       server.close((error) => { if (error) reject(error); else resolve() })
       server.closeAllConnections()
     })
-    await rm(root, { recursive: true, force: true })
+    const cleanupRoot = resolve(root)
+    const cleanupRelative = relative(resolve(tmpdir()), cleanupRoot)
+    if (cleanupRelative.startsWith('..') || isAbsolute(cleanupRelative)) throw new Error('Platform fixture root escaped tmpdir')
+    await rm(cleanupRoot, { recursive: true, force: true })
   }
 })

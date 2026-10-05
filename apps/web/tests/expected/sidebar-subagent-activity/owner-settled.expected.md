@@ -1,0 +1,7 @@
+- tree "Sessions":
+  - treeitem "workspace" [expanded]
+  - treeitem "Delegate a background job. Session actions for Delegate a background job. Archive session Pin session" [selected]:
+    - text: Delegate a background job.
+    - button "Session actions for Delegate a background job."
+    - button "Archive session"
+    - button "Pin session"

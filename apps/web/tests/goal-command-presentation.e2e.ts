@@ -2,6 +2,7 @@
 // command remains log-only. The shipped composition runs with no model adapter,
 // so an accidental turn fails loud in addition to the event-level assertions.
 import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
@@ -9,14 +10,17 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-commands/types'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria,
-  compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode,
+  compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
+const XIAOJING = webClientProfile() === 'xiaojing'
+const HERO_TITLE = XIAOJING ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown'
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/goal-command-presentation', import.meta.url))
 const UI_EXPECTED = fileURLToPath(new URL(
-  './expected/goal-command-presentation/ui.expected.md', import.meta.url,
+  `./expected/goal-command-presentation/ui${XIAOJING ? '.xiaojing' : ''}.expected.md`, import.meta.url,
 ))
 const MODE = webSnapshotMode()
 
@@ -28,7 +32,7 @@ describe('web e2e: /goal human transcript presentation', () => {
   const events: SessionEvent[] = []
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold()
+    scaffold = await launchWebScaffold(XIAOJING ? XIAOJING_ROUTE_CATALOG : {})
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -45,7 +49,7 @@ describe('web e2e: /goal human transcript presentation', () => {
 
   it('completes with Tab and shows the bare input and result without a model turn', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-goal-command-presentation'))
-    await expect.poll(() => page.getByText('Into the Unknown', { exact: false }).count(), {
+    await expect.poll(() => page.getByText(HERO_TITLE, { exact: false }).count(), {
       timeout: 15_000,
     }).toBe(1)
     const input = page.locator('[data-composer-input]').first()
@@ -91,7 +95,7 @@ describe('web e2e: /goal human transcript presentation', () => {
     await expect.poll(() => resultRow.count(), { timeout: 10_000 }).toBe(1)
     expect(await resultRow.getByText('goal', { exact: true }).count()).toBe(1)
     await expect.poll(() => page.locator('[data-phase="active"]').count()).toBe(1)
-    expect(await page.getByText('Into the Unknown', { exact: false }).count()).toBe(0)
+    expect(await page.getByText(HERO_TITLE, { exact: false }).count()).toBe(0)
 
     const run = events.find(event => event.type === 'command/run')
     expect(run).toMatchObject({
@@ -122,7 +126,8 @@ describe('web e2e: /goal human transcript presentation', () => {
     await expect.poll(() => resultRow.count(), { timeout: 10_000 }).toBe(1)
     await expect.poll(() => page.locator('[data-phase="active"]').count()).toBe(1)
 
-    const sessions = scaffold.ctx.sessions.list()
+    const sessions = scaffold.ctx.sessions.list().filter(session => !XIAOJING
+      || session.header.cwd === join(scaffold.workspaceCwd, 'workspace'))
     expect(sessions).toHaveLength(1)
     const persisted = sessions[0]?.snapshotEvents() ?? []
     expect(persisted.filter(event => event.type === 'command/run' || event.type === 'command/done')
@@ -133,6 +138,6 @@ describe('web e2e: /goal human transcript presentation', () => {
     expect(persisted.some(event => event.type === 'request/header')).toBe(false)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
   }, 90_000)
 })

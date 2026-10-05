@@ -118,6 +118,13 @@ async function readAll(stream: Readable): Promise<string> {
 }
 
 describe('SSH ordinary process behavior', () => {
+  it('rejects independent Windows children before allocating a remote process', async () => {
+    const test = await setup()
+    expect(() => test.runtime.spawn({ ...spec, windowsChildLifetime: 'independent' }))
+      .toThrow('independent Windows children require a local Windows Job')
+    expect(test.calls).toEqual([])
+  })
+
   it('forwards inherited output without ending the host standard streams', async () => {
     const test = await setup()
     const stdout: unknown[] = []

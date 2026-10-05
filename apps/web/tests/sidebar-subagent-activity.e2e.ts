@@ -9,6 +9,7 @@ import { createUserMessage, LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionId, type SessionId as SessionIdValue } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-subagent'
+import type {} from '@deepseek-ai/dsh-user-approval'
 import type {} from '@deepseek-ai/dsh-workspace'
 import {
   assertFixtureInventory,
@@ -23,6 +24,8 @@ import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './suppor
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/sidebar-subagent-activity', import.meta.url))
 const RUNNING_OWNER_EXPECTED = join(SNAPSHOT_DIR, 'owner-running.expected.md')
+const WAITING_OWNER_EXPECTED = join(SNAPSHOT_DIR, 'owner-waiting.expected.md')
+const SETTLED_OWNER_EXPECTED = join(SNAPSHOT_DIR, 'owner-settled.expected.md')
 const MODE = webSnapshotMode()
 const HOLD_PROVIDER = 'web-test-hold'
 const HOLD_MODEL = 'hold'
@@ -33,12 +36,11 @@ class StagedAdapter extends LlmAdapter {
   private calls = 0
 
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-    if (this.calls === 0) {
-      this.calls += 1
+    const call = this.calls++
+    if (call !== 1) {
       yield { type: 'finish', reason: { kind: 'stop' } }
       return
     }
-    this.calls += 1
     const signal = options.signal
     if (signal === undefined) throw new Error('staged Web adapter requires a turn signal')
     this.activeCalls += 1
@@ -76,6 +78,7 @@ describe('web e2e: sidebar subagent activity', () => {
   let childId: SessionIdValue
   let adapter: StagedAdapter
   let tripwire: ReturnType<typeof watchConsole>
+  const approvalAbort = new AbortController()
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold()
@@ -121,6 +124,7 @@ describe('web e2e: sidebar subagent activity', () => {
 
   afterAll(async () => {
     const failures: unknown[] = []
+    approvalAbort.abort()
     const child = childId === undefined ? undefined : scaffold?.ctx.agents.get(childId)
     if (child !== undefined) {
       child.cancel({ kind: 'user' })
@@ -133,10 +137,10 @@ describe('web e2e: sidebar subagent activity', () => {
     if (failures.length > 1) throw new AggregateError(failures, 'sidebar subagent activity teardown failed')
   })
 
-  it('pins a running descendant on its visible idle owner row', async () => {
+  it('shows a delegated approval on its idle owner and clears activity when the child settles', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-sidebar-subagent-activity'))
     const sidebar = page.getByRole('tree', { name: 'Sessions' })
-    const ownerRow = sidebar.getByRole('treeitem', { name: /1 subagent running Delegate a background job/ })
+    const ownerRow = sidebar.getByRole('treeitem', { name: /Delegate a background job/ })
     await ownerRow.waitFor({ timeout: 10_000 })
     expect(parentHandle.agent.status).toBe('idle')
     await compareOrRefreshGolden(
@@ -149,7 +153,43 @@ describe('web e2e: sidebar subagent activity', () => {
     const runningTrigger = page.getByRole('button', { name: '1 subagent running' })
     await runningTrigger.waitFor({ timeout: 10_000 })
     expect(await runningTrigger.locator('[data-state="ongoing"]').count()).toBe(1)
-    await assertFixtureInventory(SNAPSHOT_DIR, ['owner-running.expected.md'])
+
+    const child = scaffold.ctx.agents.get(childId)
+    if (child === undefined) throw new Error('held child disappeared before its approval')
+    const decision = scaffold.ctx.approval.requestMandatory({
+      agent: child,
+      toolName: 'sidebar_approval_fixture',
+      reason: 'Decide the owned sidebar acceptance request.',
+      signal: approvalAbort.signal,
+    })
+    await expect.poll(() => ownerRow.locator('[data-state="warning"]').count()).toBe(1)
+    expect(await ownerRow.locator('[data-state="ongoing"]').count()).toBe(0)
+    expect(parentHandle.agent.status).toBe('idle')
+    await compareOrRefreshGolden(
+      WAITING_OWNER_EXPECTED,
+      await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
+      MODE,
+    )
+    const waiting = page.getByRole('button', { name: 'Child Waiting for approval: sidebar activity child' })
+    await waiting.waitFor()
+    await waiting.click()
+    const panel = page.locator('[data-approval-key]')
+    await panel.getByRole('button', { name: 'Reject', exact: true }).click()
+    expect(await decision).toBe('rejected')
+    await expect.poll(() => panel.count()).toBe(0)
+    child.cancel({ kind: 'user' })
+    await child.whenIdle()
+    await parentHandle.agent.whenIdle()
+    await ownerRow.click()
+    await expect.poll(() => ownerRow.locator('[data-state="warning"], [data-state="ongoing"]').count()).toBe(0)
+    expect(await waiting.count()).toBe(0)
+    expect(await runningTrigger.count()).toBe(0)
+    await compareOrRefreshGolden(
+      SETTLED_OWNER_EXPECTED,
+      await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
+      MODE,
+    )
+    await assertFixtureInventory(SNAPSHOT_DIR, ['owner-running.expected.md', 'owner-waiting.expected.md', 'owner-settled.expected.md'])
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

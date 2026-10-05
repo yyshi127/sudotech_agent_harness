@@ -1,0 +1,10 @@
+- dialog "初次使用说明":
+  - heading "初次使用说明" [level=2]
+  - paragraph:
+    - text: 1. 获取 API Key：注册或登录 DeepSeek 开放平台，进入“API keys”页面，创建并复制 API Key。
+    - link "打开 DeepSeek 开放平台":
+      - /url: https://platform.deepseek.com/
+  - paragraph: 2. 设置 API Key：打开左下角“设置”→“模型”，找到 DeepSeek 并点击“编辑”，将密钥粘贴到“API 密钥”，然后点击“保存”。
+  - paragraph: 3. 更换 API Key：回到同一位置，输入新的 API Key 并保存，原密钥会被替换。
+  - paragraph: 4. 安全提示：API Key 属于敏感信息，请勿通过聊天、截图或文件分享给他人。
+  - button "开始使用"

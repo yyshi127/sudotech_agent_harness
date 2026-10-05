@@ -3,8 +3,9 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { describe, expect, it } from 'vitest'
-import { fixtureUserPrompts, launchWebScaffold, selectedSessionFixture, watchConsole, webSnapshotMode } from './scaffold.ts'
+import { fixtureUserPrompts, launchWebScaffold, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
 const NO_CHAT = fileURLToPath(new URL('./fixtures/context-meter-no-chat.patch.yml', import.meta.url))
@@ -16,6 +17,7 @@ describe.skipIf(webSnapshotMode() === 'record')('web e2e: context details placem
       replayFixture: fixture,
       compareReplaySession: false,
       paceMs: 5,
+      ...webClientProfile() === 'xiaojing' ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
       ...withStats ? {} : { extraOverlayPath: NO_CHAT },
     })
     try {

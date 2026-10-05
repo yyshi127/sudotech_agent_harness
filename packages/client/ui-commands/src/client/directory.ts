@@ -34,6 +34,7 @@ class Entry {
 /** The session-keyed directory cache. Plain class — the owning service wires events and RPC. */
 export class CommandDirectory {
   private readonly entries = new Map<SessionId, Entry>()
+  private closed = false
 
   constructor(private readonly fetchCommands: FetchCommands) {}
 
@@ -53,6 +54,7 @@ export class CommandDirectory {
    * @returns the descriptor, or undefined when absent or the entry is not ready.
    */
   resolve(sessionId: SessionId, name: string): CommandDescriptor | undefined {
+    if (this.isClosed()) return undefined
     const entry = this.entries.get(sessionId)
     if (entry === undefined || entry.state !== 'ready') return undefined
     return resolveCommand(name, entry.commands)
@@ -60,6 +62,7 @@ export class CommandDirectory {
 
   /** Soft invalidation (commands-changed): background repull on every touched key; ready snapshots keep serving. */
   invalidateAll(): void {
+    if (this.isClosed()) return
     for (const key of this.entries.keys()) void this.refresh(key)
   }
 
@@ -68,6 +71,7 @@ export class CommandDirectory {
    * @param sessionId - Session whose effective command composition changed.
    */
   resetSession(sessionId: SessionId): void {
+    if (this.isClosed()) return
     const entry = this.entry(sessionId)
     entry.state = 'cold'
     entry.commands = []
@@ -80,6 +84,7 @@ export class CommandDirectory {
    * may have changed shape across the generation) and prewarms.
    */
   resetConnected(): void {
+    if (this.isClosed()) return
     for (const [key, entry] of this.entries) {
       entry.state = 'cold'
       entry.commands = []
@@ -93,6 +98,7 @@ export class CommandDirectory {
    * @param sessionId - session key.
    */
   warm(sessionId: SessionId): void {
+    if (this.isClosed()) return
     const entry = this.entry(sessionId)
     if (entry.state === 'cold' || entry.state === 'failed') void this.refresh(sessionId)
   }
@@ -100,22 +106,26 @@ export class CommandDirectory {
   /**
    * Start one pull for one session. Publishes ready/failed only while it is
    * still the key's latest pull (epoch guard); a ready snapshot is not
-   * demoted while the pull flies.
+   * demoted while the pull flies. Dispatch starts after the current synchronous
+   * stack, and a superseded or closed entry cannot start a fetch.
    * @param sessionId - session key.
    * @returns settled when this pull's outcome is published or discarded.
    */
   async refresh(sessionId: SessionId): Promise<void> {
+    if (this.isClosed()) return
     const entry = this.entry(sessionId)
     const epoch = ++entry.epoch
     if (entry.state !== 'ready') entry.state = 'pending'
     try {
+      await Promise.resolve()
+      if (this.isClosed() || epoch !== entry.epoch) return
       const commands = await this.fetchCommands(sessionId)
-      if (epoch !== entry.epoch) return
+      if (this.isClosed() || epoch !== entry.epoch) return
       entry.commands = commands
       entry.state = 'ready'
       entry.lastError = undefined
     } catch (error) {
-      if (epoch !== entry.epoch) return
+      if (this.isClosed() || epoch !== entry.epoch) return
       entry.commands = []
       entry.state = 'failed'
       entry.lastError = error
@@ -128,14 +138,16 @@ export class CommandDirectory {
    * Strong-wait until one session's catalog is servable (the enter-
    * adjudication "directory must be reached" rule): ready returns at once;
    * cold/failed launch a fresh pull; pending joins the flying one. Rejects
-   * when the awaited pull fails or the signal aborts.
+   * when the awaited pull fails, the signal aborts, or the directory closes.
    * @param sessionId - session key.
    * @param signal - attempt-scoped abort (the SubmitAttempt signal).
    * @returns the hot command snapshot.
    */
   async ensureReady(sessionId: SessionId, signal: AbortSignal): Promise<readonly CommandDescriptor[]> {
+    if (this.isClosed()) throw new Error('command directory is disposed')
     const entry = this.entry(sessionId)
     while (true) {
+      if (this.isClosed()) throw new Error('command directory is disposed')
       if (entry.state === 'ready') return entry.commands
       if (entry.state !== 'pending') void this.refresh(sessionId)
       await settled(entry, signal)
@@ -144,6 +156,22 @@ export class CommandDirectory {
       }
       // Still pending (the awaited pull was superseded) → wait for the winner.
     }
+  }
+
+  /** Stop new dispatches and cache publication, and reject waiting consumers. */
+  dispose(): void {
+    this.closed = true
+    for (const entry of this.entries.values()) {
+      entry.epoch++
+      entry.state = 'cold'
+      entry.commands = []
+      entry.lastError = undefined
+      notifyWaiters(entry)
+    }
+  }
+
+  private isClosed(): boolean {
+    return this.closed
   }
 
   private entry(sessionId: SessionId): Entry {

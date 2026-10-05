@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.0-rc.2/windows-computer-control-child-lifetime/guide.md
+/:
+  en: e0c37b5ad71372cc
+  zh: f5987be9779f075b
+/windows-computer-control-requires-native-job-support:
+  en: 26f998277c8cd168
+  zh: 346d2cc988d084d4
+/windows-computer-control-requires-native-job-support/change:
+  en: 2ba9e3e05e2bbab2
+  zh: 9471c080298e0ff8
+/windows-computer-control-requires-native-job-support/migration:
+  en: ac290f3134bff985
+  zh: 19d509bc07d3ebe3

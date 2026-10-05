@@ -1,0 +1,9 @@
+version: 1
+scenario: xiaojing-lifecycle-chrome
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing
+replay:
+  override: true

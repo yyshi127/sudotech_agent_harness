@@ -22,7 +22,7 @@ Finance 第一阶段横跨客户档案、不可变会话上下文、受控客户
 
 ## 验证
 
-组装 snapshot 位于 `apps/cli/tests/finance-stage1-acceptance.snapshot.ts`。Finance 聚焦测试覆盖客户存储与绑定、官方依据分类、文档格式与视觉提取、确定性试算、工作区路由和预设组合。产品回归覆盖品牌、用量统计、上传、原生视觉、微信、Edge、Windows 控制、Visualize、桌面小兢和桌面生命周期。桌面用户数据校验使用生产读取器检查合成升级副本，并证明读取过程不会修改数据。
+组装预期输出测试位于 `apps/cli/tests/finance-stage1-acceptance.expected.e2e.ts`。Finance 聚焦测试覆盖客户存储与绑定、官方依据分类、文档格式与视觉提取、确定性试算、工作区路由和预设组合。产品回归覆盖品牌、用量统计、上传、原生视觉、微信、Edge、Windows 控制、Visualize、桌面小兢和桌面生命周期。桌面用户数据校验使用生产读取器检查合成升级副本，并证明读取过程不会修改数据。
 
 ## 考虑过的替代方案
 

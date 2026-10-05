@@ -4,10 +4,13 @@ import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, saveFailureShot } from './support.ts'
 
-const EXPECTED = fileURLToPath(new URL('./expected/agent-preset-authoring', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const EXPECTED = fileURLToPath(new URL(XIAOJING
+  ? './expected/agent-preset-authoring-xiaojing'
+  : './expected/agent-preset-authoring', import.meta.url))
 const mode = webSnapshotMode()
 
 describe('web e2e: preset roster guidance', () => {
@@ -32,6 +35,7 @@ describe('web e2e: preset roster guidance', () => {
     await expect.poll(() => page.locator('[data-agent-preset-id]').count()).toBe(4)
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(join(EXPECTED, 'section.expected.md'), snapshot, mode)
+    if (XIAOJING) expect(await page.getByRole('dialog', { name: '设置' }).getByRole('navigation').getByRole('button', { name: '账户', exact: true }).count()).toBe(0)
     expect(snapshot).toContain('让 Agent 帮我创建预设模式')
     expect(snapshot).toContain('查看配置: 标准模式')
     expect(snapshot).not.toContain('复制预设')
@@ -105,5 +109,8 @@ describe('web e2e: preset roster guidance', () => {
     }, { timeout: 15_000 }).toContain('cordis')
   })
 
-  it('runs without page errors or model calls', () => { expect(tripwire.pageErrors).toEqual([]) })
+  it('runs without page errors or model calls', () => {
+    expect(tripwire.pageErrors).toEqual([])
+    expect(tripwire.warnings).toEqual([])
+  })
 })

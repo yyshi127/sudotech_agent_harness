@@ -43,6 +43,22 @@ afterEach(() => {
 })
 
 describe('desktop external plugin profile', () => {
+  it('enables Automation tasks on first launch and preserves a later opt-out', async () => {
+    const { manager } = setup()
+    await manager.applyRelease()
+    const path = join(manager.paths.profile, 'package.json')
+    const manifest = JSON.parse(readFileSync(path, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
+    const schedule = '@deepseek-ai/dsh-experimental-schedule-bundle'
+    expect(manifest.dsh.profile.bundles).toContain(schedule)
+    manifest.dsh.profile.bundles = manifest.dsh.profile.bundles.filter(name => name !== schedule)
+    writeFileSync(path, JSON.stringify(manifest))
+    const before = readFileSync(path)
+
+    await manager.applyRelease()
+
+    expect(readFileSync(path)).toEqual(before)
+  })
+
   it('preserves installed packages, profile state, and the lockfile when preparing a launch', async () => {
     const { manager } = setup()
     await manager.applyRelease()

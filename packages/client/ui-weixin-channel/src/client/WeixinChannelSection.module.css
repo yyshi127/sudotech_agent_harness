@@ -24,8 +24,8 @@
 .card {
   overflow: hidden;
   max-width: 680px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
   background: var(--dsw-alias-bg-base);
   box-shadow: 0 8px 28px rgb(12 80 67 / 5%);
 }
@@ -66,7 +66,7 @@
   width: 38px;
   height: 38px;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--dsw-radius-sm);
   background: #07c160;
 }
 
@@ -91,6 +91,7 @@
   gap: 6px;
   padding: 5px 9px;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
   font-size: 11px;
@@ -101,6 +102,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-label-tertiary);
 }
 
@@ -143,7 +145,7 @@
   min-height: 34px;
   padding: 0 15px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: var(--dsw-radius-sm);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -177,7 +179,7 @@
 .error {
   margin: 14px 18px 0;
   padding: 10px 12px;
-  border-radius: 7px;
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-state-business-tertiary);
   color: var(--dsw-alias-state-business-primary);
   font-size: 12px;
@@ -207,8 +209,8 @@
   width: 210px;
   height: 210px;
   padding: 8px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
   background: white;
 }
 
@@ -248,8 +250,8 @@
   width: 170px;
   height: 34px;
   padding: 0 10px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 7px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
   outline: none;
   background: var(--dsw-alias-bg-base);
   color: var(--dsw-alias-label-primary);
@@ -258,7 +260,7 @@
 
 .verify input:focus {
   border-color: var(--dsw-alias-state-business-primary);
-  box-shadow: 0 0 0 3px var(--dsw-alias-state-business-tertiary);
+  box-shadow: 0 0 0 3px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
 }
 
 .connectedBody {
@@ -272,7 +274,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 11px 13px;
-  border-radius: 7px;
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-state-business-tertiary);
   font-size: 12px;
 }
@@ -298,6 +300,7 @@
   border: 2px solid var(--dsw-alias-divider-primary);
   border-top-color: var(--dsw-alias-state-business-primary);
   border-radius: 50%;
+  corner-shape: round;
   animation: spin .8s linear infinite;
 }
 

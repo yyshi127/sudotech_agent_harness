@@ -46,6 +46,7 @@ const CLAUDE_CODE_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-clau
 /** The installation anchor whose dependency surface the runtime resolution mirrors. */
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
 const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
+const NATIVE_SHELL = process.platform === 'win32' ? 'pwsh' : 'bash'
 const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
 * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
 * Network access depends on the task environment. Prefer configured mirrors/proxies when they are available.
@@ -53,6 +54,13 @@ const MINIMAL_BASH_DESCRIPTION = `Run commands in a bash shell
 * To inspect a particular line range of a file, e.g. lines 10-25, try 'sed -n 10,25p /path/to/the/file'.
 * Please avoid commands that may produce a very large amount of output.
 * Please run long lived commands in the background, e.g. 'sleep 10 &' or start a server in the background.`
+const MINIMAL_PWSH_DESCRIPTION = String.raw`Run commands in a PowerShell shell
+* When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
+* You don't have access to the internet via this tool.
+* State is persistent across command calls and discussions with the user.
+* Use native Windows paths (C:\...) and $env:NAME variables; this is PowerShell, not bash.
+* Please avoid commands that may produce a very large amount of output.
+* Please run long lived commands in the background, e.g. 'Start-Job' or start a server with Start-Process.`
 
 /**
  * Boot the shipped Web composition, minus the rows that would bind a port,
@@ -204,6 +212,8 @@ function enablePresetTool(composition: string, id: string): string {
 
 let ctx: Context
 beforeAll(async () => {
+  // These declarations assert the official bundle; Xiaojing adds its own global capabilities.
+  vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'deepseek')
   ctx = await bootWeb(await mkdtemp(join(tmpdir(), 'dsh-web-presets-')))
 }, 120_000)
 
@@ -262,12 +272,12 @@ describe('the shipped Web composition', () => {
       // excluded for the reason the TUI composition e2e excludes them — they
       // depend on ripgrep being present on the machine.
       expect(toolNames(ctx, handle.agent).filter(name => name !== 'glob' && name !== 'grep')).toEqual([
-        'ask_user_question', 'bash', 'create_goal', 'edit', 'exit_plan_mode',
+        'ask_user_question', NATIVE_SHELL, 'create_goal', 'edit', 'exit_plan_mode',
         'get_goal', 'interrupt_agent', 'job_kill', 'job_list', 'job_output', 'list_agents', 'present', 'read', 'read_image',
         'send_message', 'skill',
         'subagent', 'subagent_fork', 'todo_write', 'update_goal', 'web_fetch', 'web_search',
         'workflow', 'write',
-      ])
+      ].sort())
       expect(ctx.commands.find(handle.agent, 'goal')).toBeDefined()
     } finally {
       await handle.dispose()
@@ -318,8 +328,9 @@ describe('the shipped Web composition', () => {
       expect(assembly.sections).toEqual([
         { name: 'deployment:persona-prefix', text: MINIMAL_PROMPT },
       ])
-      expect(assembly.tools.map(tool => tool.name)).toEqual(['bash'])
-      expect(assembly.tools.find(tool => tool.name === 'bash')?.description).toBe(MINIMAL_BASH_DESCRIPTION)
+      expect(assembly.tools.map(tool => tool.name)).toEqual([NATIVE_SHELL])
+      expect(assembly.tools.find(tool => tool.name === NATIVE_SHELL)?.description)
+        .toBe(process.platform === 'win32' ? MINIMAL_PWSH_DESCRIPTION : MINIMAL_BASH_DESCRIPTION)
       expect(ctx.commands.find(handle.agent, 'goal')).toBeUndefined()
       // serviceFor reports preset-owned providers; unisolated consumers inherit the host fs.
       expect(ctx.agentPresets.serviceFor(handle.agent, 'fs')).toBeUndefined()
@@ -342,7 +353,7 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'minimal').then(() => undefined),
     })
     try {
-      expect(toolNames(ctx, minimal.agent)).toEqual(['bash'])
+      expect(toolNames(ctx, minimal.agent)).toEqual([NATIVE_SHELL])
       expect(toolNames(ctx, full.agent).length).toBeGreaterThan(10)
 
       await minimal.dispose()
@@ -368,7 +379,7 @@ describe('the shipped Web composition', () => {
       for (const removed of ['cordis_define', 'cordis_run', 'cordis_stop', 'cordis_undefine', 'cordis_inspect_self']) {
         expect(tools).not.toContain(removed)
       }
-      expect(tools).toEqual(expect.arrayContaining(['bash', 'read', 'edit', 'skill']))
+      expect(tools).toEqual(expect.arrayContaining([NATIVE_SHELL, 'read', 'edit', 'skill']))
       expect(tools).not.toContain('str_replace_editor')
       expect(ctx.commands.find(handle.agent, 'goal')).toBeDefined()
 
@@ -423,7 +434,7 @@ describe('the shipped Web composition', () => {
       // The presentation is this agent's alone: the deployment default is
       // native, and the session composed from `standard` still sees it.
       const nativeAssembly = await ctx.systemPrompt.assemble({ scope: native.agent })
-      expect(nativeAssembly.tools.map(tool => tool.name)).toContain('bash')
+      expect(nativeAssembly.tools.map(tool => tool.name)).toContain(NATIVE_SHELL)
       expect(nativeAssembly.tools.map(tool => tool.name)).not.toContain('run_code')
       expect(nativeAssembly.sections.some(section => section.name === 'tools:sdk')).toBe(false)
     } finally {
@@ -473,9 +484,9 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
     })
     try {
-      // The host (global) view carries the deployment-level provider alone:
-      // local discovery moved behind the presets with `skill-filesystem`.
-      expect((await ctx.skills.list({ cwd: proj })).map(skill => skill.name)).toEqual(['dsh-badge'])
+      // Global providers include the Windows sandbox's diagnostic skill; project discovery stays preset-side.
+      expect((await ctx.skills.list({ cwd: proj })).map(skill => skill.name).sort())
+        .toEqual(process.platform === 'win32' ? ['diagnose-windows-sandbox-acl', 'dsh-badge'] : ['dsh-badge'])
 
       // The standard agent's view merges the global layer with its preset's
       // own local discovery over the session cwd.
@@ -508,7 +519,7 @@ describe('the shipped Web composition', () => {
       // stays the preset's choice — minimal mounts no `tool-skill`, so its
       // tool table has no loader even though the global layer is readable.
       expect((await ctx.skills.list({ scope: handle.agent })).map(skill => skill.name)).toContain('dsh-badge')
-      expect(toolNames(ctx, handle.agent)).toEqual(['bash'])
+      expect(toolNames(ctx, handle.agent)).toEqual([NATIVE_SHELL])
     } finally {
       await handle.dispose()
     }
@@ -687,7 +698,7 @@ describe('a user preset declared from the shipped cordis rows', () => {
         // middle with a gap plus a spill footer. What this case proves is the
         // provider's answer, so assert the names it must carry.
         const queriedText = resultText(queried)
-        for (const toolName of ['bash', 'cordis_inspect_list', 'cordis_inspect_query', 'plugin_manager']) {
+        for (const toolName of [NATIVE_SHELL, 'cordis_inspect_list', 'cordis_inspect_query', 'plugin_manager']) {
           expect(queriedText).toContain(`"name": "${toolName}"`)
         }
 
@@ -814,7 +825,7 @@ describe('a delegated child', () => {
       expect(toolNames(ctx, child.agent)).toEqual(toolNames(ctx, parent.agent))
       // The shipped `standard` preset is the whole coding agent; an empty
       // child here is the defect, and equality alone would not catch it.
-      expect(toolNames(ctx, child.agent)).toContain('bash')
+      expect(toolNames(ctx, child.agent)).toContain(NATIVE_SHELL)
       expect(child.agent.session.header.agentPreset).toBe('standard')
     } finally {
       await child.dispose()
@@ -863,7 +874,7 @@ describe('the default preset as a user setting', () => {
       try {
         // `mount()` with no id resolves the effective default. One tool, not
         // `standard`'s catalog: the setting decided the composition.
-        expect(toolNames(ctx, handle.agent)).toEqual(['bash'])
+        expect(toolNames(ctx, handle.agent)).toEqual([NATIVE_SHELL])
       } finally {
         await handle.dispose()
       }
@@ -909,7 +920,7 @@ describe('a profile patch stored before Developer tools owned preset selection',
       setup: agentCtx => legacy.agentPresets.mount(agentCtx).then(() => undefined),
     })
     try {
-      expect(toolNames(legacy, handle.agent)).toEqual(['bash'])
+      expect(toolNames(legacy, handle.agent)).toEqual([NATIVE_SHELL])
     } finally {
       await handle.dispose()
     }
@@ -934,4 +945,7 @@ describe('a session keeps the preset it was created with', () => {
   })
 })
 
-afterAll(async () => { await ctx?.fiber.dispose() })
+afterAll(async () => {
+  await ctx?.fiber.dispose()
+  vi.unstubAllEnvs()
+})

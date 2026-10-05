@@ -3,13 +3,14 @@
 // The real persistence reader, shipped Web composition, permission
 // projection, conversation assembler, and Tool rows all participate.
 import { readFile } from 'node:fs/promises'
+import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { expandOwningTurnProcess, newEnglishPage, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
 
@@ -17,7 +18,10 @@ import { AUTO_REVIEW_FIXTURE } from './auto-review-fixture.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/auto-review-approval', import.meta.url))
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/auto-review-approval/session.v3.jsonl', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/auto-review-approval/ui.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = fileURLToPath(new URL(XIAOJING
+  ? './expected/auto-review-xiaojing/approval.expected.md'
+  : '../../../snapshots/web/auto-review-approval/ui.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'auto-review-approval-web-e2e'
 const FAILURE = 'Auto review of tool "mystery" failed; its body was not executed: auto-review: reviewer ended with error UNKNOWN: provider unavailable'
@@ -64,7 +68,9 @@ describe.skipIf(MODE === 'record')('web e2e: cold Auto-review user rejection and
     const access = page.locator('button[aria-label^="Access mode"]').first()
     await expect.poll(() => access.getAttribute('aria-label'), { timeout: 10_000 })
       .toBe('Access mode, current: Auto review EXP')
-    const collapsed = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd))
+    const collapsed = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd, {
+      replacements: [[basename(scaffold.workspaceCwd), '{{workspace}}']],
+    }))
       .split(SEED_ID).join('{{seededId}}')
 
     for (const index of [0, 1]) {
@@ -73,7 +79,9 @@ describe.skipIf(MODE === 'record')('web e2e: cold Auto-review user rejection and
       await expect.poll(() => row.getAttribute('aria-expanded')).toBe('true')
     }
     await calls.nth(1).getByText(FAILURE, { exact: false }).first().waitFor({ state: 'visible' })
-    const expanded = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd))
+    const expanded = (await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd, {
+      replacements: [[basename(scaffold.workspaceCwd), '{{workspace}}']],
+    }))
       .split(SEED_ID).join('{{seededId}}')
 
     await compareOrRefreshGolden(UI_EXPECTED, `## Collapsed\n\n${collapsed.trim()}\n\n## Expanded\n\n${expanded.trim()}`, MODE)
@@ -82,6 +90,9 @@ describe.skipIf(MODE === 'record')('web e2e: cold Auto-review user rejection and
   }, 60_000)
 
   it('keeps its snapshot inventory closed', async () => {
+    if (XIAOJING) await assertFixtureInventory(fileURLToPath(new URL('./expected/auto-review-xiaojing', import.meta.url)), [
+      'approval.expected.md', 'denial.expected.md',
+    ])
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'ui.expected.md', 'session.v3.jsonl',
     ])

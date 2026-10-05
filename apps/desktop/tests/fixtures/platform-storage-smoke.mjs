@@ -1,6 +1,6 @@
 /** Real Electron fixture for account-scoped Platform storage across process restarts. */
 import { app, BrowserWindow } from 'electron'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const OBSERVE = `(() => {
   const button = document.querySelector('button')
@@ -43,17 +43,21 @@ async function dismissNotice(contents) {
 }
 
 async function run() {
-  const [viewModule, userData, origin, phase] = process.argv.slice(2)
+  // Keep the HTTP fixture URL after Electron's argument separator.
+  const args = process.argv.slice(2)
+  const [viewModule, userData, origin, phase] = args[0] === '--' ? args.slice(1) : args
   if (viewModule === undefined || userData === undefined || origin === undefined || phase === undefined) {
     throw new Error('expected <built-platform-view.js> <userDataDir> <origin> <first|restart>')
   }
   if (phase !== 'first' && phase !== 'restart') throw new Error(`unknown phase ${phase}`)
   const base = new URL(origin).origin
   app.setPath('userData', userData)
+  app.setPath('sessionData', userData)
   await app.whenReady()
   const { DesktopPlatformView } = await import(pathToFileURL(viewModule).href)
   const owner = new BrowserWindow({ show: false, width: 900, height: 700 })
-  const manager = new DesktopPlatformView('', () => 'en_US', process.platform === 'win32' ? 'win32' : 'darwin')
+  const preload = fileURLToPath(new URL('./platform-storage-preload.cjs', import.meta.url))
+  const manager = new DesktopPlatformView(preload, () => 'en_US', process.platform === 'win32' ? 'win32' : 'darwin')
   const account = userId => ({ origin: base, token: 'fixture-secret', userId })
   const states = []
   const record = async name => {

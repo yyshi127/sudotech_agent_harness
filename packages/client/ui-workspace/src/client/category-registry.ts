@@ -45,6 +45,10 @@ export interface WorkspaceCategoryBadge {
 
 /** Dynamic facts for one workspace category. */
 export interface WorkspaceCategoryState {
+  /** Whether Workspace membership has loaded; omitted means ready. */
+  ready?: boolean
+  /** Latest membership-load failure; unknown membership remains unready until a successful load. */
+  loadError?: string
   /** Active-locale label shown beside the ordinary Workspace heading. */
   label: string
   /** Optional product copy replacing the ordinary Workspace heading. */
@@ -75,6 +79,8 @@ export interface WorkspaceCategoryProvider {
   order: number
   /** Dynamic label and Workspace membership. */
   source: ObservableSnapshot<WorkspaceCategoryState>
+  /** Request another membership load; loading and failures are published through source. */
+  retryLoad?: () => void
   /** Enter the category or start a session in one of its workspaces. */
   activate: (workspaceId?: WorkspaceId) => Promise<void>
   /** Add one directory-backed Workspace to a section; undefined means the user cancelled. */
@@ -92,7 +98,11 @@ export interface WorkspaceCategoryProvider {
 /** Workspace-category state consumed by the sidebar. */
 export interface WorkspaceCategorySnapshot {
   /** Registered categories ordered by provider order then id. */
-  categories: readonly (WorkspaceCategoryState & { id: string })[]
+  categories: readonly (WorkspaceCategoryState & {
+    id: string
+    /** Present only while the registered provider offers an explicit membership reload. */
+    retryLoadAvailable?: true
+  })[]
   /** Category whose workspaces are visible in the conversation picker; absent means ordinary workspaces. */
   pickerCategoryId?: string
   /** Sidebar category used by unscoped New Session actions; absent means ordinary workspaces. */
@@ -132,6 +142,20 @@ export class WorkspaceCategoryRegistry {
       if (this.activeCategoryId === provider.id) this.activeCategoryId = undefined
       this.project()
     }
+  }
+
+  /**
+   * Request another load through the registered category provider.
+   * @param categoryId - Category whose membership load the user retries.
+   * @throws When the category is absent or has no retry action.
+   */
+  retryLoad(categoryId: string): void {
+    const provider = this.providers.get(categoryId)?.provider
+    if (provider === undefined) throw new Error(`unknown workspace category: ${categoryId}`)
+    if (provider.retryLoad === undefined) {
+      throw new Error(`workspace category does not support retrying load: ${categoryId}`)
+    }
+    provider.retryLoad()
   }
 
   /**
@@ -257,6 +281,7 @@ export class WorkspaceCategoryRegistry {
       .map(({ provider }) => ({
         id: provider.id,
         ...provider.source.getSnapshot(),
+        ...(provider.retryLoad === undefined ? {} : { retryLoadAvailable: true as const }),
       }))
       .sort((left, right) => {
         const leftOrder = this.providers.get(left.id)?.provider.order ?? 0

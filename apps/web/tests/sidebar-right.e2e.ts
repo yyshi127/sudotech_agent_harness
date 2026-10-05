@@ -24,6 +24,7 @@ import type { Browser, ConsoleMessage, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import { acknowledgeReloadConnectionLoss, launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
 import {
   connectFreshWorkspace, newEnglishPage, saveFailureShot, ZH_BROWSER_LOCALE,
@@ -259,6 +260,7 @@ describe('web e2e: shipped right Sidebar', () => {
   let browser: Browser
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
+  let connectedAgent: Agent
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold()
@@ -297,8 +299,17 @@ describe('web e2e: shipped right Sidebar', () => {
       await connectFreshWorkspace(page, scaffold.workspaceCwd)
       // A settled session is what keys the surface; seed one turn through the
       // real append path so the Chat surface is live before the Sidebar is driven.
-      const agent = scaffold.ctx.agents.list()[0]
+      const connectedCwd = join(scaffold.workspaceCwd, 'workspace')
+      const workspace = await scaffold.ctx.workspaceRegistry.resolveByPath(connectedCwd)
+      if (workspace === undefined) throw new Error('connected directory has no Workspace')
+      const agents = scaffold.ctx.agents.list().filter(agent => workspace.sessionIds.includes(agent.session.id))
+      expect(agents).toHaveLength(1)
+      const agent = agents[0]
       if (agent === undefined) throw new Error('connected workspace did not create an Agent')
+      expect(agent.session.header.cwd).toBe(connectedCwd)
+      expect(await page.evaluate(() => localStorage.getItem('dsh.sessions.current')))
+        .toBe(JSON.stringify({ sessionId: agent.session.id }))
+      connectedAgent = agent
       // The wire parameter is `agentId`; the client passes a session id. If the
       // scaffold's Agent and Session carry different ids, that mismatch is the
       // silent lookup failure.
@@ -746,8 +757,7 @@ describe('web e2e: shipped right Sidebar', () => {
         } | undefined
       }).get('workspaceFiles')
       if (files === undefined) throw new Error('host endpoint is not provided')
-      const agent = scaffold.ctx.agents.list()[0]
-      if (agent === undefined) throw new Error('no Agent to read for')
+      const agent = connectedAgent
       const scope = {
         sessionId: agent.session.id,
         workspaceRoot: agent.session.header.cwd ?? scaffold.workspaceCwd,

@@ -44,6 +44,8 @@ body[data-xiaojing-product] {
   --dsw-alias-interactive-bg-hover: rgba(18, 164, 137, 0.08);
   --dsw-alias-label-caption: rgb(130, 152, 149);
   --dsw-alias-label-dimmed: rgb(219, 233, 231);
+  --dsw-alias-label-deep-diving: var(--dsw-static-neutral-1000);
+  --dsw-alias-label-deep-diving-shimmer: var(--dsw-static-neutral-1000);
   --dsw-alias-label-primary-bluish: rgb(6, 112, 97);
   --dsw-alias-label-primary-dimmed: rgb(36, 75, 82);
   --dsw-alias-label-primary-foreground: rgb(255, 255, 255);
@@ -121,6 +123,8 @@ body[data-xiaojing-product][data-ds-dark-theme] {
   --dsw-alias-interactive-bg-hover: rgba(69, 193, 169, 0.1);
   --dsw-alias-label-caption: rgb(104, 126, 123);
   --dsw-alias-label-dimmed: rgb(49, 82, 76);
+  --dsw-alias-label-deep-diving: var(--dsw-alias-label-primary);
+  --dsw-alias-label-deep-diving-shimmer: var(--dsw-alias-label-primary);
   --dsw-alias-label-primary-bluish: rgb(131, 215, 197);
   --dsw-alias-label-primary-dimmed: rgb(216, 242, 236);
   --dsw-alias-label-primary-foreground: rgb(12, 23, 40);

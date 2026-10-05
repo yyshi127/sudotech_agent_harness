@@ -23,14 +23,15 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SubagentPromptRequestId } from '@deepseek-ai/dsh-subagent'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, readPersistedEvents, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, readPersistedEvents, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const BASE_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/subagent-interrupt', import.meta.url))
-const OFFLINE_COMPOSER_EXPECTED = join(SNAPSHOT_DIR, 'offline-composer.expected.md')
+const SNAPSHOT_PROFILE = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
+const OFFLINE_COMPOSER_EXPECTED = join(SNAPSHOT_DIR, `offline-composer${SNAPSHOT_PROFILE}.expected.md`)
 const MODE = webSnapshotMode()
 const LABEL = 'event-sourcing researcher'
 const INITIAL = 'Explain event sourcing in one sentence.'
@@ -126,6 +127,12 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
     ].join('\n'))
     scaffold = await launchWebScaffold({
       replayFixture: join(sidecarRoot, 'session.jsonl'),
+      ...(webClientProfile() === 'xiaojing' ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
       replayOverride: join(sidecarRoot, 'replay.override.json'),
       replayChildFixtures: [parentTurnPath],
     })
@@ -138,9 +145,12 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (webClientProfile() === 'xiaojing') {
+      await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor({ timeout: 15_000 })
+    }
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
 
-    const root = scaffold.ctx.agents.roots()[0]
+    const root = scaffold.ctx.agents.roots().find(agent => agent.session.header.cwd === join(scaffold.workspaceCwd, 'workspace'))
     if (root === undefined) throw new Error('fresh workspace did not publish its parent Agent')
     parent = root
     // The child's first model call claims the primary override and holds.
@@ -358,6 +368,6 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
   }, 120_000)
 
   it('keeps its snapshot inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['offline-composer.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['offline-composer.expected.md', 'offline-composer.xiaojing.expected.md'])
   })
 })

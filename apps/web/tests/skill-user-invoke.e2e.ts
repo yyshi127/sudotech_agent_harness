@@ -19,14 +19,17 @@ import {
   compareOrRefreshGolden,
   launchWebScaffold,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/skill-user-invoke', import.meta.url))
-const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
-const UI_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ui-expanded.expected.md')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = join(SNAPSHOT_DIR, `ui${XIAOJING ? '.xiaojing' : ''}.expected.md`)
+const UI_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, `ui-expanded${XIAOJING ? '.xiaojing' : ''}.expected.md`)
 const MODE = webSnapshotMode()
 
 const SKILL_NAME = 'user-invoke-demo'
@@ -74,6 +77,7 @@ describe.skipIf(MODE === 'record')('web e2e: user-explicit skill invocation thro
     scaffold = await launchWebScaffold({
       replayFixture: join(replayDir, 'override-only.jsonl'),
       replayOverride,
+      ...XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
       // Paced replay keeps the timing-derived chrome (TTFT / tok/s) present
       // deterministically; instant playback races it in and out of the golden.
       paceMs: 10,
@@ -188,6 +192,9 @@ describe.skipIf(MODE === 'record')('web e2e: user-explicit skill invocation thro
   })
 
   it('keeps its snapshot inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui-expanded.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'ui.expected.md', 'ui-expanded.expected.md',
+      'ui.xiaojing.expected.md', 'ui-expanded.xiaojing.expected.md',
+    ])
   })
 })

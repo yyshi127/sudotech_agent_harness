@@ -1,6 +1,6 @@
 /** XLSX formatting, cached formula results, and resource admission. */
 import ExcelJS from 'exceljs'
-import { strToU8, unzipSync, zipSync } from 'fflate'
+import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { convertExcel } from '../src/client/excel/convert.ts'
 import { Config } from '../src/config.ts'
@@ -81,6 +81,22 @@ describe('Excel conversion', () => {
     await expect(convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)).rejects.toMatchObject({ code: 'invalid' })
   })
 
+  it('keeps usable row heights when the worksheet omits its row-height metadata', async () => {
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('凭证分录')
+    worksheet.addRows([['日期', '摘要'], ['2026-09-07', '预览测试']])
+    worksheet.getRow(2).height = 30
+    const files = unzipSync(new Uint8Array(await workbook.xlsx.writeBuffer()))
+    const sheetPath = 'xl/worksheets/sheet1.xml'
+    const xml = strFromU8(files[sheetPath]!)
+    files[sheetPath] = strToU8(xml.replace(/<sheetFormatPr\b[^>]*\/>/, ''))
+    const { sheets } = await convertExcel(new Uint8Array(zipSync(files)), 'xlsx', limits)
+    const sheet = sheets[0]!
+    expect(sheet).not.toHaveProperty('defaultRowHeight')
+    expect(sheet.celldata!.map(cell => cell.v!.m)).toEqual(['日期', '摘要', '2026-09-07', '预览测试'])
+    expect(sheet.config!.rowlen).toEqual({ 1: 40 })
+  })
+
   it('ignores row and column layout outside emitted cell bounds', async () => {
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Layout')
@@ -106,6 +122,7 @@ describe('Excel conversion', () => {
   it('maps custom colors, tints, alignment, decoration, and default dimensions', async () => {
     const workbook = new ExcelJS.Workbook()
     const sheet = workbook.addWorksheet('Styles')
+    sheet.properties.defaultRowHeight = 30
     sheet.properties.defaultColWidth = 12
     sheet.getColumn(1).width = 0.5
     const light = { theme: 4, tint: 0.5 }
@@ -128,7 +145,7 @@ describe('Excel conversion', () => {
     sheet.getCell('G1').value = 'No underline'
     sheet.getCell('G1').font = { underline: 'none' }
     const result = await convertExcel(new Uint8Array(await workbook.xlsx.writeBuffer()), 'xlsx', limits)
-    expect(result.sheets[0]).toMatchObject({ defaultColWidth: 89, config: { columnlen: { 0: 6 } } })
+    expect(result.sheets[0]).toMatchObject({ defaultRowHeight: 40, defaultColWidth: 89, config: { columnlen: { 0: 6 } } })
     const cells = result.sheets[0]!.celldata!
     expect(cells[0]!.v).toMatchObject({ fc: '#a7c0de', bg: '#28415f', cl: 1, un: 1, ht: 2, vt: 1, tb: '2', tr: '3' })
     expect(cells[1]!.v).toMatchObject({ ht: 1, vt: 2, rt: 45 })

@@ -12,13 +12,16 @@ import {
   launchWebScaffold,
   seedSession,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/markdown-cjk-strong', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/markdown-cjk-strong/ui.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = fileURLToPath(new URL(`./expected/markdown-cjk-strong/ui${XIAOJING ? '.xiaojing' : ''}.expected.md`, import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'markdown-cjk-strong-web-e2e'
 const DONE = 'CJK_STRONG_DONE'
@@ -93,7 +96,7 @@ describe('web e2e: CJK-adjacent Markdown strong emphasis', () => {
   let tripwire: ReturnType<typeof watchConsole>
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({})
+    scaffold = await launchWebScaffold({ ...XIAOJING ? XIAOJING_ROUTE_CATALOG : {} })
     await seedSession(scaffold, markdownFixture(), SEED_ID, undefined, { createdAt: WEB_FIXTURE_TIME })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -130,6 +133,6 @@ describe('web e2e: CJK-adjacent Markdown strong emphasis', () => {
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
   }, 60_000)
 })

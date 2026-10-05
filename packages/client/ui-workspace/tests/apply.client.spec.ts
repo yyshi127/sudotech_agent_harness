@@ -62,7 +62,7 @@ async function bench() {
   }))
   const rename = vi.fn(async () => ({}))
   const selectPanel = vi.fn()
-  ctx.provide('layout', { selectPanel, beginNavigation: () => new AbortController().signal })
+  ctx.provide('layout', { selectPanel, navigationSignal: new AbortController().signal, beginNavigation: () => new AbortController().signal })
   const search = vi.fn(async () => ({
     ok: true as const,
     value: { items: [{ sessionId: 'session' as never, snippet: 'match' }], hasMore: false },
@@ -550,6 +550,9 @@ describe('ui-workspace apply', () => {
     const picker = faceOf(b.slots.entries('conversation.hero.workspace')[0]!) as WorkspacePickerInjected
     await picker.createWorkspace({ path: '/tmp/project' })
     expect(b.create).toHaveBeenCalledWith({ path: '/tmp/project' })
+    const retry = vi.spyOn(b.ctx.workspaceCategories, 'retryLoad').mockImplementation(() => {})
+    picker.retryWorkspaceCategoryLoad('owned-category')
+    expect(retry).toHaveBeenCalledExactlyOnceWith('owned-category')
   })
 
   it('declares the browser child slots and reports directory-flow occupancy per surface', async () => {

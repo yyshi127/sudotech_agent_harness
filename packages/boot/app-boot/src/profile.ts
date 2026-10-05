@@ -22,7 +22,8 @@
  */
 
 import { createRequire } from 'node:module'
-import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import { applyEntryPatches, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
@@ -577,7 +578,7 @@ function sameBundles(left: readonly string[], right: readonly string[]): boolean
 }
 
 /**
- * Normalize an exact installation-owned bundle tuple to its shipped template,
+ * Atomically normalize an exact installation-owned bundle tuple to its shipped template,
  * preserving all other manifest fields. Other bundle lists remain untouched.
  */
 function normalizeShippedProfile(name: string, dir: string, manifest: ProfileManifest): ProfileManifest {
@@ -597,7 +598,15 @@ function normalizeShippedProfile(name: string, dir: string, manifest: ProfileMan
       },
     },
   }
-  writeProfileManifest(dir, normalized)
+  const target = join(dir, 'package.json')
+  const temporary = `${target}.${randomUUID()}.tmp`
+  try {
+    writeFileSync(temporary, JSON.stringify(normalized, undefined, 2) + '\n', { flag: 'wx', mode: 0o600 })
+    renameSync(temporary, target)
+  } catch (error) {
+    rmSync(temporary, { force: true })
+    throw error
+  }
   return normalized
 }
 

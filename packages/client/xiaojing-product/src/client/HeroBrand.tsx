@@ -24,15 +24,16 @@ export function HeroBrandMark({ className, t, sessionId, useSessions }: HeroBran
   const finance = useSessions(state => sessionId !== undefined
     && state.byId[sessionId]?.projectionValues?.agentPreset === 'finance')
   const artworkHeight = 970
+  const displayHeight = 'min(220px, 35vh, 55vw)'
   return (
     <svg
       className={[css.logo, className].filter(Boolean).join(' ')}
-      style={{ width: 145 * 1254 / artworkHeight, height: 145, overflow: 'hidden' }}
+      style={{ width: `calc(${displayHeight} * 1254 / ${artworkHeight})`, height: displayHeight, overflow: 'hidden' }}
       viewBox={`0 105 1254 ${artworkHeight}`}
       role="img"
       aria-label={t('assistantAlt')}
     >
-      <image href={finance ? '/xiaojing-finance-robot-logo.png' : '/xiaojing-office-robot-logo.png'} width="1254" height="1254" />
+      <image href={finance ? './xiaojing-finance-robot-logo.png' : './xiaojing-office-robot-logo.png'} width="1254" height="1254" />
     </svg>
   )
 }

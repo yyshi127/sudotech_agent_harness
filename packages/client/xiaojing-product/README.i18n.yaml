@@ -15,11 +15,11 @@
   en: f1d967a7e5342ebc
   zh: 86774d5ea1aab22d
 /deepseek-ai-dsh-client-xiaojing-product/product-contributions:
-  en: b44c29dcc992b08a
-  zh: b2265c743697b047
+  en: f2381dc66a8d6c62
+  zh: a7c71a9af0717c47
 /deepseek-ai-dsh-client-xiaojing-product/upstream-upgrade-contract:
-  en: 10ac3aad81782d7a
-  zh: d3a52439edbaa36e
+  en: a0a5fe94aa5a3e44
+  zh: ba3c623ca90155ab
 /deepseek-ai-dsh-client-xiaojing-product/official-source-chinese-tax-research:
   en: 3bd1b72c27fb3da7
   zh: 4ac9f29fe94fb677
@@ -42,8 +42,8 @@
   en: a4c294f53ddb764a
   zh: 44c1318151774497
 /deepseek-ai-dsh-client-xiaojing-product/model-experience/mandatory-deletion-instruction/what-the-model-sees:
-  en: 8004a07310b7e3c6
-  zh: 6e76e557bc650572
+  en: 0cf3a1f9b31dd591
+  zh: 413079795cdd6268
 /deepseek-ai-dsh-client-xiaojing-product/model-experience/mandatory-deletion-instruction/token-effect:
   en: c415447377fcd475
   zh: 8039e79a0f96170a
@@ -54,14 +54,14 @@
   en: 3f146ffc4a69c6ee
   zh: 3f146ffc4a69c6ee
 /deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/what-the-model-sees:
-  en: aa0cc31b1e02fd34
-  zh: f7f251dc9b731c75
+  en: 6467149ba5223b29
+  zh: 95955ef50cc99e69
 /deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/what-the-model-sees/verbatim-default-persona:
   en: e2ecd80abe3c841f
   zh: e2ecd80abe3c841f
 /deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/token-effect:
-  en: e5c3fa8cf33c1e56
-  zh: b1252ca79788bd86
+  en: 9307739c8869afae
+  zh: 5114761a2106d861
 /deepseek-ai-dsh-client-xiaojing-product/model-experience/default-deployment-persona-system-prompt/kv-cache-effect:
   en: 8339db7dad4d4ea3
   zh: 8e7d696dcce64741

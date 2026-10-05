@@ -24,7 +24,7 @@
   min-height: 360px;
   overflow: hidden;
   border: 1px solid #cce4df;
-  border-radius: 22px;
+  border-radius: var(--dsw-radius-xl);
   background: #fff;
   box-shadow: 0 18px 48px rgba(20, 101, 89, 0.08);
 }
@@ -51,6 +51,7 @@
   position: absolute;
   inset: 54px 26px 28px;
   border-radius: 50%;
+  corner-shape: round;
   background: rgba(255, 255, 255, 0.62);
   filter: blur(2px);
 }
@@ -81,7 +82,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 13px;
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-md);
   font-weight: 700;
 }
 
@@ -100,6 +101,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  corner-shape: round;
   background: currentColor;
 }
 
@@ -115,7 +117,7 @@
   max-width: 460px;
   padding: 18px 20px;
   border: 1px solid #d7ebe7;
-  border-radius: 14px;
+  border-radius: var(--dsw-radius-lg);
   background: #f5fbf9;
 }
 
@@ -154,7 +156,7 @@
 .actions button {
   min-height: 46px;
   padding: 0 22px;
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-md);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -181,7 +183,7 @@
 .error {
   margin: 0;
   padding: 15px 17px;
-  border-radius: 12px;
+  border-radius: var(--dsw-radius-md);
 }
 
 .unavailable {

@@ -37,13 +37,17 @@ kind: "package-reference"
 
 使用 `mode: attach`，并在 `endpoint` 中设置 HTTP(S) 调试 URL 或 WS(S) 浏览器端点，即可操作已有浏览器。新的活动 Session 在初始化时占用附加连接，并持续保留直到卸载。如果连接已被占用，本次激活不使用该浏览器，但继续运行，后续轮次不会重试。连接释放后，新创建或恢复的激活可以获取它。其他 Session 的直接调用会失败。清理只断开连接，保留外部浏览器及其页面。
 
+使用 `mode: auto-connect` 并指定绝对路径 `userDataDir`，由固定版本服务器通过该目录中的 `DevToolsActivePort` 发现正在运行的浏览器。此模式要求用户启用浏览器远程调试，并批准浏览器出现的连接提示。它与附加连接遵循相同的 Session 独占与断开规则；不会启动替代浏览器、选择可执行文件，也不会将保存的个人资料内容还原到对话历史。
+
 | 字段 | 默认值 | 含义 |
 |---|---|---|
-| `mode` | 必填 | `launch` 或 `attach`，在本次提供方激活期间固定 |
+| `mode` | 必填 | `launch`、`attach` 或 `auto-connect`，在本次提供方激活期间固定 |
 | `headless` | `true` | 启动时不显示窗口 |
 | `executablePath` | 上游发现 | 启动使用的 Chromium 可执行文件 |
 | `endpoint` | attach 时必填 | 已有浏览器调试端点 |
+| `userDataDir` | auto-connect 时必填 | 正在运行的浏览器的用户数据目录绝对路径 |
 | `toolCallTimeoutMs` | MCP 客户端默认值 | 单次调用超时，单位为毫秒 |
+| `serverName` | `chrome-devtools-mcp` | 此连接的模型可见工具使用的固定命名空间 |
 
 [配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-experimental-browser-use-chrome-devtools-mcp)列出接受的字段。浏览器模式由 profile 或 preset 选择。
 
@@ -60,6 +64,8 @@ kind: "package-reference"
 提供方解析固定版本 npm 包的可执行入口，并使用当前 Node 启动。服务进程之前可能运行临时协议探测进程。[共享运行时](../browser-use-runtime/README.zh.md)负责等待 Agent 初始化、逐 Session 串行执行与清理；[MCP 客户端](../../mcp/mcp-client/README.zh.md)负责传输、发现和结果投影。提供方不维护独立的连接观测，因此不发布运行时不变量配套入口。
 
 只要活动 Session 保持连接，浏览器状态就会跨轮次保留。销毁会等待服务器关闭，再释放资源。重新加载后恢复 Session 会创建新的浏览器运行状态；已保存的对话历史不会还原 Cookie 或页面。
+
+`createSessionMcpOptions()` 返回已验证的可执行文件、参数、命名空间与所有权设置，不启动进程，也不占用浏览器提供方。产品可以用这些设置，通过相同的 Session 运行时与 MCP 客户端实现延迟连接。
 
 </details>
 

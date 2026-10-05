@@ -28,6 +28,44 @@ type ApprovalRequestId = Branded<'ApprovalRequestId'>
 type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
 ```
 
+`ApprovalAnswer` adds a session choice for answerers without expanding consumer outcomes. Only trusted requester code may provide `ApprovalReuse`. The operation category and exact target scope identify authorization; labels only explain it. `ApprovalAuthorization` records creation or reuse and its owning Session, so copied history cannot grant another Session access.
+
+```ts type-equiv
+/** Answerer choice; session authorization is normalized to an allowed-once outcome. */
+type ApprovalAnswer = ApprovalOutcome | 'allowed-session'
+```
+
+```ts type-equiv
+/** Host-defined operation class and target scope eligible for session authorization. */
+interface ApprovalReuse {
+  /** Namespaced operation category assigned by trusted requester code. */
+  readonly category: string
+  /** Exact target scope assigned by trusted requester code; never supplied by the model. */
+  readonly scope: string
+  /** Human-readable operation and target scope. */
+  readonly label: string
+  /** Localized presentation only; not part of authorization identity or audit. */
+  readonly displayLabel?: { readonly en: string; readonly [locale: string]: string }
+}
+```
+
+```ts type-equiv
+/** Durable authorization identity; localized presentation is omitted. */
+type ApprovalReuseAudit = Pick<ApprovalReuse, 'category' | 'scope' | 'label'>
+```
+
+```ts type-equiv
+/** Records creation or reuse of an authorization owned by one session. */
+interface ApprovalAuthorization extends ApprovalReuseAudit {
+  /** Owning session; copied history cannot authorize a different session. */
+  readonly sessionId: SessionId
+  /** A human or machine selected session authorization, or an existing grant was reused. */
+  readonly kind: 'session' | 'reuse'
+}
+```
+
+Creation and reuse are optional fields in the existing audit events; outcomes retain their four alternatives. Matching concurrent requests wait for the first committed decision. A live grant is reusable after its decision append succeeds. Reopening restores grants from originally closed turns, excluding synthetic `interrupted` and `forked` closures. Ordinary `never` rejects before reuse; mandatory consumers opt into classifications explicitly. Unclassified requests always require individual decisions.
+
 ## Per-session policy
 
 `ApprovalPolicy` determines what happens before interactive answerers run. `ask` delegates to the composed answerer chain, whose no-answer default is `unavailable`; `never` deterministically returns `rejected` without dispatching any answerer. The effective value is the last `approval/policy` event in the session log, falling back to the service config. Consumers read it with `ctx.approval.effectivePolicy(session)`; `setApprovalPolicy(session, policy)` is the single write path, so replay reconstructs the override.
@@ -42,11 +80,15 @@ type ApprovalOutcome = 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
  * - `'never'` — never prompt anyone for an ordinary request: every ordinary
  *   ask resolves `'rejected'` deterministically. Mandatory security
  *   confirmations use {@link ApprovalService.requestMandatory} instead.
+ * Explicit product-owned automatic authorization overrides either policy;
+ * products must derive it from a logged user choice, never from this config.
  */
 type ApprovalPolicy = 'ask' | 'never'
 ```
 
 Both policies contribute their complete current meaning to the cache-safe runtime-context snapshot. The sourced `user/message` is the durable model-visible input; changing approval state appends a new full snapshot after retained history without touching the `system/message` nodes that hold the rendered system prompt.
+
+Products may derive explicit automatic authorization from a logged user choice and call `setAutomaticApproval(session, enabled)`. While enabled, ordinary and mandatory requests commit `allowed-once` audit decisions without prompting; enabling it also settles pending requests. Revocation before commit rejects an automatic decision, and cancellation takes precedence. This authorization does not change `ApprovalPolicy`, create reusable operation grants, or grant browser or operating-system privileges.
 
 ## Approval request
 
@@ -85,7 +127,7 @@ interface ApprovalRequest extends ApprovalRequestEvent {
 
 `ctx.approval.request(req)` requires the requesting session to be inside an open turn. It appends `approval/asked`, obtains one outcome, appends the matching `approval/decided`, and resolves with that outcome. The `never` policy is enforced inside the service before waterfall dispatch, so even an answerer registered later with `prepend` cannot bypass it. Answerers return an outcome when they own the request or call `next()` to delegate; the first answer occupies the single decision slot.
 
-The audit events are log-only and do not enter the model transcript. Model-visible behavior is the caller's derived tool result plus the current runtime-context snapshot. Service disposal removes its context contribution; answerer listeners are independently effect-bound to their owning plugins.
+The audit events are log-only and do not enter the model transcript. Model-visible behavior is the caller's derived tool result plus the current runtime-context snapshot, which states session reuse only when valid authorization exists. Service disposal cancels and drains active and queued questions and removes its context contribution; answerer listeners are independently effect-bound to their owning plugins.
 
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
@@ -112,10 +154,22 @@ Approval service that applies session policy before answerers and logs every ask
 setPolicy(agent: Agent, policy: ApprovalPolicy): void
 
 /**
+ * Project explicit, logged user authorization into this service. The owning
+ * product must restore and revoke this value from its session history;
+ * calling this method alone does not persist authorization. Enabling settles
+ * pending questions and overrides both ordinary `never` and mandatory asks.
+ * Cancellation and failed audit commits still prevent execution.
+ * @param session - the exact session authorized by the product.
+ * @param enabled - whether its explicit automatic authorization is effective.
+ */
+setAutomaticApproval(session: Session, enabled: boolean): void
+
+/**
  * Ask the composed answerers to decide one readonly same-process request.
- * The service borrows the request, agent, session, and live signal directly.
- * The request requires an open turn because the audit pair must be enclosed
- * by the durable log's commit/replay boundary; an idle ask rejects before
+ * The service borrows the agent, session, and readonly request data. Answerers
+ * receive a request projection with cancellation combined with service disposal.
+ * The request requires an open turn because the audit pair must identify
+ * its action's turn; an idle ask rejects before
  * appending anything. The answerer phase always produces an outcome: an
  * aborted signal yields `'cancelled'`, a missing or throwing answerer yields
  * `'unavailable'` (fail closed), and a rogue non-vocabulary return value is
@@ -124,7 +178,12 @@ setPolicy(agent: Agent, policy: ApprovalPolicy): void
  * violate the pair. Session contains post-commit observer failures, so an
  * authoritative append cannot reject the request or suppress its matching
  * audit event.
- * @param req - the pending decision (agent, tool identity, reason, signal).
+ * Trusted requester classifications may reuse an explicitly authorized
+ * operation class and target scope within this session, including after a
+ * restart. Unclassified requests remain one-shot. Creation and reuse are
+ * audited; cancellation, disposal, and failed audit commits cannot create
+ * authorization. Session policy is checked before reuse and after an answer.
+ * @param req - the pending decision (agent, tool identity, reason, signal, optional classification).
  * @returns the closed outcome; `'allowed-once'` is the only grant.
  * @throws when no turn is open or either audit event fails before the session
  *   append commit point.
@@ -133,11 +192,14 @@ async request(req: ApprovalRequest): Promise<ApprovalOutcome>
 
 /**
  * Ask for a security confirmation that the session's ordinary approval
- * policy cannot suppress. This method is reserved for product security
+ * policy cannot suppress. Explicit product-owned automatic authorization
+ * applies to these requests too. This method is reserved for product security
  * invariants such as deletion confirmation; it does not grant the action
  * and still fails closed when no answerer is available, the user rejects,
  * or the request is cancelled. Audit and turn-enclosure behavior are the
- * same as {@link request}.
+ * same as {@link request}. A trusted classification explicitly supplied by
+ * the security consumer may reuse session authorization; omission requires
+ * a separate answer for each action.
  * @param req - the mandatory decision (agent, tool identity, reason, signal).
  * @returns the closed outcome; `'allowed-once'` is the only grant.
  * @throws when no turn is open or either audit event fails before the session
@@ -175,7 +237,7 @@ Ask composed answerers for one decision. Return an outcome to claim the request 
  * @param req - pending approval request.
  * @mode waterfall
  */
-'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>
+'approval/request'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalAnswer>, ): Promise<ApprovalAnswer>
 ```
 
 Types: [Agent](core.md) · [Scoped](scope.md)

@@ -1,0 +1,9 @@
+- button "Today 0 token · ¥0.00":
+  - text: Today
+  - strong: "0"
+  - text: token ·
+  - strong: ¥0.00
+- navigation "Global panels":
+  - button "Plugins"
+- button "Settings"
+- button "Reconnecting, reconnect now": Reconnecting

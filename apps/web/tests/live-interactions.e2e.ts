@@ -25,23 +25,27 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/live-interactions', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-live-interactions', import.meta.url))
+const FIXTURE = webClientProfile() === 'xiaojing'
+  ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl')
+  : join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const SNAPSHOT_PROFILE = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
 // One golden pins the empty mid-turn loading state, one pins the sendable draft
 // state, and the other four capture what remains after cancel, after a
 // non-retryable failure, after retry recovery, and after retry exhaustion.
-const CANCEL_EXPECTED = join(SNAPSHOT_DIR, 'cancel.expected.md')
-const CANCEL_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'cancel-expanded.expected.md')
-const LOADING_EXPECTED = join(SNAPSHOT_DIR, 'loading.expected.md')
-const RUNNING_DRAFT_EXPECTED = join(SNAPSHOT_DIR, 'running-draft.expected.md')
-const ERROR_EXPECTED = join(SNAPSHOT_DIR, 'error-auth.expected.md')
-const RETRY_EXPECTED = join(SNAPSHOT_DIR, 'retry.expected.md')
-const RETRY_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'retry-expanded.expected.md')
-const RETRY_EXHAUSTED_EXPECTED = join(SNAPSHOT_DIR, 'retry-exhausted.expected.md')
+const CANCEL_EXPECTED = join(SNAPSHOT_DIR, `cancel${SNAPSHOT_PROFILE}.expected.md`)
+const CANCEL_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, `cancel-expanded${SNAPSHOT_PROFILE}.expected.md`)
+const LOADING_EXPECTED = join(SNAPSHOT_DIR, `loading${SNAPSHOT_PROFILE}.expected.md`)
+const RUNNING_DRAFT_EXPECTED = join(SNAPSHOT_DIR, `running-draft${SNAPSHOT_PROFILE}.expected.md`)
+const ERROR_EXPECTED = join(SNAPSHOT_DIR, `error-auth${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_EXPECTED = join(SNAPSHOT_DIR, `retry${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, `retry-expanded${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_EXHAUSTED_EXPECTED = join(SNAPSHOT_DIR, `retry-exhausted${SNAPSHOT_PROFILE}.expected.md`)
 const MODE = webSnapshotMode()
 const AUTH_PROVIDER_MESSAGE = 'Authentication Fails, Your api key: sk-preview-secret is invalid'
 
@@ -100,6 +104,12 @@ describe('web e2e: live-turn interactions (cancel / error / retry)', () => {
     }
     scaffold = await launchWebScaffold({
       replayFixture: FIXTURE,
+      ...(webClientProfile() === 'xiaojing' ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
       // Throughput snapshots need a nonzero interval between replayed chunks.
       paceMs: 1,
       ...(overridePath === undefined ? {} : { replayOverride: overridePath }),
@@ -158,7 +168,9 @@ describe('web e2e: live-turn interactions (cancel / error / retry)', () => {
     // hang (prefix chunks delivered to the loop) before the stop click.
     await expect.poll(() => existsSync(marker), { timeout: 15_000 }).toBe(true)
     await expect.poll(
-      () => page.getByRole('status').filter({ hasText: 'Deep diving' }).isVisible(),
+      () => page.getByRole('status').filter({
+        hasText: webClientProfile() === 'xiaojing' ? 'Xiaojing Accounting is thinking' : 'Deep diving',
+      }).isVisible(),
       { timeout: 10_000 },
     ).toBe(true)
     await page.locator('[data-streaming="true"]:not([inert] *)')
@@ -417,10 +429,14 @@ describe('web e2e: live-turn interactions (cancel / error / retry)', () => {
   }, 120_000)
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
+    await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'session.v3.jsonl', 'cancel.expected.md', 'cancel-expanded.expected.md',
       'loading.expected.md', 'running-draft.expected.md', 'error-auth.expected.md',
       'retry.expected.md', 'retry-expanded.expected.md', 'retry-exhausted.expected.md',
+      'cancel.xiaojing.expected.md', 'cancel-expanded.xiaojing.expected.md',
+      'loading.xiaojing.expected.md', 'running-draft.xiaojing.expected.md', 'error-auth.xiaojing.expected.md',
+      'retry.xiaojing.expected.md', 'retry-expanded.xiaojing.expected.md', 'retry-exhausted.xiaojing.expected.md',
     ])
   })
 })

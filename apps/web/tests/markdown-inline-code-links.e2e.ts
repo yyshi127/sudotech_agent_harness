@@ -12,17 +12,21 @@ import {
   launchWebScaffold,
   seedSession,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/markdown-inline-code-links', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/markdown-inline-code-links/ui.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = fileURLToPath(new URL(`./expected/markdown-inline-code-links/ui${XIAOJING ? '.xiaojing' : ''}.expected.md`, import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'markdown-inline-code-links-web-e2e'
 const DONE = 'INLINE_CODE_LINK_DONE'
 const LINK_URL = 'http://127.0.0.1:3199/?demo=1'
+const CHINESE_LINK_URL = 'https://www.xiaohongshu.com'
 
 /** Build a settled assistant reply with linkable URL code and inert code controls. */
 function markdownFixture(linkUrl: string): string {
@@ -52,6 +56,10 @@ function markdownFixture(linkUrl: string): string {
           `Preview: \`${linkUrl}\``,
           '',
           `Standard: [Open preview](${linkUrl})`,
+          '',
+          `打开小红书（${CHINESE_LINK_URL}）。`,
+          '',
+          `已在 Edge 中打开（${CHINESE_LINK_URL}），现在应该正显示在屏幕最前面。`,
           '',
           `Command: \`curl ${linkUrl}\``,
           '',
@@ -92,6 +100,7 @@ describe('web e2e: Markdown inline-code links', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
+      ...XIAOJING ? XIAOJING_ROUTE_CATALOG : {},
       extraOverlayPath: fileURLToPath(new URL('./sidebar-browser.overlay.yml', import.meta.url)),
     })
     await seedSession(scaffold, markdownFixture(LINK_URL), SEED_ID, undefined, { createdAt: WEB_FIXTURE_TIME })
@@ -101,6 +110,10 @@ describe('web e2e: Markdown inline-code links', () => {
     await page.route('http://127.0.0.1:3199/**', async route => route.fulfill({
       contentType: 'text/html',
       body: '<h1>Inline-code preview</h1>',
+    }))
+    await page.route(`${CHINESE_LINK_URL}/**`, async route => route.fulfill({
+      contentType: 'text/html',
+      body: '<h1>Chinese-punctuation preview</h1>',
     }))
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -134,6 +147,22 @@ describe('web e2e: Markdown inline-code links', () => {
     const browserAddress = page.locator('[data-rightbar-col]')
       .getByRole('textbox', { name: 'Enter an HTTP(S) address' })
     await expect.poll(() => browserAddress.inputValue()).toBe(LINK_URL)
+    await page.frameLocator('[data-sidebar-browser-frame]').getByRole('heading', { name: 'Inline-code preview' }).waitFor()
+
+    const chineseLinks = page.locator('[class*="markdown"] a').filter({ hasText: CHINESE_LINK_URL })
+    expect(await chineseLinks.count()).toBe(2)
+    const chineseParagraphs = [
+      `打开小红书（${CHINESE_LINK_URL}）。`,
+      `已在 Edge 中打开（${CHINESE_LINK_URL}），现在应该正显示在屏幕最前面。`,
+    ]
+    for (let index = 0; index < chineseParagraphs.length; index++) {
+      const link = chineseLinks.nth(index)
+      expect(await link.getAttribute('href')).toBe(CHINESE_LINK_URL)
+      expect(await link.locator('..').textContent()).toBe(chineseParagraphs[index])
+      await link.click()
+      await expect.poll(() => browserAddress.inputValue()).toBe(new URL(CHINESE_LINK_URL).href)
+      await page.frameLocator('[data-sidebar-browser-frame]').getByRole('heading', { name: 'Chinese-punctuation preview' }).waitFor()
+    }
 
     expect(await page.getByText(`curl ${LINK_URL}`, { exact: true }).locator('a').count()).toBe(0)
     expect(await page.getByText('javascript:alert(1)', { exact: true }).locator('a').count()).toBe(0)
@@ -143,6 +172,6 @@ describe('web e2e: Markdown inline-code links', () => {
     await compareOrRefreshGolden(UI_EXPECTED, snapshot, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
   }, 60_000)
 })

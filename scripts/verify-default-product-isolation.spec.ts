@@ -14,6 +14,10 @@ const base = '@deepseek-ai/dsh-base'
 const profile = 'packages/boot/app-boot/src/profile.ts'
 const preset = 'packages/bundle/web-app/presets/standard.patch.yml'
 const patch = 'packages/bundle/base/cordis.patch.yml'
+const nativeConsumer = 'packages/xiaojing/xiaojing-browser-control'
+const nativeName = '@deepseek-ai/dsh-xiaojing-browser-control'
+const nativeProviders = ['browser-use-chrome-devtools-mcp', 'browser-use-playwright-mcp']
+const nativeRuntime = '@deepseek-ai/dsh-experimental-browser-use-runtime'
 
 function write(root: string, path: string, value: unknown): void {
   const target = join(root, path)
@@ -47,8 +51,92 @@ function fixture(): string {
   return root
 }
 
+function nativeFixture(): string {
+  const root = fixture()
+  const names = nativeProviders.map(name => `@deepseek-ai/dsh-experimental-${name}`)
+  write(root, `${nativeConsumer}/package.json`, {
+    name: nativeName, dependencies: Object.fromEntries([...names, nativeRuntime].map(name => [name, 'workspace:*'])),
+  })
+  write(root, `${nativeConsumer}/src/native.ts`, [...names, nativeRuntime].map(name => `import '${name}'`).join('\n'))
+  manifest(root, 'packages/core/core/package.json', { dependencies: { [nativeName]: 'workspace:*' } })
+  for (const name of nativeProviders) {
+    write(root, `packages/experimental/${name}/package.json`, {
+      name: `@deepseek-ai/dsh-experimental-${name}`, dependencies: { [nativeRuntime]: 'workspace:*' },
+    })
+    write(root, `packages/experimental/${name}/src/index.ts`, `import '${nativeRuntime}/mcp'\n`)
+  }
+  write(root, 'packages/experimental/browser-use-runtime/package.json', { name: nativeRuntime })
+  write(root, 'packages/experimental/browser-use-runtime/src/index.ts', 'export {}\n')
+  write(root, 'packages/experimental/browser-use-runtime/src/mcp.ts', `import './index.ts'\nimport '${nativeRuntime}'\n`)
+  return root
+}
+
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+})
+
+describe('Xiaojing native-browser adoption', () => {
+  it('inspects the exact adopted consumer, both providers and their runtime', () => {
+    const root = nativeFixture()
+    expect(verifyDefaultProductIsolation(root).failures).toEqual([])
+    write(root, 'packages/experimental/browser-use-runtime/src/index.ts', `import '${experimental}'\n`)
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(experimental)
+  })
+
+  it.each(['peerDependencies', 'optionalDependencies'])(
+    'rejects adoption through %s instead of the declared dependency section', (section) => {
+      const root = nativeFixture()
+      manifest(root, `${nativeConsumer}/package.json`, { dependencies: {}, [section]: { [nativeRuntime]: 'workspace:*' } })
+      expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`${nativeName} ${section} -> ${nativeRuntime}`)
+    },
+  )
+
+  it.each(['packages/core/core/src/index.ts', `${nativeConsumer}/src/index.ts`])(
+    'rejects the same provider from an unadopted source %s', (path) => {
+      const root = nativeFixture()
+      write(root, path, `import '${nativeRuntime}'\n`)
+      expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`${path} -> ${nativeRuntime}`)
+    },
+  )
+
+  it.each([
+    `${nativeRuntime}/mcp`,
+    '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp/client',
+    '../../../experimental/browser-use-runtime/src/index.ts',
+  ])('rejects an alternate native-entry import %s', (specifier) => {
+    const root = nativeFixture()
+    write(root, `${nativeConsumer}/src/native.ts`, `import '${specifier}'\n`)
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain('experimental')
+  })
+
+  it.each(nativeProviders)('rejects source/dependency expansion in %s', (provider) => {
+    const root = nativeFixture()
+    const directory = `packages/experimental/${provider}`
+    manifest(root, `${directory}/package.json`, { dependencies: { [nativeRuntime]: 'workspace:*', [experimental]: 'workspace:*' } })
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(experimental)
+    manifest(root, `${directory}/package.json`, { dependencies: { [nativeRuntime]: 'workspace:*' } })
+    write(root, `${directory}/src/other.ts`, `import '${nativeRuntime}/mcp'\n`)
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`${directory}/src/other.ts -> ${nativeRuntime}`)
+  })
+
+  it('rejects adopted packages named directly by a composition', () => {
+    const root = nativeFixture()
+    write(root, patch, [{ insert: [{ name: nativeRuntime }] }])
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`${patch} -> ${nativeRuntime}`)
+  })
+
+  it('rejects consumer name spoofing and a provider stored outside its exact directory', () => {
+    const root = nativeFixture()
+    manifest(root, `${nativeConsumer}/package.json`, { name: `${nativeName}-copy` })
+    manifest(root, 'packages/core/core/package.json', { dependencies: { [`${nativeName}-copy`]: 'workspace:*' } })
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain('experimental')
+    manifest(root, `${nativeConsumer}/package.json`, { name: nativeName })
+    manifest(root, 'packages/core/core/package.json', { dependencies: { [nativeName]: 'workspace:*' } })
+    const provider = nativeProviders[0]!
+    manifest(root, `packages/experimental/${provider}/package.json`, { name: '@fixture/renamed' })
+    write(root, `packages/core/${provider}/package.json`, { name: `@deepseek-ai/dsh-experimental-${provider}` })
+    expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`@deepseek-ai/dsh-experimental-${provider}`)
+  })
 })
 
 describe('default product isolation', () => {

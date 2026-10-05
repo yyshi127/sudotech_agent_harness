@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.0-rc.2/xiaojing-api-key-onboarding/guide.md
+/:
+  en: edcead5fd39218a1
+  zh: f5632b23979c4b0e
+/xiaojing-api-key-setup:
+  en: 4ed83c679354772f
+  zh: 78792b398bbdcde8
+/xiaojing-api-key-setup/change:
+  en: 5c448ac3f9d61b0e
+  zh: b879ddb2d0684d4c
+/xiaojing-api-key-setup/migration:
+  en: 17356559579e56f9
+  zh: 746d421d8aabafb1

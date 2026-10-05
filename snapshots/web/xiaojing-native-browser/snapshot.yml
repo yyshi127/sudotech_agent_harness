@@ -1,0 +1,9 @@
+version: 1
+scenario: xiaojing-native-browser
+profile: web
+composition: web-xiaojing
+recording: authored
+# Default Edge managed attach and explicitly requested Chrome auto-connect;
+# only OS/browser subprocesses and model responses use isolated fixtures.
+header:
+  class: web-xiaojing

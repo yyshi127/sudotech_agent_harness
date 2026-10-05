@@ -6,6 +6,10 @@
  * unload, and fail-loud teardown.
  */
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { Context } from '@deepseek-ai/cordis'
+import { act, createElement, useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import { RemoteMock, ok, openStream } from '@deepseek-ai/dsh-remote-mock'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { AssemblyPlan, ClientPluginModule, TestClientOptions } from '../src/assembly/index.ts'
@@ -31,6 +35,73 @@ async function started(plan: AssemblyPlan, options?: TestClientOptions): Promise
 }
 
 describe('TestClient (jsdom)', () => {
+  it.each([false, true])('unmounts React before service disposal after startup failure=%s', async (failStartup) => {
+    const listeners = new Set<() => void>()
+    const observedDuringTeardown: number[] = []
+    const subscribe = (listener: () => void) => {
+      listeners.add(listener)
+      return () => { listeners.delete(listener) }
+    }
+    function Observer() {
+      useSyncExternalStore(subscribe, () => 0)
+      return null
+    }
+    const unmount = vi.fn()
+    const renderer = '@deepseek-ai/dsh-client-teardown-renderer'
+    const roster = ClientRoster.of([{ name: renderer, inject: [], immediately: true }])
+    const plan = { roster, provide: { [renderer]: { apply(ctx: Context) {
+      ctx.root.effect(() => () => { observedDuringTeardown.push(listeners.size) })
+      ctx.reflect.provide('uiRenderer', { mount: (element: HTMLElement) => {
+        const root = createRoot(element)
+        flushSync(() => { root.render(createElement(Observer)) })
+        expect(listeners.size).toBe(1)
+        return () => { unmount(); root.unmount() }
+      } })
+    } } } }
+    const before = document.body.childElementCount
+    await act(async () => {
+      const start = TestClient.start(plan, RemoteMock.create(), { mount: true, awaitConnected: failStartup })
+      if (failStartup) {
+        await expect(start).rejects.toThrow('provides no `connection` service')
+      } else {
+        const client = await start
+        await client.dispose()
+        await client.dispose()
+      }
+    })
+    expect(observedDuringTeardown).toEqual([0])
+    expect(listeners.size).toBe(0)
+    expect(unmount).toHaveBeenCalledOnce()
+    expect(document.body.childElementCount).toBe(before)
+  })
+
+  it('reports startup and cleanup failures together while removing the owned mount', async () => {
+    const renderer = '@deepseek-ai/dsh-client-failing-teardown-renderer'
+    const roster = ClientRoster.of([{ name: renderer, inject: [], immediately: true }])
+    const unmount = vi.fn()
+    const plan = { roster, provide: { [renderer]: { apply(ctx: Context) {
+      const dispose = ctx.root.fiber.dispose.bind(ctx.root.fiber)
+      vi.spyOn(ctx.root.fiber, 'dispose').mockImplementation(async () => {
+        await dispose()
+        throw new Error('root cleanup failed')
+      })
+      ctx.reflect.provide('uiRenderer', { mount: () => unmount })
+    } } } }
+    const before = document.body.childElementCount
+    await expect(TestClient.start(plan, RemoteMock.create(), { mount: true })).rejects.toSatisfy((error: unknown) => {
+      expect(error).toBeInstanceOf(AggregateError)
+      if (!(error instanceof AggregateError)) return false
+      expect(error.errors.map(String)).toEqual([
+        'Error: client-test-runtime: the roster provides no `connection` service',
+        'Error: root cleanup failed',
+      ])
+      return true
+    })
+    expect(unmount).toHaveBeenCalledOnce()
+    expect(document.body.childElementCount).toBe(before)
+    vi.restoreAllMocks()
+  })
+
   it('boots the whole web-app roster, connects, mounts, and disposes with nothing unmatched', async () => {
     // Exercise missing-API cleanup independently of the suite's browser defaults.
     vi.stubGlobal('ResizeObserver', undefined)

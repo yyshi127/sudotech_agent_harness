@@ -13,13 +13,20 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, readPersistedEvents, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, readPersistedEvents, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/feedback-release', import.meta.url))
-// Both routes borrow the same settled turn; this manifest references its owner.
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/feedback-command/session.v3.jsonl', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const OFFICIAL_MODEL_LABEL = XIAOJING ? 'DeepSeek-V41-Flash' : 'DeepSeek-V4-Flash'
+const SNAPSHOT_DIR = fileURLToPath(new URL(XIAOJING
+  ? './expected/feedback-release-xiaojing'
+  : '../../../snapshots/web/feedback-release', import.meta.url))
+// Both routes borrow the command owner's settled turn.
+const FIXTURE = fileURLToPath(new URL(XIAOJING
+  ? './expected/feedback-command-xiaojing/session.v4.jsonl'
+  : '../../../snapshots/web/feedback-command/session.v3.jsonl', import.meta.url))
 const ACK_EXPECTED = join(SNAPSHOT_DIR, 'ack.expected.md')
 const ACK_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ack-expanded.expected.md')
 const RELEASE_EXPECTED = join(SNAPSHOT_DIR, 'feedback-release.expected.json')
@@ -113,14 +120,14 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
       telemetryMode: 'FEEDBACK_ONLY',
       telemetryScheduledDelayMillis: 10,
       replayProviders: [
-        { id: 'deepseek-official', name: 'DeepSeek', models: [
+        ...XIAOJING ? XIAOJING_REPLAY_PROVIDERS : [{ id: 'deepseek-official', name: 'DeepSeek', models: [
           { id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', contextWindow: 128_000 },
-        ] },
+        ] }],
         { id: 'feedback-mock', name: 'Feedback mock', models: [
           { id: 'feedback-mock', name: 'Feedback mock', contextWindow: 128_000 },
         ] },
       ],
-      // The replayed session.v3.jsonl belongs to the feedback-command scenario;
+      // The replayed log belongs to the feedback-command scenario;
       // comparing (or refreshing) the persisted session here would rewrite
       // that shared source with this lane's feedback events. Persistence and
       // collector assertions belong to this lane.
@@ -173,7 +180,7 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
     // Both routes render the same composer without changing the actual request header.
     if (MODE !== 'record') {
       await selectModel('Feedback mock')
-      await selectModel('DeepSeek-V4-Flash')
+      await selectModel(OFFICIAL_MODEL_LABEL)
     }
     expect(agent?.session.requestHeader()?.config.provider).toBe(provider)
     expect(uploads).toEqual([])
@@ -190,6 +197,7 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
     await page.getByText(/Feedback recorded for session/).waitFor({ timeout: 10_000 })
     expect(await page.getByText(/Anonymous user: [0-9a-f-]+\.$/i).count()).toBe(1)
     await expectFeedbackRelease('feedback/record', 1)
+    await page.getByRole('button', { name: '6% of context used', exact: true }).waitFor()
 
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(ACK_EXPECTED, snapshot, MODE)
@@ -208,7 +216,7 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
     expect(events.at(-1)?.type).toBe('command/done')
     expect(events.at(-1)!.seq).toBeGreaterThan(authorized.at(-1)!.seq)
     await selectModel('Feedback mock')
-    await selectModel('DeepSeek-V4-Flash')
+    await selectModel(OFFICIAL_MODEL_LABEL)
     const warningStart = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
@@ -286,7 +294,7 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
 
   it.skipIf(MODE === 'record')('releases headerless feedback without capturing another session’s provider-change tail', async () => {
     await selectModel('Feedback mock')
-    await selectModel('DeepSeek-V4-Flash')
+    await selectModel(OFFICIAL_MODEL_LABEL)
     expect(captured()).toHaveLength(releasedCount)
     await page.getByRole('button', { name: 'New session', exact: true }).last().click()
     const input = page.locator('[data-composer-input][contenteditable="true"][data-placeholder="Describe what you want to build, / commands, @ files or sessions"]')

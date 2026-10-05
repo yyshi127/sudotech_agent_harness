@@ -69,6 +69,8 @@ const output = handle.collected.stdout?.readFrom(0)
 
 终止与等待使用同一个由提供方管理的范围。`terminate()` 会启动提供方记录的流程，具有幂等性，并在该范围为空后成为空操作；请求的中止信号会启动同一流程。`waitForExit()` 观察同一范围，只在提供方证明它完全停稳后 resolve，因此直接命令结束不会掩盖仍存活的后代。所选 owner 无法再证明完全停稳时，它会 reject。提供方记录其 native owner 与较弱 fallback；时限、拆卸阶梯与原因分类归调用方所有。
 
+桌面启动辅助程序可向本地 Windows 原生提供方请求 `windowsChildLifetime: 'independent'`。辅助程序仍受托管，其启动的应用不属于该程序的 Job，因此在取消或销毁辅助程序后保持运行。其他提供方与 Windows 降级路径会在启动前拒绝此请求。该选项不会让应用脱离外层宿主 Job；省略时保留普通的后代进程归属。
+
 ### 运行终端会话
 
 对于交互式程序，`spawnTerminal` 分配真实 PTY：写入文本、读取 UTF-8 输出、检查当前前台进程组并向其发送信号，以及等待一次 `terminate()`，让提供方仍可观察到的每个会话成员完全停稳。就绪状态、scrollback 与提示符策略仍归 PTY 消费方所有。

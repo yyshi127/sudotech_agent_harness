@@ -39,6 +39,8 @@ export interface ClientCordisInspectHost {
 export class ClientCordisInspectRegistry {
   private readonly providers = new Map<string, ClientCordisInspectProviderRegistration>()
   private readonly active = new Map<CordisInspectRequestId, AbortController>()
+  private readonly pendingQueries = new Set<Promise<void>>()
+  private disposed = false
   private publishQueued = false
   private syncChain = Promise.resolve()
 
@@ -49,8 +51,10 @@ export class ClientCordisInspectRegistry {
    * Register one Client provider and publish a new complete manifest.
    * @param registration - provider manifest and local handler.
    * @returns idempotent disposer.
+   * @throws when closed, when the provider id is empty or registered, or when method names repeat.
    */
   register(registration: ClientCordisInspectProviderRegistration): () => void {
+    if (this.disposed) throw new Error('Client Cordis inspect registry is disposed')
     const { manifest } = registration
     if (manifest.id.trim() === '') throw new Error('Client Cordis inspect provider id must not be empty')
     if (this.providers.has(manifest.id)) throw new Error(`Client Cordis inspect provider "${manifest.id}" is already registered`)
@@ -72,14 +76,16 @@ export class ClientCordisInspectRegistry {
     }
   }
 
-  /** Publish the current complete manifest, including after reconnect. */
+  /** Publish the current complete manifest, including after reconnect; closed registries ignore publication. */
   publish(): void {
-    if (this.publishQueued) return
+    if (this.disposed || this.publishQueued) return
     this.publishQueued = true
     queueMicrotask(() => {
       this.publishQueued = false
+      if (this.disposed) return
       const manifests = [...this.providers.values()].map(provider => provider.manifest)
       this.syncChain = this.syncChain.then(async () => {
+        if (this.disposed) return
         await this.host.sync(manifests)
       }).catch((error: unknown) => {
         console.error('[cordis-client-runner] syncing inspect providers failed:', error)
@@ -90,9 +96,20 @@ export class ClientCordisInspectRegistry {
   /**
    * Execute and answer one Host-broadcast query.
    * @param request - exact provider query and Session correlation received from Host.
-   * @returns after the first local result has been sent back to Host.
+   * @returns after this query settles; closed registries accept no new query.
    */
-  async query(request: CordisInspectQueryRequest): Promise<void> {
+  query(request: CordisInspectQueryRequest): Promise<void> {
+    if (this.disposed) return Promise.resolve()
+    const pending = this.runQuery(request)
+    this.pendingQueries.add(pending)
+    void pending.then(
+      () => { this.pendingQueries.delete(pending) },
+      () => { this.pendingQueries.delete(pending) },
+    )
+    return pending
+  }
+
+  private async runQuery(request: CordisInspectQueryRequest): Promise<void> {
     if (this.active.has(request.requestId)) return
     const controller = new AbortController()
     this.active.set(request.requestId, controller)
@@ -130,6 +147,19 @@ export class ClientCordisInspectRegistry {
   close(requestId: CordisInspectRequestId): void {
     this.active.get(requestId)?.abort()
     this.active.delete(requestId)
+  }
+
+  /**
+   * Stop manifest publication, cancel queries, and join their transport work.
+   * Provider handlers must settle after cancellation for disposal to complete.
+   * @returns after started publications and queries, including result delivery, settle.
+   */
+  async dispose(): Promise<void> {
+    this.disposed = true
+    this.providers.clear()
+    for (const controller of this.active.values()) controller.abort()
+    this.active.clear()
+    await Promise.allSettled([this.syncChain, ...this.pendingQueries])
   }
 }
 

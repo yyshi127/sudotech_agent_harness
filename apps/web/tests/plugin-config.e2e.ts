@@ -30,6 +30,7 @@ describe('web e2e: plugin configuration pages', () => {
   let browser: Browser
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
+  let defaultTimeout: string
 
   beforeAll(async () => {
     // The live-client fixture is a bundle with a browser half; switched on
@@ -38,6 +39,7 @@ describe('web e2e: plugin configuration pages', () => {
       extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
       profile: { packages: [{ dir: join(FIXTURE_PLUGINS, 'fixture-live-client') }] },
     })
+    defaultTimeout = String(scaffold.ctx.shell.resolve({ command: 'true' }).timeoutMs)
     browser = await chromium.launch()
     // Chinese browser: the pages assert the localized copy the client derives
     // from it, as the rest of the settings surface does.
@@ -203,13 +205,13 @@ describe('web e2e: plugin configuration pages', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-config-write'))
     const panel = await openPlugins()
     await openPage(panel, '终端')
-    const entry = [...scaffold.ctx.loader.entries()].find(row => row.options.id === 'bash-sandbox')!
+    const entry = [...scaffold.ctx.loader.entries()].find(row => row.options.id === (process.platform === 'win32' ? 'pwsh-sandbox' : 'bash-sandbox'))!
     const fiber = entry.fiber
 
     const timeout = panel.getByLabel('命令超时（毫秒）')
     await timeout.waitFor({ timeout: 10_000 })
     // The composed default this deployment ships, before any user layer.
-    expect(await timeout.inputValue()).toBe('60000')
+    expect(await timeout.inputValue()).toBe(defaultTimeout)
     await timeout.fill('12000')
     await timeout.blur()
 
@@ -276,14 +278,14 @@ describe('web e2e: plugin configuration pages', () => {
     // The reset stages the composed default; the document still carries the
     // override until the save lands.
     await panel.getByRole('button', { name: '恢复默认' }).click()
-    await expect.poll(() => timeout.inputValue(), { timeout: 5_000 }).toBe('60000')
+    await expect.poll(() => timeout.inputValue(), { timeout: 5_000 }).toBe(defaultTimeout)
     expect(await settingsDocument()).toContain('timeoutMs: 12000')
 
     await panel.getByRole('button', { name: '保存', exact: true }).click()
 
     await expect.poll(async () => (await settingsDocument()).includes('timeoutMs'), { timeout: 10_000 })
       .toBe(false)
-    expect(await timeout.inputValue()).toBe('60000')
+    expect(await timeout.inputValue()).toBe(defaultTimeout)
     expect(await panel.getByText('已覆盖').count()).toBe(0)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)

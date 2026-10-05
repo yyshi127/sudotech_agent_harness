@@ -34,6 +34,7 @@ interface PackageManifest {
 /** One bundle: where its package.json is (plugin names resolve from there) and its parsed patch list. */
 interface BundleLayer {
   readonly manifestPath: string
+  readonly manifest: PackageManifest
   readonly patches: PatchOptions[]
 }
 
@@ -64,11 +65,12 @@ export function bundleRoster(
     if (disabledContext !== undefined
       && disabled.some(value => isJsExpr(value) && Boolean(evaluate(disabledContext, value.__jsExpr)))) continue
     seen.add(name)
-    const manifestPath = locateManifest(anchors, name)
+    const ownLayer = layers.find(layer => layer.manifest.name === name)
+    const manifestPath = ownLayer?.manifestPath ?? locateManifest(anchors, name)
     if (manifestPath === undefined) {
       throw new Error(`client-test-runtime: cannot resolve plugin package ${name} from ${bundles.join(', ')}`)
     }
-    const manifest = readManifest(manifestPath)
+    const manifest = ownLayer?.manifest ?? readManifest(manifestPath)
     if (manifest.name !== name) {
       throw new Error(`client-test-runtime: ${manifestPath} names ${JSON.stringify(manifest.name)}, expected ${name}`)
     }
@@ -86,7 +88,8 @@ export function bundleRoster(
 function readLayer(bundle: string, anchor: string): BundleLayer {
   const manifestPath = locateManifest([anchor], bundle)
   if (manifestPath === undefined) throw new Error(`client-test-runtime: cannot resolve bundle ${bundle} from ${anchor}`)
-  const declared = readManifest(manifestPath).dsh?.bundle?.patch
+  const manifest = readManifest(manifestPath)
+  const declared = manifest.dsh?.bundle?.patch
   const files = typeof declared === 'string' ? [declared] : declared
   if (!Array.isArray(files) || !files.every(file => typeof file === 'string')) {
     throw new Error(`client-test-runtime: bundle ${bundle} declares no dsh.bundle.patch file list in ${manifestPath}`)
@@ -97,7 +100,7 @@ function readLayer(bundle: string, anchor: string): BundleLayer {
     if (!Array.isArray(parsed)) throw new Error(`client-test-runtime: ${file} must be a top-level list of patches`)
     return parsed as PatchOptions[]
   })
-  return { manifestPath, patches }
+  return { manifestPath, manifest, patches }
 }
 
 /** One Loader row with its ancestor and own disable conditions, in outer-to-inner order. */

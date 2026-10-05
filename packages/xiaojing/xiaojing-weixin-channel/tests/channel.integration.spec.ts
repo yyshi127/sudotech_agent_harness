@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Config, XiaojingWeixinChannel } from '../src/index.ts'
 import { WeixinStateStore } from '../src/state.ts'
@@ -72,7 +72,7 @@ describe('Xiaojing Weixin assembled channel', () => {
     expect(Config({}).progressHeartbeatMs).toBe(30_000)
   })
 
-  it('recovers a state-write failure, serializes tasks, confirms risky work, deduplicates input, and formats replies', async () => {
+  it.each(['once', 'session'] as const)('recovers a state-write failure, serializes tasks, and handles %s approvals', async (approvalKind) => {
     const root = await mkdtemp(join(tmpdir(), 'xiaojing-weixin-channel-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const store = new WeixinStateStore(join(root, 'state.json'))
@@ -95,6 +95,10 @@ describe('Xiaojing Weixin assembled channel', () => {
     let updateBatch = 0
     let approvalCode: string | undefined
     const approvalAvailable = Promise.withResolvers<undefined>()
+    const cancelledSendStarted = Promise.withResolvers<undefined>()
+    const cancelledSend = Promise.withResolvers<Response>()
+    const approvalReplyAllowed = Promise.withResolvers<undefined>()
+    if (approvalKind === 'session') approvalReplyAllowed.resolve(undefined)
     const heartbeatAvailable = Promise.withResolvers<undefined>()
     let permissionCode: string | undefined
     const permissionCodeAvailable = Promise.withResolvers<undefined>()
@@ -109,6 +113,10 @@ describe('Xiaojing Weixin assembled channel', () => {
         const body = JSON.parse(requestBody(init)) as { msg: { item_list: Array<{ text_item: { text: string } }> } }
         const text = body.msg.item_list[0]?.text_item.text ?? ''
         outbound.push(text)
+        if (text.includes('原因：取消后迟到的发送失败')) {
+          cancelledSendStarted.resolve(undefined)
+          return await cancelledSend.promise
+        }
         const found = text.match(/确认码：(\d{6})/)
         if (found?.[1] !== undefined && approvalCode === undefined) {
           approvalCode = found[1]
@@ -159,13 +167,18 @@ describe('Xiaojing Weixin assembled channel', () => {
                 client_id: 'malformed-confirmation', from_user_id: 'owner-user', context_token: 'ctx-malformed',
                 item_list: [{ type: 1, text_item: { text: '确认' } }],
               },
+              ...approvalKind === 'once' ? [{
+                client_id: 'ineligible-session-confirmation', from_user_id: 'owner-user', context_token: 'ctx-ineligible',
+                item_list: [{ type: 1, text_item: { text: `始终确认 ${approvalCode}` } }],
+              }] : [],
             ],
           })
         }
         if (updateBatch === 4) {
+          await approvalReplyAllowed.promise
           const confirmation = {
             client_id: 'right-confirmation', from_user_id: 'owner-user', context_token: 'ctx-right',
-            item_list: [{ type: 1, text_item: { text: `确认${approvalCode}` } }],
+            item_list: [{ type: 1, text_item: { text: `${approvalKind === 'session' ? '始终确认' : '确认'}${approvalCode}` } }],
           }
           return json({
             ret: 0,
@@ -256,8 +269,41 @@ describe('Xiaojing Weixin assembled channel', () => {
       const instruction = request.content[0]?.text ?? ''
       if (instruction.includes('删除')) {
         await heartbeatAvailable.promise
-        const outcome = await approval({ agent, toolName: 'computer_control', reason: '将删除测试文件' })
-        expect(outcome).toBe('allowed-once')
+        if (approvalKind === 'once') {
+          const alreadyCancelled = new AbortController()
+          alreadyCancelled.abort()
+          expect(await approval({ agent, toolName: 'computer_control', reason: '入场前已取消',
+            signal: alreadyCancelled.signal })).toBe('cancelled')
+
+          const registering = new AbortController()
+          const addListener = registering.signal.addEventListener.bind(registering.signal)
+          const registration = vi.spyOn(registering.signal, 'addEventListener').mockImplementation((...args) => {
+            registering.abort()
+            addListener(...args)
+          })
+          expect(await approval({ agent, toolName: 'computer_control', reason: '注册期间已取消',
+            signal: registering.signal })).toBe('cancelled')
+          registration.mockRestore()
+
+          const sending = new AbortController()
+          const obsolete = approval({ agent, toolName: 'computer_control', reason: '取消后迟到的发送失败',
+            signal: sending.signal })
+          await cancelledSendStarted.promise
+          sending.abort()
+          const current = approval({ agent, toolName: 'computer_control', reason: '将删除测试文件' })
+          await approvalAvailable.promise
+          cancelledSend.reject(new Error('obsolete confirmation delivery failed'))
+          expect(await obsolete).toBe('cancelled')
+          approvalReplyAllowed.resolve(undefined)
+          expect(await current).toBe('allowed-once')
+          expect(outbound.some(text => text.includes('原因：入场前已取消') || text.includes('原因：注册期间已取消'))).toBe(false)
+        } else {
+          const outcome = await approval({ agent, toolName: 'computer_control', reason: '将删除测试文件',
+            reusable: { category: 'fixture:invoke', scope: 'fixture:window',
+              label: 'Invoke the test control', displayLabel: { en: 'Invoke the test control', zh: '操作测试窗口中的按钮' } },
+          })
+          expect(outcome).toBe('allowed-session')
+        }
       }
       emit('session/event', agent.session, {
         type: 'assistant/message', seq: currentTurn * 2, time: Date.now(),
@@ -273,7 +319,7 @@ describe('Xiaojing Weixin assembled channel', () => {
       return { accepted: true }
     })
     const rpcHandle = vi.fn(() => () => undefined)
-    const ctx = {
+    const ctx = new Context().extend({
       attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: rpcHandle } },
       credentials: {
@@ -282,6 +328,7 @@ describe('Xiaojing Weixin assembled channel', () => {
         unset: vi.fn(async () => { token = undefined }),
       },
       sessionController: {
+        resolveAgent: vi.fn(async () => ({ agent })),
         create: vi.fn(async () => ({ sessionId })),
         rename,
         prompt,
@@ -297,7 +344,7 @@ describe('Xiaojing Weixin assembled channel', () => {
         const dispose = factory()
         if (typeof dispose === 'function') disposers.push(dispose as () => unknown)
       },
-    } as unknown as Context
+    })
 
     const channel = new XiaojingWeixinChannel(ctx, {
       stateDir: root,
@@ -332,9 +379,14 @@ describe('Xiaojing Weixin assembled channel', () => {
     expect(outbound.some(text => text.includes('已用时约 1 秒'))).toBe(true)
     expect(outbound.some(text => text.includes('确认码无效或已过期'))).toBe(true)
     expect(outbound.some(text => text.includes('格式不正确'))).toBe(true)
-    expect(outbound.filter(text => text.includes('已确认，继续执行'))).toHaveLength(1)
+    expect(outbound.filter(text => text.includes(approvalKind === 'session'
+      ? '已批准本会话内同类且同范围' : '已确认，继续执行'))).toHaveLength(1)
+    expect(outbound.some(text => text.includes('适用范围：操作测试窗口中的按钮'))).toBe(approvalKind === 'session')
+    expect(outbound.some(text => text.includes('本次操作仅支持单次确认'))).toBe(approvalKind === 'once')
     expect(outbound.filter(text => text.includes('已处理“')).length).toBe(2)
     expect(outbound.some(text => text.includes('确认启用 Full access'))).toBe(true)
+    expect(outbound.some(text => text.includes('明确批准过的同类且同范围操作可在本会话复用授权'))).toBe(true)
+    expect(outbound.some(text => text.includes('删除等强制安全确认仍会在微信中要求一次性确认'))).toBe(false)
     expect(outbound.some(text => text.includes('权限已切换为 Full access'))).toBe(true)
     expect(executeCommand.mock.calls.map(call => call[1])).toEqual([
       '/permission danger-full-access',
@@ -350,6 +402,7 @@ describe('Xiaojing Weixin assembled channel', () => {
     expect(persisted.completedMessageIds).toEqual([
       'client:wrong-confirmation',
       'client:malformed-confirmation',
+      ...approvalKind === 'once' ? ['client:ineligible-session-confirmation'] : [],
       'client:right-confirmation',
       'client:first-task',
       'client:second-task',
@@ -430,7 +483,7 @@ describe('Xiaojing Weixin assembled channel', () => {
       return { accepted: true }
     })
     const cancel = vi.fn(() => ({ accepted: true }))
-    const ctx = {
+    const ctx = new Context().extend({
       attachments: { imageLimits: IMAGE_LIMITS },
       connection: { rpc: { handle: () => () => undefined } },
       credentials: {
@@ -438,6 +491,7 @@ describe('Xiaojing Weixin assembled channel', () => {
         unset: vi.fn(),
       },
       sessionController: {
+        resolveAgent: vi.fn(async () => ({ agent })),
         create: vi.fn(async () => ({ sessionId })),
         rename: vi.fn(),
         prompt,
@@ -448,7 +502,7 @@ describe('Xiaojing Weixin assembled channel', () => {
       logger: { warn: vi.fn() },
       on,
       effect: (factory: () => unknown) => { factory() },
-    } as unknown as Context
+    })
     const channel = new XiaojingWeixinChannel(ctx, {
       stateDir: root,
       requestTimeoutMs: 1_000,

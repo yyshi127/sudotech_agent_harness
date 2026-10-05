@@ -88,6 +88,23 @@ it('holds configuration handlers behind configuration mutations', async () => {
   expect(order).toEqual(['write', 'refresh'])
 })
 
+it('queues detached notification work after its owning transaction while rejecting direct nesting', async () => {
+  const { hmr } = await fixture()
+  const order: string[] = []
+  let followup: Promise<void> | undefined
+  await hmr.runExclusive(async () => {
+    const value = hmr.runOutsideTransaction(() => {
+      followup = Promise.resolve().then(() => hmr.runExclusive(async () => { order.push('followup') }))
+      return 'scheduled'
+    })
+    expect(value).toBe('scheduled')
+    await expect(hmr.runExclusive(async () => {})).rejects.toThrow('cannot be nested')
+    order.push('owner')
+  })
+  await followup
+  expect(order).toEqual(['owner', 'followup'])
+})
+
 it('reports unrelated lock-file notifications without reloading', async () => {
   const { ctx, dir, hmr } = await fixture()
   const loaded = vi.spyOn(ctx.loader, 'await')

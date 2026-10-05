@@ -34,7 +34,7 @@
 .placeholder {
   background: #fff;
   border: 1px solid #d8e7e4;
-  border-radius: 14px;
+  border-radius: var(--dsw-radius-lg);
   padding: 18px;
 }
 
@@ -57,7 +57,7 @@
   align-items: flex-start;
   background: #f7fbfa;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-md);
   display: flex;
   gap: 10px;
   justify-content: space-between;
@@ -118,7 +118,7 @@
 .archiveConfirm {
   background: #fff8ec;
   border: 1px solid #f1d5a6;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-sm);
   inset: calc(100% + 6px) 0 auto;
   padding: 10px;
   position: absolute;
@@ -184,7 +184,7 @@
 .editor textarea {
   background: #fbfdfd;
   border: 1px solid #cadbd8;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-sm);
   box-sizing: border-box;
   color: #102233;
   font: inherit;
@@ -197,12 +197,12 @@
 .editor select:focus,
 .editor textarea:focus {
   border-color: #0b9a85;
-  box-shadow: 0 0 0 3px rgb(11 154 133 / 10%);
+  box-shadow: 0 0 0 3px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
 }
 
 .editor fieldset {
   border: 1px solid #d8e7e4;
-  border-radius: 10px;
+  border-radius: var(--dsw-radius-md);
   margin: 18px 0 0;
   padding: 14px;
 }
@@ -238,7 +238,7 @@
 
 .systemNotice {
   background: #f7fbfa;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-sm);
   color: #708482;
   font-size: 13px;
   line-height: 1.6;
@@ -295,7 +295,7 @@
 }
 
 .containedEditor .fields:focus-visible {
-  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
   outline-offset: -2px;
 }
 
@@ -318,7 +318,7 @@
   flex: none;
   margin: 0;
   padding: 12px 24px;
-  border-top: 1px solid var(--dsw-alias-border-l2);
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
   background: var(--dsw-alias-bg-layer-2);
 }
 
@@ -332,7 +332,7 @@
 
 .primary,
 .secondary {
-  border-radius: 9px;
+  border-radius: var(--dsw-radius-sm);
   cursor: pointer;
   font: inherit;
   padding: 9px 16px;
@@ -359,7 +359,7 @@
   align-items: center;
   background: #fff4f2;
   border: 1px solid #efc6c0;
-  border-radius: 9px;
+  border-radius: var(--dsw-radius-sm);
   color: #a73f38;
   display: flex;
   justify-content: space-between;

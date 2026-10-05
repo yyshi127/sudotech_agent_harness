@@ -26,14 +26,17 @@ import {
   seedSession,
   readPersistedEvents,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, pinBrowserClock, saveFailureShot, WEB_FIXTURE_TIME, writeComposerDraft } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/reference-composer', import.meta.url))
-const MENU_EXPECTED = join(SNAPSHOT_DIR, 'menu.expected.md')
-const ORDER_EXPECTED = join(SNAPSHOT_DIR, 'order.expected.md')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const MENU_EXPECTED = join(SNAPSHOT_DIR, `menu${XIAOJING ? '.xiaojing' : ''}.${process.platform === 'win32' && XIAOJING ? 'windows.' : ''}expected.md`)
+const ORDER_EXPECTED = join(SNAPSHOT_DIR, `order${XIAOJING ? '.xiaojing' : ''}.expected.md`)
 const MODE = webSnapshotMode()
 const SOURCE_SESSION_ID = 'reference-source-session'
 const TARGET_SESSION_ID = 'reference-order-target-session'
@@ -145,7 +148,7 @@ describe.skipIf(MODE === 'record')('web e2e: file and session references through
   let unpinBrowserClock: (() => void) | undefined
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({})
+    scaffold = await launchWebScaffold(XIAOJING ? XIAOJING_ROUTE_CATALOG : {})
     const targetCreatedAt = WEB_FIXTURE_TIME - 60_000
     await seedSession(scaffold, sourceSessionFixture(), SOURCE_SESSION_ID, undefined, { createdAt: targetCreatedAt - 1 })
     await seedSession(scaffold, targetSessionFixture(), TARGET_SESSION_ID, undefined, { createdAt: targetCreatedAt })
@@ -188,7 +191,10 @@ describe.skipIf(MODE === 'record')('web e2e: file and session references through
     const snapshot = await captureStableAria(
       page, '[role="listbox"]', scaffold.workspaceCwd, {
         normalizeAge: true,
-        replacements: [[abbreviateHomePath(scaffold.workspaceCwd, homedir()), '{{cwd}}']],
+        replacements: [
+          [abbreviateHomePath(scaffold.workspaceCwd, homedir()).replaceAll('\\', '\\\\'), '{{cwd}}'],
+          [abbreviateHomePath(scaffold.workspaceCwd, homedir()), '{{cwd}}'],
+        ],
       },
     )
     await compareOrRefreshGolden(MENU_EXPECTED, snapshot, MODE)
@@ -421,6 +427,9 @@ describe.skipIf(MODE === 'record')('web e2e: file and session references through
     expect(snapshot).not.toContain('Session recall Research notes')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['menu.expected.md', 'order.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'menu.expected.md', 'order.expected.md', 'menu.xiaojing.expected.md',
+      'menu.xiaojing.windows.expected.md', 'order.xiaojing.expected.md',
+    ])
   })
 })

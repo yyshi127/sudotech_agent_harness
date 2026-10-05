@@ -6,6 +6,7 @@ import {
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionPendingInteraction } from '@deepseek-ai/dsh-client-ui-session/client'
 import {
   IconChevronDownOutlineRegular, IconChevronRightOutlineRegular, IconRefreshOutlineRegular, StateDot, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -17,9 +18,18 @@ import css from './SubagentHeaderLineage.module.css'
 
 type SubagentCatalogSnapshot = Omit<SessionProjectionSnapshot, 'values' | 'state'> & {
   state: 'loading' | 'ready' | 'error'
-  entries: (SessionProjectionMap['subagentCatalog'][number] & { activity: 'running' | 'inactive' })[]
+  entries: (SessionProjectionMap['subagentCatalog'][number] & { activity: 'running' | 'inactive'; pendingKind?: SessionPendingInteraction['kind'] | undefined })[]
 }
 type Catalogs = Readonly<Record<SessionId, SubagentCatalogSnapshot>>
+
+function pendingLabel(kind: SessionPendingInteraction['kind'] | undefined, t: TranslateNS<typeof NS>): string | undefined {
+  switch (kind) {
+    case 'approval': return t('activity.approval')
+    case 'question': return t('activity.question')
+    case 'plan-review': return t('activity.planReview')
+    default: return undefined
+  }
+}
 
 /** Business actions supplied by the slot registration. */
 export interface SubagentCatalogInjected {
@@ -242,11 +252,12 @@ function CatalogRows({
           : entry.mode === 'one-shot' ? t('mode.oneShot') : t('mode.continuable')
         const completed = entry.activity === 'inactive'
           && summary?.projectionValues?.subagentTiming?.lastTurnCompleted === true
-        const activity = entry.activity === 'running'
+        const waiting = pendingLabel(entry.pendingKind, t)
+        const activity = waiting ?? (entry.activity === 'running'
           ? t('activity.running')
           : completed
             ? t('activity.completed')
-            : t('activity.inactive')
+            : t('activity.inactive'))
         const secondary = [summary?.title, mode, activity]
           .filter(value => value !== undefined)
           .join(' · ')
@@ -331,7 +342,7 @@ function CatalogRows({
                 )}
               <div className={css.clickarea}>
                 <span className={css.rowActivitySlot}>
-                  <StateDot state={entry.activity === 'running' ? 'ongoing' : completed ? 'done' : 'idle'} />
+                  <StateDot state={waiting !== undefined ? 'warning' : entry.activity === 'running' ? 'ongoing' : completed ? 'done' : 'idle'} />
                 </span>
                 <span className={css.content}>
                   <span className={`${css.label} ${isCurrent ? css.currentLabel : ''}`}>{label}</span>
@@ -458,6 +469,7 @@ function CatalogDropdown({
     error: snapshot.error,
     entries: (snapshot.values.subagentCatalog ?? []).map(entry => ({
       ...entry, activity: (statuses.get(entry.id)?.running ?? summaries[entry.id]?.running) === true ? 'running' as const : 'inactive' as const,
+      pendingKind: statuses.get(entry.id)?.pendingInteraction?.kind,
     })),
   }])), [projections, summaries, statuses])
   const catalog = catalogs[rootSessionId]
@@ -480,6 +492,8 @@ function CatalogDropdown({
   const directChildren = catalog?.entries ?? []
   const directCount = directChildren.length
   const runningCount = directChildren.filter(entry => entry.activity === 'running').length
+  const waitingChild = directChildren.find(entry => pendingLabel(entry.pendingKind, t) !== undefined)
+  const waitingLabel = pendingLabel(waitingChild?.pendingKind, t)
   const totalCountKey = directCount === 1 ? 'count.total.one' : 'count.total.other'
   const runningCountKey = runningCount === 1 ? 'count.running.one' : 'count.running.other'
   const presentedCatalog: SubagentCatalogSnapshot | undefined = catalog ?? (variant === 'switcher'
@@ -686,9 +700,9 @@ function CatalogDropdown({
           ? <span className={css.switcherTitle}>{switcherDisplayTitle}</span>
           : (
             <>
-              {runningCount > 0 && (
+              {(runningCount > 0 || waitingChild !== undefined) && (
                 <span className={css.activitySlot}>
-                  <StateDot state="ongoing" />
+                  <StateDot state={waitingChild === undefined ? 'ongoing' : 'warning'} />
                 </span>
               )}
               <span className={css.count}>{t(totalCountKey, { count: directCount })}</span>
@@ -698,6 +712,20 @@ function CatalogDropdown({
           ? <SubagentSwitcherIcon />
           : <IconChevronDownOutlineRegular className={open ? css.triggerOpen : undefined} />}
       </button>
+      {variant === 'count' && waitingChild !== undefined && waitingLabel !== undefined && (
+        <button
+          type="button"
+          className={css.trigger}
+          aria-label={t('pending.open', { state: waitingLabel, label: waitingChild.label ?? waitingChild.id })}
+          onClick={() => {
+            changeOpen(false)
+            openChild({ parentSessionId: rootSessionId, childSessionId: waitingChild.id, mode: waitingChild.mode })
+          }}
+        >
+          <StateDot state="warning" />
+          {t('pending.state', { state: waitingLabel })}
+        </button>
+      )}
       {open && createPortal((
         <div
           ref={menuRef}

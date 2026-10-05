@@ -29,6 +29,10 @@ This public experimental library is a dependency of the browser providers. It ha
 
 Native providers construct `SessionResources` from the package root, supplying resource acquisition and cleanup callbacks. Calls pass the exact live Agent to `run()`; stale owners and a second owner of an exclusive attachment fail before acquisition. Canceling an acquisition wait leaves initialization available to other callers in the same Session; Session disposal aborts and awaits that initialization. Providers keep their registration until `dispose()` finishes.
 
+`release(agent)` closes only that owner's connection and waits for its pending operations. Other owners retain their resources. A successfully released live owner can acquire a fresh connection; failed cleanup retains the reservation, and callers cannot use or acquire a connection while it is closing. Releasing an owner without a resource does not acquire one.
+
+An owned resource may return `initialize()` for startup after acquisition. Operations await it; startup failure retains the resource until `release()` or disposal confirms its `close()` completed. An `open()` callback that rejects before returning a resource must finish its own rollback. Providers must observe cleanup failures directly when their registration framework only logs effect-disposal errors.
+
 MCP providers use `mountSessionMcp` from `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp`, supplying their fixed server name, executable, arguments, and ownership policy. The helper awaits one scoped client startup and discovery attempt within each future Agent's `agent/created` event. Agent creation or resume completes after discovery, before queued input runs; a successful client remains owned by that Session across turns.
 
 A busy attachment skips startup permanently for that live activation while its other work continues. Releasing the attachment does not retry skipped activations; a newly created or resumed Agent can acquire it. Startup failure or cancellation rejects Agent creation or resume and triggers creation rollback, including client cleanup. Reconnection is disabled. Loading or reloading a provider applies only to future Agent activations.
@@ -45,7 +49,7 @@ Browser tools and resource requests targeting this server use the same queue and
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The [resource manager](src/index.ts) keys ownership by live Agent identity and joins operation cancellation with owner disposal. Each resource has one acquisition promise and one operation queue. Failed acquisition releases its reservation only after the provider callback rolls back acquired resources.
+The [resource manager](src/index.ts) keys ownership by live Agent identity and joins operation cancellation with owner disposal. Each resource has one acquisition promise and one operation queue. Failed acquisition releases its reservation only after the provider callback rolls back acquired resources; failed initialization retains the returned resource for cleanup.
 
 Disposed-cause cancellation starts resource cleanup before AgentHandle waits for idle. Cleanup closes resources before waiting for running operations, allowing connection teardown to interrupt upstream APIs without abort support. A failed close rejects disposal and retains ownership. Agent-scoped cleanup prevents a resumed Session with the same durable id from inheriting a previous browser.
 

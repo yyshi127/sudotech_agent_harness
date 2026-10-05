@@ -31,7 +31,15 @@ kind: "package-bundle"
 
 启动 GUI、打开浏览器，然后开始与 agent（智能体）对话。flag 用于微调本次调用。
 
+xiaojing 部署关闭 llm-deepseek-account 行。模型通过已配置的 API Key 提供商访问；已有凭据与历史 Session（会话）保持保留。
+
+xiaojing 部署停用 DeepSeek 会话日志请求贡献器及其通用设置行，即使已保存的 `enabled` 设置为 true 也不启用。正常模型请求与本地 Session 持久化仍可使用；独立的 OpenTelemetry 反馈策略保持不变。
+
+xiaojing 部署中的标准、PTC 与创造模式声明将身份前缀留空，由产品提供办公身份。用户显式定义的人格仍然覆盖该默认值。
+
 ### 启动 Web GUI
+
+小兢部署使用[原生 Edge 与 Chrome 浏览器插件](../../xiaojing/xiaojing-browser-control/README.zh.md#native-browser-connections)。浏览器使用注册表、原生消费端和持久浏览器权限服务只在产品组装中启用。设置 Client 管理这些原生连接；旧 Edge Host 禁用，保留其已保存的配置和扩展凭据。
 
 ```sh
 dsh --profile web

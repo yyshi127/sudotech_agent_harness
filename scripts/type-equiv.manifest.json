@@ -1096,6 +1096,26 @@
       "symbol": "ApprovalOutcome",
       "source": "packages/interaction/user-approval/src/types.ts"
     },
+      {
+        "doc": "docs/subsystems/approval.md",
+        "symbol": "ApprovalAnswer",
+        "source": "packages/interaction/user-approval/src/types.ts"
+      },
+      {
+        "doc": "docs/subsystems/approval.md",
+        "symbol": "ApprovalReuse",
+        "source": "packages/interaction/user-approval/src/types.ts"
+      },
+      {
+        "doc": "docs/subsystems/approval.md",
+        "symbol": "ApprovalReuseAudit",
+        "source": "packages/interaction/user-approval/src/types.ts"
+      },
+      {
+        "doc": "docs/subsystems/approval.md",
+        "symbol": "ApprovalAuthorization",
+        "source": "packages/interaction/user-approval/src/types.ts"
+      },
     {
       "doc": "docs/subsystems/approval.md",
       "symbol": "ApprovalPolicy",

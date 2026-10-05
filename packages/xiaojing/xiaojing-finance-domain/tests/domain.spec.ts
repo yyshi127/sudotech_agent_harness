@@ -19,6 +19,7 @@ import {
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
+import ApprovalService from '@deepseek-ai/dsh-user-approval'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import XiaojingFinanceDomain from '../src/index.ts'
 import { OpenItemDeletionRecords, type OpenItemDeletionId } from '../src/open-item-deletion-records.ts'
@@ -1132,9 +1133,10 @@ describe('XiaojingFinanceDomain', () => {
           if (typeof init.body !== 'string') throw new Error('Expected journal query JSON')
           expect(JSON.parse(init.body)).toMatchObject({ dateStart: input.date, dateEnd: input.date })
           return Response.json({ result: 100, data: writes === 0 ? [] : [{
-            id: 141053, date: input.date, abstractStr: input.summary, keeperName: input.keeperName,
+            id: 141052 + writes, date: input.date, abstractStr: input.summary, keeperName: input.keeperName,
             subjectId: 174622, accountCode: '', accountName: '', subjectName: '库存现金', currencyCode: 'RMB', baseCurrencyCode: 'RMB',
-            borrow: 0.11, categoryId: 578250, categoryName: '收-其他收入', preId: 0, reviewStatus: 0, reviewUser: '', reviewUserId: '',
+            borrow: 0.11, categoryId: 578250, categoryName: '收-其他收入', preId: writes > 1 ? 141051 + writes : 0,
+            reviewStatus: 0, reviewUser: '', reviewUserId: '',
             certificateWordAndCode: '', cashManagementId: '', auxiliaryItemIds: '', orderCode: '', relationOrderCodeList: [], attachList: [],
           }] })
         }
@@ -1144,7 +1146,7 @@ describe('XiaojingFinanceDomain', () => {
         expect(JSON.parse(init.body)).toMatchObject({ subjectId: 174622, borrow: 0.11, loan: null, categoryName: '其他收入' })
         writes += 1
         if (mode === 'lost') throw new Error('response lost')
-        return Response.json({ result: 100, data: '141053' })
+        return Response.json({ result: 100, data: String(141052 + writes) })
       }))
       const signal = new AbortController().signal
       const first = await ctx.xiaojingFinanceDomain.prepareJournal(finance, { action: 'prepare', input }, signal, 10000)
@@ -1165,7 +1167,14 @@ describe('XiaojingFinanceDomain', () => {
           { action: 'revise', id: first.id, version: 1, input: { ...input, amount: '0.22' } }, signal, 10000)
         return mode === 'denied' ? 'denied' : 'allowed-once'
       })
-      ctx.provide('approval', { requestMandatory: approval } as never)
+      if (mode === 'accepted') {
+        await ctx.plugin(ApprovalService).await()
+        finance.session.append('turn/start', { turn: 1 })
+        ctx.on('approval/request', async (request) => {
+          await approval({ toolName: request.toolName, reason: request.reason ?? '' })
+          return 'allowed-session'
+        })
+      } else ctx.provide('approval', { requestMandatory: approval } as never)
       const submitted = ctx.xiaojingFinanceDomain.createJournal(finance, { id: first.id, version: 1 }, signal, 10000)
       if (mode === 'denied' || mode === 'changed'
         || ['currency-changed', 'currency-missing', 'type-changed', 'direction-changed'].includes(mode)) {
@@ -1189,6 +1198,21 @@ describe('XiaojingFinanceDomain', () => {
       }
       await expect(ctx.xiaojingFinanceDomain.prepareJournal(agent(ctx, 'journal-standard', 'standard', standardRoot),
         { action: 'inspect', id: first.id }, signal, 10000)).rejects.toThrow()
+      if (mode === 'accepted') {
+        const second = await ctx.xiaojingFinanceDomain.prepareJournal(finance, { action: 'prepare', input }, signal, 10000)
+        if (!('id' in second)) throw new Error('Missing second journal preview ID')
+        expect(second.id).not.toBe(first.id)
+        expect(await ctx.xiaojingFinanceDomain.createJournal(finance, { id: second.id, version: 1 }, signal, 10000))
+          .toMatchObject({ phase: 'accepted', complete: true })
+        expect(writes).toBe(2)
+        const third = await ctx.xiaojingFinanceDomain.prepareJournal(finance, { action: 'prepare', input }, signal, 10000)
+        if (!('id' in third)) throw new Error('Missing third journal preview ID')
+        await ctx.xiaojingFinanceDomain.prepareJournal(finance,
+          { action: 'revise', id: third.id, version: 1, input: { ...input, amount: '0.22' } }, signal, 10000)
+        await expect(ctx.xiaojingFinanceDomain.createJournal(finance, { id: third.id, version: 1 }, signal, 10000))
+          .rejects.toThrow('版本已变化')
+        expect(writes).toBe(2)
+      }
       expect(approval).toHaveBeenCalledTimes(1)
     } finally { await dispose() }
   })

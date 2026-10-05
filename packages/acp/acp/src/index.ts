@@ -150,8 +150,8 @@ export function apply(ctx: Context, config: AcpConfig): void {
   })
 
   // Permission requests are a machine policy channel for ACP clients such as
-  // dsh-subagent-acp. The bridge offers one-shot choices only and never infers a
-  // durable grant from an unknown client response.
+  // dsh-subagent-acp. Session authorization is offered only for a trusted
+  // classification; unknown responses never grant access.
   ctx.on('approval/request', (request, next) => {
     const record = ownedRecord(request.agent)
     if (record === undefined || request.callId === undefined) return next()
@@ -162,12 +162,18 @@ export function apply(ctx: Context, config: AcpConfig): void {
         toolCall: { toolCallId: callId },
         options: [
           { optionId: 'allow-once', name: 'Allow once', kind: 'allow_once' },
+          ...request.reusable === undefined ? [] : [{
+            optionId: 'allow-session',
+            name: `Always allow in this session: ${request.reusable.label}`,
+            kind: 'allow_always' as const,
+          }],
           { optionId: 'reject-once', name: 'Reject', kind: 'reject_once' },
         ],
       }
       return conn.request(methods.client.session.requestPermission, params)
     }).then(({ outcome }) => {
       if (outcome.outcome === 'cancelled') return 'cancelled'
+      if (outcome.optionId === 'allow-session' && request.reusable !== undefined) return 'allowed-session'
       return outcome.optionId === 'allow-once' ? 'allowed-once' : 'rejected'
     })
   })

@@ -7,10 +7,13 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
-import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
+import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webClientProfile, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE } from './support.ts'
 
 const MIRROR = 'https://registry.npmmirror.com/'
+const INSTALLED_EXPECTED = fileURLToPath(new URL(webClientProfile() === 'xiaojing' && process.platform === 'win32'
+  ? './expected/plugin-install-registry-xiaojing/installed.expected.md'
+  : './expected/plugin-install-registry/installed.expected.md', import.meta.url))
 
 it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding registry %s, remembers it, and falls back after a registry failure', async (winner) => {
   const scratch = await mkdtemp(join(tmpdir(), 'dsh-install-registry-'))
@@ -121,12 +124,13 @@ it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding
       const installed = (await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd))
         .split(process.execPath).join('{{node}}')
         .split(scaffold.harnessHome).join('{{harnessHome}}')
-      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-registry/installed.expected.md', import.meta.url)), installed, webSnapshotMode())
+      await compareOrRefreshGolden(INSTALLED_EXPECTED, installed, webSnapshotMode())
       // The dialog opened again starts from the registry picked for the last install.
       await dialog.getByRole('button', { name: '立即启用', exact: true }).click()
       await panel.getByRole('button', { name: '添加插件', exact: true }).click()
       await page.getByRole('dialog').getByRole('button', { name: '安装源 中国大陆镜像源', exact: true }).waitFor()
       expect(tripwire.pageErrors).toEqual([])
+      expect(tripwire.warnings).toEqual([])
     } finally { await browser.close() }
   } finally {
     await scaffold?.close()

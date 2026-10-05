@@ -18,6 +18,7 @@ type ApprovalListener = (
     callId?: string
     reason?: string
     displayReason?: PendingApproval['displayReason']
+    reusable?: PendingApproval['reusable']
     signal?: AbortSignal
   },
   next: () => Promise<'unavailable'>,
@@ -304,6 +305,23 @@ describe('approval Remote Event consumer', () => {
     await scope.fiber.dispose()
   })
 
+  it('projects the offered session range without retaining Host matching identifiers', async () => {
+    const bench = await setupPlugin()
+    const scope = createScope(bench.ctx, id('s1'))
+    await scope.fiber.await()
+    const reusable = {
+      category: 'owned-files', scope: 'workspace-one', label: 'Read files in this workspace',
+      displayLabel: { en: 'Read workspace files', zh: '读取当前工作区文件' },
+    }
+    const result = bench.listener.call(scope.ctx, { toolName: 'read', reusable }, () => Promise.resolve('unavailable'))
+    const pending = bench.pending.getSnapshot()[0]!
+    expect(pending.reusable).toEqual({ label: reusable.label, displayLabel: reusable.displayLabel })
+    await pending.answer('allowed-session')
+    await expect(result).resolves.toBe('allowed-session')
+    expect(bench.pending.getSnapshot()).toEqual([])
+    await scope.fiber.dispose()
+  })
+
   it('removes stable registrations with the plugin lifetime', async () => {
     const bench = await setupPlugin()
     await bench.ctx.fiber.dispose()
@@ -322,12 +340,16 @@ function panelProps(
     escalation: `Tool ${pending.toolName} asks`,
     reject: 'Reject',
     allowOnce: 'Allow once',
+    allowSession: 'Always allow',
+    sessionScope: 'Session approval scope: {scope}',
   }
   return {
     matched: pending,
     renderSlot,
     resolveReason: (reason: NonNullable<PendingApproval['displayReason']>) => reason.en,
-    t: (key: string) => messages[key] ?? key,
+    t: (key: string, vars?: Record<string, string | number>) =>
+      (messages[key] ?? key).replace(/\{(\w+)\}/gu, (match: string, name: string) =>
+        vars?.[name] === undefined ? match : String(vars[name])),
   } as ApprovalComposerProps
 }
 
@@ -341,6 +363,7 @@ describe('ApprovalPanel', () => {
     expect(document.querySelector('[data-approval-key] [data-state="warning"]')).not.toBeNull()
     expect(screen.getByRole('group', { name: 'Approval details' })).toBeTruthy()
     expect(props.renderSlot).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Always allow' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Reject' }))
 
     expect(document.querySelector('[data-approval-key]')?.getAttribute('aria-busy')).toBe('true')
@@ -385,9 +408,41 @@ describe('ApprovalPanel', () => {
     expect(pending.reason).toBe('audit reason')
   })
 
+  it('offers session approval only with the Host-provided localized operation range', async () => {
+    const pending = new PendingApproval(id('s1'), {
+      toolName: 'read',
+      reusable: {
+        label: 'Audit range',
+        displayLabel: { en: 'Read workspace files', zh: '读取当前工作区文件' },
+      },
+    })
+    const props = panelProps(pending)
+    const view = render(<ApprovalPanel {...props} />)
+    expect(screen.getByText('Session approval scope: Read workspace files')).toBeTruthy()
+    expect(screen.queryByText('Audit range')).toBeNull()
+    view.rerender(<ApprovalPanel {...props} resolveReason={label => label['zh']!} />)
+    expect(screen.getByText('Session approval scope: 读取当前工作区文件')).toBeTruthy()
+    expect(pending.reusable?.label).toBe('Audit range')
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }))
+    await expect(pending.result).resolves.toBe('allowed-session')
+    expect(screen.getAllByRole<HTMLButtonElement>('button').every(button => button.disabled)).toBe(true)
+  })
+
+  it('disables all choices for an already withdrawn eligible request', async () => {
+    const pending = new PendingApproval(id('s1'), { toolName: 'read', reusable: { label: 'Read workspace files' } })
+    const rejected = pending.result.catch((error: unknown) => error)
+    pending.abort(new Error('withdrawn before mount'))
+    const answer = vi.spyOn(pending, 'answer')
+    render(<ApprovalPanel {...panelProps(pending)} />)
+    expect(screen.getAllByRole<HTMLButtonElement>('button').every(button => button.disabled)).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }))
+    expect(answer).not.toHaveBeenCalled()
+    await expect(rejected).resolves.toMatchObject({ message: 'withdrawn before mount' })
+  })
+
   it.each([['Enter', 'allowed-once'], ['Escape', 'rejected']] as const)(
     'answers the focused container with %s through the pending request', async (key, outcome) => {
-      const pending = new PendingApproval(id('s1'), { toolName: 'bash' })
+      const pending = new PendingApproval(id('s1'), { toolName: 'bash', reusable: { label: 'Run reviewed workspace commands' } })
       render(<ApprovalPanel {...panelProps(pending)} />)
       const group = screen.getByRole('group', { name: 'Approval details' })
       group.focus()
@@ -494,6 +549,87 @@ describe('ApprovalPanel', () => {
     expect(document.querySelector('[data-approval-key]')?.getAttribute('aria-busy')).toBe('false')
     pending.abort(new Error('test cleanup'))
     await pending.result.catch(() => {})
+  })
+
+  it('locks the session choice against competing keyboard and pointer answers', async () => {
+    const pending = new PendingApproval(id('s1'), { toolName: 'read', reusable: { label: 'Read workspace files' } })
+    const gate = Promise.withResolvers<undefined>()
+    const answer = vi.spyOn(pending, 'answer').mockImplementation(() => gate.promise)
+    render(<ApprovalPanel {...panelProps(pending)} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }))
+    const group = screen.getByRole('group', { name: 'Approval details' })
+    group.focus()
+    fireEvent.keyDown(group, { key: 'Enter', code: 'Enter' })
+    fireEvent.keyDown(group, { key: 'Escape', code: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Allow once' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }))
+    expect(answer).toHaveBeenCalledExactlyOnceWith('allowed-session')
+    expect(screen.getAllByRole<HTMLButtonElement>('button').every(button => button.disabled)).toBe(true)
+    await act(async () => { gate.resolve(undefined); await gate.promise })
+    pending.abort(new Error('owned test cleanup'))
+    await pending.result.catch((_error: unknown) => { /* The owned request was withdrawn after the pending-answer probe. */ })
+  })
+
+  it('blocks repeated and IME candidate activation of the focused session button', async () => {
+    const pending = new PendingApproval(id('s1'), { toolName: 'read', reusable: { label: 'Read workspace files' } })
+    const answer = vi.spyOn(pending, 'answer')
+    render(<ApprovalPanel {...panelProps(pending)} />)
+    const button = screen.getByRole('button', { name: 'Always allow' })
+    button.focus()
+    expect(fireEvent.keyDown(button, { key: 'Enter', code: 'Enter', repeat: true })).toBe(false)
+    expect(fireEvent.keyDown(button, { key: 'Enter', code: 'Enter', isComposing: true })).toBe(false)
+    expect(fireEvent.keyDown(button, { key: 'Enter', code: 'Enter', keyCode: 229 })).toBe(false)
+    fireEvent.compositionStart(button)
+    expect(fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' })).toBe(false)
+    fireEvent.compositionEnd(button)
+    expect(fireEvent.keyDown(button, { key: 'Escape', code: 'Escape' })).toBe(false)
+    expect(answer).not.toHaveBeenCalled()
+    fireEvent.keyUp(button, { key: 'Escape', code: 'Escape' })
+    expect(fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' })).toBe(true)
+    // Native button activation is synthesized by the browser; jsdom requires a separate click.
+    fireEvent.click(button)
+    await expect(pending.result).resolves.toBe('allowed-session')
+  })
+
+  it('does not let a withdrawn session answer unlock the replacement answer', async () => {
+    const first = new PendingApproval(id('s1'), { toolName: 'read', reusable: { label: 'Read first workspace' } })
+    const firstGate = Promise.withResolvers<undefined>()
+    vi.spyOn(first, 'answer').mockImplementation(() => firstGate.promise)
+    const firstResult = first.result.catch((error: unknown) => error)
+    const view = render(<ApprovalPanel {...panelProps(first)} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }))
+    first.abort(new Error('first request withdrawn'))
+    await firstResult
+    const second = new PendingApproval(id('s1'), { toolName: 'read', reusable: { label: 'Read second workspace' } })
+    const secondGate = Promise.withResolvers<undefined>()
+    const secondAnswer = vi.spyOn(second, 'answer').mockImplementation(() => secondGate.promise)
+    view.rerender(<ApprovalPanel {...panelProps(second)} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }))
+    await act(async () => {
+      firstGate.reject(new Error('late transport failure'))
+      await firstGate.promise.catch((_error: unknown) => { /* The earlier answer failed after its request was withdrawn. */ })
+    })
+    expect(screen.getAllByRole<HTMLButtonElement>('button').every(button => button.disabled)).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Allow once' }))
+    expect(secondAnswer).toHaveBeenCalledExactlyOnceWith('allowed-session')
+    await act(async () => { secondGate.resolve(undefined); await secondGate.promise })
+    second.abort(new Error('owned replacement cleanup'))
+    await second.result.catch((_error: unknown) => { /* The replacement is withdrawn after its pending-answer assertion. */ })
+  })
+
+  it('keeps the offered session range available after a transport failure', async () => {
+    const pending = new PendingApproval(id('s1'), { toolName: 'read', reusable: { label: 'Read workspace files' } })
+    const answer = vi.spyOn(pending, 'answer').mockRejectedValue(new Error('transport closed'))
+    render(<ApprovalPanel {...panelProps(pending)} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Always allow' }))
+    expect(screen.getAllByRole<HTMLButtonElement>('button').every(button => button.disabled)).toBe(true)
+    await waitFor(() => {
+      expect(screen.getAllByRole<HTMLButtonElement>('button').every(button => !button.disabled)).toBe(true)
+    })
+    expect(answer).toHaveBeenCalledExactlyOnceWith('allowed-session')
+    expect(screen.getByText('Session approval scope: Read workspace files')).toBeTruthy()
+    pending.abort(new Error('owned transport-failure cleanup'))
+    await pending.result.catch((_error: unknown) => { /* The failed transport probe leaves the request unanswered. */ })
   })
 })
 

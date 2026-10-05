@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { authenticateWebHost, forwardWebRequest, serveWebDocument } from '../src/web-document.ts'
+import { resolveDesktopLocale } from '../src/locale.ts'
 
 const roots: string[] = []
 afterEach(async () => {
@@ -25,6 +26,25 @@ it('serves the Web entry and assets without starting or contacting a Host', asyn
   expect(fetch).not.toHaveBeenCalled()
   expect((await serveWebDocument(new Request('dsh-app://app/%2e%2e%2fprivate'), root)).status).toBe(403)
   expect((await serveWebDocument(new Request('dsh-app://app/missing.js'), root)).status).toBe(404)
+})
+
+it.each(['zh-CN', 'en'])('includes a localized branded startup before the application entry loads (%s)', async (language) => {
+  const root = await mkdtemp(join(tmpdir(), 'desktop-startup-'))
+  roots.push(root)
+  await writeFile(join(root, 'index.html'), '<html><head></head><body><div id="root"></div><script src="assets/entry.js"></script></body></html>')
+  const locale = resolveDesktopLocale(language)
+  const response = await serveWebDocument(new Request('dsh-app://app/'), root, locale)
+  const html = await response.text()
+  expect(html).toContain('href="dsh-app://shell/startup.css"')
+  expect(html).toContain('<div id="root"></div><main id="xiaojing-startup" aria-busy="true">')
+  expect(html).toContain('src="dsh-app://shell/assets/startup-logo.png"')
+  expect(html).toContain(locale.messages.startupTitle)
+  expect(html).toContain(`<p role="status">${locale.messages.startupLoading}</p>`)
+  expect(html.indexOf('id="xiaojing-startup"')).toBeLessThan(html.indexOf('assets/entry.js'))
+  const plain = await serveWebDocument(new Request('dsh-app://shell/'), root)
+  expect(await plain.text()).not.toContain('xiaojing-startup')
+  const head = await serveWebDocument(new Request('dsh-app://app/', { method: 'HEAD' }), root, locale)
+  expect(await head.text()).toBe('')
 })
 
 it('requires the Host authentication exchange and retains only its cookie value', async () => {

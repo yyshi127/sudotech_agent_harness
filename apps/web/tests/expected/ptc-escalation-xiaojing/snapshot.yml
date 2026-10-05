@@ -1,0 +1,9 @@
+version: 1
+scenario: windows-xiaojing-ptc-escalation-approved
+profile: web
+composition: web-xiaojing-ptc
+recording: authored
+header:
+  class: web-xiaojing-ptc
+workspace:
+  final: true

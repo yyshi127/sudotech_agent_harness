@@ -3,12 +3,14 @@
 // bytes below the scaffold's isolated DSH_HOME, the prompt cites the staged
 // reference, request assembly projects the file block to handle text, and the
 // model (replayed or live) reads the saved copy with the REAL read tool. The
-// content-addressed store makes the saved path identical across record and
-// replay once the workspace cwd is tokenized, so the recorded read arguments
-// replay verbatim against a freshly re-uploaded object.
-// Record: DSH_SNAPSHOT=record rewrites session.v3.jsonl, then a keyless
-// DSH_SNAPSHOT=refresh regenerates ui.expected.md.
-import { readFile } from 'node:fs/promises'
+// replay override reads the actual saved-file handle from the model request.
+// Xiaojing owns its product-context fixture; only its expected attachment
+// paths are realized below a spec-owned temporary home before replay. The
+// complete persisted log remains compared through the shared scaffold.
+import { createHash } from 'node:crypto'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
@@ -16,16 +18,20 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed, vi } from 'vit
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/file-upload-round', import.meta.url))
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/file-upload-round/session.v3.jsonl', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/file-upload-round/ui.expected.md', import.meta.url))
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-file-upload-round', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const FIXTURE = XIAOJING ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl') : join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const UI_EXPECTED = XIAOJING
+  ? fileURLToPath(new URL('./expected/file-upload-round/ui.xiaojing.expected.md', import.meta.url))
+  : join(SNAPSHOT_DIR, 'ui.expected.md')
 const TRAJECTORY_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/file-upload-round/trajectory.expected.md', import.meta.url))
 const TRAJECTORY_STATUS_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/file-upload-round/trajectory-status.expected.md', import.meta.url))
-const OVERRIDE = fileURLToPath(new URL('../../../snapshots/web/file-upload-round/replay.override.json', import.meta.url))
+const OVERRIDE = join(XIAOJING ? XIAOJING_SNAPSHOT_DIR : SNAPSHOT_DIR, 'replay.override.json')
 const DRAFT_EXPECTED = fileURLToPath(new URL('./expected/file-upload-round/draft.expected.md', import.meta.url))
 const HISTORY_EXPECTED = fileURLToPath(new URL('./expected/file-upload-round/history.expected.md', import.meta.url))
 const IMAGE_FIXTURE = fileURLToPath(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
@@ -36,6 +42,29 @@ const FILE_NAME = 'poem.txt'
 const FILE_TEXT = 'UPLOAD_ROUND_OK\n'
 const PROMPT = 'Read the attached file with the read tool, reply with exactly the single word it contains, and stop.'
 const IMAGE_NAMES = Array.from({ length: 10 }, (_unused, index) => `reference-${String(index + 1)}.png`)
+
+/** Realize only this fixture's attachment paths before replay; actual events remain untouched. */
+async function materializeUploadExpectation(root: string, harnessHome: string): Promise<string> {
+  const digest = createHash('sha256').update(FILE_TEXT).digest('hex')
+  const parts = ['attachments', 'v1', 'files', digest.slice(0, 2), digest, FILE_NAME]
+  const recordedPath = `{{harnessHome}}/${parts.join('/')}`
+  const nativePath = join(harnessHome, ...parts)
+  const quotedArguments = JSON.stringify(`{"file_path": ${JSON.stringify(recordedPath)}}`)
+  const source = await readFile(FIXTURE, 'utf8')
+  // The three argument copies are the assistant block, stream block, and durable call.
+  expect(source.split(quotedArguments)).toHaveLength(4)
+  const argumentsRealized = source.replaceAll(quotedArguments, JSON.stringify(`{"file_path": ${JSON.stringify(nativePath)}}`))
+  // The read tool renders its result path and result metadata with forward slashes.
+  expect(argumentsRealized.split(recordedPath)).toHaveLength(3)
+  const expected = argumentsRealized.replaceAll(recordedPath, nativePath.replaceAll('\\', '/'))
+  expect(expected).not.toContain('{{harnessHome}}')
+  const directory = join(root, 'expected')
+  await mkdir(directory)
+  const fixture = join(directory, 'session.v4.jsonl')
+  await writeFile(fixture, expected)
+  await writeFile(join(directory, 'snapshot.yml'), await readFile(join(XIAOJING_SNAPSHOT_DIR, 'snapshot.yml')))
+  return fixture
+}
 
 /** Browser-measured relations for the mixed composer attachment rail. */
 interface DraftRailGeometry {
@@ -110,6 +139,7 @@ describe('web e2e: generic file upload through the real assembly', () => {
   let tripwire: ReturnType<typeof watchConsole>
   const sessionEvents: SessionEvent[] = []
   let liveTrajectory: string | undefined
+  let expectationRoot: string | undefined
 
   /** Inspect one durable mixed message through the real image slot and all message tabs. */
   async function inspectTrajectoryAttachments(): Promise<string> {
@@ -198,12 +228,26 @@ describe('web e2e: generic file upload through the real assembly', () => {
   }
 
   beforeAll(async () => {
+    let replayFixture = FIXTURE
+    let harnessHome: string | undefined
+    if (XIAOJING && MODE !== 'record') {
+      expectationRoot = await mkdtemp(join(tmpdir(), 'dsh-web-upload-expectation-'))
+      harnessHome = join(expectationRoot, 'home')
+      replayFixture = await materializeUploadExpectation(expectationRoot, harnessHome)
+    }
     scaffold = await launchWebScaffold({
-      compareReplaySession: true,
+      compareReplaySession: XIAOJING && MODE === 'refresh' ? 'read-only' : true,
+      ...(harnessHome === undefined ? {} : { harnessHome }),
+      ...(XIAOJING ? {
+        replayProviders: [{
+          id: 'deepseek-official', name: 'DeepSeek',
+          models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
+        }],
+      } : {}),
       // The override rescripts the recorded read arguments with a
       // `{{fromRequest:…}}` placeholder: the saved-copy path differs per run,
       // and the live handle line in the request carries the current one.
-      ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, replayOverride: OVERRIDE, paceMs: 15 }),
+      ...(MODE === 'record' ? {} : { replayFixture, replayOverride: OVERRIDE, paceMs: 15 }),
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
@@ -212,12 +256,19 @@ describe('web e2e: generic file upload through the real assembly', () => {
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    if (XIAOJING) await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
   }, 120_000)
 
   afterAll(async () => {
-    await browser?.close()
-    await scaffold?.close()
+    const failures: unknown[] = []
+    await browser?.close().catch((error: unknown) => failures.push(error))
+    await scaffold?.close().catch((error: unknown) => failures.push(error))
+    if (expectationRoot !== undefined) {
+      await rm(expectationRoot, { recursive: true, force: true }).catch((error: unknown) => failures.push(error))
+    }
+    if (failures.length === 1) throw failures[0]
+    if (failures.length > 1) throw new AggregateError(failures, 'file-upload-round teardown failed')
   })
 
   it('uploads on pick, gates send on the staged receipt, and settles the turn (all modes)', async () => {
@@ -231,9 +282,10 @@ describe('web e2e: generic file upload through the real assembly', () => {
     const modelTrigger = page.getByRole('button', { name: /^Select model, current/ })
     await modelTrigger.click()
     await page.getByRole('menuitem', { name: /^Model\b/ }).click()
-    await page.getByRole('menuitemradio', { name: 'DeepSeek-V4-Flash-Vision-Exp' }).click()
+    const modelName = XIAOJING ? 'DeepSeek-V41-Flash' : 'DeepSeek-V4-Flash-Vision-Exp'
+    await page.getByRole('menuitemradio', { name: modelName }).click()
     await expect.poll(() => modelTrigger.getAttribute('aria-label'), { timeout: 10_000 })
-      .toContain('DeepSeek-V4-Flash-Vision-Exp')
+      .toContain(modelName)
     const imageBytes = await readFile(IMAGE_FIXTURE)
     // Pick through the composer's hidden file input: the upload RPC runs
     // immediately and the pending card appears before any prompt is typed.
@@ -434,5 +486,6 @@ describe('web e2e: generic file upload through the real assembly', () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'session.v3.jsonl', 'replay.override.json', 'ui.expected.md', 'trajectory.expected.md', 'trajectory-status.expected.md',
     ])
+    if (XIAOJING) await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl', 'replay.override.json'])
   })
 })

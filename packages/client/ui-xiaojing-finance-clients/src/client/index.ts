@@ -197,13 +197,16 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
 
   const categorySource: WorkspaceCategoryProvider['source'] = {
     getSnapshot: () => {
-      const workspaces = controller.store.getSnapshot().workspaces
+      const state = controller.store.getSnapshot()
+      const workspaces = state.workspaces
       const entries = workspaces === null
         ? []
         : [workspaces.standard, ...workspaces.consultations, ...workspaces.clients]
       const listedWorkspaceIds = new Set(workspaces?.listedWorkspaceIds ?? [])
       const listedEntries = entries.filter(entry => listedWorkspaceIds.has(entry.workspaceId))
       return {
+        ready: workspaces !== null,
+        ...(state.error === null ? {} : { loadError: state.error }),
         label: t('financeWorkspace'),
         ordinaryLabel: t('ordinaryWorkspace'),
         workspaceIds: listedEntries.map(entry => entry.workspaceId),
@@ -283,6 +286,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     id: 'finance',
     order: 10,
     source: categorySource,
+    retryLoad: () => { void controller.load() },
     activate: activateCategory,
     addWorkspace: async (sectionId, path) => {
       if (sectionId === 'consultations') {

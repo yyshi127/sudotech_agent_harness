@@ -12,14 +12,21 @@ import { deriveReplayScript, parseSessionLog } from '@deepseek-ai/dsh-llm-replay
 import {
   assertFinalWorkspaceSnapshot, captureExpandedTurnProcessAria, compareOrRefreshGolden,
   fixtureUserPrompts, launchWebScaffold, recordFixture, watchConsole,
-  webSnapshotMode, type WebScaffold,
+  webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, connectFreshWorkspaceZh, expandOwningTurnProcess, ZH_BROWSER_LOCALE } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const DIR = fileURLToPath(new URL('../../../snapshots/web/changed-files-turn', import.meta.url))
-const FIXTURE = join(DIR, 'session.v3.jsonl')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const STOCK_DIR = fileURLToPath(new URL('../../../snapshots/web/changed-files-turn', import.meta.url))
+const DIR = XIAOJING
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-changed-files-turn', import.meta.url))
+  : STOCK_DIR
+const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/changed-files-turn', import.meta.url))
+const expected = (name: string) => join(XIAOJING ? PRODUCT_EXPECTED_DIR : DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
+const FIXTURE = join(DIR, XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()
-const PROMPT = '不用先查看目录，直接做四件事：把 intro.md 里的标题「示例项目」改成「项目说明」，新建 src/util.ts 导出一个两数相加的 add 函数，新建 app.local 写一行 mode=demo，最后用 bash 在 notes.txt 末尾追加一行 done。'
+const PROMPT = `不用先查看目录，直接做四件事：把 intro.md 里的标题「示例项目」改成「项目说明」，新建 src/util.ts 导出一个两数相加的 add 函数，新建 app.local 写一行 mode=demo，最后用 ${XIAOJING ? 'pwsh' : 'bash'} 在 notes.txt 末尾追加一行 done。`
 
 /** Seed a committed repository so the turn's own edits are the only difference between its snapshots; `*.local` stays ignored. */
 async function seedRepository(cwd: string): Promise<void> {
@@ -77,6 +84,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
     scaffold = await launchWebScaffold({
       developerTools: false,
       compareReplaySession: true,
+      ...(XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
       extraOverlayPath: fileURLToPath(new URL('./changed-files-turn.overlay.yml', import.meta.url)),
       ...(replayOverride === undefined ? {} : { replayFixture: FIXTURE, replayOverride }),
     })
@@ -89,6 +97,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]')
+    if (XIAOJING) await page.getByText('小兢会计，您的AI办公搭子', { exact: true }).waitFor()
     await connectFreshWorkspaceZh(page, scaffold.workspaceCwd)
   })
 
@@ -143,7 +152,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
       await row.getByText(`正在准备内容 ${kilobytes}KB`, { exact: true }).waitFor()
       expect(await row.getByRole('button').count()).toBe(0)
       expect(await row.locator('pre').count()).toBe(0)
-      await compareOrRefreshGolden(join(DIR, `preparing-${preparation.name}.expected.md`), await row.ariaSnapshot(), MODE)
+      await compareOrRefreshGolden(expected(`preparing-${preparation.name}`), await row.ariaSnapshot(), MODE)
       preparation.release.resolve(undefined)
     })
     const [sessionId] = await Promise.all([settled, ...observations]).finally(() => { releasePreparations?.() })
@@ -268,7 +277,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
     await path.evaluate((element) => { element.style.maxWidth = '160px'; element.scrollLeft = 50 })
     expect(await path.evaluate(element => element.scrollLeft)).toBe(50)
     await path.evaluate((element) => { element.style.removeProperty('max-width') })
-    await compareOrRefreshGolden(join(DIR, 'hover.expected.md'), await preview.locator('[data-review-view]').ariaSnapshot(), MODE)
+    await compareOrRefreshGolden(expected('hover'), await preview.locator('[data-review-view]').ariaSnapshot(), MODE)
     await preview.hover()
     await preview.locator('[data-review-view]').evaluate((element) => {
       const line = element.querySelector('[data-diff-line]')!
@@ -692,7 +701,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
   it.skipIf(MODE === 'record')('replays the workspace and the Chinese conversation', async () => {
     await assertFinalWorkspaceSnapshot(DIR, cwd, { ignoredRootEntries: ['.git'] })
     const aria = await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(join(DIR, 'ui.expected.md'), aria, MODE)
+    await compareOrRefreshGolden(expected('ui'), aria, MODE)
   })
 
   it('preserves filename endings when the review narrows and updates the fade after resizing or selecting another file', async () => {

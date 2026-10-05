@@ -13,13 +13,15 @@ import {
   compareOrRefreshGolden,
   launchWebScaffold,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/streaming-fence-highlight', import.meta.url))
-const MID_EXPECTED = fileURLToPath(new URL('./snapshots/streaming-fence-highlight/mid-stream.expected.md', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const MID_EXPECTED = fileURLToPath(new URL(`./snapshots/streaming-fence-highlight/mid-stream${XIAOJING ? '.xiaojing' : ''}.expected.md`, import.meta.url))
 const MODE = webSnapshotMode()
 const PROVIDER = 'streaming-fence-highlight-test'
 const MODEL = 'streaming-fence'
@@ -181,6 +183,6 @@ describe.skipIf(MODE === 'record')('web e2e: streaming code-fence highlighting',
     }))).toEqual({ block: 'true', pre: 'true', line: 'true' })
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['mid-stream.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['mid-stream.expected.md', 'mid-stream.xiaojing.expected.md'])
   }, 60_000)
 })

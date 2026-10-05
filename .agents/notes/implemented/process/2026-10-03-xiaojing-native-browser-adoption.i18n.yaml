@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-03-xiaojing-native-browser-adoption.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-10-03-xiaojing-native-browser-adoption.md
+/agent-note-declare-xiaojing-s-native-browser-adoption-precisely:
+  en: a19490403a742f32
+  zh: 98b9ed5cd194718f
+/agent-note-declare-xiaojing-s-native-browser-adoption-precisely/problem:
+  en: 28cd3b1e476faed4
+  zh: f4f82c7f61115582
+/agent-note-declare-xiaojing-s-native-browser-adoption-precisely/decision:
+  en: 609a536d0233416e
+  zh: c134c8f5fe82cfa5
+/agent-note-declare-xiaojing-s-native-browser-adoption-precisely/alternatives-considered:
+  en: ce78bb9db21de336
+  zh: b5b16cdc7b23e591
+/agent-note-declare-xiaojing-s-native-browser-adoption-precisely/consequences:
+  en: ed6288720e7ca0d2
+  zh: 67ae65dcf4d23377

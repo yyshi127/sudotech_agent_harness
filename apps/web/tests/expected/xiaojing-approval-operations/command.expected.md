@@ -1,0 +1,5 @@
+- text: 等待审批
+- group "审批详情": 删除操作需要二次确认。即将执行：Remove-Item 'first.txt' -Force 本会话适用范围：同一命令，工作目录：{{cwd}}（命令或目录变化会重新询问） Remove-Item 'first.txt' -Force
+- button "拒绝"
+- button "始终允许"
+- button "允许一次"

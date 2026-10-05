@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { hasClass, installAssembledBootEnv, mountAssembledApp, REFRESHING_GOLDEN } from './assembled-boot.ts'
+import { loadXiaojingAssembledResponses } from './xiaojing-assembled-fixture.client.ts'
 
 const EXPECTED = join(process.cwd(), 'apps/web/tests/expected/max-tokens-notice/history-turn.expected.txt')
 
@@ -32,7 +33,7 @@ function noticeShape(row: Element): string {
 
 describe('assembled max-tokens turn-end notice', () => {
   it('renders the localized truncation notice after the cut-off answer instead of ending silently', async () => {
-    mountAssembledApp()
+    loadXiaojingAssembledResponses(mountAssembledApp().mock)
 
     const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
     fireEvent.click(await within(tree).findByText('Fixture 历史会话'))

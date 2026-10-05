@@ -184,7 +184,7 @@ describe('in-process policy inheritance', () => {
         .map(block => block.text)
         .join('\n')
       expect(contextText).toContain('Current DSH file policy: read-only')
-      expect(contextText).toContain('Approval prompts are disabled')
+      expect(contextText).toContain('Ordinary approval prompts are disabled')
       // The statement rides runtime context; the system node (surface node 0) stays uniform.
       expect(contextText).toContain('You are a delegated subagent')
       const systemHead = child.session.deriveMessages()[0]

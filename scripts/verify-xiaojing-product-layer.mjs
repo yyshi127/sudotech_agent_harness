@@ -278,6 +278,12 @@ for (const directory of coreRoots) {
 const composition = await readFile(join(root, 'packages', 'bundle', 'web-app', 'cordis.patch.yml'), 'utf8')
 const parsedComposition = load(composition, { schema: entrySchema })
 const compositionRows = nestedRows(parsedComposition)
+for (const id of ['session-log-deepseek', 'ui-settings-session-log']) {
+  const row = compositionRows.find(candidate => candidate.id === id)
+  if (row?.disabled?.__jsExpr !== "process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'") {
+    errors.push(`Xiaojing must disable ${id}, including previously enabled configuration`)
+  }
+}
 const webAppManifest = JSON.parse(await readFile(join(root, 'packages', 'bundle', 'web-app', 'package.json'), 'utf8'))
 const financeCalculationsHostRow = compositionRows.find(row => row.id === 'xiaojing-finance-calculations')
 if (financeCalculationsHostRow?.name !== '@deepseek-ai/dsh-xiaojing-finance-calculations'

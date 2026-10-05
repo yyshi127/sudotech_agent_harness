@@ -1,0 +1,7 @@
+version: 1
+scenario: windows-xiaojing-code-language
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing

@@ -32,11 +32,13 @@ import {
   launcherPath as landlockLauncherPath,
   probe as defaultProbeLandlock,
 } from '@deepseek-ai/node-addon-system/landlock-run'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, symbols } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { SandboxProvider, SandboxUnavailableError, canonicalPath } from '@deepseek-ai/dsh-sandbox'
 import type { ConfinedArgv, ConfinedSandboxMode, RunnerFailureRule, SandboxEnforcement, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
 import type { SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import { AclWriteGrant, assertTempRootOutsideWorkspace, registerAclDiagnosisSkill, tempWriteSid, workspaceWriteSid } from '@deepseek-ai/dsh-sandbox-windows-acl'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.ts'
@@ -301,6 +303,27 @@ export class LocalSandboxProvider extends SandboxProvider {
     if (process.platform === 'win32' && this.runnerCommand === undefined) {
       ctx.inject(['skills'], (skillsCtx) => { registerAclDiagnosisSkill(skillsCtx) })
     }
+    ctx.inject(['tools', 'sandboxPolicy'], (scope) => {
+      scope.on('tools/execute', async (exec, next) => {
+        const agent = exec.agent
+        const provider = agent?.ctx.get('sandbox')
+        const original = provider === undefined ? undefined
+          : (provider as SandboxProvider & { [symbols.original]?: SandboxProvider })[symbols.original] ?? provider
+        if ((this.internals.platform ?? process.platform) === 'win32'
+          && this.runnerCommand === undefined
+          && agent !== undefined && original === this) {
+          exec.signal.throwIfAborted()
+          const policyService = agent.ctx.get('sandboxPolicy')
+          if (policyService === undefined) throw new Error('sandbox-local: agent sandbox policy is unavailable')
+          const policy = policyService.resolve({ session: agent.session })
+          if (policy.mode === 'workspace-write' && policy.sessionId !== undefined
+            && this.selectRunner(policy.mode).runner === 'windows-acl') {
+            this.materializeWorkspaceGrant(canonicalPath(policy.workspaceRoot))
+          }
+        }
+        return next()
+      })
+    })
     // The temp grants are revoked with the provider: a clean server
     // shutdown leaves no temp ACEs behind (workspace ACEs stand by design —
     // the reuse cache; an unclean shutdown leaves them for the next
@@ -388,19 +411,11 @@ export class LocalSandboxProvider extends SandboxProvider {
   }
 
   /**
-   * Materialize one workspace-write policy's ACEs once per provider
-   * lifetime. The workspace SID and standing root grant are shared by the
-   * workspace. The temp directory is random and carries a distinct SID, so
-   * another session on the same workspace cannot use the shared workspace
-   * SID to enter it. A fresh provider always chooses a new path; crash
-   * residue therefore cannot collide with or authorize a resumed session.
-   * Fail-closed: a half-materialized temp grant is revoked and its directory
-   * removed before the error propagates.
-   * @param sessionId - the policy's calling-session identity.
-   * @param workspaceRoot - the resolved policy root.
-   * @returns the pair's private temp directory and write capability.
+   * Materialize the standing workspace-root ACE once per provider lifetime.
+   * The root must be canonical and cannot contain the ambient temp root.
+   * @param workspaceRoot - the canonical workspace allowed by the calling policy.
    */
-  private materializeAclGrant(sessionId: SessionId, workspaceRoot: string): AclTempCapability {
+  private materializeWorkspaceGrant(workspaceRoot: string): void {
     assertTempRootOutsideWorkspace(workspaceRoot, tmpdir())
     const writeSid = workspaceWriteSid(workspaceRoot)
     if (!this.workspaceGrants.has(workspaceRoot)) {
@@ -420,6 +435,23 @@ export class LocalSandboxProvider extends SandboxProvider {
       }
       this.workspaceGrants.set(workspaceRoot, grant)
     }
+  }
+
+  /**
+   * Materialize one workspace-write policy's ACEs once per provider
+   * lifetime. The workspace SID and standing root grant are shared by the
+   * workspace. The temp directory is random and carries a distinct SID, so
+   * another session on the same workspace cannot use the shared workspace
+   * SID to enter it. A fresh provider always chooses a new path; crash
+   * residue therefore cannot collide with or authorize a resumed session.
+   * Fail-closed: a half-materialized temp grant is revoked and its directory
+   * removed before the error propagates.
+   * @param sessionId - the policy's calling-session identity.
+   * @param workspaceRoot - the resolved policy root.
+   * @returns the pair's private temp directory and write capability.
+   */
+  private materializeAclGrant(sessionId: SessionId, workspaceRoot: string): AclTempCapability {
+    this.materializeWorkspaceGrant(workspaceRoot)
     const key = JSON.stringify([String(sessionId), workspaceRoot])
     const existing = this.tempCapabilities.get(key)
     if (existing !== undefined) return existing

@@ -1,68 +1,23 @@
 - img "小兢会计"
-- paragraph: 数豆科技
 - heading "小兢会计" [level=2]
-- paragraph: 小兢会计，您的AI办公搭子
-- text: 当前版本 v0.2.4
-- paragraph: CURRENT RELEASE
-- heading "v0.2.4 版本新特性" [level=3]
-- text: 4 项功能亮点
-- list:
-  - listitem:
-    - text: F2
-    - paragraph: 新增有成财务凭证、科目余额、出纳流水、应收应付和基础资料的查询、分析与结果导出。
-  - listitem:
-    - text: F3
-    - paragraph: 新增凭证、出纳流水、应收应付和基础资料的受控新增、删除与已支持核销，写入前确认并保留回查记录。
-  - listitem:
-    - text: F4
-    - paragraph: 建立 Finance 能力清单，按已支持、有限支持和暂不支持回答；报销与六类无开放接口的原生报表不再被误报为可用。
-  - listitem:
-    - text: UI
-    - paragraph: 财务工作区显示“AI财务助手”，普通工作区保留“AI办公搭子”，两个使用场景清晰区分。
-- paragraph: VERSION HISTORY
-- heading "v0.2.3 版本新特性" [level=3]
-- text: 7 项功能亮点
-- list:
-  - listitem:
-    - text: F1-0
-    - paragraph: 建立可独立装卸的 Finance 扩展层，使财务能力与 Harness 核心及标准模式保持隔离。
-  - listitem:
-    - text: F1-1
-    - paragraph: 新增 Finance 模式，在完整继承标准模式能力的基础上加入财税专业身份、核验规则与技能目录。
-  - listitem:
-    - text: F1-2
-    - paragraph: 新增财务工作区、客户档案与客户工作区，让客户上下文在会话和本地资料之间保持一致且相互隔离。
-  - listitem:
-    - text: F1-3
-    - paragraph: 新增中国财税官方依据服务，优先核验官方正文、适用地区与时效，证据不足时明确标记“待核验”。
-  - listitem:
-    - text: F1-4
-    - paragraph: 统一解析 PDF、Word、Excel、PPTX、图片及数电发票，支持内嵌图片和扫描型 PDF 的视觉读取。
-  - listitem:
-    - text: F1-5
-    - paragraph: 新增四类可复核的财税试算与首批五个专业流程技能，保留输入、公式、依据和结果轨迹。
-  - listitem:
-    - text: F1-6
-    - paragraph: 完成 Finance 第一阶段集成验收，覆盖多客户隔离、资料可追溯、计算一致性及升级数据保护。
-- paragraph: VERSION HISTORY
-- heading "v0.2.2 版本新特性" [level=3]
-- text: 6 项功能亮点
-- list:
-  - listitem:
-    - text: "01"
-    - paragraph: 原生视觉模型与统一上传入口，图片和文档自动选择正确处理方式。
-  - listitem:
-    - text: "02"
-    - paragraph: 微信频道支持远程任务、进度反馈、文件收发与高风险操作确认。
-  - listitem:
-    - text: "03"
-    - paragraph: Edge 浏览器控制支持专用浏览器和可选的个人网页接管。
-  - listitem:
-    - text: "04"
-    - paragraph: 本机用量按日统计 Token 与费用，并按官方峰谷价格计算。
-  - listitem:
-    - text: "05"
-    - paragraph: Visualize 将适合的结果呈现为独立配色的精美交互卡片。
-  - listitem:
-    - text: "06"
-    - paragraph: 桌面小兢通过动作和表情显示任务状态，并支持系统托盘常驻。
+- paragraph: 您的AI办公搭子与财务助手
+- text: 当前版本 v0.3.2
+- region "版本更新":
+  - heading "版本更新" [level=3]
+  - heading "v0.3.2" [level=4]
+  - text: 当前版本
+  - paragraph: 双浏览器原生控制与会话内批量审批
+  - button "查看详情：v0.3.2": 查看详情
+  - heading "v0.3.1" [level=4]
+  - paragraph: 全新工作面板，扩展文档处理与插件能力
+  - button "查看详情：v0.3.1": 查看详情
+  - heading "v0.2.4" [level=4]
+  - paragraph: 接入有成财务，支持账务查询与受控维护
+  - button "查看详情：v0.2.4": 查看详情
+  - heading "v0.2.3" [level=4]
+  - paragraph: 专业财务模式，建立可复核的财税工作流程
+  - button "查看详情：v0.2.3": 查看详情
+  - heading "v0.2.2" [level=4]
+  - paragraph: 桌面小兢与托盘常驻，随时查看任务状态
+  - button "查看详情：v0.2.2": 查看详情
+- paragraph: 数豆科技

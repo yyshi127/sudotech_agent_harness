@@ -3,6 +3,8 @@ import {
   DEFAULT_COMPANION_SCALE,
   IDLE_COMPANION_SNAPSHOT,
   defaultCompanionBounds,
+  composerCompanionBounds,
+  isCompanionLayout,
   isCompanionScale,
   isCompanionSnapshot,
   normalizeCompanionPreferences,
@@ -78,5 +80,48 @@ describe('desktop companion persistence and geometry', () => {
     expect(isCompanionSnapshot({ ...IDLE_COMPANION_SNAPSHOT, activeTaskCount: -1 })).toBe(false)
     expect(isCompanionSnapshot({ ...IDLE_COMPANION_SNAPSHOT, state: 'secret', task: 'private' })).toBe(false)
     expect(isCompanionSnapshot(null)).toBe(false)
+  })
+})
+
+describe('desktop companion responsive composer gutter', () => {
+  it.each([1366, 1920, 2560, 3840].flatMap(width => [1, 1.25, 1.5, 2].map(dpiScale => [width, dpiScale])))
+  ('centers between composer and content edges at screen width %s and DPI scale %s', (width, dpiScale) => {
+    for (const zoom of [0.8, 1, 1.25]) {
+      const content = { x: 80, y: 30, width: width / dpiScale, height: 900 / dpiScale }
+      const display = { id: 1, workArea: { x: 0, y: 0, width: content.width + 160, height: content.height + 100 } }
+      const layout = {
+        viewportWidth: content.width / zoom, viewportHeight: content.height / zoom,
+        composerRight: (content.width - 220) / zoom, composerTop: (content.height - 170) / zoom,
+      }
+      const bounds = composerCompanionBounds(layout, content, 0.5, display)
+      const characterCenter = bounds.x + 320 - 20 - 140 / 2
+      expect(Math.abs(characterCenter - (content.x + content.width - 110))).toBeLessThanOrEqual(0.5)
+      expect(Math.abs(bounds.y + 380 - (content.y + content.height - 24))).toBeLessThanOrEqual(0.5)
+    }
+  })
+
+  it('keeps the character off the input when the gutter is too narrow', () => {
+    const content = { x: 0, y: 0, width: 960, height: 600 }
+    const layout = { viewportWidth: 960, viewportHeight: 600, composerRight: 944, composerTop: 430 }
+    const bounds = composerCompanionBounds(layout, content, 0.5, primary)
+    expect(bounds.y + bounds.height).toBeLessThan(layout.composerTop)
+    expect(bounds.x + 320 - 20 - 70 + 49).toBeLessThanOrEqual(content.width - 16)
+  })
+
+  it('keeps the same center when the character size changes and supports a monitor left of the primary', () => {
+    const content = { x: -1200, y: 40, width: 1100, height: 800 }
+    const layout = { viewportWidth: 1100, viewportHeight: 800, composerRight: 800, composerTop: 640 }
+    for (const scale of [0.3, 0.5, 1]) {
+      const bounds = composerCompanionBounds(layout, content, scale, left)
+      expect(bounds.x + 320 - 20 - 280 * scale / 2).toBe(-250)
+    }
+  })
+
+  it.each([null, {}, { viewportWidth: 0 },
+    { viewportWidth: 960, viewportHeight: 600, composerRight: Infinity, composerTop: 430 },
+    { viewportWidth: 960, viewportHeight: 600, composerRight: 1000, composerTop: 430 },
+    { viewportWidth: 960, viewportHeight: 600, composerRight: 900, composerTop: -1 },
+  ])('rejects invalid layout input %j', (value) => {
+    expect(isCompanionLayout(value)).toBe(false)
   })
 })

@@ -1,0 +1,30 @@
+- dialog "Select Workspace Directory":
+  - heading "Select Workspace Directory" [level=2]
+  - navigation:
+    - button "Home"
+    - button "browse-golden"
+  - button "Edit path"
+  - list:
+    - listitem:
+      - button "adopted"
+    - listitem:
+      - button "alpha-ws"
+    - listitem:
+      - button "beta-ws"
+    - listitem:
+      - button "browse-golden"
+    - listitem:
+      - button "Finance工作区"
+    - listitem:
+      - button "same-name"
+    - listitem:
+      - button "workspace"
+  - list:
+    - listitem:
+      - button "alpha"
+    - listitem:
+      - button "beta"
+  - button "New folder"
+  - button "Show hidden files"
+  - button "Cancel"
+  - button "Open"

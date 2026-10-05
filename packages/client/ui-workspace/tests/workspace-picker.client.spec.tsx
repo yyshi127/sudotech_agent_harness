@@ -13,6 +13,8 @@ import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/c
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from '../src/client/contract/slots.ts'
 import { WorkspacePicker } from '../src/client/WorkspacePicker.tsx'
 import { zh } from '../src/client/locales.ts'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { WorkspaceCategorySnapshot } from '../src/client/category-registry.ts'
 
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
@@ -88,21 +90,25 @@ function mount(
   items: readonly WorkspaceView[] = [workspace('alpha', 'Alpha')],
   createWorkspace = vi.fn(),
   occupancy = occupancySource(),
+  categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [] }),
 ) {
   const onPick = vi.fn()
   const onClose = vi.fn()
+  const retryWorkspaceCategoryLoad = vi.fn()
+  const useWorkspaceCategories = bindSnapshotSelector(categories)
   const anchorRef = anchor()
   const { probe, renderSlot } = flowProbe()
-  const renderPicker = (nextItems: readonly WorkspaceView[]) => (
+  const renderPicker = (nextItems: readonly WorkspaceView[], open = true) => (
     <WorkspacePicker
-      open
+      open={open}
       anchorRef={anchorRef}
       useSessions={hook(sessions)}
       useSessionStatus={hook(noPendingInteraction)}
       useSessionRetainInfo={() => undefined}
       usePanelInfo={usePanelInfo} useResource={useResource}
       useWorkspaces={hook(workspaceState(nextItems))}
-      useWorkspaceCategories={hook({ categories: [] })}
+      useWorkspaceCategories={useWorkspaceCategories}
+      retryWorkspaceCategoryLoad={retryWorkspaceCategoryLoad}
       onPick={onPick}
       onClose={onClose}
       createWorkspace={createWorkspace}
@@ -115,7 +121,8 @@ function mount(
     renderPicker(items),
   )
   return {
-    view, onPick, onClose, createWorkspace, probe, occupancy,
+    view, onPick, onClose, createWorkspace, probe, occupancy, categories, retryWorkspaceCategoryLoad,
+    close: () => { view.rerender(renderPicker(items, false)) },
     rerenderItems: (nextItems: readonly WorkspaceView[]) => { view.rerender(renderPicker(nextItems)) },
   }
 }
@@ -125,6 +132,145 @@ function chooseAdd(): void {
 }
 
 describe('WorkspacePicker', () => {
+
+  it('keeps a pending picker request without exposing unclassified category Workspaces', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([workspace('finance', 'Finance consultation')], vi.fn(), occupancySource(), categories)
+    expect(screen.queryByRole('menuitem', { name: 'Finance consultation' })).toBeNull()
+    expect(screen.getByRole('status').textContent).toBe('正在加载工作区…')
+    expect(screen.getByRole<HTMLButtonElement>('menuitem', { name: '添加工作区…' }).disabled).toBe(false)
+    expect(b.probe.owner!.open).toBe(false)
+    expect(b.onClose).not.toHaveBeenCalled()
+    act(() => { categories.set({ categories: [{
+      id: 'finance', label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [],
+    }] }) })
+    expect(b.probe.owner!.open).toBe(true)
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(b.onClose).toHaveBeenCalledOnce()
+    expect(b.onPick).not.toHaveBeenCalled()
+  })
+
+  it('allows manual Add while category membership is unknown and preserves its open flow on classification', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([workspace('finance')], vi.fn(), occupancySource(), categories)
+    chooseAdd()
+    expect(b.probe.owner!.open).toBe(true)
+    b.close()
+    act(() => { categories.set({ categories: [{
+      id: 'finance', label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [],
+    }] }) })
+    expect(b.probe.owner!.open).toBe(true)
+    expect(b.onClose).toHaveBeenCalledOnce()
+    act(() => { b.probe.owner!.onCancel() })
+    expect(b.probe.owner!.open).toBe(false)
+    expect(b.createWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('shows a category load failure with explicit retry and keeps manual Add available', () => {
+    const failed = { id: 'finance', label: 'Finance', ready: false, loadError: 'owned catalog unavailable',
+      retryLoadAvailable: true as const, workspaceIds: [], newSessionDisabledWorkspaceIds: [] }
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [failed] })
+    const b = mount([workspace('finance')], vi.fn(), occupancySource(), categories)
+    expect(screen.getByRole('alert').textContent).toContain('Finance: owned catalog unavailable')
+    expect(screen.queryByRole('status')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '重新加载 Finance 工作区' }))
+    expect(b.retryWorkspaceCategoryLoad).toHaveBeenCalledExactlyOnceWith('finance')
+    const loading: WorkspaceCategorySnapshot['categories'][number] = { ...failed }
+    delete loading.loadError
+    act(() => { categories.set({ categories: [loading] }) })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByRole('status')).toBeTruthy()
+    expect(b.probe.owner!.open).toBe(false)
+    act(() => { categories.set({ categories: [{ ...loading, ready: true, workspaceIds: [wid('finance')] }] }) })
+    expect(b.probe.owner!.open).toBe(true)
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(b.onPick).not.toHaveBeenCalled()
+  })
+
+  it('keeps the category retry inside the open menu through pointer activation', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, loadError: 'owned catalog unavailable',
+      retryLoadAvailable: true, workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([workspace('finance')], vi.fn(), occupancySource(), categories)
+    const retry = screen.getByRole('button', { name: '重新加载 Finance 工作区' })
+    fireEvent.pointerDown(retry, { button: 0, pointerId: 1 })
+    expect(b.onClose).not.toHaveBeenCalled()
+    expect(retry.isConnected).toBe(true)
+    expect(retry.closest('[role="menu"]')).not.toBeNull()
+    fireEvent.mouseDown(retry, { button: 0 })
+    fireEvent.pointerUp(retry, { button: 0, pointerId: 1 })
+    fireEvent.mouseUp(retry, { button: 0 })
+    fireEvent.click(retry, { button: 0 })
+    expect(b.retryWorkspaceCategoryLoad).toHaveBeenCalledExactlyOnceWith('finance')
+    expect(b.onClose).not.toHaveBeenCalled()
+    expect(b.probe.owner!.open).toBe(false)
+    fireEvent.pointerDown(document.body, { button: 0, pointerId: 1 })
+    expect(b.onClose).toHaveBeenCalledOnce()
+    expect(b.retryWorkspaceCategoryLoad).toHaveBeenCalledOnce()
+  })
+
+  it('does not offer retry for a failed provider without a retry action', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, loadError: 'owned failure',
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([workspace('finance')], vi.fn(), occupancySource(), categories)
+    expect(screen.getByRole('alert').textContent).toContain('owned failure')
+    expect(screen.queryByRole('button', { name: '重新加载 Finance 工作区' })).toBeNull()
+    chooseAdd()
+    expect(b.probe.owner!.open).toBe(true)
+    expect(b.retryWorkspaceCategoryLoad).not.toHaveBeenCalled()
+  })
+
+  it('keeps category error recovery available without a directory flow', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, loadError: 'owned failure',
+      retryLoadAvailable: true, workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([], vi.fn(), occupancySource(false), categories)
+    const menu = screen.getByRole('menu')
+    const retry = screen.getByRole('button', { name: '重新加载 Finance 工作区' })
+    expect(menu.contains(screen.getByRole('alert'))).toBe(true)
+    expect(screen.queryByRole('menuitem', { name: '添加工作区…' })).toBeNull()
+    fireEvent.pointerDown(retry, { button: 0, pointerId: 1 })
+    expect(b.onClose).not.toHaveBeenCalled()
+    fireEvent.click(retry)
+    expect(b.retryWorkspaceCategoryLoad).toHaveBeenCalledExactlyOnceWith('finance')
+    expect(b.probe.owner!.open).toBe(false)
+  })
+
+  it('does not open a delayed directory flow after the owner cancels its pending request', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([workspace('finance')], vi.fn(), occupancySource(), categories)
+    b.close()
+    act(() => { categories.set({ categories: [{
+      id: 'finance', label: 'Finance', ready: true, workspaceIds: [wid('finance')], newSessionDisabledWorkspaceIds: [],
+    }] }) })
+    expect(b.probe.owner!.open).toBe(false)
+    expect(b.onClose).not.toHaveBeenCalled()
+  })
+
+  it('withdraws a removed category failure and retry action from the picker', () => {
+    const categories = createSnapshotStore<WorkspaceCategorySnapshot>({ categories: [{
+      id: 'finance', label: 'Finance', ready: false, loadError: 'owned failure', retryLoadAvailable: true,
+      workspaceIds: [], newSessionDisabledWorkspaceIds: [],
+    }] })
+    const b = mount([workspace('office')], vi.fn(), occupancySource(), categories)
+    expect(screen.getByRole('alert')).toBeTruthy()
+    act(() => { categories.set({ categories: [] }) })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('button', { name: '重新加载 Finance 工作区' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: 'office' })).toBeTruthy()
+    expect(b.probe.owner!.open).toBe(false)
+  })
+
   it('lists same-title Workspaces separately and forwards the selected id', () => {
     const b = mount([workspace('alpha', 'Shared'), workspace('beta', 'Shared')])
     const entries = screen.getAllByRole('menuitem', { name: 'Shared' })
@@ -222,7 +368,7 @@ describe('WorkspacePicker', () => {
     render(
       <WorkspacePicker
         open useSessions={hook(sessions)} useWorkspaces={hook(workspaceState([workspace('alpha', 'Alpha')]))}
-        useWorkspaceCategories={hook({ categories: [] })}
+        useWorkspaceCategories={hook({ categories: [] })} retryWorkspaceCategoryLoad={vi.fn()}
         useSessionStatus={hook(noPendingInteraction)}
         useSessionRetainInfo={() => undefined}
         usePanelInfo={usePanelInfo} useResource={useResource}
@@ -241,7 +387,7 @@ describe('WorkspacePicker', () => {
     render(
       <WorkspacePicker
         open anchorRef={anchor()} useSessions={hook(sessions)} useWorkspaces={hook(state)}
-        useWorkspaceCategories={hook({ categories: [] })}
+        useWorkspaceCategories={hook({ categories: [] })} retryWorkspaceCategoryLoad={vi.fn()}
         useSessionStatus={hook(noPendingInteraction)}
         useSessionRetainInfo={() => undefined}
         usePanelInfo={usePanelInfo} useResource={useResource}

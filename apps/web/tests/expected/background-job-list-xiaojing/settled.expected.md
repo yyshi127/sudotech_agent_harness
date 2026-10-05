@@ -1,0 +1,5 @@
+- list "Background jobs":
+  - listitem:
+    - button "Finished 1" [expanded]
+    - button "Clear"
+  - listitem: "pwsh for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath '.background-job-list.release') { break }; Start-Sleep -Milliseconds 200 } killed before exit; cancelled by the user {{duration}}"

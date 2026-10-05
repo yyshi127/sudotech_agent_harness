@@ -80,6 +80,25 @@ describe('permission preset fold', () => {
 })
 
 describe('PermissionPresetService', () => {
+  it('publishes effect-owned session presets without making them defaults and rejects ineligible writes', async () => {
+    const ctx = await mounted()
+    const admit = vi.fn((session: Session) => { if (session.header.agentPreset === 'finance') throw new Error('office only') })
+    const plugin = await ctx.plugin(Object.assign((scope: Context) => {
+      scope.permissionPresets.registerSessionPreset('office-no-approval', { sandbox: 'danger-full-access', approval: 'ask' }, admit)
+    }, { inject: ['permissionPresets'] }))
+    expect(ctx.permissionPresets.catalog().options.map(option => option.value)).toContain('office-no-approval')
+    expect(ctx.permissionPresets.catalog().defaultOptions.map(option => option.value)).not.toContain('office-no-approval')
+    const office = freshSession('office-current')
+    ctx.permissionPresets.set(office, 'office-no-approval')
+    expect(ctx.permissionPresets.current(office)).toBe('office-no-approval')
+    const finance = ctx.sessions.prepare(SessionId('finance-current'), { meta: { agentPreset: 'finance' } })
+    expect(() => { ctx.permissionPresets.set(finance, 'office-no-approval') }).toThrow('office only')
+    expect(finance.seq).toBe(0)
+    await plugin.dispose()
+    expect(ctx.permissionPresets.names).not.toContain('office-no-approval')
+    expect(() => ctx.permissionPresets.resolve('office-no-approval')).toThrow('unknown preset')
+    await ctx.fiber.dispose()
+  })
   it('does not activate without the required projection registry', async () => {
     const ctx = await mounted({ projection: false })
     expect(ctx.get('permissionPresets')).toBeUndefined()

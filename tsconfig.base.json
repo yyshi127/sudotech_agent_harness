@@ -28,6 +28,9 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-xiaojing-browser-control/native-settings": ["./packages/xiaojing/xiaojing-browser-control/src/native-settings.ts"],
+      "@deepseek-ai/dsh-xiaojing-browser-control/native-settings-types": ["./packages/xiaojing/xiaojing-browser-control/src/native-settings-types.ts"],
+      "@deepseek-ai/dsh-xiaojing-browser-control/native": ["./packages/xiaojing/xiaojing-browser-control/src/native.ts"],
       "@deepseek-ai/dsh-xiaojing-finance-calculations/tool": ["./packages/xiaojing/xiaojing-finance-calculations/src/tool.ts"],
       "@deepseek-ai/dsh-xiaojing-finance-evidence/tool": ["./packages/xiaojing/xiaojing-finance-evidence/src/tool.ts"],
       "@deepseek-ai/dsh-xiaojing-finance-documents/tool": ["./packages/xiaojing/xiaojing-finance-documents/src/tool.ts"],

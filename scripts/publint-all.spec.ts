@@ -25,6 +25,7 @@ function fixture(options: {
   exportPath?: string
   indexSource?: string
   files?: Record<string, string>
+  publicationFiles?: string[]
 } = {}): string {
   const root = mkdtempSync(join(tmpdir(), 'dsh-publint-all-'))
   roots.push(root)
@@ -37,7 +38,7 @@ function fixture(options: {
     license: 'MIT',
     engines: { node: '>=22.19' },
     sideEffects: false,
-    files: ['lib'],
+    files: options.publicationFiles ?? ['lib'],
     exports: { '.': { default: options.exportPath ?? './lib/index.js' } },
   }, null, 2)}\n`)
   writeFileSync(join(packageDir, 'README.md'), '# Probe\n')
@@ -155,6 +156,25 @@ describe('publint package runner', () => {
     }), signal)
     expect(result.exitCode, result.stderr).toBe(0)
   })
+
+  for (const shared of [false, true]) {
+    it(`checks explicit native entry publication with an unpublished shared chunk: ${shared}`, async ({ signal }) => {
+      const result = await run(fixture({
+        publicationFiles: ['lib/index.js', 'lib/native.js', 'lib/native-settings.js'],
+        files: {
+          'lib/native.js': shared ? "export { native } from './shared-private.js'\n" : 'export const native = true\n',
+          'lib/native-settings.js': 'export const settings = true\n',
+          'lib/shared-private.js': 'export const native = true\n',
+        },
+      }), signal)
+      if (shared) {
+        expect(result.exitCode).toBe(1)
+        expect(result.stderr).toContain('imports "./shared-private.js"')
+      } else {
+        expect(result.exitCode, result.stderr).toBe(0)
+      }
+    })
+  }
 
   it('rejects unpublished relative JavaScript and CSS targets', async ({ signal }) => {
     const result = await run(fixture({

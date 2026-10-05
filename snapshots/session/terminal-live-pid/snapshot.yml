@@ -1,0 +1,8 @@
+version: 1
+scenario: terminal-live-pid
+profile: headless
+composition: terminal-live-pid
+recording: authored
+header:
+  class: terminal-live-pid
+  pin: true

@@ -60,7 +60,12 @@ function injectedOf(entry: { inject?: (() => object) | undefined }): object {
 beforeEach(() => { vi.stubEnv('DSH_CLIENT_VERSION', '0.0.0-test') })
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks() })
 
-it('keeps account UI and account RPC inactive in a plain browser, including after reload', async ({ start, mock }) => {
+for (const desktop of [false, true]) it(`keeps account UI and RPC inactive in Web or Xiaojing Desktop, including after reload (desktop: ${String(desktop)})`, async ({ start, mock }) => {
+  if (desktop) {
+    vi.stubGlobal('dshDesktop', {})
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'xiaojing')
+    mock.unary('usageAccounting/snapshot', { ok: false, error: new RemoteError('gateway/internal', 'unavailable in this account fixture', {}) })
+  }
   const c = await start()
   for (const reload of [false, true]) {
     if (reload) await c.reload(SELF)
@@ -70,6 +75,7 @@ it('keeps account UI and account RPC inactive in a plain browser, including afte
     expect(c.ctx.slots.entries('settings.section').some(entry => entry.options.id === 'account')).toBe(false)
     expect(quotaNoticeEntry(c)).toBeUndefined()
     expect(platformHostEntry(c)).toBeUndefined()
+    expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'desktop-onboarding')).toBe(false)
     expect(mock.log.calls().filter(call => call.endpoint.startsWith('account/'))).toEqual([])
     expect(mock.log.streams().filter(stream => stream.endpoint.startsWith('account/'))).toEqual([])
   }

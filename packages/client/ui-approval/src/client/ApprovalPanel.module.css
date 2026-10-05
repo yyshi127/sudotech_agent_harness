@@ -53,8 +53,23 @@
   word-break: break-all;
 }
 
+.scope {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.session {
+  max-width: 100%;
+  min-height: 36px;
+  height: auto;
+  padding-block: 6px;
+  white-space: normal;
+}
+
 .actionRow {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   padding: 14px 16px;

@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { build } from 'vite'
 import { chromium, type Locator, type Page } from 'playwright'
 import { beforeAll, describe, expect, it, onTestFinished } from 'vitest'
-import { launchWebScaffold, watchConsole } from './scaffold.ts'
+import { launchWebScaffold, watchConsole, webClientProfile } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, REPO_ROOT } from './support.ts'
 
 /** Read rendered paint and browser focus, not just the modality publisher's attribute. */
@@ -104,7 +104,10 @@ it.each(['light', 'dark'] as const)('assembled app (%s): pointer keys stay silen
   await connectFreshWorkspace(page, scaffold.workspaceCwd)
   await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(theme === 'dark' ? '' : null)
   const trigger = page.getByRole('button', { name: /^Access mode, current:/ })
-  expect((await paint(trigger)).focusColor).toBe(theme === 'dark' ? 'rgb(122, 170, 255)' : 'rgb(65, 118, 230)')
+  const expectedFocus = webClientProfile() === 'xiaojing'
+    ? theme === 'dark' ? 'rgb(69, 193, 169)' : 'rgb(11, 143, 123)'
+    : theme === 'dark' ? 'rgb(122, 170, 255)' : 'rgb(65, 118, 230)'
+  expect((await paint(trigger)).focusColor).toBe(expectedFocus)
 
   await trigger.click()
   await page.getByRole('menu').waitFor()
@@ -255,8 +258,8 @@ async function compileFixture(): Promise<{ script: string; css: string }> {
     logLevel: 'error',
     plugins: [{
       name: 'focus-rings-fixture',
-      resolveId(id) { if (id === entry) return entry },
-      load(id) { if (id === entry) return code },
+      resolveId(id) { if (id.replaceAll('\\', '/') === entry) return entry },
+      load(id) { if (id.replaceAll('\\', '/') === entry) return code },
     }],
     esbuild: { jsx: 'automatic', jsxDev: false },
     define: { 'process.env.NODE_ENV': JSON.stringify('production') },

@@ -21,6 +21,7 @@ import { z } from 'zod'
 import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
+import McpResources from '@deepseek-ai/dsh-mcp-resources'
 import { ToolCallId, LlmAdapter, LlmRuntime } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { apply } from '@deepseek-ai/dsh-mcp-client/src/index.ts'
@@ -30,6 +31,7 @@ import type { Config } from '@deepseek-ai/dsh-mcp-client'
 const testToolSignal = new AbortController().signal
 
 const fixtureServerPath = fileURLToPath(new URL('./fixture-server.ts', import.meta.url))
+const resourceServerPath = fileURLToPath(new URL('./fixtures/resources-server.ts', import.meta.url))
 
 // Resolve package-local .bin for pnpm-hoisted MCP server binaries.
 const packageDir = fileURLToPath(new URL('..', import.meta.url))
@@ -451,6 +453,75 @@ describe('server-filesystem — real filesystem operations', () => {
     })
     expect(result.isError).toBe(false)
     expect(textOf(result.content[0])).toContain('listed.txt')
+  })
+})
+
+// ---- Resource-only stdio transport ----
+
+describe('resource-only stdio server', () => {
+  let ctx: Context
+
+  beforeAll(async () => {
+    ctx = await mountRegistry()
+    await ctx.plugin(McpResources)
+    await apply(ctx, {
+      transport: 'stdio', serverName: 'catalog', command: process.execPath,
+      args: [resourceServerPath], env: {}, cwd: packageDir,
+      toolCallTimeoutMs: 15_000, failOnStartupError: true,
+    })
+  }, 30_000)
+
+  afterAll(async () => {
+    if (ctx) await ctx.fiber.dispose()
+  })
+
+  it('discovers resource URIs and templates without server tools', async () => {
+    expect(ctx.tools.schemas().map(tool => tool.name).sort()).toEqual([
+      'list_mcp_resource_templates', 'list_mcp_resources', 'read_mcp_resource',
+    ])
+    const resources = await ctx.tools.execute({
+      name: 'list_mcp_resources', arguments: { server: 'catalog' },
+      signal: testToolSignal, callId: nextCallId(),
+    })
+    expect(resources).toMatchObject({
+      isError: false, value: { resources: [
+        { uri: 'memo://text', name: 'memo' },
+        { uri: 'memo://binary', name: 'binary' },
+      ] },
+    })
+    const templates = await ctx.tools.execute({
+      name: 'list_mcp_resource_templates', arguments: { server: 'catalog' },
+      signal: testToolSignal, callId: nextCallId(),
+    })
+    expect(templates).toMatchObject({
+      isError: false, value: { resourceTemplates: [{ uriTemplate: 'memo://greeting/{name}' }] },
+    })
+  })
+
+  it.each([
+    ['memo://text', 'MCP resource text with {{braces}} intact.'],
+    ['memo://greeting/Xiaojing', 'Hello, Xiaojing.'],
+  ])('reads %s through the serving child and preserves literal text', async (uri, text) => {
+    const result = await ctx.tools.execute({
+      name: 'read_mcp_resource', arguments: { server: 'catalog', uri },
+      signal: testToolSignal, callId: nextCallId(),
+    })
+    expect(result).toMatchObject({ isError: false, value: { contents: [{ uri, mimeType: 'text/plain', text }] } })
+    expect(textOf(result.content[0])).toContain(text)
+    expect(textOf(result.content[0])).toContain('catalog')
+  })
+
+  it('retains binary content for callers while describing it to the model', async () => {
+    const result = await ctx.tools.execute({
+      name: 'read_mcp_resource', arguments: { server: 'catalog', uri: 'memo://binary' },
+      signal: testToolSignal, callId: nextCallId(),
+    })
+    const blob = 'bWNwLXJlc291cmNlLWJpbmFyeQ=='
+    expect(result).toMatchObject({
+      isError: false, value: { contents: [{ uri: 'memo://binary', mimeType: 'application/octet-stream', blob }] },
+    })
+    expect(textOf(result.content[0])).not.toContain(blob)
+    expect(textOf(result.content[0])).toContain('application/octet-stream')
   })
 })
 

@@ -13,13 +13,16 @@ import {
   launchWebScaffold,
   seedSession,
   watchConsole,
+  webClientProfile,
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { expandTurnProcesses, newEnglishPage, saveFailureShot, scrollIntoView } from './support.ts'
 
 const EXPECTED_DIR = fileURLToPath(new URL('./expected/thinking-markdown', import.meta.url))
-const UI_EXPECTED = fileURLToPath(new URL('./expected/thinking-markdown/ui.expected.md', import.meta.url))
+const UI_EXPECTED = fileURLToPath(new URL(
+  `./expected/thinking-markdown/ui${webClientProfile() === 'xiaojing' ? '.xiaojing' : ''}.expected.md`, import.meta.url,
+))
 const MODE = webSnapshotMode()
 const SEED_ID = 'thinking-markdown-web-e2e'
 const DONE = 'THINKING_MARKDOWN_DONE'
@@ -299,6 +302,6 @@ describe('web e2e: secondary Thinking Markdown', () => {
     }
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(EXPECTED_DIR, ['ui.expected.md'])
+    await assertFixtureInventory(EXPECTED_DIR, ['ui.expected.md', 'ui.xiaojing.expected.md'])
   })
 })

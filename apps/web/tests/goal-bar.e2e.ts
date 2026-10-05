@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import type {} from '@deepseek-ai/dsh-goal'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, expectTooltipOnTop, newEnglishPage, saveFailureShot } from './support.ts'
 
@@ -87,7 +87,8 @@ describe('web e2e: goal bar clear convergence', () => {
     const snapshot = await captureStableAria(page, '[data-goal-bar]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(ACTIVE_EXPECTED, snapshot, MODE)
 
-    const agents = scaffold.ctx.agents.list()
+    const agents = scaffold.ctx.agents.list().filter(agent => webClientProfile() !== 'xiaojing'
+      || agent.session.header.cwd === join(scaffold.workspaceCwd, 'workspace'))
     expect(agents).toHaveLength(1)
     scaffold.ctx.goals.disarm(agents[0]!)
     await expect.poll(() => bar.getByRole('button', { name: 'Resume goal' }).count(), {

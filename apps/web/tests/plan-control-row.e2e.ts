@@ -109,7 +109,13 @@ describe('web e2e: plan chip click area at the narrow viewport', () => {
     // script to consume (no model call happens — the /plan command never
     // steers a message), so the model trigger renders its real long label,
     // which is what made the reported overlap measurable.
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayProvidersOnly: true })
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayProvidersOnly: true, replayProviders: [{
+      id: 'layout-fixture', name: 'Composer layout', models: [
+        { id: 'short', name: SHORT_MODEL, contextWindow: 128_000 },
+        { id: 'long', name: LONG_MODEL, contextWindow: 1_000_000, reasoningEfforts: ['off', 'high'], defaultReasoningEffort: 'high' },
+      ],
+    }] })
+    await scaffold.ctx.agentDefaultModel.saveSelection({ provider: 'layout-fixture', model: 'short' })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser, VIEWPORT.height)

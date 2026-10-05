@@ -1,0 +1,4 @@
+- list "Background jobs":
+  - listitem:
+    - 'button "Show live output of for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath ''.background-job-list.release'') { break }; Start-Sleep -Milliseconds 200 }"': "for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath '.background-job-list.release') { break }; Start-Sleep -Milliseconds 200 } pwsh {{duration}}"
+    - 'button "Stop task for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath ''.background-job-list.release'') { break }; Start-Sleep -Milliseconds 200 }"'

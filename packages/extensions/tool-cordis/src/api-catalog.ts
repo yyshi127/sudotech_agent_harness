@@ -395,15 +395,20 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'agent', description: 'the live agent whose policy is changing.' }, { name: 'policy', description: 'the new effective policy.' }],
       },
       {
+        signature: 'setAutomaticApproval(session: Session, enabled: boolean): void',
+        description: 'Project explicit, logged user authorization into this service. The owning product must restore and revoke this value from its session history; calling this method alone does not persist authorization. Enabling settles pending questions and overrides both ordinary `never` and mandatory asks. Cancellation and failed audit commits still prevent execution.',
+        parameters: [{ name: 'session', description: 'the exact session authorized by the product.' }, { name: 'enabled', description: 'whether its explicit automatic authorization is effective.' }],
+      },
+      {
         signature: 'async request(req: ApprovalRequest): Promise<ApprovalOutcome>',
-        description: 'Ask the composed answerers to decide one readonly same-process request. The service borrows the request, agent, session, and live signal directly. The request requires an open turn because the audit pair must be enclosed by the durable log\'s commit/replay boundary; an idle ask rejects before appending anything. The answerer phase always produces an outcome: an aborted signal yields `\'cancelled\'`, a missing or throwing answerer yields `\'unavailable\'` (fail closed), and a rogue non-vocabulary return value is normalized to `\'unavailable\'`. A failure that prevents either audit append from committing still rejects because returning an unlogged decision would violate the pair. Session contains post-commit observer failures, so an authoritative append cannot reject the request or suppress its matching audit event.',
-        parameters: [{ name: 'req', description: 'the pending decision (agent, tool identity, reason, signal).' }],
+        description: 'Ask the composed answerers to decide one readonly same-process request. The service borrows the agent, session, and readonly request data. Answerers receive a request projection with cancellation combined with service disposal. The request requires an open turn because the audit pair must identify its action\'s turn; an idle ask rejects before appending anything. The answerer phase always produces an outcome: an aborted signal yields `\'cancelled\'`, a missing or throwing answerer yields `\'unavailable\'` (fail closed), and a rogue non-vocabulary return value is normalized to `\'unavailable\'`. A failure that prevents either audit append from committing still rejects because returning an unlogged decision would violate the pair. Session contains post-commit observer failures, so an authoritative append cannot reject the request or suppress its matching audit event. Trusted requester classifications may reuse an explicitly authorized operation class and target scope within this session, including after a restart. Unclassified requests remain one-shot. Creation and reuse are audited; cancellation, disposal, and failed audit commits cannot create authorization. Session policy is checked before reuse and after an answer.',
+        parameters: [{ name: 'req', description: 'the pending decision (agent, tool identity, reason, signal, optional classification).' }],
         returns: 'the closed outcome; `\'allowed-once\'` is the only grant.',
         throws: ['when no turn is open or either audit event fails before the session append commit point.'],
       },
       {
         signature: 'async requestMandatory(req: ApprovalRequest): Promise<ApprovalOutcome>',
-        description: 'Ask for a security confirmation that the session\'s ordinary approval policy cannot suppress. This method is reserved for product security invariants such as deletion confirmation; it does not grant the action and still fails closed when no answerer is available, the user rejects, or the request is cancelled. Audit and turn-enclosure behavior are the same as request.',
+        description: 'Ask for a security confirmation that the session\'s ordinary approval policy cannot suppress. Explicit product-owned automatic authorization applies to these requests too. This method is reserved for product security invariants such as deletion confirmation; it does not grant the action and still fails closed when no answerer is available, the user rejects, or the request is cancelled. Audit and turn-enclosure behavior are the same as request. A trusted classification explicitly supplied by the security consumer may reuse session authorization; omission requires a separate answer for each action.',
         parameters: [{ name: 'req', description: 'the mandatory decision (agent, tool identity, reason, signal).' }],
         returns: 'the closed outcome; `\'allowed-once\'` is the only grant.',
         throws: ['when no turn is open or either audit event fails before the session append commit point.'],
@@ -1229,6 +1234,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The operation result after its asynchronous work completes.',
       },
       {
+        signature: 'runOutsideTransaction<T>(operation: () => T): T',
+        description: 'Schedule independent follow-up work without inheriting the current transaction. Do not await a follow-up transaction from inside the transaction that scheduled it.',
+        parameters: [{ name: 'operation', description: 'Callback that emits notifications or schedules follow-up work.' }],
+        returns: 'The callback result.',
+      },
+      {
         signature: 'async watchConfig(filename: string, refresh: () => Promise<void>): Promise<() => Promise<void>>',
         description: 'Watch a configuration path through the same queue as module replacement.',
         parameters: [{ name: 'filename', description: 'Absolute path, which may not exist yet.' }, { name: 'refresh', description: 'Rebuilds configuration from its current files and awaits Loader completion.' }],
@@ -1589,6 +1600,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Publish the fixed current-session Auto preset for the calling integration\'s effect lifetime.',
         parameters: [{ name: 'admit', description: 'synchronous gate run before live Auto selection or restore.' }],
         returns: 'the async effect disposer that removes Auto.',
+      },
+      {
+        signature: 'registerSessionPreset(name: string, spec: PresetSpec, admit: (session: Session) => void): () => Promise<void>',
+        description: 'Publish an effect-owned preset for current sessions, excluded from defaults.',
+        parameters: [{ name: 'name', description: 'unique identity, distinct from configured and reserved names.' }, { name: 'spec', description: 'the execution knobs written through their canonical setters.' }, { name: 'admit', description: 'synchronous session eligibility check before a selection writes.' }],
+        returns: 'disposer that withdraws the option from the process catalog.',
       },
       {
         signature: 'current(session: Session): string',
@@ -3815,13 +3832,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     methods: [
       {
         signature: 'approvalReason(owner: SessionId, request: ComputerActionRequest): string | undefined',
-        description: 'Explain whether one request requires a one-shot user approval.',
+        description: 'Explain whether one request requires user approval.',
         parameters: [{ name: 'owner', description: 'Agent session that owns the observed Windows targets.' }, { name: 'request', description: 'Validated Windows operation.' }],
         returns: 'The approval reason, or undefined when the operation may proceed directly.',
       },
       {
         signature: 'run(owner: SessionId, request: ComputerActionRequest, signal: AbortSignal): Promise<ComputerActionResult>',
-        description: 'Execute one validated Windows operation for an owning session.',
+        description: 'Execute one validated Windows operation for an owning session. Cancellation during helper startup rejects the operation before its request is dispatched.',
         parameters: [{ name: 'owner', description: 'Agent session that owns the observed Windows targets.' }, { name: 'request', description: 'Windows operation to execute.' }, { name: 'signal', description: 'Cancellation signal for the operation.' }],
         returns: 'The bounded application catalog, window list, or UI Automation observation produced by the operation.',
       },
@@ -4306,6 +4323,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'xiaojingNativeBrowserSettings',
+    summary: 'Product settings consumed by the native browser runtime.',
+    description: 'Product settings consumed by the native browser runtime.',
+    methods: [
+      {
+        signature: 'enabled(browser: NativeBrowser): boolean',
+        description: 'Read the operator\'s persisted permission to control existing tabs.',
+        parameters: [{ name: 'browser', description: 'browser brand to check.' }],
+        returns: 'whether existing-tab control is enabled.',
+      },
+      {
+        signature: 'registerRuntime(runtime: NativeBrowserSettingsRuntime): () => void',
+        description: 'Register the active native runtime, excluding simultaneous replacements.',
+        parameters: [{ name: 'runtime', description: 'installation, connection-state, and revocation callbacks.' }],
+        returns: 'disposer that removes only this registration.',
+      },
+    ],
+  },
+  {
     key: 'xiaojingWeixinChannel',
     summary: 'Stateful Host adapter; exported for assembled integration tests.',
     description: 'Stateful Host adapter; exported for assembled integration tests.',
@@ -4500,7 +4536,7 @@ export const EVENT_API: readonly EventApiEntry[] = [
   {
     name: 'approval/request',
     mode: 'waterfall',
-    signature: '\'approval/request\'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>',
+    signature: '\'approval/request\'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalAnswer>, ): Promise<ApprovalAnswer>',
     summary: 'Ask composed answerers for one decision.',
     description: 'Ask composed answerers for one decision. Return an outcome to claim the request or call `next()` to delegate. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent.',
     parameters: [{ name: 'req', description: 'pending approval request.' }],
@@ -5138,6 +5174,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ApiSessionAgentResult = {\n    readonly agent: Agent;\n} | {\n    readonly error: ApiSessionAgentError;\n};',
   },
   {
+    name: 'ApprovalAnswer',
+    declaration: 'export type ApprovalAnswer = ApprovalOutcome | \'allowed-session\';',
+  },
+  {
     name: 'ApprovalOutcome',
     declaration: 'export type ApprovalOutcome = \'allowed-once\' | \'rejected\' | \'cancelled\' | \'unavailable\';',
   },
@@ -5151,7 +5191,11 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ApprovalRequestEvent',
-    declaration: 'export interface ApprovalRequestEvent {\n    readonly agent: Agent;\n    readonly toolName: string;\n    readonly callId?: ToolCallId;\n    readonly reason?: string;\n    readonly displayReason?: {\n        readonly en: string;\n        readonly [locale: string]: string;\n    };\n    readonly signal?: AbortSignal;\n}',
+    declaration: 'export interface ApprovalRequestEvent {\n    readonly agent: Agent;\n    readonly toolName: string;\n    readonly callId?: ToolCallId;\n    readonly reason?: string;\n    readonly displayReason?: {\n        readonly en: string;\n        readonly [locale: string]: string;\n    };\n    readonly reusable?: ApprovalReuse;\n    readonly signal?: AbortSignal;\n}',
+  },
+  {
+    name: 'ApprovalReuse',
+    declaration: 'export interface ApprovalReuse {\n    readonly category: string;\n    readonly scope: string;\n    readonly label: string;\n    readonly displayLabel?: {\n        readonly en: string;\n        readonly [locale: string]: string;\n    };\n}',
   },
   {
     name: 'ArchiveFinanceClientRequest',
@@ -6930,6 +6974,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ModelReasoningEffort {\n    readonly id: string;\n    readonly name: string;\n    readonly description?: string;\n}',
   },
   {
+    name: 'NativeBrowserInstallation',
+    declaration: 'export interface NativeBrowserInstallation {\n    installed: boolean;\n    setupReady: boolean;\n    executablePath?: string;\n}',
+  },
+  {
+    name: 'NativeBrowserSettingsRuntime',
+    declaration: 'export interface NativeBrowserSettingsRuntime {\n    inspect(browser: NativeBrowser, signal: AbortSignal): Promise<NativeBrowserInstallation>;\n    state(browser: NativeBrowser): \'connecting\' | \'connected\' | \'disconnected\' | undefined;\n    revoke(browser: NativeBrowser): Promise<void>;\n}',
+  },
+  {
     name: 'NativeFileApplication',
     declaration: 'export interface NativeFileApplication {\n    readonly id: string;\n    readonly name: string;\n    readonly default: boolean;\n    readonly icon: string | null;\n}',
   },
@@ -8535,7 +8587,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SubprocessSpawnSpec',
-    declaration: 'export interface SubprocessSpawnSpec {\n    argv: readonly string[];\n    cwd: string;\n    stdio: SubprocessStdio;\n    graceMs: number;\n    signal?: AbortSignal | undefined;\n    env?: NodeJS.ProcessEnv | undefined;\n}',
+    declaration: 'export interface SubprocessSpawnSpec {\n    argv: readonly string[];\n    cwd: string;\n    stdio: SubprocessStdio;\n    windowsChildLifetime?: \'independent\' | undefined;\n    graceMs: number;\n    signal?: AbortSignal | undefined;\n    env?: NodeJS.ProcessEnv | undefined;\n}',
   },
   {
     name: 'SubprocessStdinMode',

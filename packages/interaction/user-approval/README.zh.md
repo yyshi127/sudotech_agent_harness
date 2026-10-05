@@ -1,5 +1,5 @@
 ---
-description: "与通道无关的一次性审批 seam；供组合应答者、设置策略或排查以拒绝方式关闭的权限决定的用户与维护者阅读。"
+description: "与通道无关的审批服务，支持单次决定及同一会话中的操作类别授权。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用本包可要求敏感工具操作在继续前取得一次性决定。`ask` 策略将每个请求发送给部署中的人类或机器应答者；`never` 则直接拒绝，不发出提示。应答者缺失或失败时返回 `unavailable`，使操作以拒绝方式关闭；每项批准也只适用于对应请求。每个请求与结果都会记录在发起请求的会话审计日志中。模型会看到最终工具结果与当前策略，但不会看到人类权限 UI 或审计事件。
+使用本包可要求敏感工具操作在继续前取得决定。`ask` 策略咨询部署中的应答者；`never` 不提示而直接拒绝普通请求。应答者缺失或失败时返回 `unavailable`。可信请求方可在当前会话中为某个操作类别和目标范围提供授权。每个请求、决定及授权复用均会审计。模型会看到最终工具结果与当前策略，但不会看到人类权限 UI 或审计事件。
 
 ## 目录
 
@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+`setAutomaticApproval(session, enabled)` 接收可信产品从已记录用户选择投影出的显式授权。它放行普通与强制请求，包括 `never` 策略下的请求，并通过撤回应答者信号结束已显示的审批。取消、决定提交前撤销授权及审计失败仍会阻止执行。本服务不持久保存该标志，所属产品必须负责重建、限制和撤销。没有此标志时，原有策略与同类操作授权行为不变。
+
 当敏感工具操作应当暂停等待人或机器的决定、而非无条件执行时，组合此服务。工具流水线与沙箱 bash 工具会通过此 seam 路由 `ask` 决定，并在该 seam 缺失时以拒绝方式关闭，因此交互式部署至少应组合一个应答者。
 
 ### 组合应答者
@@ -33,7 +35,7 @@ kind: "package-reference"
 
 ### 设置策略
 
-有效策略取会话中已设置的策略，并回退到配置的默认值。`ask`（默认）委托给已组合的应答者；`never` 在交互式分发之前确定性地拒绝每个请求——这是 CI 与无人值守运行采用的严格无头模式。
+有效策略取会话中已设置的策略，并回退到配置的默认值。`ask`（默认）委托给已组合的应答者；`never` 在交互式分发之前确定性地拒绝每个普通请求。强制确认使用 `requestMandatory`，没有应答或匹配的显式会话授权时仍以拒绝方式关闭。
 
 ```yaml
 - name: '@deepseek-ai/dsh-user-approval'
@@ -50,6 +52,10 @@ kind: "package-reference"
 ### 请求决定
 
 `request(req)` 指名 agent、工具、原因、可选的调用 id，以及一个中止信号。可选的 `displayReason` 提供本地化展示文案，不改写日志中的原因。它要求当前处于尚未结束的轮次中：空闲或在轮次之间调用会在审计前抛出异常。中止会撤回问题——请求以 `cancelled` 结算，迟到的回答被丢弃。若任一审计事件在提交前失败，请求会被拒绝，而不会返回一项未记录的决定。
+
+可信请求方代码可提供 `reusable: { category, scope, label, displayLabel? }`，模型不得选择这些值。`category` 指明操作类别，`scope` 指明精确目标；`label` 与可选本地化 `displayLabel` 向用户解释两者。应答者随后可返回 `allowed-session`。服务仍返回原有 `allowed-once` 结果，授权仅在同一 Session 中复用于类别和范围均匹配的请求。未分类请求仍为单次审批。强制确认的消费方必须显式允许复用；未分类的删除确认仍逐次确认。
+
+同类并发请求等待首个决定和审计提交，再检查授权。创建和复用写入可选审计字段；当前对象的授权仅在决定追加成功后可立即复用。重启后只恢复原本已关闭轮次中的授权；中断轮次的修复不会授权未完成尾部。较早闭合轮次的授权仍有效，复制的历史不会授权其他 Session。普通 `never` 即使存在匹配授权也仍拒绝。
 
 ### 模型与用户看到什么
 
@@ -75,7 +81,7 @@ kind: "package-reference"
 
 ### 分发
 
-`decide()` 让应答者 waterfall 与请求信号赛跑，并隔离所有应答者故障：抛出异常的监听器会使问题以 `unavailable` 关闭，不属于结果词汇的异常返回值也会规范化为 `unavailable`。`never` 策略在服务内部、waterfall 分发之前执行，因此之后以 `prepend` 注册的监听器也无法绕过确定性的拒绝。请求必须处于未结束的轮次内，因为轮次是持久日志的提交／回放边界——轮次之间的裸事件与崩溃尾部无法区分。
+`decide()` 让应答者 waterfall 与请求取消、服务卸载赛跑，并隔离应答者故障。应答者收到原有只读数据引用与组合信号，服务独立卸载也会撤回其提示。异常或未知回答以 `unavailable` 关闭。`never` 在授权复用与分发前检查，并在提交决定前再次检查。审计对指明操作所属轮次；持久化会保留物理上合法的中断历史，而授权恢复会排除经修复的轮次。
 
 ### 策略与运行时上下文快照
 
@@ -108,7 +114,7 @@ kind: "package-reference"
 
 #### 模型看到的内容
 
-首次请求与有效策略每次变化时，都会在保留的历史后追加一份完整运行时上下文快照。在 `ask` 下，审批上下文内容会说明系统可以咨询已配置的应答者，缺少可用应答者时则以拒绝方式关闭。在 `never` 下，它会说明确定性的拒绝与非升权后果。未变化的请求会保留先前快照，不增加另一条消息。
+首次请求与有效策略或授权变化时，都会在保留的历史后追加完整运行时上下文快照。没有可复用授权的会话保持以下策略文案。已授权 Session 说明复用仅限获准类别与目标范围；普通 `never` 仍确定拒绝，未分类强制确认仍须逐次决定。未变化的请求保留原快照，不增加另一条消息。
 
 ##### Ask 策略贡献
 
@@ -119,7 +125,7 @@ Approval policy: ask. Operations that require approval may ask through the confi
 ##### Never 策略贡献
 
 ```markdown
-Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).
+Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.
 ```
 
 #### Token 影响
@@ -152,7 +158,7 @@ Approval prompts are disabled in this session: actions that require approval are
 这些限制说明该 seam 不适用的场景，以及组合时需要特别注意的场景。它们是当前包约束，不是通用权限对比。
 
 - **请求只在尚未结束的轮次内有效**：在空闲时或轮次之间发起调用，会在审计前抛出异常；持久化的轮次外审批工作流仍属延期工作。
-- **仅存在一次性授权**：结果词汇包含 `allowed-once`，但不含 `allow-always`、已记住的规则、撤销或授权存储；会话策略只有 `ask`／`never`。
+- **仅限同一会话**：授权只适用于同一 Session 中的可信操作类别和精确目标，不提供全局规则或逐条授权撤销；会话策略仍为 `ask`／`never`。
 - **请求不携带工具参数**：应答者会看到工具名称、原因和可选调用 id；ACP（Agent Client Protocol）机器通道要求调用 id，并会委托不含 id 的请求。
 - **没有内置应答者**：无头或组合不完整的部署会返回 `unavailable` 并以拒绝方式关闭；服务自身绝不会提示人类。
 

@@ -104,6 +104,15 @@ Owns the deployment's configured permission presets, the fixed Auto integration 
 registerAuto(admit: () => void): () => Promise<void>
 
 /**
+ * Publish an effect-owned preset for current sessions, excluded from defaults.
+ * @param name - unique identity, distinct from configured and reserved names.
+ * @param spec - the execution knobs written through their canonical setters.
+ * @param admit - synchronous session eligibility check before a selection writes.
+ * @returns disposer that withdraws the option from the process catalog.
+ */
+registerSessionPreset(name: string, spec: PresetSpec, admit: (session: Session) => void): () => Promise<void>
+
+/**
  * Resolve the preset matching the effective knob values. A still-matching
  * last selection wins shared-bundle ties, and a still-selected Auto also
  * matches the `never` approval policy; otherwise the first configured

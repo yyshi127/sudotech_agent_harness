@@ -248,7 +248,7 @@ describe('BashTerminalBackend startup rollback', () => {
     const ctx = new Context()
     await ctx.plugin(RecordingSandbox)
     await ctx.plugin(SessionProjectionRegistry)
-    await ctx.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot: '/workspace' })
+    await ctx.plugin(SandboxPolicyService, { mode: 'workspace-write', workspaceRoot: resolve('/workspace') })
     const terminal = terminalHandle()
     let spawned: SubprocessTerminalSpawnSpec | undefined
     const spawnTerminal = async (spec: SubprocessTerminalSpawnSpec): Promise<SubprocessTerminalHandle> => {
@@ -311,7 +311,7 @@ describe('BashTerminalBackend startup rollback', () => {
       spawnTerminal,
       () => session,
     )
-    const owner = agent(ctx, '/session-workspace')
+    const owner = agent(ctx, resolve('/session-workspace'))
     setSandboxMode(owner.session, 'workspace-write')
     expect(await backend.spawn(spec(owner))).toBe(session)
 
@@ -415,6 +415,44 @@ describe('BashTerminalBackend startup rollback', () => {
     const session = await backend.spawn(spec(agent(ctx)))
     expect(session.motd).toBe('dsh> ')
     await session.close('test complete')
+  })
+
+  it('lists a deferred provider PID through the actual local-session consumer', async () => {
+    const ctx = new Context()
+    await ctx.plugin(AgentRegistry)
+    await ctx.plugin(TerminalSessionService)
+    await ctx.plugin(EmptySandbox)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SandboxPolicyService, { mode: 'danger-full-access', workspaceRoot: '/workspace' })
+    let pid = 0
+    const output = new PassThrough()
+    const outcome = Promise.withResolvers<{ exitCode: number | null; signal: NodeJS.Signals | null }>()
+    const terminal: SubprocessTerminalHandle = {
+      get pid() { return pid },
+      output,
+      done: outcome.promise,
+      write: async () => {},
+      resize: async () => {},
+      inspectActivity: async () => ({ state: 'unknown' as const, revision: 0 }),
+      inspectForeground: async () => ({ processGroupId: pid, inputWaiting: true }),
+      signalForeground: async () => pid,
+      async terminate() {
+        output.end()
+        outcome.resolve({ exitCode: null, signal: 'SIGTERM' })
+      },
+    }
+    const owner = agent(ctx)
+    await ctx.agents.register(owner)
+    ctx.effect(() => ctx.terminals.registerBackend(new BashTerminalBackend(ctx, config(), async () => terminal)))
+    queueMicrotask(() => { output.write(Buffer.from('\x1b]133;D;0\x07dsh> ')) })
+    try {
+      const created = await ctx.terminals.spawn(owner, { type: 'shell' })
+      expect(created.pid).toBe(0)
+      pid = 123
+      expect(ctx.terminals.list(owner)).toMatchObject([{ sessionId: created.sessionId, pid: 123 }])
+    } finally {
+      await ctx.fiber.dispose()
+    }
   })
 
   it('bootstraps a pwsh dialect through the prompt function and scrubs bash-only env', async () => {

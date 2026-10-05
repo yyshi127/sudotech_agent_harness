@@ -62,6 +62,8 @@ import * as ToolJobs from '@deepseek-ai/dsh-tool-jobs'
 import BrowserUseRegistry from '@deepseek-ai/dsh-browser-use'
 import * as StagehandBrowserTools from '@deepseek-ai/dsh-experimental-browser-use-stagehand-native'
 import XiaojingBrowserControl from '../packages/xiaojing/xiaojing-browser-control/src/index.ts'
+import * as XiaojingNativeBrowserControl from '../packages/xiaojing/xiaojing-browser-control/src/native.ts'
+import UserApproval from '@deepseek-ai/dsh-user-approval'
 import XiaojingComputerControl from '../packages/xiaojing/xiaojing-computer-control/src/index.ts'
 import type TeamService from '@deepseek-ai/dsh-experimental-agent-team'
 import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
@@ -208,9 +210,12 @@ const TOOL_PACKAGES: ToolPackage[] = [
   {
     pkg: '@deepseek-ai/dsh-xiaojing-browser-control',
     dir: 'xiaojing-browser-control',
-    source: 'packages/xiaojing/xiaojing-browser-control/src/index.ts',
-    requires: ['ctx.tools', 'ctx.credentials', 'ctx.connection', 'ctx.webServer'],
-    writes: ['tool/call', 'tool/result'],
+    source: {
+      browser_control: 'packages/xiaojing/xiaojing-browser-control/src/index.ts',
+      browser_connect: 'packages/xiaojing/xiaojing-browser-control/src/native.ts',
+    },
+    requires: ['ctx.tools', 'ctx.credentials', 'ctx.connection', 'ctx.webServer', 'ctx.browserUse', 'ctx.agents', 'ctx.systemPrompt', 'ctx.approval'],
+    writes: ['tool/call', 'tool/result', 'approval/asked', 'approval/decided'],
     async mount(ctx) {
       // Schema harvesting must not bind the personal Edge bridge or load user credentials.
       const credentials: Partial<Context['credentials']> = {
@@ -223,7 +228,12 @@ const TOOL_PACKAGES: ToolPackage[] = [
       ctx.provide('connection', connection as Context['connection'])
       ctx.provide('webServer', {} as Context['webServer'])
       await ctx.plugin(XiaojingBrowserControl, { profileDir: 'catalog-only-profile' })
+      await ctx.plugin(BrowserUseRegistry)
+      await ctx.plugin(AgentRegistry)
+      await ctx.plugin(UserApproval)
+      await ctx.plugin(XiaojingNativeBrowserControl, {})
     },
+    note: 'The Xiaojing product enables the ./native entry and browser_connect; browser_control remains available only through the optional legacy package-root entry. Native MCP schemas are discovered after connection.',
   },
   {
     pkg: '@deepseek-ai/dsh-xiaojing-computer-control',

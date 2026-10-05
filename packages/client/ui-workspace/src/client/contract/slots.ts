@@ -504,6 +504,8 @@ export type WorkspacePickerInjected = DirectoryPickingInjected & {
   }
   /** Adopt a picked host directory as a real Workspace before targeting a Session. */
   createWorkspace: (input: { path: string }) => Promise<WorkspaceView>
+  /** Retry a category membership load when its snapshot advertises the provider action. */
+  retryWorkspaceCategoryLoad: (categoryId: string) => void
 }
 
 /**

@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed, onTestFinished
 import * as yaml from 'js-yaml'
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import type {} from '@deepseek-ai/dsh-experimental-agent-team'
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
@@ -43,6 +44,7 @@ describe('web e2e: Agent Teams panel', () => {
   let browser: Browser
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
+  let agent: Agent
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({ extraOverlayPath: OVERLAY, extraInstallAnchors: INSTALL_ANCHORS })
@@ -52,8 +54,10 @@ describe('web e2e: Agent Teams panel', () => {
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    const agent = scaffold.ctx.agents.list()[0]
-    if (agent === undefined) throw new Error('connected Team workspace did not create an Agent')
+    const workspace = scaffold.ctx.workspaceRegistry.list().find(item => item.path === join(scaffold.workspaceCwd, 'workspace'))
+    const connectedAgent = scaffold.ctx.agents.list().find(item => workspace?.sessionIds.includes(item.id))
+    if (connectedAgent === undefined) throw new Error('connected Team workspace did not create an Agent')
+    agent = connectedAgent
     agent.session.append('turn/start', { turn: 1 })
     agent.session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'Open the Agent Team controls.' }],
@@ -95,7 +99,6 @@ describe('web e2e: Agent Teams panel', () => {
     expect(await action.getByRole('button', { name: /Refresh/u }).count()).toBe(0)
 
     // Host-side Team mutations reach the open panel through projection frames only.
-    const agent = scaffold.ctx.agents.list()[0]!
     const task = await scaffold.ctx.agentTeams.createTask(agent, {
       subject: 'Agent task', description: 'Created by the Team Lead', writeScopes: ['src/web'],
     })
@@ -175,7 +178,6 @@ describe('web e2e: Agent Teams panel', () => {
   })
 
   it('offers expansion when resizing makes a task description exceed two lines', async () => {
-    const agent = scaffold.ctx.agents.list()[0]!
     await scaffold.ctx.agentTeams.createTask(agent, {
       subject: 'Responsive task',
       description: 'Check the task description before you start work. '.repeat(3),

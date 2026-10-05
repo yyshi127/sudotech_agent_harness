@@ -14,14 +14,17 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import { JobId } from '@deepseek-ai/dsh-jobs'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v2.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/live-job-stream', import.meta.url))
-const STREAMING_EXPECTED = join(SNAPSHOT_DIR, 'streaming.expected.md')
-const SETTLED_EXPECTED = join(SNAPSHOT_DIR, 'settled.expected.md')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const NATIVE = XIAOJING && process.platform === 'win32'
+const EXPECTED_DIR = NATIVE ? fileURLToPath(new URL('./expected/live-job-stream-xiaojing', import.meta.url)) : SNAPSHOT_DIR
+const STREAMING_EXPECTED = join(EXPECTED_DIR, 'streaming.expected.md')
+const SETTLED_EXPECTED = join(EXPECTED_DIR, 'settled.expected.md')
 const MODE = webSnapshotMode()
 const SEED_ID = 'live-job-stream-web-e2e'
 // One fixed line of early output, then a hold on a barrier file the test owns
@@ -29,7 +32,10 @@ const SEED_ID = 'live-job-stream-web-e2e'
 // settle it before the scenario kills it. The bounded loop only caps an
 // orphan's lifetime if the runner dies before `afterAll` releases the barrier.
 const RELEASE = '.live-job-stream.release'
-const COMMAND = `printf 'streamed-%s\\n' marker-line; for _ in $(seq 1 3000); do [ -e ${RELEASE} ] && break; sleep 0.2; done`
+const TOOL = NATIVE ? 'pwsh' : 'bash'
+const COMMAND = NATIVE
+  ? `Write-Output 'streamed-marker-line'; for ($attempt = 0; $attempt -lt 3000; $attempt++) { if (Test-Path -LiteralPath '${RELEASE}') { break }; Start-Sleep -Milliseconds 200 }`
+  : `printf 'streamed-%s\\n' marker-line; for _ in $(seq 1 3000); do [ -e ${RELEASE} ] && break; sleep 0.2; done`
 
 /**
  * Wait for opening a session to publish its live Agent.
@@ -63,12 +69,22 @@ describe.skipIf(MODE === 'record')('web e2e: live job stream', () => {
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
 
-    const groupRow = page.locator('[role="treeitem"]').first()
-    await groupRow.waitFor({ timeout: 15_000 })
-    await groupRow.click()
-    const sessionRow = page.locator('[role="treeitem"]').nth(1)
-    await sessionRow.waitFor({ timeout: 10_000 })
-    await sessionRow.click()
+    if (XIAOJING) {
+      await connectFreshWorkspace(page, scaffold.workspaceCwd)
+      const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, 'Streaming acceptance')
+      await workspace.attachSession(SessionId(SEED_ID))
+      const group = page.locator(`[data-row-key="workspace:${workspace.id}"][role="treeitem"]`)
+      if (await group.getAttribute('aria-expanded') !== 'true') await group.click()
+      await page.locator(`[data-row-key="workspace:${workspace.id}"][aria-expanded="true"]`).waitFor()
+      await page.locator(`[data-row-key="session:${SEED_ID}"][role="treeitem"]`).click()
+    } else {
+      const groupRow = page.locator('[role="treeitem"]').first()
+      await groupRow.waitFor({ timeout: 15_000 })
+      await groupRow.click()
+      const sessionRow = page.locator('[role="treeitem"]').nth(1)
+      await sessionRow.waitFor({ timeout: 10_000 })
+      await sessionRow.click()
+    }
 
     // Opening the session drives the Host's ordinary Agent resolution; the
     // job owner must be that exact live instance, never a second one.
@@ -90,14 +106,18 @@ describe.skipIf(MODE === 'record')('web e2e: live job stream', () => {
     const started = await scaffold.ctx.tools.execute({
       signal: new AbortController().signal,
       callId: ToolCallId('live-job-stream-e2e'),
-      name: 'bash',
+      name: TOOL,
       arguments: { command: COMMAND, description: 'Emit one live line then hold', run_in_background: true },
       agent,
     })
     const reported = started.content.map(block => block.type === 'text' ? block.text : '').join('')
-    const matched = /\bbash-\d+\b/.exec(reported)
-    if (matched === null) throw new Error(`background bash reported no job id: ${reported}`)
+    expect(started.isError, reported).toBe(false)
+    const matched = new RegExp(`\\b${TOOL}-\\d+\\b`).exec(reported)
+    if (matched === null) throw new Error(`background ${TOOL} reported no job id: ${reported}`)
     const jobId = JobId(matched[0])
+    if (started.isError) throw new Error(reported)
+    expect(started.value).toMatchObject({ kind: 'background', jobId })
+    expect(scaffold.ctx.jobs.get(jobId, agent.id).status).toBe('running')
 
     // The job row reaches the header over the job roster stream.
     await trigger.waitFor({ timeout: 15_000 })
@@ -108,7 +128,7 @@ describe.skipIf(MODE === 'record')('web e2e: live job stream', () => {
     const expand = page.getByRole('button', { name: /Show live output/ })
     await expand.waitFor({ timeout: 10_000 })
     await expand.click()
-    await page.getByText('streamed-marker-line').waitFor({ timeout: 15_000 })
+    await page.getByText('streamed-marker-line', { exact: true }).waitFor({ timeout: 15_000 })
 
     const streaming = await captureStableAria(page, '[class*="menu"]', scaffold.workspaceCwd, { runningJobs: 'keep' })
     await compareOrRefreshGolden(STREAMING_EXPECTED, streaming, MODE)
@@ -122,7 +142,7 @@ describe.skipIf(MODE === 'record')('web e2e: live job stream', () => {
     // flips without any further interaction; the roster trigger follows.
     const idle = page.getByRole('button', { name: '1 background job', exact: true })
     await idle.waitFor({ timeout: 20_000 })
-    await page.getByText('streamed-marker-line').waitFor({ timeout: 10_000 })
+    await page.getByText('streamed-marker-line', { exact: true }).waitFor({ timeout: 10_000 })
 
     const settled = await captureStableAria(page, '[class*="menu"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(SETTLED_EXPECTED, settled, MODE)
@@ -132,5 +152,6 @@ describe.skipIf(MODE === 'record')('web e2e: live job stream', () => {
 
   it('keeps its snapshot inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, ['settled.expected.md', 'streaming.expected.md'])
+    if (NATIVE) await assertFixtureInventory(EXPECTED_DIR, ['settled.expected.md', 'streaming.expected.md'])
   })
 })

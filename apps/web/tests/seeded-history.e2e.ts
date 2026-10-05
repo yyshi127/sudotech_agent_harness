@@ -27,7 +27,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
   compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, parseSeedFixture, realizeSeedFixture, recordFixture, renderSeedFixture, seedSession, watchConsole,
-  webSnapshotMode, type WebScaffold,
+  webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
 
@@ -50,7 +50,10 @@ const THINKING_EXPECTED = join(SNAPSHOT_DIR, 'thinking-expanded.expected.md')
 // Command-row goldens over the same conversation after direct host commands.
 const COMMAND_ROW_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/command-row.expected.md', import.meta.url))
 const FEEDBACK_ROW_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/feedback-row.expected.md', import.meta.url))
-const FILE_PREVIEW_EXPECTED = join(SNAPSHOT_DIR, 'file-preview.expected.md')
+const LOCAL_EXPECTED = fileURLToPath(new URL('./expected/seeded-history', import.meta.url))
+const FILE_PREVIEW_EXPECTED = process.platform === 'win32'
+  ? join(LOCAL_EXPECTED, 'file-preview.windows.expected.md')
+  : join(SNAPSHOT_DIR, 'file-preview.expected.md')
 // The pinned-header geometry golden: a pure-CSS, user-visible behavior that
 // changes no DOM and no accessible name, so the aria goldens cannot capture it
 // (docs/testing.md, "when a snapshot test is required", still requires a
@@ -262,7 +265,11 @@ describe('web e2e: seeded history renders through cold resume', () => {
       if (meter === undefined) throw new Error('seeded-history requires the host token meter')
       const realizedWithCompaction = withCompaction(realizeSeedFixture(scaffold, raw, SEED_ID), meter)
       seededThroughSeq = parseSeedFixture(realizedWithCompaction).events.at(-1)?.seq ?? -1
-      await seedSession(scaffold, realizedWithCompaction, SEED_ID)
+      const seeded = await seedSession(scaffold, realizedWithCompaction, SEED_ID)
+      if (webClientProfile() === 'xiaojing') {
+        const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, 'History acceptance')
+        await workspace.attachSession(seeded)
+      }
     }
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -276,9 +283,14 @@ describe('web e2e: seeded history renders through cold resume', () => {
           const frame = JSON.parse(String(message)) as {
             type: string
             endpoint?: string
-            payload: { args: { request: { maxMessages: number; turnWindow?: { minMessages: number; minTurns: number } } } }
+            payload: { args: { request: {
+              address: { kind: string; sessionId?: string }
+              maxMessages: number
+              turnWindow?: { minMessages: number; minTurns: number }
+            } } }
           }
-          if (!pagedOpening && frame.type === 'open' && frame.endpoint === 'session/follow') {
+          if (!pagedOpening && frame.type === 'open' && frame.endpoint === 'session/follow'
+            && frame.payload.args.request.address.sessionId === SEED_ID) {
             pagedOpening = true
             openingWindow = { ...frame.payload.args.request }
             frame.payload.args.request.maxMessages = 1
@@ -342,12 +354,13 @@ describe('web e2e: seeded history renders through cold resume', () => {
 
   it.skipIf(MODE === 'record')('lists the seeded session cold and renders its history from the log', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-seeded-history'))
-    // The sidebar tree collapses workspace groups by default: click the group
-    // row (treeitem 0) to expand, then the revealed session row.
-    const groupRow = page.locator('[role="treeitem"]').first()
+    // Expand the recorded Session's owning group before opening its row.
+    const groupRow = webClientProfile() === 'xiaojing'
+      ? page.getByRole('treeitem', { name: 'History acceptance', exact: true })
+      : page.locator('[role="treeitem"]').first()
     await groupRow.waitFor({ timeout: 15_000 })
-    await groupRow.click()
-    const sessionRow = page.locator('[role="treeitem"]').nth(1)
+    if (await groupRow.getAttribute('aria-expanded') !== 'true') await groupRow.click()
+    const sessionRow = page.locator(`[data-row-key="session:${SEED_ID}"]`)
     await sessionRow.waitFor({ timeout: 10_000 })
     await sessionRow.click()
     // Settled barrier for history: the recorded final assistant text renders.
@@ -856,5 +869,6 @@ describe('web e2e: seeded history renders through cold resume', () => {
       'session.v3.jsonl', 'sticky-geometry.expected.md', 'thinking-expanded.expected.md',
       'ui.expected.md', 'ui-expanded.expected.md',
     ])
+    await assertFixtureInventory(LOCAL_EXPECTED, ['file-preview.windows.expected.md'])
   })
 })

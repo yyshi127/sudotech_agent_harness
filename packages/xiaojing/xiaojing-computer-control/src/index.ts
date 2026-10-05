@@ -13,6 +13,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SubprocessHandle } from '@deepseek-ai/dsh-subprocess'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
+import type { ApprovalReuse } from '@deepseek-ai/dsh-user-approval'
 import { WINDOWS_UIA_HELPER } from './helper-script.ts'
 import {
   COMPUTER_ACTIONS,
@@ -104,6 +105,7 @@ interface ObservationState {
   readonly id: ComputerObservationId
   readonly expiresAt: number
   readonly targets: ReadonlyMap<ComputerTargetId, ComputerTarget>
+  readonly window: ComputerWindow | undefined
 }
 
 interface ApplicationCatalogState {
@@ -137,6 +139,7 @@ const SAFE_KEYS = new Set(['{TAB}', '+{TAB}', '{ESC}', '{UP}', '{DOWN}', '{LEFT}
 interface ApprovalRequirement {
   readonly reason: string
   readonly mandatory: boolean
+  readonly reusable?: ApprovalReuse
 }
 
 /** Schemastery configuration for Windows computer control. */
@@ -256,7 +259,7 @@ export class ComputerControl extends Service {
   private readonly pending = new Map<HelperRequestId, PendingRequest>()
   private operationTail: Promise<void> = Promise.resolve()
   private windowOwner: SessionId | undefined
-  private knownWindows = new Set<ComputerWindowId>()
+  private knownWindows = new Map<ComputerWindowId, ComputerWindow>()
   private applicationCatalog: ApplicationCatalogState | undefined
   private observation: ObservationState | undefined
 
@@ -282,7 +285,7 @@ export class ComputerControl extends Service {
   }
 
   /**
-   * Explain whether one request requires a one-shot user approval.
+   * Explain whether one request requires user approval.
    * @param owner - Agent session that owns the observed Windows targets.
    * @param request - Validated Windows operation.
    * @returns The approval reason, or undefined when the operation may proceed directly.
@@ -319,12 +322,33 @@ export class ComputerControl extends Service {
       ? {
         reason: `Activate potentially high-impact Windows control “${target.name || target.controlType}”`,
         mandatory: DELETION_PATTERN.test(label),
+        ...this.controlAuthorization(owner, request, target),
       }
       : undefined
   }
 
+  /** A refreshed observation may retain authorization for the same named control in the same listed window. */
+  private controlAuthorization(
+    owner: SessionId,
+    request: ComputerActionRequest,
+    target: ComputerTarget,
+  ): { reusable?: ApprovalReuse } {
+    const observation = this.requireObservation(owner, request.observationId)
+    const window = observation.window
+    if (window === undefined || target.name === '' || [...observation.targets.values()]
+      .filter(candidate => candidate.name === target.name && candidate.controlType === target.controlType).length !== 1) return {}
+    const label = `Windows: ${request.action} “${target.name}” in “${window.title}”`
+    return { reusable: {
+      category: `xiaojing:computer:${request.action}`,
+      scope: JSON.stringify([window.id, window.processId, window.title, target.controlType, target.name]),
+      label,
+      displayLabel: { en: label, zh: `Windows：在“${window.title}”中对“${target.name}”执行同类操作（${request.action}）` },
+    } }
+  }
+
   /**
    * Execute one validated Windows operation for an owning session.
+   * Cancellation during helper startup rejects the operation before its request is dispatched.
    * @param owner - Agent session that owns the observed Windows targets.
    * @param request - Windows operation to execute.
    * @param signal - Cancellation signal for the operation.
@@ -389,7 +413,7 @@ export class ComputerControl extends Service {
   private installTool(ctx: Context): void {
     ctx.tools.register(defineTool({
       name: 'computer_control',
-      description: 'Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use browser_control for every website and report a browser semantic limitation instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.',
+      description: 'Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use the connected browser tools for website tasks and report connection or operation failures instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.',
       parameters: {
         action: { type: 'string', enum: [...COMPUTER_ACTIONS], required: true },
         query: { type: 'string', description: 'Installed-application display name to search for with list_apps.' },
@@ -491,7 +515,7 @@ export class ComputerControl extends Service {
     exec: ToolRunContext,
     requirement: ApprovalRequirement,
   ): Promise<void> {
-    const { reason, mandatory } = requirement
+    const { reason, mandatory, reusable } = requirement
     const approval = ctx.get('approval')
     if (approval === undefined) throw new Error(`${reason} requires approval, but no approval service is composed`)
     if (exec.agent === undefined) throw new Error(`${reason} requires an owning agent session`)
@@ -501,6 +525,7 @@ export class ComputerControl extends Service {
       callId: exec.callId,
       reason,
       signal: exec.signal,
+      ...reusable !== undefined ? { reusable } : {},
     }
     const outcome = mandatory
       ? await approval.requestMandatory(request)
@@ -518,7 +543,7 @@ export class ComputerControl extends Service {
           throw new Error('computer_control query must be omitted or contain text')
         }
         if (request.query !== undefined && WEB_BROWSER_QUERY_PATTERN.test(request.query)) {
-          throw new Error('web browsers are excluded from computer_control; continue with browser_control')
+          throw new Error('web browsers are excluded from computer_control; use the connected browser tools')
         }
         return
       }
@@ -616,15 +641,17 @@ export class ComputerControl extends Service {
     if (result.action === 'launch_app') this.applicationCatalog = undefined
     if (result.windows !== undefined) {
       this.windowOwner = owner
-      this.knownWindows = new Set(result.windows.map(window => window.id))
+      this.knownWindows = new Map(result.windows.map(window => [window.id, window]))
       this.observation = undefined
     }
     if (result.observationId !== undefined && result.targets !== undefined) {
+      const window = result.windowId === undefined || this.windowOwner !== owner ? undefined : this.knownWindows.get(result.windowId)
       this.observation = {
         owner,
         id: result.observationId,
         expiresAt: Date.now() + this.options.observationTtlMs,
         targets: new Map(result.targets.map(target => [target.id, target])),
+        window: window === undefined ? undefined : { ...window, title: result.windowTitle ?? window.title },
       }
     }
   }
@@ -641,6 +668,7 @@ export class ComputerControl extends Service {
   private async request(payload: Record<string, unknown>, signal: AbortSignal): Promise<unknown> {
     throwIfAborted(signal)
     const helper = await this.startHelper()
+    throwIfAborted(signal)
     const id = HelperRequestId(`wr-${String(++this.requestSequence)}`)
     const request = JSON.stringify({ id, ...payload })
     if (Buffer.byteLength(request) > this.options.maxProtocolLineBytes) {
@@ -725,6 +753,7 @@ export class ComputerControl extends Service {
         stderr: { maxBytes: 32_768 },
       },
       graceMs: this.options.processGraceMs,
+      windowsChildLifetime: 'independent',
     })
     if (helper.stdin === undefined || helper.stdout === undefined) {
       helper.terminate()

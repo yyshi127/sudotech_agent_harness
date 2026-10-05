@@ -44,6 +44,56 @@ function requestOf(agent: Agent, overrides: Partial<ApprovalRequest> = {}): Appr
 }
 
 describe('ApprovalService.request', () => {
+  it('automatically audits ordinary and mandatory approvals only for the explicitly enabled session', async () => {
+    const ctx = await mounted()
+    const { agent, appended } = fakeAgent()
+    setApprovalPolicy(agent.session, 'never')
+    appended.length = 0
+    const other = fakeAgent()
+    const listener = vi.fn(() => Promise.resolve('rejected' as const))
+    ctx.on('approval/request', listener)
+    ctx.approval.setAutomaticApproval(agent.session, true)
+    expect(await ctx.approval.request(requestOf(agent))).toBe('allowed-once')
+    expect(await ctx.approval.requestMandatory(requestOf(agent, { toolName: 'delete' }))).toBe('allowed-once')
+    expect(listener).not.toHaveBeenCalled()
+    expect(appended.map(event => event.type)).toEqual(['approval/asked', 'approval/decided', 'approval/asked', 'approval/decided'])
+    expect(await ctx.approval.request(requestOf(other.agent))).toBe('rejected')
+    ctx.approval.setAutomaticApproval(agent.session, false)
+    expect(await ctx.approval.request(requestOf(agent))).toBe('rejected')
+    await ctx.fiber.dispose()
+  })
+
+  it('enabling automatic approval settles an existing question and withdraws its UI signal', async () => {
+    const ctx = await mounted()
+    const { agent } = fakeAgent()
+    const shown = Promise.withResolvers<ApprovalRequest>()
+    const late = Promise.withResolvers<'rejected'>()
+    ctx.on('approval/request', (request) => { shown.resolve(request); return late.promise })
+    const pending = ctx.approval.requestMandatory(requestOf(agent))
+    const request = await shown.promise
+    ctx.approval.setAutomaticApproval(agent.session, true)
+    expect(await pending).toBe('allowed-once')
+    expect(request.signal?.aborted).toBe(true)
+    late.resolve('rejected')
+    await ctx.fiber.dispose()
+  })
+
+  it('revocation or cancellation before the automatic decision commits prevents the action', async () => {
+    const ctx = await mounted()
+    const { agent } = fakeAgent()
+    const shown = Promise.withResolvers<null>()
+    ctx.on('approval/request', () => { shown.resolve(null); return new Promise<never>(() => {}) })
+    const pending = ctx.approval.request(requestOf(agent))
+    await shown.promise
+    ctx.approval.setAutomaticApproval(agent.session, true)
+    ctx.approval.setAutomaticApproval(agent.session, false)
+    expect(await pending).toBe('rejected')
+    const abort = new AbortController()
+    abort.abort()
+    ctx.approval.setAutomaticApproval(agent.session, true)
+    expect(await ctx.approval.requestMandatory(requestOf(agent, { signal: abort.signal }))).toBe('cancelled')
+    await ctx.fiber.dispose()
+  })
   it('throws before appending anything when no turn has ever opened (idle ask)', async () => {
     const ctx = await mounted()
     const { agent, appended } = fakeAgent([])
@@ -83,7 +133,7 @@ describe('ApprovalService.request', () => {
     expect(Object.keys(appended[0]?.data ?? {}).sort()).toEqual(['id', 'toolName'])
   })
 
-  it('borrows the exact readonly request for scoped dispatch and audit', async () => {
+  it('borrows readonly request data and projects owned cancellation for scoped dispatch', async () => {
     const ctx = await mounted()
     const { agent, appended } = fakeAgent()
     let scope!: Scope
@@ -101,11 +151,16 @@ describe('ApprovalService.request', () => {
       toolName: 'scoped-tool',
       callId: ToolCallId('scoped-call'),
       reason: 'scoped reason',
+      reusable: { category: 'fixture:read', scope: 'fixture:item', label: 'Read fixture item' },
     })
 
     await expect(ctx.approval.request(request)).resolves.toBe('allowed-once')
     expect(carrier).toBe(agent)
-    expect(received).toBe(request)
+    expect(received).not.toBe(request)
+    expect(received?.agent).toBe(request.agent)
+    expect(received?.reusable).toBe(request.reusable)
+    expect(received?.signal).toBeInstanceOf(AbortSignal)
+    expect(received?.signal?.aborted).toBe(false)
     expect(appended).toHaveLength(2)
     expect(appended[0]?.data).toMatchObject({
       toolName: 'scoped-tool',

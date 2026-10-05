@@ -29,7 +29,7 @@ describe('Client Cordis inspect catalog', () => {
         'startSession(workspaceId?: WorkspaceId): void',
         'archiveSession(sessionId: SessionId, options?: { readonly stopActivity?: boolean }): Promise<void>',
         'unarchiveSession(sessionId: SessionId): Promise<void>',
-        'pickDirectory(): Promise<string | null>',
+        'pickDirectory(initialPath?: string): Promise<string | null>',
         'listDirectory(path?: string, signal?: AbortSignal): Promise<DirectoryListing>',
         'createDirectory(path: string, name: string): Promise<string>',
       ])

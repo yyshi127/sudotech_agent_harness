@@ -36,6 +36,22 @@ it('isolates instances, hides ordinary fields, rejects invalid edits, and redact
   expect(ctx.settings.describe({ redactSecrets: true }).find(row => row.ns === 'first')!.value).toEqual({ count: 2, list: [] })
 })
 
+it('allows a change listener to persist a follow-up migration with HMR enabled', async () => {
+  const { ctx, profile, start } = await fixture()
+  let migration: Promise<void> | undefined
+  ctx.on('settings/document-updated', (ns) => {
+    if (ns !== 'default-model' || ctx.agentDefaultModel.currentSelection().model !== 'legacy') return
+    migration ??= Promise.resolve().then(() => ctx.agentDefaultModel.saveSelection({ provider: 'test', model: 'current' }))
+  })
+  await ctx.settings.update('default-model', { model: 'legacy' })
+  await vi.waitFor(() => { expect(migration).toBeDefined() })
+  await migration
+  expect(ctx.agentDefaultModel.currentSelection().model).toBe('current')
+  expect(readFileSync(profile.patchPath, 'utf8')).not.toContain('legacy')
+  await ctx.fiber.dispose()
+  expect((await start()).agentDefaultModel.currentSelection().model).toBe('current')
+})
+
 it('refuses an edit shadowed by a higher home layer', async () => {
   const { ctx, home, profile } = await fixture()
   writeFileSync(join(home, 'cordis.patch.yml'), JSON.stringify([{ id: 'default-model', config: { provider: 'test', model: 'home' } }]))

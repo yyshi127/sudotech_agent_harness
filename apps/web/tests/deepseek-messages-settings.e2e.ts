@@ -6,11 +6,15 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold,
-  watchConsole, webSnapshotMode, type WebScaffold,
+  watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, connectFreshWorkspaceZh, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
-const EXPECTED = fileURLToPath(new URL('./expected/deepseek-messages-settings/', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const EXPECTED = fileURLToPath(new URL(XIAOJING
+  ? './expected/deepseek-messages-settings-xiaojing/'
+  : './expected/deepseek-messages-settings/', import.meta.url))
+const REMOVED_MODEL = XIAOJING ? 'removed-default-e2e' : 'deepseek-v4-flash'
 
 describe.skipIf(webSnapshotMode() === 'record')('web e2e: DeepSeek Messages settings', () => {
   let scaffold: WebScaffold
@@ -93,17 +97,19 @@ describe.skipIf(webSnapshotMode() === 'record')('web e2e: DeepSeek Messages sett
   it('selects an available DeepSeek model after provider settings remove the default', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-deepseek-messages-default'))
     await page.keyboard.press('Escape')
-    await scaffold.ctx.agentDefaultModel.saveSelection({ provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+    await scaffold.ctx.agentDefaultModel.saveSelection({ provider: 'deepseek-official', model: REMOVED_MODEL })
+    expect(scaffold.ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'deepseek-official', model: REMOVED_MODEL })
     await page.reload({ waitUntil: 'load' })
     const input = page.locator('[data-composer-input]').first()
-    const trigger = page.getByRole('button', { name: /^选择模型.*deepseek-official\/deepseek-v4-flash/ })
+    const trigger = page.getByRole('button', { name: new RegExp(`^选择模型.*deepseek-official/${REMOVED_MODEL}`) })
     await trigger.waitFor()
     await expect.poll(() => input.getAttribute('contenteditable')).toBe('true')
     await trigger.click()
     await page.getByRole('menuitem', { name: /模型/ }).click()
     await page.getByRole('menuitemradio', { name: 'Messages Flash', exact: true }).click()
     await expect.poll(() => input.getAttribute('contenteditable')).toBe('true')
-    await expect.poll(() => scaffold.ctx.agentDefaultModel.currentSelection().provider).toBe('deepseek-official')
+    await expect.poll(() => scaffold.ctx.agentDefaultModel.currentSelection())
+      .toEqual({ provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high' })
     const settings = await readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')
     expect(settings).toContain('provider: deepseek-official')
     expect(tripwire.pageErrors).toEqual([])

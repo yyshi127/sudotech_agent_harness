@@ -2,114 +2,114 @@
 # section, a hash of its English and Chinese blocks outside code blocks and generated regions.
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/xiaojing-product-development.md
-/xiaojing-accounting-product-development-baseline-0-3-1:
-  en: 84a2bf397773bd0f
-  zh: cb74e8f94db3a3ab
-/xiaojing-accounting-product-development-baseline-0-3-1/read-this-first:
+/xiaojing-accounting-product-development-baseline-0-3-2:
+  en: b6161166e86f76ad
+  zh: e09ba435d0cf04ea
+/xiaojing-accounting-product-development-baseline-0-3-2/read-this-first:
   en: 05a44eb6f7568cb5
   zh: 833410b4323584a7
-/xiaojing-accounting-product-development-baseline-0-3-1/milestone-baseline:
-  en: e90a564a23c8bbc6
-  zh: a849e4d0c5ef4e8e
-/xiaojing-accounting-product-development-baseline-0-3-1/architecture:
+/xiaojing-accounting-product-development-baseline-0-3-2/milestone-baseline:
+  en: 87aebcf3ec102076
+  zh: 47afe7afa701d30f
+/xiaojing-accounting-product-development-baseline-0-3-2/architecture:
   en: 87fb45aa768f07f3
   zh: a12419a80d7696c9
-/xiaojing-accounting-product-development-baseline-0-3-1/source-ownership:
+/xiaojing-accounting-product-development-baseline-0-3-2/source-ownership:
   en: 350771a0c0e88915
   zh: eecec4d2e660921b
-/xiaojing-accounting-product-development-baseline-0-3-1/ui-and-product-isolation:
+/xiaojing-accounting-product-development-baseline-0-3-2/ui-and-product-isolation:
   en: c6411f3a8249dab8
   zh: a96b1938d8ac6378
-/xiaojing-accounting-product-development-baseline-0-3-1/ui-and-product-isolation/generic-owners:
+/xiaojing-accounting-product-development-baseline-0-3-2/ui-and-product-isolation/generic-owners:
   en: a7531a44f2b44c99
   zh: ef8752dec419e8fd
-/xiaojing-accounting-product-development-baseline-0-3-1/ui-and-product-isolation/product-plugin:
+/xiaojing-accounting-product-development-baseline-0-3-2/ui-and-product-isolation/product-plugin:
   en: cfbbcabde56ddc2f
   zh: 1ddec04d3e0e9e49
-/xiaojing-accounting-product-development-baseline-0-3-1/ui-and-product-isolation/startup-surfaces:
+/xiaojing-accounting-product-development-baseline-0-3-2/ui-and-product-isolation/startup-surfaces:
   en: acbec995017b2d85
   zh: a266785025e02f74
-/xiaojing-accounting-product-development-baseline-0-3-1/ui-and-product-isolation/adding-product-ui:
+/xiaojing-accounting-product-development-baseline-0-3-2/ui-and-product-isolation/adding-product-ui:
   en: a62afa49f8c8d642
   zh: 435a52d72d6700a0
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation:
   en: c88fa794f568f86f
   zh: bb27b0425b82b8a0
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/finance-client-domain:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/finance-client-domain:
   en: 10d975e7b36f9538
   zh: c59861839ffcfb3f
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/shared-local-document-normalization:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/shared-local-document-normalization:
   en: f2ddd35e2c938560
   zh: 2cdd9f7fa01e6c1f
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/official-finance-tax-evidence:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/official-finance-tax-evidence:
   en: 7139248098d70d6c
   zh: 541da8a433652a19
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/deterministic-finance-trial-calculations:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/deterministic-finance-trial-calculations:
   en: 1a1be2fe3c6212e2
   zh: 804b8c79e75b8b55
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/finance-stage-1-integrated-acceptance:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/finance-stage-1-integrated-acceptance:
   en: 70a97238ab96aedd
   zh: eacf5017acc9330f
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/local-usage-accounting:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/local-usage-accounting:
   en: 94102a9a341ed797
   zh: 2cec9d8bdbf6bac1
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/built-in-browser-and-windows-automation:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/built-in-browser-and-windows-automation:
   en: aca830367e10effa
   zh: 69bb36a871e586af
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/weixin-channel:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/weixin-channel:
   en: cb873f02c1e2a4d9
   zh: aa927ff25338033c
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/desktop-companion-and-tray:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/desktop-companion-and-tray:
   en: 76241510584579bd
   zh: b1d600e9cc32af8b
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/isolated-visualization-plugin:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/isolated-visualization-plugin:
   en: 695a89f4863c5a68
   zh: 4ef7143cec490d67
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/bundled-third-party-plugins:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/bundled-third-party-plugins:
   en: f7b85a02a139dc21
   zh: 9b56244f99602e93
-/xiaojing-accounting-product-development-baseline-0-3-1/functional-plugin-isolation/adding-a-capability:
+/xiaojing-accounting-product-development-baseline-0-3-2/functional-plugin-isolation/adding-a-capability:
   en: 7e41418af58478f6
   zh: bde40802e5cffa3c
-/xiaojing-accounting-product-development-baseline-0-3-1/independent-integration-patches:
+/xiaojing-accounting-product-development-baseline-0-3-2/independent-integration-patches:
   en: c88cba36c3611126
   zh: b9ff163372dc2313
-/xiaojing-accounting-product-development-baseline-0-3-1/runtime-composition:
+/xiaojing-accounting-product-development-baseline-0-3-2/runtime-composition:
   en: 5ad250b9fd5c04dd
   zh: c8a0ad2a07112972
-/xiaojing-accounting-product-development-baseline-0-3-1/data-and-in-place-upgrades:
+/xiaojing-accounting-product-development-baseline-0-3-2/data-and-in-place-upgrades:
   en: 5f82ab8ec1d8fa39
   zh: b167d8384a269a09
-/xiaojing-accounting-product-development-baseline-0-3-1/data-and-in-place-upgrades/permanent-paths:
+/xiaojing-accounting-product-development-baseline-0-3-2/data-and-in-place-upgrades/permanent-paths:
   en: 281f81cd5bd92ae9
   zh: 7aede310270add19
-/xiaojing-accounting-product-development-baseline-0-3-1/data-and-in-place-upgrades/immutable-installer-identity:
+/xiaojing-accounting-product-development-baseline-0-3-2/data-and-in-place-upgrades/immutable-installer-identity:
   en: 6b3602496da09ff1
   zh: ccec61636077f617
-/xiaojing-accounting-product-development-baseline-0-3-1/data-and-in-place-upgrades/durable-format-changes:
+/xiaojing-accounting-product-development-baseline-0-3-2/data-and-in-place-upgrades/durable-format-changes:
   en: 9228d373040732bb
   zh: f5753c05c5faeffb
-/xiaojing-accounting-product-development-baseline-0-3-1/development-workflow:
+/xiaojing-accounting-product-development-baseline-0-3-2/development-workflow:
   en: 633ee0e230c60afb
   zh: c1ae82f266920df7
-/xiaojing-accounting-product-development-baseline-0-3-1/development-workflow/before-editing:
+/xiaojing-accounting-product-development-baseline-0-3-2/development-workflow/before-editing:
   en: ed13befa3a33da04
   zh: 2144c2a88ee6c6c7
-/xiaojing-accounting-product-development-baseline-0-3-1/development-workflow/preview-and-verify:
+/xiaojing-accounting-product-development-baseline-0-3-2/development-workflow/preview-and-verify:
   en: 97f8e844334288e0
   zh: 147776620073ec6d
-/xiaojing-accounting-product-development-baseline-0-3-1/development-workflow/package-only-after-acceptance:
+/xiaojing-accounting-product-development-baseline-0-3-2/development-workflow/package-only-after-acceptance:
   en: f5b347f8ead16f6c
   zh: efe44f215c72e388
-/xiaojing-accounting-product-development-baseline-0-3-1/upstream-upgrade-procedure:
+/xiaojing-accounting-product-development-baseline-0-3-2/upstream-upgrade-procedure:
   en: b638bd63adee596c
   zh: 11fe5911e2730e88
-/xiaojing-accounting-product-development-baseline-0-3-1/release-blocking-checks:
-  en: 7c3d18fa08dfc474
-  zh: e95ecdc93df28048
-/xiaojing-accounting-product-development-baseline-0-3-1/known-limits:
+/xiaojing-accounting-product-development-baseline-0-3-2/release-blocking-checks:
+  en: ea284c6c25146937
+  zh: 926832e0e949e66a
+/xiaojing-accounting-product-development-baseline-0-3-2/known-limits:
   en: 3af17020af0471f6
   zh: 3e1200a399489302
-/xiaojing-accounting-product-development-baseline-0-3-1/quick-handoff-for-a-new-session:
+/xiaojing-accounting-product-development-baseline-0-3-2/quick-handoff-for-a-new-session:
   en: 7913bc816d56b04b
   zh: 9103e242fa160198

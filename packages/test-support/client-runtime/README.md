@@ -95,6 +95,10 @@ The [generic Remote proxy](../remote-mock/README.md#remote-proxy) supports every
 
 ### When to use it
 
+On normal disposal and failed startup, `TestClient` awaits React unmount before disposing root services, then removes its owned mount and releases its jsdom shims. Startup and cleanup failures are reported together; disposal still checks unmatched Remote calls after cleanup.
+
+An entry naming an already loaded bundle uses that bundle's exact package manifest, including when the bundle is linked outside the carrier's dependency tree; a self dependency is unnecessary. Other entries resolve through the bundle layers' dependencies and must match the requested package name.
+
 Use the bench for feature suites that exercise slots, stores, rendering, and disposal under a real runtime — the production `SlotRegistry`, renderer, and provide-bundle materialization are mounted, never reimplemented. It is client-side test infrastructure: it never reaches a model request, and feature packages depend on it in `devDependencies` only.
 
 ### What can go wrong

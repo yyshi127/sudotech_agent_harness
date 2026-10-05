@@ -31,6 +31,14 @@ Run `dsh --profile web` to open an interactive browser GUI with chat, model and 
 
 Start the GUI, open your browser, and start talking to the agent. The flags fine-tune the invocation.
 
+The xiaojing deployment disables the llm-deepseek-account row. Model access uses configured API-key providers; saved credentials and historical Sessions are retained.
+
+The xiaojing deployment disables the DeepSeek Session-log request contributor and its General settings row, including when a saved `enabled` setting is true. Normal model requests and local Session persistence remain available; the separate OpenTelemetry feedback policy is unchanged.
+
+In the xiaojing deployment, the Standard, PTC, and Creator preset declarations leave their persona prefix empty so the product supplies its office identity. Explicit user-authored personas still override that default.
+
+The xiaojing deployment uses the [native Edge and Chrome browser plugin](../../xiaojing/xiaojing-browser-control/README.md#native-browser-connections). Its browser-use registry, native consumer, and persisted browser permission service are product-only rows. The settings Client manages these native connections; the legacy Edge Host is disabled and its saved configuration and extension credentials are retained.
+
 ### Starting the Web GUI
 
 ```sh

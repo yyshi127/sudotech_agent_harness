@@ -26,6 +26,8 @@ export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
 
 /** Panel navigation and geometry actions exposed through ctx.layout. */
 export interface ILayout {
+  /** Current navigation signal; reading does not start or supersede navigation. */
+  readonly navigationSignal: AbortSignal
   /** Selected central panel from the same root store used by `usePanelInfo`. */
   readonly panelInfo: HostObservable<PanelInfo>
   /**
@@ -67,6 +69,10 @@ export class LayoutController implements ILayout {
     private readonly hasMainPanel: (id: MainPanelId) => boolean,
     readonly panelInfo: HostObservable<PanelInfo>,
   ) {}
+
+  get navigationSignal(): AbortSignal {
+    return this.navigation.signal
+  }
 
   /** Select a global panel or return to the Conversation. */
   selectPanel(panelId: MainPanelId | null): void {

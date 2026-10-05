@@ -6,7 +6,7 @@ import * as Protocol from '@deepseek-ai/dsh-llm-deepseek'
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { createRequire } from 'node:module'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context, LoggerLevel } from '@deepseek-ai/cordis'
@@ -145,15 +145,15 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('DeepSeek Messages real API', () 
     await ctx.plugin(SessionStore)
     await ctx.plugin(DeepSeekLlmApiExtensionRegistry)
     await ctx.plugin(SessionLogDeepSeek, enabled ? {} : { enabled: false })
-    ctx.baseUrl = import.meta.url
-    // Select the source module while Loader owns its active package entry.
+    const packagePath = createRequire(import.meta.url).resolve('@deepseek-ai/dsh-plugin-package-inventory-deepseek/package.json')
+    const packageEntry = join(dirname(packagePath), 'src/index.ts')
+    // The mapped source module and Loader entry share the same physical package identity.
     ctx.loader.internal = sourceModuleLoader(async (specifier) => {
-      if (specifier !== '@deepseek-ai/dsh-plugin-package-inventory-deepseek') throw new Error(`unexpected Loader import: ${specifier}`)
+      if (specifier !== packageEntry) throw new Error(`unexpected Loader import: ${specifier}`)
       return PluginPackageInventoryDeepSeek
     })
-    await ctx.loader.create({ name: '@deepseek-ai/dsh-plugin-package-inventory-deepseek' })
+    await ctx.loader.create({ name: packageEntry })
     await ctx.loader.await()
-    const packagePath = createRequire(import.meta.url).resolve('@deepseek-ai/dsh-plugin-package-inventory-deepseek/package.json')
     const packageIdentity = JSON.parse(await readFile(packagePath, 'utf8')) as { name: string; version: string }
     const session = ctx.sessions.create(SessionId(`real-messages-extensions-${randomUUID()}`))
     session.append('turn/start', { turn: 1 })
@@ -178,7 +178,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('DeepSeek Messages real API', () 
       } else expect(body).not.toHaveProperty('dsh_session_log')
       expect(SessionLogDeepSeek.acceptedThrough(session)).toBe(afterSeq)
       const response = await fetchImpl(input, init)
-      expect(response.ok).toBe(true)
+      expect(response.ok, `Messages inventory request returned HTTP ${String(response.status)}`).toBe(true)
       expect(SessionLogDeepSeek.acceptedThrough(session)).toBe(afterSeq)
       requests += 1
       return response
@@ -191,7 +191,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('DeepSeek Messages real API', () 
         expect(SessionLogDeepSeek.acceptedThrough(session)).toBe(enabled ? throughSeq : -1)
         assembler.push(chunk)
       }
-      expect(assembler.finish.kind).toBe('stop')
+      expect(assembler.finish).toEqual({ kind: 'stop' })
       expect(assembler.blocks().filter(block => block.type === 'text').map(block => block.text).join('')).toContain('PONG')
       expect(requests).toBe(run + 1)
       if (run === 0) session.append('step/start', { turn: 1, step: 1 })

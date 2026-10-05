@@ -12,12 +12,16 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/approval-composer', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
+  ? './expected/approval-composer-xiaojing'
+  : '../../../snapshots/web/approval-composer', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 // The golden covers the stable waiting panel; direct assertions cover its answer.
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
@@ -25,7 +29,7 @@ const MODE = webSnapshotMode()
 // Unrelated tokens keep the recorded model from compressing the payload into a
 // short shell loop that would not overflow the card.
 const TOKENS = Array.from({ length: 220 }, (_, index) => `tok${((index + 1) * 7919 % 99991).toString(36)}`).join(' ')
-const PROMPT = `Write a file named notes.txt in the workspace containing exactly this text on one line: ${TOKENS}. Use one bash command with the literal text inline. Then reply with the single word DONE and stop.`
+const PROMPT = `Write a file named notes.txt in the workspace containing exactly this text on one line: ${TOKENS}. Use one ${NATIVE_XIAOJING ? 'PowerShell' : 'bash'} command with the literal text inline. Then reply with the single word DONE and stop.`
 
 /** Draft used to measure the composer's own text cap: enough lines to pass it. */
 const CAP_PROBE = Array.from({ length: 40 }, (_, index) => `line ${index}`).join('\n')
@@ -38,7 +42,11 @@ describe.each(MODE === 'record' ? ['button'] as const : ['button', 'keyboard'] a
   const sessionEvents: SessionEvent[] = []
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true })
+    if (NATIVE_XIAOJING && MODE === 'record') throw new Error('Windows Xiaojing approval owns an authored keyless fixture')
+    scaffold = await launchWebScaffold(MODE === 'record' ? {} : {
+      replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true,
+      ...(NATIVE_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)

@@ -1,0 +1,74 @@
+- dialog "v0.3.2 更新说明":
+  - heading "v0.3.2 更新说明" [level=2]
+  - button "关闭"
+  - paragraph: 双浏览器原生控制与会话内批量审批
+  - heading "新增功能" [level=3]
+  - list:
+    - listitem:
+      - heading "Chrome 与 Edge 原生控制" [level=4]
+      - paragraph: 默认使用 Edge，明确指定时切换到 Chrome。经浏览器授权，可接管已经打开的标签页，无需安装扩展；Windows 设置页提供按钮，直接打开对应浏览器的远程调试设置，由用户勾选远程调试并批准连接。
+    - listitem:
+      - heading "会话内批量审批" [level=4]
+      - paragraph: 新增“始终允许”，保留“允许一次”。同一会话内，可复用相同命令与工作目录的批准，以及浏览器脚本、坐标和已识别控件的同类操作批准；界面显示适用范围。换会话或超出批准范围会重新询问。微信也支持确认码授权。
+  - heading "体验改进" [level=3]
+  - list:
+    - listitem:
+      - heading "后台任务实时管理" [level=4]
+      - paragraph: 长命令和工作流转入后台后，可在任务面板展开实时输出、查看运行状态，并停止不再需要的任务。
+    - listitem:
+      - heading "表格预览与统一缩放" [level=4]
+      - paragraph: Excel、CSV 和 TSV 可直接以表格查看；图片、PDF 和 Office 预览使用统一缩放控件，查阅长文档更方便。
+    - listitem:
+      - heading "会话置顶与归档管理" [level=4]
+      - paragraph: 支持会话置顶、归档筛选和直接恢复。归档仍在运行的会话时，会列出受影响的任务并确认停止。
+    - listitem:
+      - heading "更完整的文件改动审阅" [level=4]
+      - paragraph: 在聊天卡片和侧边栏查看文件改动，支持逐行或左右分栏对比，并可悬停查看具体差异。
+    - listitem:
+      - heading "插件安装来源与升级提示" [level=4]
+      - paragraph: 可选择官方源、国内镜像或自定义安装源。安装与升级提示区分已安装、不兼容和内置插件，失败后更容易定位原因并重试。
+    - listitem:
+      - heading "快捷键自定义" [level=4]
+      - paragraph: 集中搜索和查看快捷键，按使用习惯修改按键组合，或恢复默认设置。
+    - listitem:
+      - heading "过程展示与模型选择" [level=4]
+      - paragraph: 按偏好调整工作过程、性能与用量信息的显示。模型列表支持模糊搜索和键盘选择，长列表查找更方便。
+  - heading "问题修复" [level=3]
+  - list:
+    - listitem:
+      - heading "微信助手会话恢复" [level=4]
+      - paragraph: 修复重启后未恢复原助手会话及工作目录的问题，避免因此反复提示任务中断和重试。
+    - listitem:
+      - heading "任务异常后继续对话" [level=4]
+      - paragraph: 修复工具调度异常后无法继续对话的问题。操作已执行但结果不明时，会先核实实际影响，避免盲目重复执行。
+    - listitem:
+      - heading "Windows 本机操作稳定性" [level=4]
+      - paragraph: 修复读取后编辑文件误报内容变化、终端进程识别与清理，以及助手退出影响其启动应用的问题。
+  - heading "当前版本可配置的内置能力" [level=3]
+  - list:
+    - listitem:
+      - heading "智能体团队（实验性）" [level=4]
+      - paragraph: 启用团队分工协作，查看团队成员、协作工具和共享任务看板。
+    - listitem:
+      - heading "自动授权审查（实验性）" [level=4]
+      - paragraph: 启用自动审查权限模式，由模型在工具执行前评估是否授权；需要人工批准的操作仍通过审批处理。
+    - listitem:
+      - heading "自动化任务（实验性）" [level=4]
+      - paragraph: 全新安装默认启用，可按设定时间或周期在会话中自动执行任务，并查看、管理已有任务。
+    - listitem:
+      - heading "语音输入（实验性）" [level=4]
+      - paragraph: 使用本机 SenseVoice 将录音转成文字，方便口述任务；首次使用需准备模型与依赖。
+    - listitem:
+      - heading "终端执行设置" [level=4]
+      - paragraph: 配置每条命令的运行时限和输出上限，控制命令执行与输出规模。
+    - listitem:
+      - heading "Agent 循环" [level=4]
+      - paragraph: 配置助手派发工具调用的方式，调整任务执行时的工具调度。
+    - listitem:
+      - heading "子智能体" [level=4]
+      - paragraph: 设置子助手的模型、数量与递归层级，按任务需要安排分工。
+    - listitem:
+      - heading "网页搜索" [level=4]
+      - paragraph: 配置 DeepSeek 的网页搜索提供方，为需要外部资料的任务检索网页内容。
+  - paragraph: 底座升级至 DeepSeek Harness 0.2.0-rc.2。已打开标签页的接管需要浏览器授权。
+  - button "关闭"

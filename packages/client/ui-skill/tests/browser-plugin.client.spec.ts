@@ -190,6 +190,7 @@ describe('candidates: sessionId addressing', () => {
     const b = await bench(list, undefined, { initialOpen: () => opened.promise })
     try {
       const pending = b.source.candidates(proj('s1'), req(''))
+      await Promise.resolve()
       expect(b.sessions.retainInfo(sid('s1')).getSnapshot().retainedBy.skillCatalog).toBe(1)
       expect(list).not.toHaveBeenCalled()
       opened.resolve(undefined)
@@ -272,6 +273,44 @@ describe('candidates: sessionId addressing', () => {
 })
 
 describe('catalog cache', () => {
+  it.each(['reset', 'preset'] as const)('discards a queued catalog on %s before retaining or calling the Host', async (reason) => {
+    const { list, payloads } = countingList()
+    const b = await bench(list)
+    b.source.warm!(proj('s1'))
+    expect(b.sessions.retainInfo(sid('s1')).getSnapshot().retainedBy.skillCatalog).toBeUndefined()
+    if (reason === 'reset') b.ctx.emit('connection/reset')
+    else b.remote.emit('agent-preset/selected', [sid('s1'), 'minimal'])
+    b.source.warm!(proj('s1'))
+    await b.source.candidates(proj('s1'), req(''))
+    expect(payloads).toEqual([{ sessionId: 's1' }])
+    expect(b.sessions.retainInfo(sid('s1')).getSnapshot().retainedBy.skillCatalog).toBeUndefined()
+  })
+
+  it.each(['reset', 'preset'] as const)('keeps the replacement lexicon after a superseded started catalog completes on %s', async (reason) => {
+    const old = Promise.withResolvers<ListResult>()
+    const replacement = Promise.withResolvers<ListResult>()
+    const list = vi.fn<ListFn>().mockReturnValueOnce(old.promise).mockReturnValueOnce(replacement.promise)
+    const b = await bench(list)
+    const listener = vi.fn()
+    b.source.subscribeLexicon!(proj('s1'), listener)
+    const stale = expect(b.source.candidates(proj('s1'), req(''))).rejects.toThrow()
+    await vi.waitFor(() => { expect(list).toHaveBeenCalledOnce() })
+    if (reason === 'reset') b.ctx.emit('connection/reset')
+    else b.remote.emit('agent-preset/selected', [sid('s1'), 'minimal'])
+    const current = b.source.candidates(proj('s1'), req(''))
+    await vi.waitFor(() => { expect(list).toHaveBeenCalledTimes(2) })
+    replacement.resolve({ ok: true, value: { skills: [{ name: 'current', description: 'current catalog', modelInvocable: true }] } })
+    await current
+    expect(b.source.lexicon!(proj('s1'))).toEqual(['current'])
+    expect(listener).toHaveBeenCalledTimes(2)
+    old.resolve({ ok: true, value: { skills: [{ name: 'obsolete', description: 'old catalog', modelInvocable: true }] } })
+    await stale
+    expect(b.source.lexicon!(proj('s1'))).toEqual(['current'])
+    expect(listener).toHaveBeenCalledTimes(2)
+    await expect(b.source.candidates(proj('s1'), req(''))).resolves.toEqual([{ name: 'current', description: 'current catalog' }])
+    expect(list).toHaveBeenCalledTimes(2)
+  })
+
   it('re-polls on the same session filter locally: one RPC across keystrokes', async () => {
     const { list, payloads } = countingList()
     const { source } = await bench(list)
@@ -512,11 +551,11 @@ describe('reference preview', () => {
     if (reason === 'reset') ctx.emit('connection/reset')
     else if (reason === 'preset') remote.emit('agent-preset/selected', [session.sessionId, 'minimal'])
     else await fiber.dispose()
-    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(reason === 'dispose' ? 0 : 1)
     gate.resolve({ ok: true, value: { skills: rows } })
     await completion
     expect(source.lexicon!(session)).toBeUndefined()
-    expect(listener).toHaveBeenCalledTimes(1)
+    expect(listener).toHaveBeenCalledTimes(reason === 'dispose' ? 0 : 1)
     expect(openResource).not.toHaveBeenCalled()
   })
 

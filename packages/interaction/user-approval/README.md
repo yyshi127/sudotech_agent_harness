@@ -1,5 +1,5 @@
 ---
-description: "Channel-neutral one-shot approval seam for users and maintainers composing answerers, setting policy, or debugging fail-closed permission decisions."
+description: "Channel-neutral approval service for one-shot decisions and operation-class authorization within one session."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use this package to require a one-shot decision before a sensitive tool action proceeds. The `ask` policy sends each request to the deployment's human or machine answerers; `never` rejects it without prompting. Missing or failed answerers return `unavailable`, so the action fails closed, and an approval applies only to that request. Every request and outcome is recorded in the requesting session's audit log. The model sees the resulting tool outcome and current policy, but not the human permission UI or audit events.
+Use this package to require a decision before a sensitive tool action proceeds. The `ask` policy consults the deployment's answerers; `never` rejects ordinary requests without prompting. Missing or failed answerers return `unavailable`. Trusted requesters may offer authorization for one operation class and target scope within the requesting session. Every request, decision, and authorization reuse is audited. The model sees the resulting tool outcome and current policy, but not the human permission UI or audit events.
 
 ## Table of Contents
 
@@ -25,6 +25,8 @@ Use this package to require a one-shot decision before a sensitive tool action p
 <a id="use-this-package"></a>
 ## Use this package
 
+`setAutomaticApproval(session, enabled)` accepts explicit authorization projected by a trusted product from logged user intent. It grants ordinary and mandatory requests, even under `never`, and settles already displayed questions by withdrawing their answerer signal. Cancellation, revocation before the decision commits, and audit failures still prevent execution. The service does not persist this flag: the owner must reconstruct, restrict, and revoke it. Without this flag, existing policy and classified-authorization behavior are unchanged.
+
 Compose this service when sensitive tool actions should pause for a human or machine decision instead of running unconditionally. The tools pipeline and the sandboxed bash tool route their `ask` decisions through this seam and fail closed when it is absent, so interactive deployments mount it with at least one answerer.
 
 ### Composing answerers
@@ -33,7 +35,7 @@ Answerers are `approval/request` waterfall listeners: return an outcome to answe
 
 ### Setting the policy
 
-The effective policy is the one set for the session, falling back to the configured default. `ask` (the default) delegates to the composed answerers; `never` rejects every request deterministically before interactive dispatch — the strict headless stance for CI and unattended runs.
+The effective policy is the one set for the session, falling back to the configured default. `ask` (the default) delegates to the composed answerers; `never` rejects every ordinary request deterministically before interactive dispatch. Mandatory confirmations use `requestMandatory` and still fail closed without an answer or matching explicit session authorization.
 
 ```yaml
 - name: '@deepseek-ai/dsh-user-approval'
@@ -50,6 +52,10 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 ### Requesting a decision
 
 `request(req)` names the agent, tool, optional call id and reason, and an abort signal. Optional `displayReason` supplies localized presentation text without changing the logged reason. It requires an open turn: an idle or between-turn caller throws before auditing anything. Aborting withdraws the question — the request settles `cancelled` and a late answer is discarded. A failure that prevents either audit append from committing rejects instead of returning an unlogged decision.
+
+Trusted requester code may supply `reusable: { category, scope, label, displayLabel? }`; the model must not choose these values. `category` identifies the operation and `scope` its exact target; `label` and optional localized `displayLabel` explain both to the user. An answerer may then return `allowed-session`. The service returns the unchanged `allowed-once` outcome and reuses that authorization only for matching category and scope in the same Session. Unclassified requests remain one-shot. Mandatory consumers opt into reuse explicitly; unclassified deletion confirmations remain one-shot.
+
+Concurrent matching requests wait for the first decision and audit commit before rechecking authorization. Creation and reuse are recorded in optional audit fields. A live grant becomes reusable only after its decision append succeeds. After restart, only originally closed turns restore grants; interrupted-turn repair does not authorize the unfinished tail. Earlier closed-turn grants remain valid, and copied history never authorizes another Session. Ordinary `never` still rejects even when a matching authorization exists.
 
 ### What the model and user see
 
@@ -75,7 +81,7 @@ The observable behavior is covered in [Use this package](#use-this-package); thi
 
 ### Dispatch
 
-`decide()` races the answerer waterfall against the request signal and contains every answerer failure: a throwing listener fails the question closed to `unavailable`, and a rogue non-vocabulary return is normalized to `unavailable`. The `never` policy is enforced inside the service before waterfall dispatch, so a listener registered later with `prepend` cannot bypass the deterministic rejection. The request must be turn-enclosed because the turn is the durable log's commit/replay boundary — a bare event between turns is indistinguishable from a crash tail.
+`decide()` races the answerer waterfall against request cancellation and service disposal and contains every answerer failure. Answerers receive the same readonly data references with a combined signal, so standalone service unload withdraws their prompts. A throwing listener or unknown answer fails closed to `unavailable`. The `never` policy is enforced before reuse and dispatch and rechecked before committing the decision. The audit pair identifies the action's turn; persistence retains physically valid interrupted history, while authorization restoration excludes repaired turns.
 
 ### Policy and the runtime-context snapshot
 
@@ -108,7 +114,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-The first request and each effective policy change append a full runtime-context snapshot after retained history. Under `ask`, the approval contribution states that configured answerers may be consulted and absence fails closed. Under `never`, it states the deterministic rejection and non-escalation consequence. Unchanged requests retain the earlier snapshot without adding another message.
+The first request and each effective policy or authorization change append a full runtime-context snapshot after retained history. Sessions without reusable authorization retain the policy text below. An authorized Session states that reuse is limited to the approved operation class and target scope; ordinary `never` remains deterministic and unclassified mandatory confirmations still require individual decisions. Unchanged requests retain the earlier snapshot without adding another message.
 
 ##### Ask-policy contribution
 
@@ -119,7 +125,7 @@ Approval policy: ask. Operations that require approval may ask through the confi
 ##### Never-policy contribution
 
 ```markdown
-Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).
+Ordinary approval prompts are disabled in this session: actions that require ordinary approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`). Mandatory security confirmations, including deletion confirmation, still require the user to approve each action.
 ```
 
 #### Token effect
@@ -152,7 +158,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 These limits define when the seam is a poor fit or needs special composition care. They are current package constraints, not a general permission comparison.
 
 - **Requests are valid only inside an open turn** — an idle or between-turn caller throws before auditing; a durable out-of-turn approval workflow is deferred.
-- **Only one-shot grants exist** — the outcome vocabulary has `allowed-once` but no `allow-always`, remembered rule, revocation, or grant store; session policy is only `ask` / `never`.
+- **Session scope only** — authorization is limited to a trusted operation class and exact target within one Session; there are no global rules or individual-grant revocation controls. Session policy remains `ask` / `never`.
 - **The request carries no tool arguments** — an answerer sees the tool name, reason, and optional call id; the ACP machine channel requires a call id and delegates requests without one.
 - **No built-in answerer** — headless or incompletely composed deployments resolve `unavailable` and fail closed; the service itself never prompts a human.
 

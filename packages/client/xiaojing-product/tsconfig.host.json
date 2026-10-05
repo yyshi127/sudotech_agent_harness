@@ -7,9 +7,14 @@
   },
   "files": [
     "src/deletion-guard.ts",
+    "src/office-approval.ts",
     "src/index.ts"
   ],
   "references": [
+    { "path": "../../core/session" },
+    { "path": "../../session/session-projection" },
+    { "path": "../../interaction/permission-presets" },
+    { "path": "../../preset/agent-preset-registry" },
     {
       "path": "../../../vendor/cordis"
     },
