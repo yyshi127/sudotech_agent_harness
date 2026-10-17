@@ -1,4 +1,4 @@
-/** Harness 0.2.0-rc.2 compatibility adapter for DeepSeek request observation. */
+/** Harness compatibility adapter for DeepSeek request observation. */
 
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash } from 'node:crypto'

@@ -6,7 +6,7 @@
 // record cannot hang on a live model answering differently); assertion steps
 // run in replay/refresh only. Streaming fidelity is asserted from the durable
 // embedded Assistant stream, not transient DOM.
-// Record: DSH_SNAPSHOT=record writes session.v3.jsonl, then a keyless
+// Record: DSH_SNAPSHOT=record writes the current Session generation, then a keyless
 // DSH_SNAPSHOT=refresh regenerates ui.expected.md.
 // Suite setup (beforeAll, not per step): one fixed page clock
 // (page.clock.setFixedTime) and one routed Remote mux socket
@@ -20,7 +20,6 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { ToolCallId, expandAssistantStream } from '@deepseek-ai/dsh-llm'
 import { SessionId, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
-import type { AgentHandle } from '@deepseek-ai/dsh-agent'
 import type { SessionListValue } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { XIAOJING_PERSONA } from '@deepseek-ai/dsh-client-xiaojing-product'
@@ -224,7 +223,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     }
   }, 200_000)
 
-  it('ends the system prompt with the source checkout, Web surface, and session cwd', async () => {
+  it('keeps value-free Web guidance in the system prompt and process values in runtime context', async () => {
     if (settledSessionId === undefined) throw new Error('the drive turn did not publish a session id')
     const agent = scaffold.ctx.agents.get(settledSessionId)
     if (agent === undefined) throw new Error(`the settled Web agent ${settledSessionId} is no longer live`)
@@ -239,9 +238,18 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     if (WINDOWS_XIAOJING) {
       expect(system).not.toContain('You are an AI agent powered by DeepSeek Harness.')
       expect(system).not.toContain(REPO_ROOT)
-      expect(system).not.toContain(scaffold.baseUrl)
     }
-    const suffix = paragraphs.slice(WINDOWS_XIAOJING ? -1 : -3).join('\n\n')
+    const cwd = agent.session.header.cwd
+    if (cwd === undefined) throw new Error('the Web session has no working directory')
+    expect(system).not.toContain(cwd)
+    const userText = agent.session.deriveMessages().filter(message => message.role === 'user')
+      .flatMap(message => message.content.flatMap(block => block.type === 'text' ? [block.text] : []))
+    expect(userText.some(text => text.includes(`Current working directory: ${JSON.stringify(cwd)}.`))).toBe(true)
+    expect(system).not.toContain(scaffold.baseUrl)
+    if (!WINDOWS_XIAOJING) {
+      expect(userText.some(text => text.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(scaffold.baseUrl)}.`))).toBe(true)
+    }
+    const suffix = paragraphs.slice(WINDOWS_XIAOJING ? -1 : -2).join('\n\n')
       .split(REPO_ROOT).join('{{sourceRoot}}')
       .split(join(scaffold.workspaceCwd, 'workspace')).join('{{cwd}}')
       .split(scaffold.baseUrl).join('{{webUrl}}')
@@ -249,58 +257,41 @@ describe('web e2e: fresh round trip through the real assembly', () => {
   })
 
   it('exposes the assembled Web URL to the real bash tool', async () => {
-    if (settledSessionId === undefined) throw new Error('the drive turn did not publish a session id')
-    const agent = scaffold.ctx.agents.get(settledSessionId)
-    if (agent === undefined) throw new Error(`the settled Web agent ${settledSessionId} is no longer live`)
-    const result = await scaffold.ctx.tools.execute({
-      signal: AbortSignal.timeout(5_000),
-      callId: ToolCallId('web-url-probe'),
-      name: SHELL_TOOL,
-      arguments: {
-        command: WINDOWS_XIAOJING ? 'Write-Output $env:DSH_WEB_URL' : 'printf \'%s\\n\' "$DSH_WEB_URL"',
-        description: 'Print current Web runtime',
-      },
-      agent,
-    })
-    expect(result.isError).toBe(false)
-    const text = result.content.filter(block => block.type === 'text').map(block => block.text).join('')
-    if (!WINDOWS_XIAOJING) {
-      expect(text).toBe(`${scaffold.baseUrl}\n`)
-      return
+    // Keep shell job events out of the shared conversation replay fixture.
+    for (const enableSurface of WINDOWS_XIAOJING ? [false, true] : [true]) {
+      const probe = await launchWebScaffold({
+        ...WINDOWS_XIAOJING ? XIAOJING_ROUTE_CATALOG : {},
+        ...WINDOWS_XIAOJING && enableSurface ? {
+          extraOverlayPath: fileURLToPath(new URL('./fixtures/fresh-round-trip-surface-enabled.overlay.yml', import.meta.url)),
+        } : {},
+      })
+      try {
+        const handle = await probe.ctx.agents.create({
+          sessionId: SessionId('web-url-probe'),
+          meta: { cwd: probe.workspaceCwd, agentPreset: 'standard' },
+          setup: agentCtx => probe.ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
+        })
+        try {
+          const result = await probe.ctx.tools.execute({
+            signal: AbortSignal.timeout(5_000),
+            callId: ToolCallId('web-url-probe'), name: SHELL_TOOL,
+            arguments: {
+              command: WINDOWS_XIAOJING ? 'Write-Output $env:DSH_WEB_URL' : 'printf \'%s\\n\' "$DSH_WEB_URL"',
+              description: 'Print current Web runtime',
+            },
+            agent: handle.agent,
+          })
+          expect(result.isError).toBe(false)
+          const output = result.content.filter(block => block.type === 'text').map(block => block.text).join('')
+          expect(output).toBe(!enableSurface ? '(no output)' : `${probe.baseUrl}${WINDOWS_XIAOJING ? '\r\n' : '\n'}`)
+          if (!enableSurface) expect(probe.ctx.shellEnv.list().map(variable => variable.key)).not.toContain('DSH_WEB_URL')
+        } finally {
+          await handle.dispose()
+        }
+      } finally {
+        await probe.close()
+      }
     }
-    // Xiaojing disables the generic surface by configuration. The explicit
-    // enabled composition must still publish its own URL to a real shell.
-    expect(text).toBe('(no output)')
-    expect(scaffold.ctx.shellEnv.list().map(variable => variable.key)).not.toContain('DSH_WEB_URL')
-    let enabled: WebScaffold | undefined
-    let handle: AgentHandle | undefined
-    const failures: unknown[] = []
-    try {
-      enabled = await launchWebScaffold({
-        ...XIAOJING_ROUTE_CATALOG,
-        extraOverlayPath: fileURLToPath(new URL('./fixtures/fresh-round-trip-surface-enabled.overlay.yml', import.meta.url)),
-      })
-      handle = await enabled.ctx.agents.create({
-        sessionId: SessionId('fresh-surface-enabled-probe'),
-        meta: { cwd: enabled.workspaceCwd, agentPreset: 'standard' },
-        agentOptions: { provider: 'deepseek-official', model: 'deepseek-flash' },
-        setup: agentCtx => enabled!.ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
-      })
-      const output = await enabled.ctx.tools.execute({
-        signal: AbortSignal.timeout(5_000), callId: ToolCallId('enabled-web-url-probe'), name: 'pwsh',
-        arguments: { command: 'Write-Output $env:DSH_WEB_URL', description: 'Print configured local Web runtime' },
-        agent: handle.agent,
-      })
-      expect(output.isError).toBe(false)
-      expect(output.content.filter(block => block.type === 'text').map(block => block.text).join('')).toBe(`${enabled.baseUrl}\r\n`)
-    } catch (error) {
-      failures.push(error)
-    } finally {
-      await handle?.dispose().catch((error: unknown) => failures.push(error))
-      await enabled?.close().catch((error: unknown) => failures.push(error))
-    }
-    if (failures.length === 1) throw failures[0]
-    if (failures.length > 1) throw new AggregateError(failures, 'enabled Web surface probe failed')
   })
 
   it.skipIf(MODE === 'record')('rendered the settled turn: markdown, tool row, composer restore', async () => {

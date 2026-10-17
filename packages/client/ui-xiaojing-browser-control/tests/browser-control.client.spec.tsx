@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { Context } from '@deepseek-ai/cordis'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -29,6 +29,7 @@ afterEach(() => {
 
 const unusedHook = (() => { throw new Error('unused by browser-control settings') }) as never
 const kit = {
+  ...allowAllAccess,
   useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
   useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
 }

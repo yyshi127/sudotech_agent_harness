@@ -8,7 +8,7 @@ The application document, bundled assets, and top-level PNG, SVG, ICO, and Web m
 
 The main window displays the local Xiaojing startup page alongside the companion before Host preparation begins. The startup page remains in the same application document until the client renders its first interface; no extra delay or navigation is added. Saved companion visibility is respected. Closing or minimizing the startup window remains effective when initialization completes, and an explicit open restores it during startup.
 
-A new Desktop profile enables the experimental Automation tasks bundle by default. The built-in plugin switch can disable it; subsequent launches and upgrades preserve the existing profile selection. Enabling the bundle does not create or run a task by itself.
+Automation tasks are built into the Web application hosted by Desktop. Upgrading retains existing tasks and removes the retired experimental bundle declaration; a new installation does not create or execute tasks by itself.
 
 ## Permanent installer identity
 
@@ -39,7 +39,7 @@ After installing files, the installer copies its icon to `resources/xiaojing-cha
 
 Electron pins `userData` before the single-instance lock to `%APPDATA%\@sudotech\xiaojing-accounting-desktop`. The bundled Host uses its `harness` child as `DSH_HOME`. `%USERPROFILE%\Documents\小兢会计工作区` is the common workspace container: the ordinary Host starts in its `办公工作区` child supplied through `XIAOJING_OFFICE_WORKSPACE_ROOT`, while Finance receives the sibling `Finance工作区` through `XIAOJING_FINANCE_WORKSPACE_ROOT`. New ordinary and Finance Workspaces therefore do not nest inside one another by default. The Electron directory dialog uses `办公工作区` when an ordinary add action supplies no initial path; the packaged preload forwards each Finance add action's explicit absolute path, so both client-ledger and consultation creation start in `Finance工作区`. Neither starting directory restricts the user's final selection.
 
-The 0.2.0 RC2 `DesktopHostProcess` owns the loopback Host lifecycle and pins `DSH_CLIENT_BUILD_PROFILE=xiaojing`, so only the Electron shell loads the application and Xiaojing-only Host plugins remain active in packaged builds. The desktop exchanges the authenticated launch token for a Host cookie used by the companion state stream; users do not open a printed URL.
+The 0.2.1 RC2 `DesktopHostProcess` owns the loopback Host lifecycle and pins `DSH_CLIENT_BUILD_PROFILE=xiaojing`, so only the Electron shell loads the application and Xiaojing-only Host plugins remain active in packaged builds. The desktop exchanges the authenticated launch token for a Host cookie used by the companion state stream; users do not open a printed URL.
 
 `user-data-contract.json` protects sessions, settings, credentials, agent presets, profiles, storage, legacy uploads, native image attachments, usage accounting, the dedicated browser-control profile, Weixin channel state, desktop-companion preferences, Electron Local Storage, and the Documents workspace. The installer has `deleteAppDataOnUninstall: false` and never addresses those paths. `verify-user-data-contract.mjs` exercises a synthetic 0.1.9 data set through application replacement and the current readers. It requires protected bytes to remain unchanged except for exact installation-owned Web profile migrations from retired file-upload bundle tuples, with or without ModLens, to the current Web template; it verifies the atomic flat-to-version-1 credential migration on a private copy without creating a plaintext backup, and checks session, credential, preset, settings, upload, storage, and accounting compatibility. The V3 session migration accepts the fixture's immediately pre-step user message without rewriting its source; this gate must pass before an upgraded desktop release. A release that changes another durable format must add an atomic migration and a previous-release fixture before this check may change.
 
@@ -73,11 +73,20 @@ The desktop package target builds the Xiaojing client profile and passes `--clie
 
 Run the identity, user-data, and product-layer verifiers plus desktop-companion, real Edge, and Windows UI Automation tests before preparing the bundled runtime. A release also requires a fresh Windows install and an in-place upgrade from the previous installer on both default and custom paths. The installed application must retain sessions, credentials, presets, plugins, attachments, workspaces, accounting data, the dedicated browser profile, Weixin channel state, and desktop-companion preferences before an installer is published.
 
-The 0.2.0 RC2 package target runs `smoke-packaged-runtime.ts` against the assembled application before it writes the release record. The smoke verifies the prepared DSH tree, the packaged executable and primary runtime, including native Office conversion outside ASAR.
+The 0.2.1 RC2 package target runs `smoke-packaged-runtime.ts` against the assembled application before it writes the release record. The smoke verifies the prepared DSH tree, the packaged executable and primary runtime, including native Office conversion outside ASAR.
+
+<a id="local-desktop-settings"></a>
+## Shell settings and packaging
+
+Electron reads `userData/desktop/settings.json` once at launch. The optional `updates.allowTestAuthPopupWindow` boolean defaults to `false`; absent settings are initialized without replacing an existing document, and malformed settings retain their bytes while startup uses the default. This preference controls test update authentication only and does not enable the official account Welcome flow in Xiaojing. Restart after changing it.
+
+The packaged `dshDesktopUpdateChannel` selects `nightly` or `latest`; older manifests default to `nightly`. The selected channel accompanies update-policy requests alongside the bundled kernel version. A stable `latest` feed rejects prerelease builds. Packaging keeps the Xiaojing product identity independent of the kernel package version. Retained-build upload validation uses the retained original product version even after the checkout advances.
+
+The upstream [packaging reference](packaging/README.md) describes machine presets and signed, unsigned and unnotarized outputs; the [Windows signing guide](windows-signing/README.md) owns hardware signing requirements. Xiaojing additionally requires the identity, data-retention and client-profile checks above. The upstream publication and CI examples target DeepSeek infrastructure; they do not authorize publishing Xiaojing artifacts to those services.
 
 ## Known limitations
 
-- Signed release packaging uses the 0.2.0 RC2 updater and Windows signing pipeline; the explicit unsigned package command remains for local qualification only.
+- Signed release packaging uses the 0.2.1 RC2 updater and Windows signing pipeline; the explicit unsigned package command remains for local qualification only.
 - In-place upgrades apply only to the same Windows user and cannot move the installation directory.
 - The requested Edge or Chrome browser must be installed and permitted by device policy. Existing-tab access additionally requires its native remote debugging permission and connection approval; failures do not switch browsers.
 - The built-in automation is semantic, not visual: it cannot operate pixel-only controls, CAPTCHAs, UAC, the secure desktop, or elevated applications.

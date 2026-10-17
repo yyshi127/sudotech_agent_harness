@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { Context } from '@deepseek-ai/cordis'
+import { allowAllAccess } from '@deepseek-ai/dsh-client-test-runtime'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -18,6 +19,7 @@ import { XIAOJING_RELEASE_HISTORY } from '../src/client/release-history.ts'
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by Xiaojing product components') }) as never
 const kit = {
+  ...allowAllAccess,
   useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
   useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
   useSession: unusedHook, useProjection: unusedHook, useConversation: unusedHook,
@@ -120,7 +122,7 @@ describe('Xiaojing product UI', () => {
       .toBe('calc(min(220px,35vh,55vw)*1254/970)')
     render(<HeroBrandContent {...kit} useSessions={sessionHook('standard')} t={t} />)
     expect(screen.getByText('小兢会计，您的AI办公搭子')).toBeTruthy()
-    expect(screen.getByText('0.3.2内测版')).toBeTruthy()
+    expect(screen.getByText(`${XIAOJING_PRODUCT_VERSION}内测版`)).toBeTruthy()
     cleanup()
     render(<HeroBrandContent {...kit} sessionId={'current' as never} useSessions={sessionHook('finance')} t={t} />)
     expect(screen.getByText('小兢会计，您的AI财务助手')).toBeTruthy()
@@ -159,14 +161,26 @@ describe('Xiaojing product UI', () => {
   it('keeps About compact with version summaries and details actions', () => {
     render(<AboutSection {...kit} close={vi.fn()} t={t} />)
     expect(screen.getByRole('heading', { name: '小兢会计' })).toBeTruthy()
-    expect(screen.getByText('当前版本 v0.3.2')).toBeTruthy()
+    expect(screen.getByText(`当前版本 v${XIAOJING_PRODUCT_VERSION}`)).toBeTruthy()
     expect(screen.getByRole('heading', { name: '版本更新' })).toBeTruthy()
-    expect(screen.getAllByRole('button', { name: /查看详情/u })).toHaveLength(5)
+    expect(screen.getAllByRole('button', { name: /查看详情/u })).toHaveLength(6)
     expect(screen.getByText(zh.summary032)).toBeTruthy()
     expect(screen.getByText(zh.summary031)).toBeTruthy()
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
     expect(screen.queryByText(zh.featureNativeBrowser)).toBeNull()
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('describes the new kernel without attributing earlier Xiaojing features to this release', () => {
+    render(<AboutSection {...kit} close={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: '查看详情：v0.3.3' }))
+    const details = screen.getByRole('dialog', { name: 'v0.3.3 更新说明' })
+    for (const key of ['note033', 'feature033Model', 'feature033Search', 'feature033Plugins',
+      'feature033Automation', 'feature033Collaboration', 'feature033Xiaojing'] as const) {
+      expect(within(details).getByText(zh[key])).toBeTruthy()
+    }
+    expect(within(details).queryByText(zh.featureNativeBrowser)).toBeNull()
+    expect(within(details).queryByText(zh.note032)).toBeNull()
   })
 
   it('opens only the selected release and dismisses details without closing Settings', () => {
@@ -206,11 +220,11 @@ describe('Xiaojing product UI', () => {
   it('shows fully localized version summaries and details in English', () => {
     render(<AboutSection {...kit} close={vi.fn()} t={key => en[key]} />)
     expect(screen.getByRole('heading', { name: en.historyTitle })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'View details: v0.3.2' }))
-    const details = screen.getByRole('dialog', { name: 'v0.3.2 release notes' })
+    fireEvent.click(screen.getByRole('button', { name: 'View details: v0.3.3' }))
+    const details = screen.getByRole('dialog', { name: 'v0.3.3 release notes' })
     expect(within(details).getByRole('heading', { name: en.releaseAdded })).toBeTruthy()
-    expect(within(details).getByText(en.featureNativeBrowser)).toBeTruthy()
-    expect(within(details).getByText(en.featureSessionApproval)).toBeTruthy()
+    expect(within(details).getByText(en.feature033Model)).toBeTruthy()
+    expect(within(details).getByText(en.feature033Xiaojing)).toBeTruthy()
     expect(details.textContent).not.toMatch(/[\u4e00-\u9fff]/u)
   })
 
@@ -218,7 +232,7 @@ describe('Xiaojing product UI', () => {
     const versions = XIAOJING_RELEASE_HISTORY.map(release => release.version)
     expect(versions[0]).toBe(XIAOJING_PRODUCT_VERSION)
     expect(new Set(versions).size).toBe(versions.length)
-    expect(versions).toEqual(['0.3.2', '0.3.1', '0.2.4', '0.2.3', '0.2.2'])
+    expect(versions).toEqual(['0.3.3', '0.3.2', '0.3.1', '0.2.4', '0.2.3', '0.2.2'])
   })
 
   it('hides system prompts in Xiaojing transcripts without removing the generic renderer', async () => {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
 import { WeixinChannelController } from '../src/client/controller.ts'
 import { WeixinChannelSection } from '../src/client/WeixinChannelSection.tsx'
@@ -12,6 +12,7 @@ afterEach(cleanup)
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by the channel section') }) as never
 const kit = {
+  ...allowAllAccess,
   useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
   useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
 }

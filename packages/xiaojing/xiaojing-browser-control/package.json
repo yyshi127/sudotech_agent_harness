@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-browser-control",
   "description": "Xiaojing semantic browser automation over Microsoft Edge",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -38,6 +38,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "extension/*",
     "lib/index.js",
     "lib/native.js",
     "lib/native-settings.js",
@@ -69,7 +70,8 @@
     "@deepseek-ai/dsh-settings": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
     "@deepseek-ai/dsh-tools": "workspace:*",
-    "@deepseek-ai/dsh-user-approval": "workspace:*"
+    "@deepseek-ai/dsh-user-approval": "workspace:*",
+    "@deepseek-ai/dsh-working-directory": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -84,6 +86,7 @@
     "@deepseek-ai/dsh-config-editor": "workspace:*",
     "@deepseek-ai/dsh-credentials": "workspace:*",
     "@deepseek-ai/dsh-credentials-local": "workspace:*",
+    "@deepseek-ai/dsh-fs-local": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",
@@ -92,6 +95,7 @@
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-user-approval": "workspace:*",
+    "@deepseek-ai/dsh-working-directory": "workspace:*",
     "@types/ws": "^8.18.1"
   }
 }

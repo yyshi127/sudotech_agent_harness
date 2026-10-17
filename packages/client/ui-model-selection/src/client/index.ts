@@ -33,7 +33,7 @@ import { orderModelProviders } from './provider-order.ts'
 export { ModelDirectory } from './directory.ts'
 export type { ModelDirectoryState } from './directory.ts'
 export { ModelDirectoryResolver } from './service.ts'
-export type { ModelSelectInjected } from './slots.ts'
+export type { ModelLabelOwner, ModelSelectInjected } from './slots.ts'
 import type { ModelKey } from './locales.ts'
 export type { ModelKey } from './locales.ts'
 
@@ -173,6 +173,9 @@ export function apply(ctx: ClientContext): void {
     scope.slots.inject('conversation.input.model', () => scope.slots.register({
       name: 'conversation.input.model',
       locale: NS,
+      children: {
+        'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true },
+      },
       inject: (sessionId): ModelSelectInjected => {
         const directory = models.directoryFor(sessionId)
         const available = sessions.subagentAddress(sessionId) === undefined

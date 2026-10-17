@@ -16,7 +16,7 @@ describe('xiaojing visualize plugin', () => {
     } as unknown as Context
 
     expect(name).toBe('xiaojing-visualize')
-    expect(inject).toEqual(['tools', 'skills', 'fs'])
+    expect(inject).toEqual(['tools', 'skills', 'fs', 'workingDirectory'])
     expect(Config({} as unknown as import('../src/index.ts').Config)).toEqual({ maxFragmentBytes: 1_000_000 })
     apply(ctx, { maxFragmentBytes: 1234 })
     expect(register).toHaveBeenCalledTimes(1)

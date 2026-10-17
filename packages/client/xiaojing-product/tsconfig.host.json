@@ -11,6 +11,7 @@
     "src/index.ts"
   ],
   "references": [
+    { "path": "../../session/working-directory" },
     { "path": "../../core/session" },
     { "path": "../../session/session-projection" },
     { "path": "../../interaction/permission-presets" },

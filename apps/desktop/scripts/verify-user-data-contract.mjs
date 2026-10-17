@@ -9,7 +9,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { priceUsage, RECOVERABLE_PRICE_TABLES } from '@deepseek-ai/dsh-usage-accounting'
 import { loadProfile } from '@deepseek-ai/dsh-app-boot'
 import { FinanceClientStore } from '@deepseek-ai/dsh-xiaojing-finance-domain/store'
@@ -115,9 +115,9 @@ async function materializeEncodedSessions(appData) {
 
 async function verifySessionData(appData) {
   const ctx = new Context()
-  await ctx.plugin(SessionStore)
-  await ctx.plugin(JsonlSessionPersistence, { root: join(appData, 'harness', 'sessions') })
   try {
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(JsonlSessionPersistence, { root: join(appData, 'harness', 'sessions') })
     const snapshots = await ctx.sessionPersistence.list()
     assert(snapshots.length === 1 && snapshots[0]?.header.id === SESSION_ID,
       '0.1.9 session fixture is not discoverable through the current persistence backend')
@@ -312,7 +312,7 @@ try {
   const before = { appData: await hashes(appData), documents: await hashes(documents) }
   await mkdir(install, { recursive: true })
   await writeFile(join(install, 'old-application-file.txt'), fixtureVersion)
-  await writeFile(join(install, 'new-application-file.txt'), manifest.version)
+  await writeFile(join(install, 'new-application-file.txt'), identity.productVersion)
   const afterApplicationReplacement = { appData: await hashes(appData), documents: await hashes(documents) }
   assert(JSON.stringify(afterApplicationReplacement) === JSON.stringify(before),
     `synthetic in-place application replacement changed protected ${fixtureVersion} user data`)
@@ -356,4 +356,4 @@ try {
   await rm(scratch, { recursive: true, force: true })
 }
 
-console.log(`desktop ${fixtureVersion} -> ${manifest.version} user-data compatibility contract verified`)
+console.log(`desktop ${fixtureVersion} -> ${identity.productVersion} (DSH ${manifest.version}) user-data compatibility contract verified`)

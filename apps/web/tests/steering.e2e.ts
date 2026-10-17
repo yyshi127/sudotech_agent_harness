@@ -83,7 +83,6 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
   let hostClock: MockInstance<typeof Date.now> | undefined
-  let unpinBrowserClock: (() => void) | undefined
   const sessionEvents: SessionEvent[] = []
 
   beforeAll(async () => {
@@ -97,7 +96,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
-    unpinBrowserClock = await pinBrowserClock(page)
+    await pinBrowserClock(page)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -112,8 +111,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
       await scaffold?.close()
     } finally {
       // A failing close (unconsumed fixture, mismatched snapshot) must not
-      // leave the pinned clocks running for the suites after this one.
-      unpinBrowserClock?.()
+      // leave the pinned Host clock running for the suites after this one.
       hostClock?.mockRestore()
     }
   })
@@ -410,7 +408,6 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
   let hostClock: MockInstance<typeof Date.now> | undefined
-  let unpinBrowserClock: (() => void) | undefined
   const sessionEvents: SessionEvent[] = []
 
   beforeAll(async () => {
@@ -431,7 +428,7 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
     scaffold.ctx.on('session/event', (_session, event) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
-    unpinBrowserClock = await pinBrowserClock(page)
+    await pinBrowserClock(page)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -447,7 +444,6 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
       await browser?.close()
       await scaffold?.close()
     } finally {
-      unpinBrowserClock?.()
       hostClock?.mockRestore()
     }
   })

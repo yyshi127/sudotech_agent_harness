@@ -15,11 +15,11 @@
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
 /deepseek-ai-dsh-client-ui-workspace/use-this-package:
-  en: b164014ee565be16
-  zh: 6a741647932b93e6
+  en: d042b4b1dd7e7f56
+  zh: c12fa070ef5a02a4
 /deepseek-ai-dsh-client-ui-workspace/use-this-package/reordering-and-view-options:
-  en: a9a9f701ce3cb9d3
-  zh: fc5f0e23b5b9c2f1
+  en: 13ee1faf9124c15e
+  zh: a03bf3760b93af05
 /deepseek-ai-dsh-client-ui-workspace/use-this-package/workspace-hierarchy:
   en: 02e7a886364dfc82
   zh: 26480b7eff93ac7d
@@ -27,23 +27,23 @@
   en: 9eab3bfbaf98c987
   zh: 54e7e141dae5c9e8
 /deepseek-ai-dsh-client-ui-workspace/use-this-package/managing-sessions:
-  en: 6b5c96c5b723c5f8
-  zh: f8ae5f73860dce45
+  en: e96b714aeb6dcd03
+  zh: 75b63aa2cafbb57a
 /deepseek-ai-dsh-client-ui-workspace/use-this-package/pending-interactions:
   en: f95c4a147c968ef5
   zh: 1cd608404bff775b
 /deepseek-ai-dsh-client-ui-workspace/use-this-package/active-schedule-markers:
-  en: 5e02fef302ea9b09
-  zh: fec42120109be57e
+  en: a241f3288a638ded
+  zh: 1fc94e32ec69c54e
 /deepseek-ai-dsh-client-ui-workspace/understand-the-implementation:
-  en: 21590da1f7488361
-  zh: 95916475cced409e
+  en: 721d5a49fe231191
+  zh: 3ef1dd720219e00e
 /deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/the-directory-flow-hole:
-  en: ee973cb37868e59e
-  zh: ca2228407f17daff
+  en: 84d7def470877b73
+  zh: 301ee108f590da26
 /deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/session-row-actions:
-  en: a3b80d0e844d2929
-  zh: 85fe5dfb2968b491
+  en: 5bbba6e462faf3dc
+  zh: 4734263208ee07c9
 /deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/session-row-actions/packaged-client-plugin:
   en: 36934671b80b11ae
   zh: 8e0aea6162e35e77
@@ -54,8 +54,8 @@
   en: 5fc698f1dd2bfd69
   zh: e570d145b15198a8
 /deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/hover-cards:
-  en: 34668e3c2e9c77b7
-  zh: c8bb72e29a3f2490
+  en: ea89ec5a3ee1f167
+  zh: e11f350571bcfff7
 /deepseek-ai-dsh-client-ui-workspace/further-exploration:
   en: 2abbf27abbd71ba4
   zh: ace33fa2ea042357
@@ -69,5 +69,5 @@
   en: 00d7b1ddda7390f5
   zh: 1e5a1055d1be4d1d
 /deepseek-ai-dsh-client-ui-workspace/known-limitations-and-deferred-work/dev-note:
-  en: 585813ff2c68c20c
-  zh: 18b43c0d64fa8a72
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

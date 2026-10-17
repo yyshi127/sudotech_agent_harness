@@ -198,6 +198,7 @@ async function expectExcelCellInk(excel: Locator): Promise<void> {
 it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pane with read-only controls in %s', async (locale) => {
   const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false })
   let browser: Browser | undefined
+  const failures: unknown[] = []
   try {
     browser = await chromium.launch()
     const page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale, timezoneId: 'Asia/Shanghai' })
@@ -392,9 +393,20 @@ it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pan
     }
     expect(consoleErrors.pageErrors).toEqual([])
     await originalCanvas.dispose()
+  } catch (error) {
+    failures.push(error)
+    for (const page of browser?.contexts().flatMap(context => context.pages()) ?? []) {
+      await saveFailureShot(page, `document-preview-primary-${locale}-${process.pid}`)
+      await page.locator('body').ariaSnapshot()
+        .then(snapshot => writeFile(fileURLToPath(new URL(`../../../.artifacts/document-preview-primary-${locale}-${process.pid}.md`, import.meta.url)), snapshot))
+        .catch((diagnosticError: unknown) => failures.push(diagnosticError))
+    }
   } finally {
-    try { await browser?.close() } finally { await scaffold.close() }
+    await browser?.close().catch((error: unknown) => failures.push(error))
+    await scaffold.close().catch((error: unknown) => failures.push(error))
   }
+  if (failures.length === 1) throw failures[0]
+  if (failures.length > 1) throw new AggregateError(failures, 'spreadsheet preview scenario and cleanup failed')
 })
 
 /** Pan with native pixel wheel input in every direction and along the sheet edges. */
@@ -769,7 +781,10 @@ else process.exit(1);
       await mkdir(SHOT_DIR, { recursive: true })
       await saveFailureShot(page, `screenshots/0908-document-preview/smoke-${process.pid}`)
     })
-    expect(await page.locator('[data-slot="conversation.hero.agentPreset"] button').count()).toBe(0)
+    await page.locator('[data-slot="conversation.hero.agentPreset"]').getByRole('button', { name: 'Standard mode', exact: true }).click()
+    await expect.poll(() => page.getByRole('menuitem').count()).toBe(2)
+    expect(await page.getByRole('menuitem', { name: /^PTC mode|^Minimal mode/ }).count()).toBe(0)
+    await page.keyboard.press('Escape')
     expect(scaffold.ctx.settings.describe().find(row => row.ns === 'ui-settings')?.value).toEqual({ enabled: false })
     const settled = scaffold.whenTurnSettled()
     const input = page.locator('[data-composer-input]').first()

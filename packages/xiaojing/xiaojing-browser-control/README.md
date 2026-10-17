@@ -40,11 +40,13 @@ Explicit deployments can configure an enabled `existingEndpoint` or select `exis
 
 Connection failure revokes the Session's selection. It never selects another browser, opens a replacement window, or replays completed actions. Diagnostics identify the selected browser; a native HTTP 403 reports connection rejection without claiming its cause. Explicitly reconnect before using browser tools. Managed connections belong to one live Agent; existing-browser connections have one owner until release. Calls queue per connection and re-check their selected route before execution. Disposal waits for in-flight work, closes owned managed browsers, and disconnects existing browsers without closing their tabs.
 
+Native connections require `workingDirectory`. Each MCP server starts in the Session's validated current working directory and keeps that launch directory until its connection is released. A later connection uses the then-current directory; the immutable Session header does not select the process directory.
+
 ### Native configuration and approvals
 
 The product explicitly adopts the three upstream experimental native-browser packages under the [exact source and installed-dependency policy](../../../.agents/notes/implemented/process/2026-10-03-xiaojing-native-browser-adoption.md); their API status and isolation from other consumers remain unchanged.
 
-The package publishes three independent Host bundles: `lib/index.js`, `lib/native.js`, and `lib/native-settings.js`, plus their declarations. Native imports do not start browser processes or mount the legacy adapter; connections begin with `browser_connect`. Settings imports do not establish a browser connection.
+The package publishes three independent Host bundles: `lib/index.js`, `lib/native.js`, and `lib/native-settings.js`, plus their declarations. It carries the legacy pairing extension's runtime files under `extension/` for the optional package-root entry. Native imports do not start browser processes or mount the legacy adapter; connections begin with `browser_connect`. Settings imports do not establish a browser connection.
 
 `NativeBrowser` identifies `edge` or `chrome`. The Host-only `NativeBrowserSettingsRuntime` registration supplies installation inspection, observed connection state, and revocation callbacks to the settings service; its disposer removes only that runtime's registration. These declarations are owned by `src/native-settings-types.ts` rather than the generic subsystems type catalog.
 

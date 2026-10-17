@@ -13,6 +13,7 @@ import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import PermissionPresetService from '@deepseek-ai/dsh-permission-presets'
 import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
+import { provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
 
 afterEach(() => { vi.unstubAllEnvs() })
 
@@ -21,6 +22,7 @@ async function mountedProduct(): Promise<Context> {
   await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()
   await ctx.plugin(ToolRuntime).await()
   await ctx.plugin(ApprovalService, { policy: 'never' }).await()
+  provideWorkingDirectoryFixture(ctx)
   await ctx.plugin(XiaojingProduct).await()
   return ctx
 }
@@ -147,6 +149,7 @@ describe('Xiaojing product persona', () => {
     await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()
     await ctx.plugin(ToolRuntime).await()
     await ctx.plugin(ApprovalService, { policy: 'never' }).await()
+    provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(XiaojingProduct).await()
     await vi.waitFor(() => {
       expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider, model: expected })
@@ -163,6 +166,7 @@ describe('Xiaojing product persona', () => {
     await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false }).await()
     await ctx.plugin(ToolRuntime).await()
     await ctx.plugin(ApprovalService, { policy: 'never' }).await()
+    provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(XiaojingProduct).await()
     expect(ctx.agentDefaultModel.currentSelection().model).toBe('deepseek-v4-flash')
     await ctx.fiber.dispose()
@@ -198,6 +202,7 @@ describe('Xiaojing product persona', () => {
     await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false, personaPrefix: 'User-selected persona.' }).await()
     await ctx.plugin(ToolRuntime).await()
     await ctx.plugin(ApprovalService, { policy: 'never' }).await()
+    provideWorkingDirectoryFixture(ctx)
     await ctx.plugin(XiaojingProduct).await()
 
     const assembled = await ctx.systemPrompt.assemble()

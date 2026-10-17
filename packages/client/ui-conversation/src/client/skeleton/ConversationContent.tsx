@@ -131,6 +131,7 @@ export function ConversationContent(props: ConversationContentProps) {
       })}
       {renderSlot('conversation.hero.agentPreset', {})}
       {renderSlot('conversation.hero.context', {})}
+      {sessionId === undefined ? null : <div className={css.heroOptions}>{renderSlot('conversation.hero.options', {})}</div>}
     </div>
   )
 

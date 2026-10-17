@@ -4,5 +4,5 @@ profile: web
 composition: web-xiaojing
 recording: authored
 header:
-  class: web-session-approval
+  class: web-office-automatic-approval
   pin: true

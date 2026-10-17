@@ -1,0 +1,47 @@
+- dialog "v0.3.3 更新说明":
+  - heading "v0.3.3 更新说明" [level=2]
+  - button "关闭"
+  - paragraph: 新内核、新模型与联网搜索，增强任务协作和日常使用体验
+  - heading "新增功能" [level=3]
+  - list:
+    - listitem:
+      - heading "新增 DeepSeek 模型适配" [level=4]
+      - paragraph: 支持 DeepSeek-V4.1-Flash-1017，可在模型列表选择；保留历史会话的模型选择。
+    - listitem:
+      - heading "DeepSeek 原生网页搜索与读取" [level=4]
+      - paragraph: 接入 DeepSeek Search 与 Fetch API，为联网检索、网页正文读取和资料核验提供新的可配置服务。
+  - heading "体验改进" [level=3]
+  - list:
+    - listitem:
+      - heading "插件发现、安装与更新增强" [level=4]
+      - paragraph: 支持添加插件索引源，并从插件页进入创建插件流程；安装、卸载和更新同步处理依赖，可热重载的插件直接生效，其余提示重启。
+    - listitem:
+      - heading "自动化任务内置化" [level=4]
+      - paragraph: 自动化任务纳入内置能力，保留已有任务；支持按时间或周期执行，并在会话和任务列表中查看、管理。
+    - listitem:
+      - heading "草稿、引用与长会话更连贯" [level=4]
+      - paragraph: 切换会话或刷新后保留文字及文件、目录、会话引用；支持 /compact 手动压缩上下文，改善较多会话的加载与查找。
+    - listitem:
+      - heading "自定义模型推理等级" [level=4]
+      - paragraph: 自定义模型可直接在设置页配置推理等级，无需手动修改配置文件。
+    - listitem:
+      - heading "更灵活的阅读与过程展示" [level=4]
+      - paragraph: 正文、代码和终端可分别设置字体与字号；可选择回答结束或发送下一条消息后收起执行步骤，工具准备时也能提前查看已收到的信息。
+    - listitem:
+      - heading "麦克风选择与语音输入改进" [level=4]
+      - paragraph: 可选择录音麦克风并查看输入电平，改善语音检测开启时录音开头和首字被截断的问题；此功能为语音转文字。
+    - listitem:
+      - heading "子智能体与团队协作增强" [level=4]
+      - paragraph: 子智能体支持独立角色和工具预设，统一任务执行与完成通知；团队消息直接进入成员收件箱，减少协作状态不同步。
+  - heading "问题修复" [level=3]
+  - list:
+    - listitem:
+      - heading "执行、恢复与预览稳定性改进" [level=4]
+      - paragraph: 合入 Windows 终端输出和进程清理、请求空闲超时、历史会话恢复、后台任务状态及预览显示等上游修复。
+  - heading "当前版本可配置的内置能力" [level=3]
+  - list:
+    - listitem:
+      - heading "保留小兢现有专属能力" [level=4]
+      - paragraph: 保留办公搭子与财务助手、有成帐套操作、默认 Edge 与按需 Chrome 控制、“始终允许”和“自动审批(实验性)”、文件预览、微信连接及桌面小兢。
+  - paragraph: 内核升级至 DeepSeek Harness 0.2.1-rc.2；候选预发布内核。保留小兢原有财务、浏览器、审批和桌面功能。
+  - button "关闭"

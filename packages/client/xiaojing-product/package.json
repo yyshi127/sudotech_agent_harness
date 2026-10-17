@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-xiaojing-product",
   "description": "Xiaojing Accounting product branding, onboarding, theme, and default persona",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -45,16 +45,21 @@
     "watch": "tsdown --watch"
   },
   "license": "MIT",
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-system-prompt": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
+    "@deepseek-ai/dsh-fs-local": "workspace:*",
+    "@deepseek-ai/dsh-working-directory": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-session-projection": "workspace:*",
     "@deepseek-ai/dsh-permission-presets": "workspace:*",
     "@deepseek-ai/dsh-agent-preset-registry": "workspace:*",
-    "zod": "^4.4.3",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-agent-default-model": "workspace:*",
     "@deepseek-ai/dsh-agent": "workspace:*",
@@ -75,8 +80,8 @@
     "@deepseek-ai/dsh-user-approval": "workspace:*",
     "@deepseek-ai/dsh-xiaojing-browser-control": "workspace:*",
     "@deepseek-ai/dsh-xiaojing-computer-control": "workspace:*",
-    "@types/react": "~18.3.1",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "@deepseek-ai/dsh-client-test-runtime": "workspace:*"
   },
   "files": [
     "lib/index.js",

@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/desktop/README.md
 /xiaojing-accounting-windows-desktop:
-  en: b1270577f0cb1d43
-  zh: f6a027a1dff14a0a
+  en: 5f5eae6753b6e782
+  zh: 0facda660dfccb56
 /xiaojing-accounting-windows-desktop/permanent-installer-identity:
   en: b8dd5ec21233934e
   zh: 846545c48f7f34f4
 /xiaojing-accounting-windows-desktop/permanent-user-data-paths:
-  en: a61d544079ed7938
-  zh: 94c618d5bc8e33fa
+  en: afe15f194d40e415
+  zh: 49b070559eec9db1
 /xiaojing-accounting-windows-desktop/development-preview-isolation:
   en: 6935c204831d9332
   zh: 5e02efeb8cc05182
@@ -24,11 +24,14 @@
   en: 0e41f92d7a20050c
   zh: c4fb43b8d18fc245
 /xiaojing-accounting-windows-desktop/release-checks:
-  en: 797011f277072de7
-  zh: d7b989fff19d2caf
+  en: a5c09cf1797cbbcb
+  zh: 38d903f95bf66f93
+/xiaojing-accounting-windows-desktop/shell-settings-and-packaging:
+  en: 5c34edf77933573f
+  zh: 38eac81050df4ea7
 /xiaojing-accounting-windows-desktop/known-limitations:
-  en: 914fa76097c4038d
-  zh: 577f98a37ba01028
+  en: cfeb4f04e69f32fe
+  zh: 67bff9deaf14ef45
 /xiaojing-accounting-windows-desktop/known-limitations/bundled-workspace-dependencies:
   en: d5101810c85009c3
   zh: f3489cb52cac4330

@@ -18,6 +18,22 @@ interface ProductRelease {
 /** Newest-first records; changes retain their introduction release, while available entries describe current capabilities. */
 export const XIAOJING_RELEASE_HISTORY = [
   {
+    version: '0.3.3', summaryKey: 'summary033', noteKey: 'note033',
+    features: [
+      { category: 'added', titleKey: 'title033Model', copyKey: 'feature033Model' },
+      { category: 'added', titleKey: 'title033Search', copyKey: 'feature033Search' },
+      { category: 'improved', titleKey: 'title033Plugins', copyKey: 'feature033Plugins' },
+      { category: 'improved', titleKey: 'title033Automation', copyKey: 'feature033Automation' },
+      { category: 'improved', titleKey: 'title033Draft', copyKey: 'feature033Draft' },
+      { category: 'improved', titleKey: 'title033Reasoning', copyKey: 'feature033Reasoning' },
+      { category: 'improved', titleKey: 'title033Fonts', copyKey: 'feature033Fonts' },
+      { category: 'improved', titleKey: 'title033Voice', copyKey: 'feature033Voice' },
+      { category: 'improved', titleKey: 'title033Collaboration', copyKey: 'feature033Collaboration' },
+      { category: 'fixed', titleKey: 'title033Reliability', copyKey: 'feature033Reliability' },
+      { category: 'available', titleKey: 'title033Xiaojing', copyKey: 'feature033Xiaojing' },
+    ],
+  },
+  {
     version: '0.3.2', summaryKey: 'summary032', noteKey: 'note032',
     features: [
       { category: 'added', titleKey: 'titleNativeBrowser', copyKey: 'featureNativeBrowser' },

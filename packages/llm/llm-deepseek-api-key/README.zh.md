@@ -13,7 +13,7 @@ kind: "package-reference"
 
 鉴权解析将验证后的 API key 放入 `x-api-key`，供 Messages 和 Files 请求共同使用。
 
-解析认证时，插件发送 `llm-deepseek/request-identity` 事件，其中只包含实际请求基址和 API Key 的 SHA-256 指纹；用量观察器据此匹配异步请求。保留 entry id 后，旧默认模型目录自动恢复为当前默认值；包含旧 Flash 的自定义目录会补入当前 Flash，并保留用户条目。
+解析认证时，插件发送 `llm-deepseek/request-identity` 事件，其中只包含实际请求基址和 API Key 的 SHA-256 指纹；用量观察器据此匹配异步请求。保留 entry id 后，旧默认模型目录自动恢复为当前默认值；包含旧 Flash 的自定义目录只补入缺失的当前默认模型，并保留用户条目，包括自定义的 Pro 条目。
 
 ## 目录
 
@@ -27,7 +27,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用此包
 
-`apiKeyEnv` 默认为 `DEEPSEEK_API_KEY`，在每次请求时解析凭据。已组合 credentials 服务时，按其优先级解析；只有未组合该服务时才直接读取启动环境。请求时凭据缺失以 `MISSING_CREDENTIAL` 失败；格式错误以 `INVALID_CREDENTIAL` 失败。模型发现始终返回配置的目录，不依赖凭据。
+`apiKeyEnv` 默认为 `DEEPSEEK_API_KEY`，在每次请求和模型发现时解析凭据。已组合 credentials 服务时，按其优先级解析；只有未组合该服务时才直接读取启动环境。请求时凭据缺失以 `MISSING_CREDENTIAL` 失败；格式错误以 `INVALID_CREDENTIAL` 失败。模型发现在凭据缺失时返回空目录，在模型选择器中隐藏该路由，但保留其设置入口。凭据格式错误和其他读取失败继续上报。添加或删除密钥会影响下一次模型发现。
 
 ```yaml
 - id: llm-deepseek
@@ -44,7 +44,7 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
-注册和监听随插件生命周期释放。共享 Host 绑定提供附件访问、请求扩展、匿名标识和重试策略的原子更新；本包只注册自己的路由。无需 invariant companion：目录直接由配置派生，不维护独立副本。
+注册和监听随插件生命周期释放。共享 Host 绑定提供附件访问、请求扩展、匿名标识和重试策略的原子更新；本包只注册自己的路由。
 
 <a id="further-exploration"></a>
 ## 进一步探索

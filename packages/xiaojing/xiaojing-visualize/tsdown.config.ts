@@ -1,5 +1,5 @@
 import { clientBundle } from '../../client/tsdown.client.ts'
 
-export default clientBundle('@deepseek-ai/dsh-xiaojing-visualize', [
+export default clientBundle(import.meta.dirname, [
   'lib/types/index.js',
 ])

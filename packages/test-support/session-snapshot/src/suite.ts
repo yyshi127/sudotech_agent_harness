@@ -1120,7 +1120,8 @@ function normalizedStringMappings(
  * fixture-ready structural pass owns them. Ambiguous layouts or mappings
  * keep fresh strings. Packed timing gaps expand from zero when a projected
  * fixture omits `time0`, so packing does not shift later records;
- * fresh semantic values and fragment arrays remain authoritative.
+ * fresh semantic values and fragment arrays remain authoritative. Portable
+ * fixtures tokenize the fresh cwd before reusing the committed header.
  *
  * @param fresh The newly harvested session JSONL.
  * @param existing The committed fixture JSONL being refreshed.
@@ -1135,10 +1136,13 @@ export function stabilizeRefreshLog(
   freshContext: NormalizeContext,
 ): string {
   const freshRecords = parseJsonlRecords(fresh)
-  const stable = applyFixtureReplacements(fresh, replacements)
+  const existingContext = fixtureContext(existing)
+  const stable = applyFixtureReplacements(
+    existingContext.cwd === '{{cwd}}' ? tokenizeSessionFixtureCwd(fresh) : fresh,
+    replacements,
+  )
   const existingRecords = logicalRecords(parseJsonlRecords(existing))
   const records = parseJsonlRecords(stable)
-  const existingContext = fixtureContext(existing)
   const stringMappings = normalizedStringMappings(
     records,
     freshRecords,

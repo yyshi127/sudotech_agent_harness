@@ -3,6 +3,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { PreToolDecision, ToolExecution, ToolExecutionToken } from '@deepseek-ai/dsh-tools'
 import type { ApprovalOutcome, ApprovalReuse } from '@deepseek-ai/dsh-user-approval'
+import type {} from '@deepseek-ai/dsh-working-directory'
 import { isAbsolute, resolve } from 'node:path'
 
 const SHELL_TOOL_NAMES = new Set(['bash', 'pwsh'])
@@ -114,10 +115,10 @@ function denied(outcome: Exclude<ApprovalOutcome, 'allowed-once'>, operation: st
  * monotonic guard after the waterfall rejects any deletion call that did not
  * pass through that exact confirmation, including calls short-circuited by a
  * different pre-execute listener.
- * @param ctx - Product host context containing tools and approval services.
+ * @param ctx - Product host context containing tools, approval, and working-directory services.
  */
 export function installMandatoryDeletionGuard(ctx: Context): void {
-  const confirmed = new Set<ToolExecutionToken>()
+  const confirmed = new Map<ToolExecutionToken, string | undefined>()
 
   ctx.on('tools/pre-execute', async (exec, next) => {
     const reason = deletionApprovalReason(exec.name, exec.arguments)
@@ -126,7 +127,10 @@ export function installMandatoryDeletionGuard(ctx: Context): void {
     if (exec.agent === undefined) {
       return { kind: 'deny', reason: `${operation}缺少可确认的会话身份，未执行。` }
     }
-    const reusable = shellAuthorization(exec, reason)
+    const cwd = SHELL_TOOL_NAMES.has(exec.name)
+      ? await ctx.workingDirectory.ensure(exec.agent, exec.signal)
+      : undefined
+    const reusable = cwd === undefined ? undefined : shellAuthorization(exec, reason, cwd)
     const outcome = await ctx.approval.requestMandatory({
       agent: exec.agent,
       toolName: exec.name,
@@ -136,8 +140,9 @@ export function installMandatoryDeletionGuard(ctx: Context): void {
       ...reusable !== undefined ? { reusable } : {},
     })
     if (outcome !== 'allowed-once') return denied(outcome, operation)
+    if (reusable !== undefined) await ctx.workingDirectory.ensure(exec.agent, exec.signal)
 
-    confirmed.add(exec.token)
+    confirmed.set(exec.token, reusable?.scope)
     try {
       const decision = await next()
       if (decision.kind !== 'allow') confirmed.delete(exec.token)
@@ -151,7 +156,13 @@ export function installMandatoryDeletionGuard(ctx: Context): void {
   ctx.tools.guard((exec: Readonly<ToolExecution>) => {
     const reason = deletionApprovalReason(exec.name, exec.arguments)
     if (reason === undefined) return undefined
-    if (confirmed.delete(exec.token)) return undefined
+    if (confirmed.has(exec.token)) {
+      const scope = confirmed.get(exec.token)
+      confirmed.delete(exec.token)
+      if (scope === undefined || (exec.agent !== undefined
+        && scope === shellAuthorization(exec, reason, ctx.workingDirectory.get(exec.agent.session))?.scope)) return undefined
+      return '工作目录在确认期间发生变化，本次命令未执行，请重新发起。'
+    }
     return `${reason.startsWith('删除操作') ? '删除操作' : '命令执行'}被安全策略阻止：本次调用没有完成强制二次确认。`
   })
   ctx.on('tools/result', (exec) => {
@@ -160,18 +171,13 @@ export function installMandatoryDeletionGuard(ctx: Context): void {
 }
 
 /** Authorize only the same shell command, resolved working directory, and execution permission. */
-function shellAuthorization(exec: Readonly<ToolExecution>, reason: string): ApprovalReuse | undefined {
+function shellAuthorization(exec: Readonly<ToolExecution>, reason: string, cwd: string): ApprovalReuse | undefined {
   if (!SHELL_TOOL_NAMES.has(exec.name) || exec.agent === undefined) return undefined
   const command = commandOf(exec.arguments)
   if (command === undefined) return undefined
   const args = exec.arguments as Record<string, unknown>
-  const headerCwd = exec.agent.session.header.cwd
-  const requested = typeof args.workdir === 'string' ? args.workdir : headerCwd
-  if (requested === undefined) return undefined
-  let workdir: string
-  if (isAbsolute(requested)) workdir = resolve(requested)
-  else if (headerCwd !== undefined) workdir = resolve(headerCwd, requested)
-  else return undefined
+  const requested = typeof args.workdir === 'string' ? args.workdir : cwd
+  const workdir = isAbsolute(requested) ? resolve(requested) : resolve(cwd, requested)
   const label = `Repeat the same command in ${workdir}`
   return {
     category: reason.startsWith('删除操作') ? `xiaojing:shell:delete:${exec.name}` : `xiaojing:shell:execute:${exec.name}`,

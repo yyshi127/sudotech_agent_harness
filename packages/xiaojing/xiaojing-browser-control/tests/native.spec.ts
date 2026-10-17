@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -16,6 +16,8 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import Projections from '@deepseek-ai/dsh-session-projection'
 import Approval from '@deepseek-ai/dsh-user-approval'
+import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
+import WorkingDirectory from '@deepseek-ai/dsh-working-directory'
 import { bindScopeParent } from '@deepseek-ai/dsh-scope'
 import { afterEach, expect, it, vi } from 'vitest'
 import * as Native from '../src/native.ts'
@@ -78,7 +80,7 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-interface FixtureEvent { event: string; pid: number; route: string; name?: string; hold?: boolean }
+interface FixtureEvent { event: string; pid: number; route: string; name?: string; hold?: boolean; cwd?: string }
 async function events(root: string): Promise<FixtureEvent[]> {
   try { return (await readFile(join(root, 'events.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as FixtureEvent) }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []; throw error }
@@ -113,12 +115,13 @@ async function load(mode = '', nativeConfig: Partial<Native.Config> = {}, permis
   const modules = {
     include: Include, browserUse: BrowserUse, prompt: SystemPrompt, tools: Tools, llm: Llm,
     sessions: Sessions, agents: Agents, loop: AgentLoop, projections: Projections, approval: Approval,
+    fs: LocalFileSystem, workingDirectory: WorkingDirectory,
     ...permission === undefined ? {} : { permissions: permission.plugin }, native: Native,
   }
   const path = join(root, 'cordis.yml')
   await writeFile(path, JSON.stringify(Object.keys(modules).filter(key => key !== 'include').map(key => ({
     id: key, name: `cordis:${key}`,
-    config: key === 'loop' ? { agents: [] } : key === 'native'
+    config: key === 'loop' ? { agents: [] } : key === 'workingDirectory' ? { defaultDirectory: root } : key === 'native'
       ? { allowPrivateHosts: true, ...nativeConfig, edge: { executablePath: fixture.edgeExecutable, ...nativeConfig.edge } } : {},
   }))))
   const ctx = new Context()
@@ -165,6 +168,28 @@ it('keeps ordinary Sessions browser-free and connects default Edge with real nat
 
 it.each(['managedBrowserTimeoutMs', 'connectTimeoutMs', 'toolCallTimeoutMs'])('rejects fractional %s when configuration is loaded', (field) => {
   expect(() => Native.Config({ [field]: 1.5 })).toThrow()
+})
+
+it('starts each native browser connection in the current working directory and retains it until reconnecting', async () => {
+  const { root, ctx } = await load()
+  const firstDirectory = join(root, 'first-directory')
+  const secondDirectory = join(root, 'second-directory')
+  await mkdir(firstDirectory)
+  await mkdir(secondDirectory)
+  const owner = await ctx.agents.create({ sessionId: SessionId('current-browser-directory'), meta: { cwd: root } })
+  const first = await ctx.workingDirectory.set(owner.agent, firstDirectory)
+  expect((await execute(ctx, owner.agent, 'browser_connect')).isError).toBe(false)
+  const started = (await events(root)).filter(event => event.event === 'start')
+  expect(started.length).toBeGreaterThan(0)
+  expect(started.every(event => event.cwd === first)).toBe(true)
+  const second = await ctx.workingDirectory.set(owner.agent, secondDirectory)
+  expect((await execute(ctx, owner.agent, nativeTool('edge', 'managed'))).isError).toBe(false)
+  expect((await events(root)).filter(event => event.event === 'start')).toEqual(started)
+  expect((await execute(ctx, owner.agent, 'browser_connect', { browser: 'chrome' })).isError).toBe(false)
+  const chrome = (await events(root)).filter(event => event.event === 'start' && event.route === 'xiaojing-chrome-managed')
+  expect(chrome.length).toBeGreaterThan(0)
+  expect(chrome.every(event => event.cwd === second)).toBe(true)
+  expect(owner.agent.session.header.cwd).toBe(root)
 })
 
 it.each([false, true])('retains failed owned cleanup after Cordis effect disposal swallows its error (startup failure=%s)', async (startupFailure) => {

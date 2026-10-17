@@ -26,12 +26,13 @@ import type {} from './native-settings-types.ts'
 import type { NativeBrowserInstallation } from './native-settings-types.ts'
 import type {} from '@deepseek-ai/dsh-browser-use'
 import type {} from '@deepseek-ai/dsh-system-prompt'
+import type {} from '@deepseek-ai/dsh-working-directory'
 
 /** Cordis identity for native browser routing. */
 export const name = 'xiaojing-native-browser-control'
 
 /** Services used for browser ownership, scoped tools, and approval. */
-export const inject = ['browserUse', 'agents', 'tools', 'systemPrompt', 'approval']
+export const inject = ['browserUse', 'agents', 'tools', 'systemPrompt', 'approval', 'workingDirectory']
 
 /** Browser explicitly selected by the user, or Edge when omitted. */
 export type NativeBrowser = 'edge' | 'chrome'
@@ -280,7 +281,7 @@ export function apply(ctx: Context, config: Config): void {
                     await scope.ctx.plugin(McpClient, McpClient.Config({
                       transport: 'stdio', serverName: options.name, command: options.command, args: options.args,
                       ...options.env === undefined ? {} : { env: options.env },
-                      ...agent.session.header.cwd === undefined ? {} : { cwd: agent.session.header.cwd },
+                      cwd: await ctx.workingDirectory.ensure(agent, signal),
                       ...options.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: options.toolCallTimeoutMs },
                       failOnStartupError: true, reconnect: { enabled: false },
                     }))

@@ -47,7 +47,7 @@ export class UsageAccountingService extends TypertRemoteService {
   private accepting = true
   private committedRevision = 0
 
-  /** Current process-local committed revision, read by the invariant companion. */
+  /** Current process-local committed revision. */
   get revision(): number {
     return this.committedRevision
   }
@@ -110,7 +110,6 @@ export class UsageAccountingService extends TypertRemoteService {
   }
 
   private notifyUpdated(): void {
-    let invariantFailure: unknown
     const args = ['usage-accounting/updated', this.committedRevision]
     for (const listener of this.ctx.events.dispatch('emit', args) as Array<(revision: number) => unknown>) {
       try {
@@ -121,11 +120,9 @@ export class UsageAccountingService extends TypertRemoteService {
           })
         }
       } catch (error) {
-        if ((error as { code?: unknown } | null)?.code === 'INVARIANT') invariantFailure ??= error
-        else this.warnContained(error)
+        this.warnContained(error)
       }
     }
-    if (invariantFailure !== undefined) throw invariantFailure as Error
   }
 
   private warnContained(error: unknown): void {

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-visualize",
   "description": "Xiaojing isolated visualization cards with the original dsh-visualize palette.",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -26,6 +26,9 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "assets/visualize-skill.md",
+    "assets/references/*.md",
+    "assets/examples/*.html",
     "lib/index.js",
     "lib/client.js",
     "cordis.patch.yml",
@@ -59,6 +62,9 @@
     "@deepseek-ai/dsh-tools": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
+    "@deepseek-ai/dsh-fs-local": "workspace:*",
+    "@deepseek-ai/dsh-working-directory": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-client-store": "workspace:*",
     "@deepseek-ai/dsh-client-ui-chat": "workspace:*",
@@ -74,7 +80,6 @@
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-util-values": "workspace:*",
     "@types/node": "^22.0.0",
-    "@types/react": "~18.3.1",
     "react": "^18.2.0",
     "tsdown": "^0.22.2",
     "typescript": "^5.9.3",

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-desktop-companion",
   "description": "Sanitized task-state aggregation for the Xiaojing Windows desktop companion",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

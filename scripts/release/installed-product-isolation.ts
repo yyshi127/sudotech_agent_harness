@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { hasExperimentalPackageReference } from '../experimental-package-policy.ts'
 import { OPTIONAL_BUNDLES } from '../../packages/boot/app-boot/src/profile.ts'
 import { isAdoptedNativeBrowserDependency, type NativeBrowserPackageIdentity } from '../xiaojing-native-browser-adoption.ts'
 
@@ -79,7 +80,7 @@ function rejectExperimentalManifest(manifest: InstalledManifest, chain: readonly
 }
 
 function rejectExperimental(name: string, chain: readonly string[]): void {
-  if (name.startsWith('@deepseek-ai/dsh-experimental-')) {
+  if (hasExperimentalPackageReference(name)) {
     throw new Error(`default product includes an experimental package: ${chain.join(' -> ')}`)
   }
 }

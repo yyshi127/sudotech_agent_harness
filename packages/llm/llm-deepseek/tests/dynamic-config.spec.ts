@@ -138,6 +138,7 @@ function prompt(ctx: Context) {
 
 describe('request-level dynamic configuration', () => {
   it('leaves an unrelated custom model catalog untouched at registration', async () => {
+    vi.stubEnv('DEEPSEEK_API_KEY', 'catalog-fixture-key')
     const dir = await home()
     const { ctx } = await boot(dir, {
       models: [{ id: 'private-preview', name: 'Private Preview' }],
@@ -208,7 +209,8 @@ describe('request-level dynamic configuration', () => {
     const { ctx } = await boot(dir, { baseURL: 'http://127.0.0.1:1' })
 
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toMatchObject([
-      { id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', inputModalities: ['text', 'image'] },
+      { id: 'deepseek-flash', name: 'DeepSeek-V4.1-Flash', inputModalities: ['text', 'image'] },
+      { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text'] },
     ])
     await configurations.get(ctx)!.update({
       models: [{ id: 'settings-model', name: 'From Settings', inputModalities: ['text', 'image'] }],

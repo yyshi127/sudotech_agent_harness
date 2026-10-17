@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-finance-evidence",
   "description": "Official-source finance and tax evidence retrieval for Xiaojing Finance mode",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

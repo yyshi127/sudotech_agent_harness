@@ -59,6 +59,10 @@ Popup selection panels fill the composer overlay's width, matching the slash men
 
 The command directory marks a pull pending immediately and dispatches after the current synchronous stack, so composer construction does not publish Session retention during React render. Superseded queued pulls cannot dispatch. Closing the service stops new pulls, clears its cache, rejects readiness waiters, and blocks late cache publication. Each fetch requires an existing retained Client Session and waits for its initial history open to succeed before sending `commands.list`. A temporary `commandCatalog` reference holds that Session until an already-started fetch settles. An unretained Session or a failed open rejects without sending the RPC, so background catalog refreshes do not reopen closed Sessions.
 
+A reloaded draft that opens with a claimed command rebuilds the claim through the `matchClaim` hook, which awaits the same directory and answers only a `leadingInput` claim without invoking or executing anything.
+
+Popup selection uses the [standard menu inset and item radii](../../../docs/ui-radius.md#nested-hover).
+
 </details>
 
 -----
@@ -101,5 +105,3 @@ These limits define the current command surface. They are current package constr
 None.
 
 </details>
-
-**Runtime invariant:** No companion is published. This browser-side source uses the wire command directory; it emits no Cordis events and owns no cross-plugin mutable state. Its dispatch and cache behavior are asserted by this package's specs.

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-usage-accounting",
   "description": "Sidebar daily usage summary and current-month usage calendar",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -59,8 +59,6 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-usage-accounting": "workspace:*",
     "@testing-library/react": "^16.1.0",
-    "@types/react": "~18.3.1",
-    "@types/react-dom": "~18.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

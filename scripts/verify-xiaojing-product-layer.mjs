@@ -9,7 +9,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 
 const expectedBaseline = {
   remote: 'https://github.com/deepseek-ai/deepseek-harness.git',
-  release: 'dsh-v0.2.0-rc.2',
+  release: 'dsh-v0.2.1-rc.2',
 }
 if (manifest.schemaVersion !== 1
   || JSON.stringify(manifest.upstream) !== JSON.stringify(expectedBaseline)) {

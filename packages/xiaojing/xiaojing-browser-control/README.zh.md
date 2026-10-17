@@ -40,11 +40,13 @@ Profile 发现只读取 Windows 的 `UserDataDir` 和 `RemoteDebuggingAllowed` �
 
 连接失败会撤销会话的当前选择，不会改用其他浏览器、另开替代窗口或重放已完成操作。诊断文案标明所选浏览器；原生 HTTP 403 只说明连接被拒绝，不推断拒绝原因。再次使用浏览器工具前必须显式重新连接。专用连接属于一个存活的 Agent；现有浏览器连接在释放前只允许一个拥有者。调用按连接排队，并在执行前复查所选路线。资源释放会等待正在执行的操作，关闭自有专用浏览器；对于现有浏览器只断开连接，保留其标签页。
 
+原生连接需要 `workingDirectory`。每个 MCP 服务器在经验证的 Session 当前工作目录中启动，并保持该启动目录直到连接释放。后续连接使用当时的当前目录；不可变的 Session 头部不负责选择进程目录。
+
 ### 原生配置与审批
 
 产品按[精确源码及安装依赖策略](../../../.agents/notes/implemented/process/2026-10-03-xiaojing-native-browser-adoption.zh.md)明确采用三个上游实验原生浏览器包；它们的 API 状态及对其他消费者的隔离保持不变。
 
-本包发布三个独立的 Host 包：`lib/index.js`、`lib/native.js` 和 `lib/native-settings.js`，以及对应声明。导入原生入口不会启动浏览器进程或挂载旧适配器；连接由 `browser_connect` 发起。导入设置入口不会建立浏览器连接。
+本包发布三个独立的 Host 包：`lib/index.js`、`lib/native.js` 和 `lib/native-settings.js`，以及对应声明。包内 `extension/` 包含旧配对扩展的运行文件，供可选的包根入口使用。导入原生入口不会启动浏览器进程或挂载旧适配器；连接由 `browser_connect` 发起。导入设置入口不会建立浏览器连接。
 
 `NativeBrowser` 标识 `edge` 或 `chrome`。Host 专属的 `NativeBrowserSettingsRuntime` 注册向设置服务提供安装检查、已观察连接状态和撤销回调；其 disposer 仅移除该 runtime 的注册。这些声明由 `src/native-settings-types.ts` 维护，不属于通用子系统类型目录。
 

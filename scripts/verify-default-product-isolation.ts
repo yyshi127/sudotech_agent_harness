@@ -22,7 +22,7 @@ import {
 } from './verify-client-packages.ts'
 import { isAdoptedNativeBrowserDependency, isAdoptedNativeBrowserSource } from './xiaojing-native-browser-adoption.ts'
 
-const EXPERIMENTAL_PREFIX = '@deepseek-ai/dsh-experimental-'
+import { isExperimentalPackageName } from './experimental-package-policy.ts'
 // The independently published entry package owns platform-engine dependencies.
 const EXTERNAL_KIT_PACKAGES = new Set(['@deepseek-ai/libreoffice-kit'])
 const PROFILE_SOURCE = 'packages/boot/app-boot/src/profile.ts'
@@ -98,8 +98,8 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
     if (manifest?.dsh?.bundle?.patch === undefined) {
       failures.push(`${PROFILE_SOURCE}: optional bundle ${name} must declare dsh.bundle.patch`)
     }
-    if (typeof manifest?.icon !== 'string') {
-      failures.push(`${PROFILE_SOURCE}: optional bundle ${name} must declare an icon`)
+    if (typeof manifest?.icon !== 'string' && manifest?.exports?.['./icon'] == null) {
+      failures.push(`${PROFILE_SOURCE}: optional bundle ${name} must declare icon or export ./icon`)
     }
     if (manifest?.exports?.['./locale/*.json'] === undefined) {
       failures.push(`${PROFILE_SOURCE}: optional bundle ${name} must export ./locale/*.json display metadata`)
@@ -111,7 +111,7 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
   const sources = new Set<string>()
   const configs = new Set<string>()
   let webPluginCount = 0
-  const isExperimental = (pkg: Package): boolean => pkg.manifest.name.startsWith(EXPERIMENTAL_PREFIX)
+  const isExperimental = (pkg: Package): boolean => isExperimentalPackageName(pkg.manifest.name)
     || display(pkg.directory).startsWith('packages/experimental/')
   const add = (pkg: Package, origin: string, adopted = false): void => {
     if (isExperimental(pkg) && !adopted) {
@@ -152,7 +152,7 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
           { dir: display(owner.directory), name: owner.manifest.name }, nativeReference.sourcePath,
           { dir: display(pkg.directory), name: pkg.manifest.name }, name,
         ))
-    if (packageName.startsWith(EXPERIMENTAL_PREFIX) && !adopted) {
+    if (isExperimentalPackageName(packageName) && !adopted) {
       failures.push(`${origin} -> ${name}: default product must not include experimental packages`)
       return
     }
@@ -308,7 +308,8 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
     const { manifest } = pkg
     for (const section of RUNTIME_SECTIONS) {
       for (const [name, range] of Object.entries(manifest[section] ?? {})) {
-        if (pkg === cli && section === 'dependencies' && optionalBundles.has(name)) continue
+        const target = packages.get(name)
+        if (pkg === cli && section === 'dependencies' && optionalBundles.has(name) && target !== undefined && isExperimental(target)) continue
         dependency(name, range, pkg, `${manifest.name} ${section}`, { section })
       }
     }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { DesktopCompanionBridge, DesktopCompanionDesktopState } from '../src/client/bridge.ts'
 import { DesktopCompanionController } from '../src/client/controller.ts'
 import { DesktopCompanionSection } from '../src/client/DesktopCompanionSection.tsx'
@@ -15,6 +15,7 @@ afterEach(() => {
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by the desktop companion section') }) as never
 const kit = {
+  ...allowAllAccess,
   useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
   useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
 }

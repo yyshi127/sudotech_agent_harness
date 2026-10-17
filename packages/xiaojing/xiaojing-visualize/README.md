@@ -34,9 +34,9 @@ The card uses the original plugin's fixed light whale-blue palette. It deliberat
 
 ## Operation
 
-The model loads the bundled `visualize` skill before its first card, then calls `visualize` with an inline HTML fragment. `create` renders a new `inline` or `wide` card. `update` applies one exact text replacement to the saved workspace copy and refreshes the existing card without resending the full fragment.
+The model loads the bundled `visualize` skill before its first card, then calls `visualize` with an inline HTML fragment. The package carries the skill text, design and chart references, and HTML examples; demonstration media are excluded. `create` renders a new `inline` or `wide` card. `update` applies one exact text replacement to the saved workspace copy and refreshes the existing card without resending the full fragment.
 
-Each settled tool result persists the validated fragment, title, mode, and workspace path in session metadata, so replay does not depend on the original source file remaining present. A copy is also saved below the session workspace for export or a later correction.
+Each settled tool result persists the validated fragment, title, mode, and workspace path in session metadata, so replay does not depend on the original source file remaining present. A copy is saved under `viz/` in the Session's validated current directory for export or a later correction; relative update paths use that directory too. Directory changes do not expand the Session's sandbox write permissions.
 
 Completed turns also display their successful cards below the answer, outside the collapsible tool process. Reloading or reopening a conversation restores those cards from the saved results; failed calls do not produce a completed card.
 

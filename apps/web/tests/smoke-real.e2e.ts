@@ -33,6 +33,8 @@ const WEB_SURFACE_PROMPT = fileURLToPath(new URL('./expected/web-runtime-context
 const XIAOJING = process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
 const PICKER_PATCH = fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url))
 const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
+/** Framed user text that marks the auxiliary title request's own messages. */
+const TITLE_PROMPT_MARKER = 'Generate the session title from this JSON array of human messages'
 const authenticatedCookies = new Map<string, Promise<{ origin: string; cookie: string }>>()
 
 /** Acknowledge the real first-use notice before exercising the underlying app. */
@@ -492,7 +494,6 @@ describe('dsh web keyless CLI smoke', () => {
         .flatMap(message => message.content ?? [])
         .find(block => block.type === 'text' && block.text?.includes('web-workspace-context-probe'))
       const expectedWebSection = readFileSync(WEB_SURFACE_PROMPT, 'utf8').trimEnd()
-        .replace('{{webUrl}}', new URL(baseUrl).origin)
       if (XIAOJING) {
         expect(captured.system).toContain('你的名字是小兢会计（简称小兢），在办公搭子模式下的身份始终是用户的AI办公搭子。')
         expect(captured.system).toContain('自我介绍使用“办公搭子”')
@@ -501,6 +502,12 @@ describe('dsh web keyless CLI smoke', () => {
         expect(captured.system).not.toContain('You are an AI agent powered by DeepSeek Harness.')
       } else {
         expect(captured.system).toContain(expectedWebSection)
+        expect(captured.system).not.toContain(new URL(baseUrl).origin)
+        expect(captured.messages?.filter(message => message.role === 'user')
+          .flatMap(message => message.content ?? [])
+          .some(block => block.type === 'text'
+            && block.text?.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(new URL(baseUrl).origin)}.`)))
+          .toBe(true)
       }
       expect(workspaceMessage).toMatchInlineSnapshot(`
         {
@@ -545,8 +552,11 @@ describe('dsh web keyless CLI smoke', () => {
       request.setEncoding('utf8')
       request.on('data', (chunk: string) => { body += chunk })
       request.on('end', () => {
-        const parsed = JSON.parse(body) as { max_tokens?: number; messages?: unknown[] }
-        const titleRequest = parsed.max_tokens === 64
+        // The request body also carries the session log, whose recorded title
+        // request contains the marker, so only this request's own messages
+        // decide what the request is.
+        const parsed = JSON.parse(body) as { messages?: unknown[] }
+        const titleRequest = JSON.stringify(parsed.messages ?? null).includes(TITLE_PROMPT_MARKER)
         const mainRequest = !titleRequest && body.includes(promptMarker)
         response.writeHead(200, { 'content-type': 'text/event-stream' })
         if (!mainRequest) {

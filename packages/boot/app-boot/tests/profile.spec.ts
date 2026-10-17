@@ -408,31 +408,50 @@ describe('loadProfile', () => {
     ])
   })
 
-  it.each([false, true])('migrates the retired Web installation tuple (ModLens: %s) without changing customized profiles', (modlens) => {
+  it.each([[false, false], [true, false], [false, true], [true, true]])(
+    'migrates the retired Web tuple (ModLens: %s, retired Schedule: %s) while preserving user additions', (modlens, schedule) => {
+      const anchor = stageInstallation({
+        '@deepseek-ai/dsh-base': { patch: '[]\n' },
+        '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
+        'custom-bundle': { patch: '[]\n' },
+      })
+      const retained = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app',
+        ...(modlens ? ['@liustack/modlens'] : []), 'dsh-file-uploads']
+      const retired = [...retained, ...(schedule ? ['@deepseek-ai/dsh-experimental-schedule-bundle'] : [])]
+      for (const custom of [false, true]) {
+        const home = tmp()
+        const dir = resolveProfileDir('web', home)
+        const bundles = [...retired, ...(custom ? ['custom-bundle'] : [])]
+        initProfile(dir, bundles)
+        const manifest = { ...readProfileManifest('t', dir), userMetadata: 'preserve' }
+        writeProfileManifest(dir, manifest)
+        const original = readFileSync(join(dir, 'package.json'), 'utf8')
+        loadProfile('t', 'web', anchor, home)
+        const current = readFileSync(join(dir, 'package.json'), 'utf8')
+        expect(JSON.parse(current)).toEqual({ ...manifest, dsh: {
+          ...manifest.dsh, profile: { bundles: custom ? [...retained, 'custom-bundle'] : ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] },
+        } })
+        if (custom && !schedule) expect(current).toBe(original)
+        loadProfile('t', 'web', anchor, home)
+        expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(current)
+      }
+    })
+
+  it('removes a retired bundle from an application-owned profile and keeps the rest of the manifest', () => {
     const anchor = stageInstallation({
       '@deepseek-ai/dsh-base': { patch: '[]\n' },
-      '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
       'custom-bundle': { patch: '[]\n' },
     })
-    const retired = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app',
-      ...(modlens ? ['@liustack/modlens'] : []), 'dsh-file-uploads']
-    for (const custom of [false, true]) {
-      const home = tmp()
-      const dir = resolveProfileDir('web', home)
-      const bundles = [...retired, ...(custom ? ['custom-bundle'] : [])]
-      initProfile(dir, bundles)
-      const manifest = { ...readProfileManifest('t', dir), userMetadata: 'preserve' }
-      writeProfileManifest(dir, manifest)
-      const original = readFileSync(join(dir, 'package.json'), 'utf8')
-      loadProfile('t', 'web', anchor, home)
-      const current = readFileSync(join(dir, 'package.json'), 'utf8')
-      expect(JSON.parse(current)).toEqual({ ...manifest, dsh: {
-        ...manifest.dsh, profile: { bundles: custom ? bundles : ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] },
-      } })
-      if (custom) expect(current).toBe(original)
-      loadProfile('t', 'web', anchor, home)
-      expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(current)
-    }
+    const dir = join(tmp(), 'app-profile')
+    initProfile(dir, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-experimental-schedule-bundle', 'custom-bundle'])
+    writeProfileManifest(dir, { ...readProfileManifest('t', dir), dependencies: { 'custom-bundle': '^1.0.0' } })
+    const profile = loadProfileDirectory('t', dir, anchor)
+    expect(profile.skippedBundles).toEqual([])
+    expect(profile.layers.map(layer => layer.packageName)).toEqual(['@deepseek-ai/dsh-base', 'custom-bundle'])
+    expect(readProfileManifest('t', dir)).toMatchObject({
+      dependencies: { 'custom-bundle': '^1.0.0' },
+      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'custom-bundle'] } },
+    })
   })
 
   it.each(['missing package', 'invalid manifest', 'not a bundle', 'missing patch', 'invalid patch'])(
@@ -546,6 +565,7 @@ describe('createRuntimeResolution', () => {
     expect(resolution.entries.find(entry => entry.name === 'dep-of-a')?.packageDir).toBe(join(modules, 'dep-of-a'))
     expect(existsSync(join(home, 'profiles', 'node_modules'))).toBe(false)
     await expect(createRuntimeResolution({ installAnchor: anchor, home })).resolves.toEqual(resolution)
+    await expect(resolution.computeLatestResolution()).resolves.toEqual(resolution)
   })
 
   it('keeps selected bundle closures profile-local without overriding installation packages', async () => {

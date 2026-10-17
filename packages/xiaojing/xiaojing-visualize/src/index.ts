@@ -19,8 +19,8 @@ export { validateFragment, visualizeMetaFrom, type VisualizeMeta, type Visualize
 
 /** Cordis plugin name. */
 export const name = 'xiaojing-visualize'
-/** Required services: the tool registry, the skill registry, and the fs seam. */
-export const inject = ['tools', 'skills', 'fs']
+/** Required services: tool and skill registries, filesystem, and session working directories. */
+export const inject = ['tools', 'skills', 'fs', 'workingDirectory']
 
 /** Deployment configuration. */
 export interface Config {

@@ -1,6 +1,6 @@
 {
   "packageName": "@deepseek-ai/dsh-desktop",
-  "productVersion": "0.3.2",
+  "productVersion": "0.3.3",
   "appId": "com.sudotech.xiaojing-accounting",
   "nsisGuid": "1f6e3c2a-13e7-5ab1-a2d7-10b68c1b911a",
   "installDirectoryName": "xiaojing-agent-desktop",

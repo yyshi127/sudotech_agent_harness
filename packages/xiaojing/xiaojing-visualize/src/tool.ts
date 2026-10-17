@@ -17,6 +17,7 @@ import { defineTool, type ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { FsTarget } from '@deepseek-ai/dsh-fs'
 // Type-only: pulls the `ctx.get('sandboxPolicy')` Context merge.
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
+import type {} from '@deepseek-ai/dsh-working-directory'
 import {
   applyFragmentPatch,
   validateFragment,
@@ -40,7 +41,7 @@ const DESCRIPTION =
 
 /**
  * Build the `visualize` tool definition over the composed filesystem seam.
- * @param ctx - registrant context carrying `ctx.fs` for the workspace copy.
+ * @param ctx - registrant context carrying filesystem and working-directory services.
  * @param maxFragmentBytes - deployment size ceiling for one fragment.
  * @returns the tool definition to register on `ctx.tools`.
  */
@@ -127,14 +128,13 @@ export function visualizeTool(ctx: Context, maxFragmentBytes: number): ToolDefin
     isConcurrencySafe: args => (args.action ?? 'create') === 'create',
     async execute(args, exec) {
       const action = args.action ?? 'create'
-      // Session-level sandbox policy, as the official fs tools resolve it: the
-      // calling session's cwd becomes the workspace root. Without this, a
-      // confining backend falls back to its process-level default root and
-      // denies the write whenever the session cwd lies elsewhere.
+      // Directory changes affect relative paths without expanding the session's write permissions.
       const sandboxPolicy = ctx.get('sandboxPolicy')?.resolve({
         ...exec.agent ? { session: exec.agent.session } : {},
       })
-      const cwd = sandboxPolicy?.workspaceRoot ?? exec.agent?.session.header.cwd
+      const cwd = exec.agent === undefined
+        ? sandboxPolicy?.workspaceRoot
+        : await ctx.workingDirectory.ensure(exec.agent, exec.signal)
       const resolveOpts = { ...cwd !== undefined ? { cwd } : {}, signal: exec.signal }
       // An update patches the workspace copy, the one card state both halves
       // agree on: persisted meta is not readable from here, and the model's
@@ -160,7 +160,7 @@ export function visualizeTool(ctx: Context, maxFragmentBytes: number): ToolDefin
       // the title is required on update rather than silently re-defaulted.
       const title = action === 'update' ? required(args.title, 'title', action).trim() : args.title?.trim() || 'Visualization'
       // A create takes a content-addressed name — <slug>-<hash>.html under
-      // viz/, resolved against the calling agent's session workspace like the
+      // viz/, resolved against the calling agent's current directory like the
       // official fs tools do — so re-rendering identical bytes reuses its name.
       const target = source ?? await ctx.fs.resolve(`viz/${slugOf(title)}-${contentHash(fragment)}.html`, resolveOpts)
       await ctx.fs.writeText(target, fragment, undefined, exec.signal, sandboxPolicy)

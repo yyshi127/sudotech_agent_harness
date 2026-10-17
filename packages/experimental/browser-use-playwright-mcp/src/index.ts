@@ -6,12 +6,13 @@ import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { mountSessionMcp, validateBrowserMcpConfig } from '@deepseek-ai/dsh-experimental-browser-use-runtime/mcp'
 import type { BrowserMcpAttachConfig, BrowserMcpLaunchConfig, SessionMcpOptions } from '@deepseek-ai/dsh-experimental-browser-use-runtime/mcp'
+import type {} from '@deepseek-ai/dsh-working-directory'
 
 /** Cordis identity for the Playwright MCP browser provider. */
 export const name = 'experimental-browser-use-playwright-mcp'
 
 /** Services required for scoped MCP startup and prompt readiness checks. */
-export const inject = ['browserUse', 'agents', 'tools', 'systemPrompt']
+export const inject = ['browserUse', 'agents', 'tools', 'systemPrompt', 'workingDirectory']
 
 /** Chromium-family channels accepted by the pinned Playwright MCP server. */
 export type BrowserChannel = 'chromium' | 'chrome' | 'msedge'

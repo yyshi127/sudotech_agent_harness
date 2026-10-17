@@ -1142,6 +1142,30 @@ describe('refreshFixtureReplacements', () => {
 })
 
 describe('stabilizeRefreshLog', () => {
+  it.each([
+    '/tmp/dsh-snapshot-new',
+    String.raw`C:\Users\runner\AppData\Local\Temp\dsh-snapshot-new`,
+  ])('tokenizes quoted runtime cwd after the context text changes for %s', (cwd) => {
+    const log = (directory: string, policy: string): string => [
+      JSON.stringify({ type: 'session', id: 'same', createdAt: 1, cwd: directory }),
+      JSON.stringify({
+        type: 'user/message',
+        data: {
+          content: [{ type: 'text', text: `Current working directory: ${JSON.stringify(directory)}. ${policy}` }],
+          unrelated: String.raw`C:\authored\keep.txt`,
+        },
+      }),
+      '',
+    ].join('\n')
+    const fresh = log(cwd, 'updated approval policy')
+    const existing = log('{{cwd}}', 'previous approval policy')
+    const replacements = refreshFixtureReplacements([{ id: 'same', createdAt: 1, content: fresh }], [existing])
+
+    const refreshed = stabilize(fresh, existing, replacements)
+    expect(refreshed).toBe(log('{{cwd}}', 'updated approval policy'))
+    expect(stabilize(fresh, refreshed, replacements)).toBe(refreshed)
+  })
+
   it('preserves unpacked member times when refresh first packs a chunk run', () => {
     const fresh = [
       '{"type":"session","id":"same","createdAt":200}',

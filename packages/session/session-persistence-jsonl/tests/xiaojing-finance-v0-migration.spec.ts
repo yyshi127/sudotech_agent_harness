@@ -1,6 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -29,18 +29,20 @@ it.each([
 ] as const)('opens Xiaojing v0 Finance events with pre-step user=%s in %s mode without changing the source', async (preStepUser, access) => {
   root = await mkdtemp(join(tmpdir(), 'dsh-xiaojing-finance-v0-'))
   const path = generationLogPath(root, undefined, id, 0, 'zstd')
-  const header = { type: 'session', version: 0, id, createdAt: 1, delegationDepth: 0 }
+  const header = { type: 'session', version: 0, id, createdAt: 1, delegationDepth: 0, agentPreset: 'finance' }
+  const model = { provider: 'deepseek-official', model: 'deepseek-v4-flash', reasoningEffort: 'high' }
   const user = { type: 'user/message', data: {
     id: 'question', role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: 'Hello' }],
   }, surfaceOp: 'append' }
   const rows = [
     ...financeRows,
+    { type: 'model/selection', data: model },
     { type: 'turn/start', data: { turn: 1 } },
     ...(preStepUser ? [user] : []),
     { type: 'step/start', data: { turn: 1, step: 1 } },
     ...(!preStepUser ? [user] : []),
     { type: 'request/header', data: {
-      header: { config: { provider: 'mock', model: 'mock' }, system: 'System' }, reason: 'initial',
+      header: { config: model, system: 'System' }, reason: 'initial',
     } },
     { type: 'step/end', data: { turn: 1, step: 1 } },
     { type: 'turn/end', data: { turn: 1, reason: { kind: 'completed' } } },
@@ -59,6 +61,8 @@ it.each([
     try {
       const result = await reader.read()
       expect(reader.header.version).toBe(SESSION_FORMAT_VERSION)
+      expect(reader.header.agentPreset).toBe('finance')
+      expect(result.events.find(event => event.type === 'model/selection')?.data).toEqual(model)
       expect(result.events.filter(event => event.type.startsWith('finance/')).map(event => ({
         type: event.type, data: event.data,
       }))).toEqual(financeRows)

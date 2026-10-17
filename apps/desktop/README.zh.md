@@ -8,7 +8,7 @@
 
 主窗口在 Host 准备开始前显示本地的小兢启动页，并与桌面小兢一起出现。启动页在同一应用文档中保留到客户端首次呈现界面，不增加等待时间或额外导航。桌面小兢沿用已保存的显示状态。初始化完成后，启动时关闭或最小化窗口的操作仍然有效；明确的打开操作可在启动期间恢复主窗口。
 
-新建 Desktop profile 默认启用实验性的自动化任务插件。用户可通过内置插件开关关闭它，后续启动与覆盖升级保留已有 profile 的选择。启用插件本身不会创建或执行任务。
+自动化任务已内置于 Desktop 承载的 Web 应用。升级保留既有任务并移除退役的实验性 bundle 声明；全新安装本身不会创建或执行任务。
 
 ## 永久安装器身份
 
@@ -39,7 +39,7 @@
 
 Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudotech\xiaojing-accounting-desktop`。随包 Host 使用其 `harness` 子目录作为 `DSH_HOME`。`%USERPROFILE%\Documents\小兢会计工作区` 是工作区公共容器：普通 Host 从其 `办公工作区` 子目录启动，并通过 `XIAOJING_OFFICE_WORKSPACE_ROOT` 传入；Finance 则通过 `XIAOJING_FINANCE_WORKSPACE_ROOT` 使用同级的 `Finance工作区`。因此新建普通 Workspace 与 Finance Workspace 默认不会互相嵌套。普通添加操作未提供初始路径时，Electron 目录对话框默认进入 `办公工作区`；打包 preload 会转发每个 Finance 添加操作显式提供的绝对路径，因此创建客户账套和咨询工作区时都会从 `Finance工作区` 开始。两种起始目录都不限制用户最终选择其他位置。
 
-0.2.0 RC2 的 `DesktopHostProcess` 负责 loopback Host 生命周期，并固定 `DSH_CLIENT_BUILD_PROFILE=xiaojing`，因此只有 Electron shell 会加载应用，打包后的小兢专属 Host 插件也会保持启用。桌面端将认证令牌交换为桌面小兢状态流使用的 Host Cookie，用户无需手动打开日志中的地址。
+0.2.1 RC2 的 `DesktopHostProcess` 负责 loopback Host 生命周期，并固定 `DSH_CLIENT_BUILD_PROFILE=xiaojing`，因此只有 Electron shell 会加载应用，打包后的小兢专属 Host 插件也会保持启用。桌面端将认证令牌交换为桌面小兢状态流使用的 Host Cookie，用户无需手动打开日志中的地址。
 
 `user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、专用浏览器操控 profile、微信频道状态、桌面小兢偏好、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和当前读取实现；除将包含旧版文件上传组合包的精确安装默认 Web 列表（含或不含 ModLens）迁移为当前 Web 模板外，所有受保护数据必须保持字节不变。它还会在私有副本上验证扁平凭据到 version 1 的原子迁移不会生成明文备份，并检查会话、凭据、预设、设置、上传、storage 和用量兼容。V3 会话迁移接纳此样本紧挨首个步骤之前的用户消息，同时不改写源文件；升级版发布前仍必须通过该门禁。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
 
@@ -73,11 +73,20 @@ Electron 就绪后，桌面端会创建一个透明且不抢焦点的小兢宠�
 
 准备随包运行时前，先运行身份、用户数据、产品层、桌面小兢、真实 Edge 和 Windows UI Automation 测试。正式发布还必须在默认路径与自定义路径分别完成全新 Windows 安装，以及从上一安装包覆盖升级。安装后确认会话、凭据、预设、插件、附件、工作区、用量数据、专用浏览器 profile、微信频道状态和桌面小兢偏好全部保留，才能发布安装器。
 
-0.2.0 RC2 打包流程会在写入发布记录前对组装后的应用运行 `smoke-packaged-runtime.ts`。该检查会验证准备好的 DSH 目录、随包可执行文件和主运行时，包括 ASAR 外的原生 Office 转换。
+0.2.1 RC2 打包流程会在写入发布记录前对组装后的应用运行 `smoke-packaged-runtime.ts`。该检查会验证准备好的 DSH 目录、随包可执行文件和主运行时，包括 ASAR 外的原生 Office 转换。
+
+<a id="local-desktop-settings"></a>
+## 桌面设置与打包
+
+Electron 在启动时读取一次 `userData/desktop/settings.json`。可选布尔项 `updates.allowTestAuthPopupWindow` 默认为 `false`；设置文件缺失时创建默认文档，不覆盖已有文件，设置无效时保留原始文件并使用默认值继续启动。该选项只控制测试更新认证，不会启用小兢隐藏的官方账号欢迎流程。修改后须重启。
+
+随包的 `dshDesktopUpdateChannel` 选择 `nightly` 或 `latest`，旧清单默认使用 `nightly`。更新策略请求同时提供所选频道和随包内核版本；稳定版 `latest` 更新源拒绝预发布构建。打包继续区分小兢产品身份与内核包版本。保留构建的上传验证使用该构建的原产品版本，不受后来源码版本变化影响。
+
+上游[打包参考](packaging/README.zh.md)说明机器预设、签名、未签名及未公证输出；[Windows 签名指南](windows-signing/README.zh.md)说明硬件签名要求。小兢还须通过前述身份、数据保留及 Client profile 检查。上游发布及 CI 示例指向 DeepSeek 基础设施，不代表允许向这些服务发布小兢产物。
 
 ## 已知限制
 
-- 正式发布包使用 0.2.0 RC2 更新与 Windows 签名流程；明确的 unsigned 打包命令仅用于本地验收。
+- 正式发布包使用 0.2.1 RC2 更新与 Windows 签名流程；明确的 unsigned 打包命令仅用于本地验收。
 - 覆盖升级只适用于同一 Windows 用户，且不能在升级过程中迁移安装目录。
 - 所选 Edge 或 Chrome 必须已经安装且设备策略允许使用。现有标签页访问还需要原生远程调试权限与连接批准；失败不会切换浏览器。
 - 内置自动化依赖语义而不是视觉，不能操作纯像素控件、验证码、UAC、安全桌面或管理员权限应用。

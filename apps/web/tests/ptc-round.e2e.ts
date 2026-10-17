@@ -1,5 +1,5 @@
 // PTC mode browser round trip with nested sub-calls and details selection.
-// Record: DSH_SNAPSHOT=record writes session.v3.jsonl, then a keyless
+// Record: DSH_SNAPSHOT=record writes the current Session generation, then a keyless
 // DSH_SNAPSHOT=refresh regenerates ui.expected.md.
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -22,6 +22,7 @@ const UI_EXPECTED = join(EXPECTED_DIR, 'ui.expected.md')
 const TRAJECTORY_EXPECTED = join(EXPECTED_DIR, 'trajectory.expected.md')
 const CODE_EXPECTED = join(EXPECTED_DIR, 'code.expected.md')
 const PREPARING_EXPECTED = join(EXPECTED_DIR, 'preparing.expected.md')
+const REQUEST_LIFECYCLE_EXPECTED = join(EXPECTED_DIR, 'request-lifecycle.expected.md')
 const MODE = webSnapshotMode()
 const SHELL_TOOL = WINDOWS_XIAOJING ? 'pwsh' : 'bash'
 const SHELL_COMMAND = WINDOWS_XIAOJING ? "Write-Output 'CODE_ROUND_OK'" : 'echo CODE_ROUND_OK'
@@ -75,6 +76,7 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
 
   it('drives the recorded prompt to a settled turn (all modes)', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-ptc-drive'))
+    const requestStates: string[] = []
     if (MODE !== 'record') {
       expect(fixtureUserPrompts(await readFile(FIXTURE, 'utf8'))).toEqual([PROMPT])
     }
@@ -82,7 +84,11 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
     await input.waitFor({ timeout: 10_000 })
     const settled = scaffold.whenTurnSettled()
     const gate = Promise.withResolvers<undefined>()
+    const waiting = Promise.withResolvers<undefined>()
+    const start = Promise.withResolvers<undefined>()
     const dispose = scaffold.ctx.on('llm/stream', async function* (_options, next) {
+      waiting.resolve(undefined)
+      await start.promise
       let held = false
       for await (const chunk of next()) {
         yield chunk
@@ -92,11 +98,21 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
         }
       }
     }, { prepend: true })
-    releasePreparation = () => { gate.resolve(undefined); dispose() }
+    releasePreparation = () => { start.resolve(undefined); gate.resolve(undefined); dispose() }
     const observePreparation = async () => {
       try {
         await input.fill(PROMPT)
         await input.press('Enter')
+        await waiting.promise
+        await page.getByRole('tab', { name: 'Trajectory', exact: true }).click()
+        const request = page.getByRole('table').getByRole('button', { name: 'Request #1', exact: true })
+        await request.click()
+        const panel = page.getByRole('tabpanel')
+        await panel.locator('dl').first().getByText('Pending', { exact: true }).waitFor()
+        expect(await panel.getByRole('button', { name: 'Assistant Message', exact: true }).count()).toBe(0)
+        requestStates.push('# Waiting for output', await panel.locator('dl').first().ariaSnapshot())
+        await page.getByRole('tab', { name: 'Chat', exact: true }).click()
+        start.resolve(undefined)
         const row = page.locator('[data-chat-call-id] [data-state="preparing"]').first()
         await row.waitFor({ state: 'attached', timeout: 30_000 })
         await expandOwningTurnProcess(page, row)
@@ -108,14 +124,45 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
         expect(await row.locator('pre').count()).toBe(0)
         const group = row.locator('xpath=ancestor::*[@data-chat-group-key][1]')
         await compareOrRefreshGolden(PREPARING_EXPECTED, await group.ariaSnapshot(), MODE)
+        await page.getByRole('tab', { name: 'Trajectory', exact: true }).click()
+        const assistant = page.locator('tr[data-kind="message"][data-running="true"]').first()
+        await assistant.click()
+        await panel.locator('dl').first().getByText('Pending', { exact: true }).waitFor()
+        expect(await panel.getByText('Completed', { exact: true }).count()).toBe(0)
+        requestStates.push('# Streaming assistant', await panel.locator('dl').first().ariaSnapshot())
+        await panel.getByRole('button', { name: 'Request Timing', exact: true }).click()
+        expect(await panel.getByText('Not recorded', { exact: true }).count()).toBe(0)
+        expect(await panel.locator('dt').filter({ hasText: /^Started$/ }).locator('..').getByRole('button').count()).toBe(1)
+        await request.click()
+        await panel.locator('dl').first().getByText('Pending', { exact: true }).waitFor()
+        requestStates.push('# Streaming request', await panel.locator('dl').first().ariaSnapshot())
+        await page.getByRole('tab', { name: 'Chat', exact: true }).click()
       } finally {
         releasePreparation?.()
       }
     }
-    const [sessionId] = await Promise.all([settled, observePreparation()])
-    await expect.poll(() => page.locator('[data-state="preparing"]').count(), { timeout: 15_000 }).toBe(0)
-    if (MODE === 'record') {
-      await recordFixture(scaffold, sessionId, FIXTURE)
+    try {
+      const [sessionId] = await Promise.all([settled, observePreparation()])
+      expect(sessionEvents.filter(event => event.type === 'turn/end')).toMatchObject([
+        { data: { reason: { kind: 'completed' } } },
+      ])
+      await expect.poll(() => page.locator('[data-state="preparing"]').count(), { timeout: 15_000 }).toBe(0)
+      if (MODE === 'record') {
+        await recordFixture(scaffold, sessionId, FIXTURE)
+      } else {
+        await page.getByRole('tab', { name: 'Trajectory', exact: true }).click()
+        await page.getByRole('table').getByRole('button', { name: 'Request #1', exact: true }).click()
+        const panel = page.getByRole('tabpanel')
+        await panel.getByText('Completed', { exact: true }).waitFor()
+        requestStates.push('# Settled request', await panel.locator('dl').first().ariaSnapshot())
+        await panel.getByRole('button', { name: 'Assistant Message', exact: true }).click()
+        await panel.getByText('Completed', { exact: true }).waitFor()
+        requestStates.push('# Settled assistant', await panel.locator('dl').first().ariaSnapshot())
+        await compareOrRefreshGolden(REQUEST_LIFECYCLE_EXPECTED, requestStates.join('\n\n'), MODE)
+      }
+    } finally {
+      releasePreparation?.()
+      await page.getByRole('tab', { name: 'Chat', exact: true }).click()
     }
   }, 200_000)
 

@@ -443,7 +443,7 @@ describe('UsageAccountingService', () => {
     expect(revisions).toEqual([])
   })
 
-  it('contains synchronous, asynchronous, and invariant listener failures after persistence', async () => {
+  it('contains synchronous and asynchronous listener failures after persistence', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(REQUEST_TIME)
     const home = await mkdtemp(join(tmpdir(), 'dsh-usage-service-errors-'))
     homes.push(home)
@@ -452,7 +452,6 @@ describe('UsageAccountingService', () => {
     ctx.on('usage-accounting/updated', () => { throw new Error('ordinary listener failed') })
     const asyncFailure = (() => Promise.reject(new Error('async listener failed'))) as () => void
     ctx.on('usage-accounting/updated', asyncFailure)
-    ctx.on('usage-accounting/updated', () => { throw Object.assign(new Error('invariant listener failed'), { code: 'INVARIANT' }) })
     ctx.on('llm/stream', usageStream(ctx, apiKeyIdentity(),
       { type: 'usage', usage: { inputTokens: 1, outputTokens: 1 } },
     ))

@@ -112,7 +112,7 @@ describe.skipIf(MODE === 'record')('web e2e: live job stream', () => {
     })
     const reported = started.content.map(block => block.type === 'text' ? block.text : '').join('')
     expect(started.isError, reported).toBe(false)
-    const matched = new RegExp(`\\b${TOOL}-\\d+\\b`).exec(reported)
+    const matched = new RegExp(`\\b${TOOL}-[0-9a-f]{16}\\b`).exec(reported)
     if (matched === null) throw new Error(`background ${TOOL} reported no job id: ${reported}`)
     const jobId = JobId(matched[0])
     if (started.isError) throw new Error(reported)

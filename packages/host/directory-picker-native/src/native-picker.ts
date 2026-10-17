@@ -14,6 +14,54 @@ export interface DirectoryPickerInternals {
   pickWin32Dialog?: typeof pickWin32Directory
 }
 
+/** The prompt every native chooser shows. */
+const DIALOG_TITLE = 'Select Workspace Directory'
+
+/**
+ * macOS panel source, run by the system JXA host (`osascript -l JavaScript`).
+ *
+ * A native panel resolves ⌘C/⌘V/⌘A/⌘X as main-menu key equivalents rather than
+ * as focused-field behavior, so the script installs that menu before opening
+ * `NSOpenPanel`; AppleScript's `choose folder` runs in a helper that has no
+ * menu, which leaves every text field of its panel (Go to Folder, Search,
+ * Tags) un-pastable. Menu items stay untargeted, so AppKit enables them
+ * against the responder chain that owns the panel's field editor. The prompt
+ * arrives as argv, never as executable source, and a cancel prints an empty
+ * line instead of failing. A cancelled panel still reports its highlighted or
+ * current directory in `URLs`, so only an OK response reads the selection.
+ */
+const MAC_PANEL = `
+ObjC.import('AppKit');
+function run(argv) {
+  var app = $.NSApplication.sharedApplication;
+  app.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
+  var mainMenu = $.NSMenu.alloc.init;
+  mainMenu.addItem($.NSMenuItem.alloc.init);
+  var editMenu = $.NSMenu.alloc.initWithTitle('Edit');
+  var editItem = $.NSMenuItem.alloc.init;
+  editItem.submenu = editMenu;
+  mainMenu.addItem(editItem);
+  editMenu.addItemWithTitleActionKeyEquivalent('Undo', 'undo:', 'z');
+  editMenu.addItemWithTitleActionKeyEquivalent('Redo', 'redo:', 'Z');
+  editMenu.addItemWithTitleActionKeyEquivalent('Cut', 'cut:', 'x');
+  editMenu.addItemWithTitleActionKeyEquivalent('Copy', 'copy:', 'c');
+  editMenu.addItemWithTitleActionKeyEquivalent('Paste', 'paste:', 'v');
+  editMenu.addItemWithTitleActionKeyEquivalent('Select All', 'selectAll:', 'a');
+  app.mainMenu = mainMenu;
+  app.activateIgnoringOtherApps(true);
+  var panel = $.NSOpenPanel.openPanel;
+  panel.canChooseFiles = false;
+  panel.canChooseDirectories = true;
+  panel.canCreateDirectories = true;
+  panel.allowsMultipleSelection = false;
+  panel.message = argv[0];
+  if (argv.length > 1) panel.directoryURL = $.NSURL.fileURLWithPath(argv[1]);
+  if (panel.runModal !== $.NSModalResponseOK) return '';
+  var urls = panel.URLs;
+  if (urls.count < 1) return '';
+  return ObjC.unwrap(urls.objectAtIndex(0).path);
+}`
+
 function outputPath(stdout: string): string | null {
   const path = stdout.replace(/[\r\n]+$/, '')
   return path === '' ? null : path
@@ -23,12 +71,6 @@ function errorCode(error: unknown): string | number | undefined {
   if (typeof error !== 'object' || error === null || !('code' in error)) return undefined
   const code = (error as { code?: unknown }).code
   return typeof code === 'string' || typeof code === 'number' ? code : undefined
-}
-
-function errorStderr(error: unknown): string {
-  if (typeof error !== 'object' || error === null || !('stderr' in error)) return ''
-  const stderr = (error as { stderr?: unknown }).stderr
-  return typeof stderr === 'string' ? stderr : ''
 }
 
 function isMissingCommand(error: unknown): boolean {
@@ -55,25 +97,9 @@ export async function pickNativeDirectory(
   const run = internals.run ?? runNativeCommand
 
   if (platform === 'darwin') {
-    try {
-      const result = await run('osascript', initialPath === undefined
-        ? [
-          '-e', 'set selectedFolder to choose folder with prompt "Select Workspace Directory"',
-          '-e', 'POSIX path of selectedFolder',
-        ]
-        : [
-          '-e', 'on run argv',
-          '-e', 'set selectedFolder to choose folder with prompt "Select Workspace Directory" default location (POSIX file (item 1 of argv))',
-          '-e', 'POSIX path of selectedFolder',
-          '-e', 'end run',
-          '--', initialPath,
-        ], signal, 'hidden')
-      return outputPath(result.stdout)
-    } catch (error: unknown) {
-      if (!signal.aborted && errorCode(error) === 1
-        && /(?:User canceled|-128)/i.test(errorStderr(error))) return null
-      throw error
-    }
+    const result = await run('osascript', ['-l', 'JavaScript', '-e', MAC_PANEL, DIALOG_TITLE,
+      ...(initialPath === undefined ? [] : [initialPath])], signal, 'hidden')
+    return outputPath(result.stdout)
   }
 
   if (platform === 'win32') {
@@ -89,7 +115,7 @@ export async function pickNativeDirectory(
   if (platform === 'linux') {
     try {
       const result = await run('zenity', [
-        '--file-selection', '--directory', '--title=Select Workspace Directory',
+        '--file-selection', '--directory', `--title=${DIALOG_TITLE}`,
         ...(initialPath === undefined ? [] : [`--filename=${initialPath}${initialPath.endsWith('/') ? '' : '/'}`]),
       ], signal, 'hidden')
       return outputPath(result.stdout)
@@ -101,7 +127,7 @@ export async function pickNativeDirectory(
 
     try {
       const result = await run('kdialog', [
-        '--getexistingdirectory', initialPath ?? '.', '--title', 'Select Workspace Directory',
+        '--getexistingdirectory', initialPath ?? '.', '--title', DIALOG_TITLE,
       ], signal, 'hidden')
       return outputPath(result.stdout)
     } catch (error: unknown) {

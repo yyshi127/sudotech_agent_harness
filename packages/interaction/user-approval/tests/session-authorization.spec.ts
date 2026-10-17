@@ -6,11 +6,10 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
-import Invariants from '@deepseek-ai/dsh-invariants'
 import { SessionId, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
-import JsonlPersistence, { type JsonlCompression } from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import type { JsonlCompression } from '@deepseek-ai/dsh-session-persistence-jsonl'
 import Approval, { setApprovalPolicy, type ApprovalAnswer, type ApprovalRequest, type ApprovalReuse } from '../src/index.ts'
-import * as ApprovalInvariant from '../src/invariant.ts'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const contexts: Context[] = []
@@ -32,14 +31,13 @@ async function load(id = 'authorization-session', seed?: readonly SessionEvent[]
   await writeFile(path, JSON.stringify([
     ...persistence === undefined ? [] : [{ name: 'cordis:persistence', config: persistence }],
     { id: 'fixture', name: 'cordis:fixture' }, { id: 'approval', name: 'cordis:approval' },
-    { name: 'cordis:invariants' }, { name: 'cordis:approvalInvariant' },
   ]))
   const ctx = new Context()
   contexts.push(ctx)
   ctx.baseUrl = pathToFileURL(root).href + '/'
   await ctx.plugin(Loader)
   Object.assign(ctx.loader.builtins, {
-    include: Include, approval: Approval, invariants: Invariants, approvalInvariant: ApprovalInvariant,
+    include: Include, approval: Approval,
     persistence: JsonlPersistence,
     fixture: { async apply(inner: Context) {
       await mountAgentLoopTestDependencies(inner)

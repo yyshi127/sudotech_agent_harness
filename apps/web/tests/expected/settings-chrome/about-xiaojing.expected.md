@@ -1,11 +1,14 @@
 - img "小兢会计"
 - heading "小兢会计" [level=2]
 - paragraph: 您的AI办公搭子与财务助手
-- text: 当前版本 v0.3.2
+- text: 当前版本 v0.3.3
 - region "版本更新":
   - heading "版本更新" [level=3]
-  - heading "v0.3.2" [level=4]
+  - heading "v0.3.3" [level=4]
   - text: 当前版本
+  - paragraph: 新内核、新模型与联网搜索，增强任务协作和日常使用体验
+  - button "查看详情：v0.3.3": 查看详情
+  - heading "v0.3.2" [level=4]
   - paragraph: 双浏览器原生控制与会话内批量审批
   - button "查看详情：v0.3.2": 查看详情
   - heading "v0.3.1" [level=4]

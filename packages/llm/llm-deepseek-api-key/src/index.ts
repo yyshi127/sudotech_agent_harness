@@ -1,4 +1,4 @@
-/** API-key authentication and discovery for the official DeepSeek route. */
+/** API-key authentication and credential-gated discovery for the official DeepSeek route. */
 import { createHash } from 'node:crypto'
 import type {} from '@deepseek-ai/dsh-settings'
 import type { Context } from '@deepseek-ai/cordis'
@@ -28,7 +28,9 @@ export function apply(ctx: Context, config: Config): void {
       if (section !== undefined && isLegacyDefaultModels(storedModels)) {
         await child.settings.mutate(settingsNs, [{ op: 'unset', path: ['models'] }], section.revision)
       } else if (section !== undefined && hasLegacyFlashWithoutCurrent(storedModels)) {
-        await child.settings.mutate(settingsNs, [{ op: 'set', path: ['models'], value: [...resolveAdapterOptions({}).models, ...storedModels] }], section.revision)
+        const storedIds = new Set(storedModels.map(model => model['id']))
+        const missing = resolveAdapterOptions({}).models.filter(model => !storedIds.has(model.id))
+        await child.settings.mutate(settingsNs, [{ op: 'set', path: ['models'], value: [...missing, ...storedModels] }], section.revision)
       }
     }
     let migrations = Promise.resolve()
@@ -74,9 +76,14 @@ export function apply(ctx: Context, config: Config): void {
       })
       return { headers: { 'x-api-key': key } }
     },
-    discoverModels: (provider) => {
+    discoverModels: async (provider) => {
       const connection = options()
-      return Promise.resolve(connection.models.map(model => catalogModelInfo(provider, model)))
+      try { await resolveApiKey(connection) }
+      catch (error) {
+        if (error instanceof LlmError && error.code === 'MISSING_CREDENTIAL') return []
+        throw error
+      }
+      return connection.models.map(model => catalogModelInfo(provider, model))
     },
   })
 }

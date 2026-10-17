@@ -24,12 +24,13 @@ it('updates decorations from its subscribed store after the root resolver become
   })
   const runtime: DraftEditorRuntime = new DraftEditorRuntime({
     onUpdate: () => { runtime.refreshProjection() },
-    openReference: () => false, activeClaimToken: () => null,
+    openReference: () => false,
     lexicon: readRoot, resolveLexicon: resolveRoot,
     isRootClosing: () => !available,
   })
   const dispose = runtime.register()
   onTestFinished(dispose)
+  runtime.refreshLexiconSubscription()
   const subscriberErrors: unknown[][] = []
   const originalError = console.error.bind(console)
   const spy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
@@ -61,16 +62,18 @@ it('keeps lazy reads until a concrete lexicon can be subscribed', () => {
   const resolveRoot = vi.fn(() => available ? lexicon : undefined)
   const runtime: DraftEditorRuntime = new DraftEditorRuntime({
     onUpdate: () => { runtime.refreshProjection() },
-    openReference: () => false, activeClaimToken: () => null,
+    openReference: () => false,
     lexicon: readRoot, resolveLexicon: resolveRoot,
     isRootClosing: () => false,
   })
   const dispose = runtime.register()
   onTestFinished(dispose)
+  runtime.refreshLexiconSubscription()
   runtime.setDraft('/alpha ')
   expect(readRoot).toHaveBeenCalled()
   expect(resolveRoot).toHaveBeenCalled()
   available = true
+  runtime.refreshLexiconSubscription()
   runtime.refreshProjection()
   const rootReads = readRoot.mock.calls.length
   lexicon.set(new Map())
@@ -87,11 +90,12 @@ it('unsubscribes on unregister and resolves the replacement store when registere
   onTestFinished(() => { firstSubscribe.mockRestore(); secondSubscribe.mockRestore() })
   const onUpdate = vi.fn(() => { runtime.refreshProjection() })
   const runtime = new DraftEditorRuntime({
-    onUpdate, openReference: () => false, activeClaimToken: () => null,
+    onUpdate, openReference: () => false,
     lexicon: () => current.getSnapshot(), resolveLexicon: () => current,
     isRootClosing: () => false,
   })
   const firstDispose = runtime.register()
+  runtime.refreshLexiconSubscription()
   runtime.setDraft('/alpha ')
   expect(firstSubscribe).toHaveBeenCalledOnce()
   firstDispose()
@@ -101,6 +105,7 @@ it('unsubscribes on unregister and resolves the replacement store when registere
   current = second
   const secondDispose = runtime.register()
   onTestFinished(secondDispose)
+  runtime.refreshLexiconSubscription()
   runtime.refreshProjection()
   expect(secondSubscribe).toHaveBeenCalledOnce()
   second.set(new Map([['/', ['alpha']]]))
@@ -112,13 +117,14 @@ it('unsubscribes on unregister and resolves the replacement store when registere
 
 it('keeps initial root lookup failures visible before subscribing', () => {
   const runtime = new DraftEditorRuntime({
-    onUpdate: () => {}, openReference: () => false, activeClaimToken: () => null,
+    onUpdate: () => {}, openReference: () => false,
     lexicon: () => { throw new Error('initial root lookup failed') },
     resolveLexicon: () => undefined,
     isRootClosing: () => false,
   })
   const dispose = runtime.register()
   onTestFinished(dispose)
+  runtime.refreshLexiconSubscription()
   expect(() => { runtime.setDraft('/alpha ') }).toThrow('initial root lookup failed')
 })
 
@@ -127,7 +133,7 @@ it('keeps active resolver failures visible after observing a lexicon', () => {
   let available = true
   const runtime: DraftEditorRuntime = new DraftEditorRuntime({
     onUpdate: () => { runtime.refreshProjection() },
-    openReference: () => false, activeClaimToken: () => null,
+    openReference: () => false,
     lexicon: () => lexicon.getSnapshot(), isRootClosing: () => false,
     resolveLexicon: () => {
       if (!available) throw new Error('active root lookup failed')
@@ -136,9 +142,10 @@ it('keeps active resolver failures visible after observing a lexicon', () => {
   })
   const dispose = runtime.register()
   onTestFinished(dispose)
+  runtime.refreshLexiconSubscription()
   runtime.setDraft('/alpha ')
   available = false
-  expect(() => { runtime.setDraft('/beta ') }).toThrow('active root lookup failed')
+  expect(() => { runtime.refreshLexiconSubscription() }).toThrow('active root lookup failed')
 })
 
 it('uses the replacement store when a queued old-store rescan joins a new edit', () => {
@@ -147,15 +154,17 @@ it('uses the replacement store when a queued old-store rescan joins a new edit',
   let current = first
   const runtime: DraftEditorRuntime = new DraftEditorRuntime({
     onUpdate: () => { runtime.refreshProjection() },
-    openReference: () => false, activeClaimToken: () => null,
+    openReference: () => false,
     lexicon: () => current.getSnapshot(), resolveLexicon: () => current,
     isRootClosing: () => false,
   })
   const dispose = runtime.register()
   onTestFinished(dispose)
+  runtime.refreshLexiconSubscription()
   runtime.setDraft('/alpha ')
   first.set(new Map())
   current = second
+  runtime.refreshLexiconSubscription()
   runtime.setDraft('/beta ')
   const isBeta = () => runtime.editor.read(() => $getRoot().getAllTextNodes().some(node =>
     node.getType() === 'composer-text-ref' && node.getTextContent() === '/beta'))
@@ -221,8 +230,8 @@ it('rebinds a retained shell across actual Cordis provider replacement and follo
   expect(second.lexicon).not.toBe(b.controller.lexicon)
   b.shell.setDraft('/beta ')
   expect(b.hasDecoration('beta')).toBe(true)
-  expect(offFirst).toHaveBeenCalledOnce()
-  expect(subscribeSecond).toHaveBeenCalledOnce()
+  expect(offFirst).not.toHaveBeenCalled()
+  expect(subscribeSecond).not.toHaveBeenCalled()
   expect(trackSecond).toHaveBeenCalled()
   words.set([])
   expect(b.hasDecoration('beta')).toBe(false)

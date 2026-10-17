@@ -46,7 +46,7 @@ export const XIAOJING_RESPONSE_POLICY = [
 ].join('\n')
 
 /** Product persona depends on the generic system-prompt registry. */
-export const inject = ['systemPrompt', 'tools', 'approval']
+export const inject = ['systemPrompt', 'tools', 'approval', 'workingDirectory']
 
 /** Fill the deployment's empty default persona without replacing a selected agent persona. */
 export function apply(ctx: Context): void {

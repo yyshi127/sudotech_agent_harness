@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-weixin-channel",
   "description": "Xiaojing settings page for the local Weixin iLink channel",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -55,8 +55,6 @@
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-xiaojing-weixin-channel": "workspace:*",
     "@testing-library/react": "^16.1.0",
-    "@types/react": "~18.3.1",
-    "@types/react-dom": "~18.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

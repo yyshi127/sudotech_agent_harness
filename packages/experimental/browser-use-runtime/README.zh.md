@@ -33,7 +33,7 @@ kind: "package-library"
 
 已拥有的资源可以返回 `initialize()`，在获取后执行启动。操作等待其完成；启动失败时保留资源，直到 `release()` 或释放流程确认 `close()` 已完成。在返回资源前就拒绝的 `open()` 回调必须完成自己的回滚。如果注册框架只记录 effect 释放错误，提供方必须直接观察清理失败。
 
-MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中的 `mountSessionMcp`，提供固定服务器名称、可执行文件、参数与所有权策略。辅助库在每个后续 Agent 的 `agent/created` 事件中等待一次有作用域的客户端启动与发现尝试。Agent 创建或恢复在发现完成后结束，随后才运行排队输入；成功的客户端跨轮次归该 Session 所有。
+MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中的 `mountSessionMcp`，提供固定服务器名称、可执行文件、参数与所有权策略。挂载上下文必须提供 `workingDirectory`。获取连接时通过[工作目录服务](../../session/working-directory/README.zh.md)验证或恢复当前目录，并将其设为 MCP 服务器进程的初始目录。Session 后续选择其他目录时，保留的服务器继续使用该目录。辅助库在每个后续 Agent 的 `agent/created` 事件中等待一次有作用域的客户端启动与发现尝试。Agent 创建或恢复在发现完成后结束，随后才运行排队输入；成功的客户端跨轮次归该 Session 所有。
 
 附加连接被占用时，本次激活永久跳过启动，但其他工作继续运行。连接释放不会触发被跳过激活的重试；新创建或恢复的 Agent 可以获取连接。启动失败或取消会拒绝 Agent 创建或恢复，并触发包含客户端清理的创建回滚。重连已禁用。加载或重新加载提供方只作用于后续的 Agent 激活。
 
@@ -55,8 +55,6 @@ MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中�
 
 [MCP 辅助库](src/mcp.ts)在串行 `agent/created` 中建立连接；[AgentLoop](../../core/agent-loop/README.zh.md#understand-the-implementation)保留排队输入并负责创建回滚。提示词组装读取已初始化的目录。辅助库在资源清理期间保留提供方注册，并通过 [MCP 客户端](../../mcp/mcp-client/README.zh.md)处理传输、schema 发现、结果转换与持久图像接纳。
 
-不发布运行时不变量伴随入口：资源所有权与待处理工作是私有生命周期状态，没有可供比较的独立维护运行时投影。所属测试覆盖隔离、释放与清理失败。
-
 </details>
 
 -----
@@ -73,11 +71,11 @@ MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中�
 <a id="model-experience"></a>
 ## 模型体验
 
-通过提供方拥有的浏览器工具间接影响模型，MCP 辅助库在模型请求组装前发现其目录；提供方与 MCP 客户端拥有描述、schema、结果与图像行为。
+通过在模型请求组装前发现的提供方浏览器工具，以及[工作目录恢复](../../session/working-directory/README.zh.md)间接影响模型；提供方与 MCP 客户端拥有工具描述、schema、结果与图像行为，目录服务拥有目录上下文。
 
 #### KV Cache 影响
 
-此库不添加提示文本。发现的工具 schema 与提供方指导决定请求前缀变化；常规浏览器资源复用不改变这些 schema。
+发现的工具 schema 与提供方指导决定请求前缀变化；常规浏览器资源复用不改变这些 schema。目录恢复追加用户上下文，不替换系统提示词前缀。
 
 ## 已知限制与延期工作
 

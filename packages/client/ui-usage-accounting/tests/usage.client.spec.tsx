@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { Context, Service } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import type { UsageAccountingSnapshot } from '@deepseek-ai/dsh-usage-accounting/types'
 import { apply, inject } from '../src/client/index.ts'
 import { UsageAccountingController } from '../src/client/controller.ts'
@@ -16,6 +16,7 @@ import { zh } from '../src/client/locales.ts'
 const t = (key: keyof typeof zh): string => zh[key]
 const unusedHook = (() => { throw new Error('unused by usage-accounting components') }) as never
 const kit = {
+  ...allowAllAccess,
   useSessions: unusedHook, useWorkspaces: unusedHook, usePanelInfo: unusedHook,
   useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook, useResource: unusedHook,
 }

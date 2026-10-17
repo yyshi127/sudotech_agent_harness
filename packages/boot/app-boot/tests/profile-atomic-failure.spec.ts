@@ -15,7 +15,7 @@ vi.mock('node:fs', async (importOriginal) => {
   }
 })
 
-import { loadProfile, resolveProfileDir, writeProfileManifest } from '../src/profile.ts'
+import { loadProfile, loadProfileDirectory, resolveProfileDir, writeProfileManifest } from '../src/profile.ts'
 
 const roots: string[] = []
 
@@ -24,6 +24,23 @@ afterAll(() => {
 })
 
 describe('shipped profile migration', () => {
+  it('preserves the stored manifest when retired Schedule removal cannot replace it atomically', () => {
+    const home = mkdtempSync(join(tmpdir(), 'dsh-retired-profile-atomic-'))
+    roots.push(home)
+    const dir = join(home, 'desktop')
+    mkdirSync(dir, { recursive: true })
+    const original = {
+      name: 'desktop',
+      dsh: { profile: { bundles: ['custom-bundle', '@deepseek-ai/dsh-experimental-schedule-bundle'] } },
+      userMetadata: 'preserve',
+    }
+    writeProfileManifest(dir, original)
+    const bytes = readFileSync(join(dir, 'package.json'), 'utf8')
+    expect(() => loadProfileDirectory('dsh', dir, join(home, 'unused-anchor.json'))).toThrow(renameFailure)
+    expect(readdirSync(dir)).toEqual(['package.json'])
+    expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(bytes)
+  })
+
   it('removes the staging manifest and preserves the original when atomic replacement fails', () => {
     const home = mkdtempSync(join(tmpdir(), 'dsh-profile-atomic-'))
     roots.push(home)

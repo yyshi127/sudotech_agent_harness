@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-xiaojing-computer-control",
   "description": "Xiaojing semantic Windows computer control through the built-in UI Automation API",
-  "version": "0.2.0-rc.2",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

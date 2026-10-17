@@ -22,6 +22,8 @@ import Agents from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import Projections from '@deepseek-ai/dsh-session-projection'
 import Approval from '@deepseek-ai/dsh-user-approval'
+import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
+import WorkingDirectory from '@deepseek-ai/dsh-working-directory'
 import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import NativeSettings from '../src/native-settings.ts'
 import * as Native from '../src/native.ts'
@@ -65,10 +67,11 @@ async function mounted(options: { openSettingsTimeoutMs?: number } = {}) {
   await writeFile(join(bundle, 'package.json'), JSON.stringify({ name: 'test-bundle', version: '1.0.0', dsh: { bundle: { patch: 'cordis.patch.yml' } } }))
   const modules = { editor: ConfigEditor, settings: Settings, web: WebServer, credentials: Credentials, connection: Connection,
     browserUse: BrowserUse, prompt: SystemPrompt, tools: Tools, llm: Llm, sessions: Sessions, agents: Agents, loop: AgentLoop,
-    projections: Projections, approval: Approval, permissions: NativeSettings, native: Native }
+    projections: Projections, approval: Approval, fs: LocalFileSystem, workingDirectory: WorkingDirectory,
+    permissions: NativeSettings, native: Native }
   await writeFile(join(bundle, 'cordis.patch.yml'), JSON.stringify([{ insert: Object.keys(modules).map(id => ({ id, name: `cordis:${id}`,
     config: id === 'web' ? { host: '127.0.0.1', port: 0 } : id === 'credentials' ? { path: join(home, 'credentials.yml'), dshHome: home, watch: false }
-      : id === 'loop' ? { agents: [] } : id === 'native' ? { allowPrivateHosts: true, requireUserSettings: true,
+      : id === 'workingDirectory' ? { defaultDirectory: home } : id === 'loop' ? { agents: [] } : id === 'native' ? { allowPrivateHosts: true, requireUserSettings: true,
         edge: { executablePath: fixture.edge, existingEndpoint: 'http://127.0.0.1:9222' },
         chrome: { executablePath: fixture.chrome, existingEndpoint: 'http://127.0.0.1:9223' } } : id === 'permissions' ? options : {},
   })) }]))
