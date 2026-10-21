@@ -4916,7 +4916,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-xiaojing-visualize`
 
-- `inject`: `tools` · `skills` · `fs`
+- `inject`: `tools` · `skills` · `fs` · `workingDirectory`
 - `source`: [`packages/xiaojing/xiaojing-visualize/src/index.ts:26`](../packages/xiaojing/xiaojing-visualize/src/index.ts)
 
 ```ts config-catalog
@@ -5043,7 +5043,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 | `@deepseek-ai/dsh-client-ui-workspace` | — | [`packages/client/ui-workspace/src/index.ts`](../packages/client/ui-workspace/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-xiaojing-browser-control` | — | [`packages/client/ui-xiaojing-browser-control/src/index.ts`](../packages/client/ui-xiaojing-browser-control/src/index.ts) |
 | `@deepseek-ai/dsh-client-ui-xiaojing-finance-clients` | — | [`packages/client/ui-xiaojing-finance-clients/src/index.ts`](../packages/client/ui-xiaojing-finance-clients/src/index.ts) |
-| `@deepseek-ai/dsh-client-xiaojing-product` | `systemPrompt` · `tools` · `approval` | [`packages/client/xiaojing-product/src/index.ts`](../packages/client/xiaojing-product/src/index.ts) |
+| `@deepseek-ai/dsh-client-xiaojing-product` | `systemPrompt` · `tools` · `approval` · `workingDirectory` | [`packages/client/xiaojing-product/src/index.ts`](../packages/client/xiaojing-product/src/index.ts) |
 | `@deepseek-ai/dsh-command-compact` | `commands` · `compaction` | [`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts) |
 | `@deepseek-ai/dsh-command-feedback` | `commands` | [`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts) |
 | `@deepseek-ai/dsh-command-goal` | `commands` · `goals` | [`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts) |

@@ -40,6 +40,7 @@ python/**/.pytest_cache/
 packages/**/__pycache__/
 apps/web/dist/
 .artifacts/
+/artifacts/
 .dsh-build/
 .dsh-report/
 .playwright-mcp/
