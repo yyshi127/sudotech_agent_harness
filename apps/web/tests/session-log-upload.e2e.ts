@@ -7,10 +7,15 @@ import yaml from 'js-yaml'
 import { expect, it, onTestFinished } from 'vitest'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { startMockLlmServer } from '@deepseek-ai/dsh-llm-mock-server'
-import { launchWebScaffold, webSnapshotMode } from './scaffold.ts'
+import { launchWebScaffold, webClientProfile, webSnapshotMode } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, openSettings } from './support.ts'
 
-it.skipIf(webSnapshotMode() === 'record')('persists the upload switch and omits or resumes session logs on subsequent API requests', async () => {
+const XIAOJING = webClientProfile() === 'xiaojing'
+const TITLE = XIAOJING
+  ? 'keeps Session-log upload unavailable and absent from API requests despite a saved enabled preference'
+  : 'persists the upload switch and omits or resumes session logs on subsequent API requests'
+
+it.skipIf(webSnapshotMode() === 'record')(TITLE, async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-upload-browser-'))
   onTestFinished(() => rm(root, { recursive: true, force: true }))
   const server = await startMockLlmServer({ sequence: ['success', 'success', 'success'], successText: 'UPLOAD_SETTING_DONE' })
@@ -48,6 +53,27 @@ it.skipIf(webSnapshotMode() === 'record')('persists the upload switch and omits 
       return patches.find(patch => patch.id === 'session-log-deepseek')?.config?.enabled ?? true
     }).toBe(enabled)
     await page.keyboard.press('Escape')
+  }
+
+  if (XIAOJING) {
+    const assertUnavailable = async () => {
+      expect(scaffold.ctx.settings.describe().map(row => row.ns)).not.toContain('session-log-deepseek')
+      await openSettings(page, 'en')
+      expect(await page.getByRole('switch', { name: 'Upload Session Log when using the official model API' }).count()).toBe(0)
+      await page.keyboard.press('Escape')
+    }
+    await assertUnavailable()
+    const sessionId = await send('upload-disabled-first-marker')
+    await page.reload()
+    await assertUnavailable()
+    expect(await send('upload-disabled-reload-marker')).toBe(sessionId)
+    expect(await send('upload-disabled-followup-marker')).toBe(sessionId)
+    expect(server.requests).toHaveLength(3)
+    for (const request of server.requests) expect(request.body).not.toHaveProperty('dsh_session_log')
+    expect(server.requests.map(request => request.outcome)).toEqual(['completed', 'completed', 'completed'])
+    const events = scaffold.ctx.agents.get(sessionId)!.session.snapshotEvents()
+    expect(events.filter(event => event.type === 'session-log-deepseek/delivery-accepted')).toHaveLength(0)
+    return
   }
 
   const sessionId = await send('upload-enabled-marker')

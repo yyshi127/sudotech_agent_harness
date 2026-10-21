@@ -1,0 +1,224 @@
+{
+  "initial": [
+    {
+      "name": "browser_connect",
+      "description": "Connect to a browser before using its native browser tools. Default to Edge; choose Chrome only when the user asks for Chrome. When surface is omitted, use existing tabs if that browser is enabled in Browser Control settings; otherwise use a dedicated visible browser. Choose existing explicitly for already-open tabs. Existing access requires the browser permission enabled in settings and the browser connection approval; configured extension and debugging routes remain supported. A failed existing connection never opens a replacement browser.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "browser": {
+            "type": "string",
+            "description": "Default edge; use chrome only when requested.",
+            "enum": [
+              "edge",
+              "chrome"
+            ]
+          },
+          "surface": {
+            "type": "string",
+            "description": "Omitted uses existing when enabled in Browser Control settings, otherwise managed. Existing connects to already-open browser tabs.",
+            "enum": [
+              "managed",
+              "existing"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "computer_control",
+      "description": "Control a visible native Windows application through semantic UI Automation when direct file, command, or data tools cannot complete the task more efficiently. Web browsers are excluded: use the connected browser tools for website tasks and report connection or operation failures instead of searching for Edge, Chrome, or another browser here. If the required native application is closed, call list_apps with its name and launch_app with the returned opaque app ID. Then list or use the returned windows, observe one window, and invoke only advertised target actions. Never guess IDs or launch an application merely to perform work that a direct tool can complete. This tool cannot control UAC, secure desktop, sign-in screens, elevated applications, pixel-only canvases, or controls without UI Automation semantics.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "list_apps",
+              "launch_app",
+              "list_windows",
+              "observe",
+              "invoke",
+              "set_value",
+              "toggle",
+              "select",
+              "focus",
+              "press_key",
+              "scroll",
+              "wait"
+            ]
+          },
+          "query": {
+            "type": "string",
+            "description": "Installed-application display name to search for with list_apps."
+          },
+          "app_id": {
+            "type": "string",
+            "description": "Opaque application ID from the latest list_apps result."
+          },
+          "window_id": {
+            "type": "string",
+            "description": "Opaque window ID from list_windows."
+          },
+          "observation_id": {
+            "type": "string",
+            "description": "Latest observation ID for a target action."
+          },
+          "target_id": {
+            "type": "string",
+            "description": "Opaque target ID from that observation."
+          },
+          "value": {
+            "type": "string",
+            "description": "New text for set_value. Password fields are intentionally unsupported."
+          },
+          "key": {
+            "type": "string",
+            "description": "Windows Forms SendKeys expression, such as {TAB}, ^s, or {ENTER}."
+          },
+          "direction": {
+            "type": "string",
+            "description": "Scroll direction.",
+            "enum": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "Exact accessible name to wait for."
+          },
+          "timeout_ms": {
+            "type": "number",
+            "description": "Wait timeout, capped by product configuration."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "name": "document_reader",
+      "description": "Read PDF, DOCX, XLSX, PPTX, digital-invoice XML, OFD, CSV, and TXT files uploaded by the user in this ordinary conversation without trying shell, Python, Office applications, or ad-hoc converters. Use action=list after an upload, then action=read for source-located text. For any supported document with visual_count, use action=visuals to inspect rendered scanned PDF pages or embedded raster images with the current native visual model. Digital-invoice XML and OFD parsing extracts content only; it does not verify electronic signatures, authenticity, or invoice status. Continue with next_cursor until the required text or image range is covered. Treat truncation and parser warnings as material limitations. The tool accepts only durable human-upload references from the current session under the Xiaojing upload directory; it cannot read arbitrary paths or uploads from another conversation.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "List current documents, read normalized text, or return a document image batch for native vision.",
+            "enum": [
+              "list",
+              "read",
+              "visuals"
+            ]
+          },
+          "document_id": {
+            "type": "string",
+            "description": "Required for read and visuals; document_id returned by action=list."
+          },
+          "cursor": {
+            "type": "integer",
+            "description": "Optional zero-based unit or image cursor returned as next_cursor; defaults to 0."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    },
+    {
+      "name": "pwsh",
+      "description": "Run commands in a PowerShell shell\n* When invoking this tool, the contents of the \"command\" parameter does NOT need to be XML-escaped.\n* You don't have access to the internet via this tool.\n* State is persistent across command calls and discussions with the user.\n* Use native Windows paths (C:\\...) and $env:NAME variables; this is PowerShell, not bash.\n* Please avoid commands that may produce a very large amount of output.\n* Please run long lived commands in the background, e.g. 'Start-Job' or start a server with Start-Process.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The PowerShell command to run. Relative path is preferred in the command."
+          }
+        },
+        "required": [
+          "command"
+        ]
+      }
+    },
+    {
+      "name": "read_image",
+      "description": "Read a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Path to the image file, resolved by the filesystem backend."
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      }
+    },
+    {
+      "name": "visualize",
+      "description": "Show the user an interactive HTML visualization, rendered as a live card in the conversation. `create` (the default) takes the whole markup in `fragment`: literal inline HTML only (no <!doctype>, <html>, <head>, or <body> — the card supplies the document, stylesheet, and theme). To correct a card you already rendered, call `update` with its `path` and one exact `old_str`/`new_str` replacement instead of re-sending the whole fragment. The card appears while you generate; a copy of the finished fragment is saved into the session workspace. Load the `visualize` skill for the authoring contract before your first call.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "`create` (default) renders a new card from `fragment`. `update` patches the card at `path`, replacing `old_str` with `new_str` — use it for a correction touching fewer than 20 lines in fewer than 5 places, and at most 4 times per reply; re-create the card for anything larger.",
+            "enum": [
+              "create",
+              "update"
+            ]
+          },
+          "fragment": {
+            "type": "string",
+            "description": "create only, required: the inline HTML fragment to render (markup, style, and script — no document skeleton)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Concise card title. Defaults to \"Visualization\" on create; required on update."
+          },
+          "mode": {
+            "type": "string",
+            "description": "Card width: `inline` (default) or `wide` for side-by-side panel comparisons.",
+            "enum": [
+              "inline",
+              "wide"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "description": "update only, required: workspace path of the card to patch, as its own call reported it."
+          },
+          "old_str": {
+            "type": "string",
+            "description": "update only, required: the exact card text to replace, whitespace included. It must appear exactly once — keep it as short as stays unique."
+          },
+          "new_str": {
+            "type": "string",
+            "description": "update only, required: the replacement text. Empty deletes the matched region."
+          }
+        }
+      }
+    },
+    {
+      "name": "working_directory",
+      "description": "Read the current working directory, or change it with cd. Relative paths use the current directory. Existing shells and running processes keep their own directories.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "cd": {
+            "type": "string",
+            "description": "Existing directory to enter. Omit to read the current directory."
+          }
+        }
+      }
+    }
+  ],
+  "changes": []
+}

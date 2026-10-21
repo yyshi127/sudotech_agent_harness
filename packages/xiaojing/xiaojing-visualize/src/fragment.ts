@@ -186,57 +186,6 @@ function byteLength(text: string): number {
   return new TextEncoder().encode(text).length
 }
 
-/** JSON short escapes, keyed by the character after the backslash. */
-const JSON_ESCAPES: Record<string, string> = {
-  '"': '"',
-  '\\': '\\',
-  '/': '/',
-  b: '\b',
-  f: '\f',
-  n: '\n',
-  r: '\r',
-  t: '\t',
-}
-
-/**
- * Extract the `fragment` string value from a *possibly incomplete* streaming
- * tool-call JSON argument prefix. The streaming preview calls this on every
- * accumulated delta: it scans for the `"fragment":"` opener, then unescapes
- * characters until the (possibly absent) closing quote, dropping a trailing
- * half-finished escape sequence rather than misreading it.
- * @param argsRaw - the accumulated raw argument text, valid JSON or a prefix.
- * @returns the fragment decoded so far, or `undefined` before the opener streams in.
- */
-export function extractStreamingFragment(argsRaw: string): string | undefined {
-  const opener = /"fragment"\s*:\s*"/u.exec(argsRaw)
-  if (!opener) return undefined
-  let out = ''
-  for (let i = opener.index + opener[0].length; i < argsRaw.length; i++) {
-    const ch = argsRaw.charAt(i)
-    if (ch === '"') return out
-    if (ch !== '\\') {
-      out += ch
-      continue
-    }
-    const next = argsRaw[i + 1]
-    if (next === undefined) return out // trailing lone backslash: escape still streaming
-    if (next === 'u') {
-      const hex = argsRaw.slice(i + 2, i + 6)
-      if (hex.length < 4) return out // \uXXXX still streaming
-      const code = Number.parseInt(hex, 16)
-      if (Number.isNaN(code)) return out
-      out += String.fromCharCode(code)
-      i += 5
-      continue
-    }
-    const short = JSON_ESCAPES[next]
-    if (short === undefined) return out // malformed escape: stop rather than guess
-    out += short
-    i += 1
-  }
-  return out
-}
-
 /** Matches the last script opener (complete or still missing its `>`). */
 const LAST_SCRIPT_OPEN = /<script\b[^>]*>?(?![\s\S]*<script\b)/iu
 

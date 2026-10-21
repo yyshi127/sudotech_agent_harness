@@ -5,10 +5,11 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { renderContextSnapshot, renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { launchWebScaffold, readPersistedEvents, seedSession, type WebScaffold } from './scaffold.ts'
+import { assertFixtureInventory, launchWebScaffold, readPersistedEvents, seedSession, type WebScaffold } from './scaffold.ts'
 import { financePresetDefinition } from './xiaojing-agent-presets.ts'
 
-const PERSONA_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/xiaojing-persona/session.v3.jsonl', import.meta.url))
+const PERSONA_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-persona-033', import.meta.url))
+const PERSONA_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/xiaojing-persona-033/session.v4.jsonl', import.meta.url))
 
 let scaffold: WebScaffold | undefined
 
@@ -46,7 +47,10 @@ it.each(['standard', 'ptc', 'cordis'])('uses the office identity in the shipped 
     expect(prompt).toContain('即使历史回复中曾使用“办公助手”等称呼，后续自我介绍也应使用“办公搭子”')
     expect(prompt).not.toContain('You are a coding agent')
     expect(prompt).not.toContain('You are an AI agent powered by DeepSeek Harness.')
-    expect(prompt).not.toContain('pnpm run dev:web')
+    const persona = assembled.sections.find(section => section.name === 'deployment:persona-prefix')?.text
+    expect(persona).toContain('我是小兢会计，您的AI办公搭子！')
+    expect(persona).not.toContain('pnpm run dev:web')
+    expect(assembled.sections.find(section => section.name === 'app:web-surface')?.text).toContain('pnpm run dev:web')
     expect(prompt).not.toContain('{{cwd}}')
     expect(assembled.sections.some(section => section.name.startsWith('xiaojing:finance-'))).toBe(false)
     expect(assembled.tools.some(tool => tool.name.startsWith('finance_'))).toBe(false)
@@ -66,6 +70,8 @@ it.each(['standard', 'ptc', 'cordis'])('uses the office identity in the shipped 
     await scaffold.ctx.agentPresets.select(handle.agent, 'finance')
     const finance = await handle.agent.ctx.systemPrompt.assemble({ agent: handle.agent, scope: handle.agent })
     expect(renderPrompt(finance)).toContain('operating in Finance模式')
+    expect(renderPrompt(finance)).not.toContain('{{cwd}}')
+    expect(renderContextSnapshot(finance)).toContain(`Current working directory: ${JSON.stringify(cwd)}.`)
     expect(renderPrompt(finance)).not.toContain('当前是办公搭子工作区')
     expect(finance.sections.some(section => section.name === 'xiaojing:finance-capabilities')).toBe(true)
     expect(finance.tools.some(tool => tool.name === 'finance_document')).toBe(true)
@@ -78,7 +84,10 @@ it.each(['standard', 'ptc', 'cordis'])('uses the office identity in the shipped 
     await scaffold.ctx.agentPresets.select(handle.agent, 'minimal')
     const minimal = await handle.agent.ctx.systemPrompt.assemble({ agent: handle.agent, scope: handle.agent })
     expect(renderPrompt(minimal)).toBe('You are a helpful software engineer assistant.')
-    expect(minimal.contexts).toEqual([])
+    expect(minimal.contexts).toEqual([{
+      name: 'working-directory:current', interpolate: false,
+      text: `Current working directory: ${JSON.stringify(cwd)}.`,
+    }])
   } finally {
     await handle.dispose()
   }
@@ -145,4 +154,11 @@ it.each([false, true])('logs the office identity in the actual model request (re
   }
   const events = await readPersistedEvents(scaffold, sessionId)
   expect(events.some(event => event.type === 'system/message')).toBe(true)
+})
+
+it('keeps both persona generations and their header pins in the closed inventory', async () => {
+  await assertFixtureInventory(fileURLToPath(new URL('../../../snapshots/web/xiaojing-persona', import.meta.url)), [
+    'session.v3.jsonl', 'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json',
+  ])
+  await assertFixtureInventory(PERSONA_DIR, ['session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json'])
 })

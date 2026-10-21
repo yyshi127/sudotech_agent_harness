@@ -262,10 +262,18 @@ it.runIf(webClientProfile() === 'xiaojing')('reuses the reserved Finance blank a
   await page.getByRole('button', { name: 'Get started', exact: true }).click()
   const choose = page.getByRole('button', { name: 'Choose workspace', exact: true })
   await choose.waitFor()
+  expect((await sessionList()).items).toEqual([])
+  await page.getByRole('button', { name: 'Finance Assistant', exact: true }).click()
+  await page.getByText('Xiaojing Accounting, Your AI Finance Assistant', { exact: true }).waitFor()
   await expect.poll(async () => (await sessionList()).items.length).toBe(1)
   const initial = (await sessionList()).items[0]!
   expect(initial.blank).toBe(true)
   expect(initial.cwd).toBe(join(world, 'Finance工作区', '标准咨询'))
+  expect(initial.projections?.values.agentPreset).toBe('finance')
+  await page.getByRole('button', { name: 'Office Companion', exact: true }).click()
+  await page.getByRole('button', { name: 'New session', exact: true }).filter({ hasText: 'New Session' }).click()
+  await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
+  await choose.waitFor()
   const picker = page.getByRole('dialog', { name: 'Select Workspace Directory' })
   for (let round = 0; round < 3; round++) {
     await choose.click()
@@ -274,21 +282,27 @@ it.runIf(webClientProfile() === 'xiaojing')('reuses the reserved Finance blank a
     await picker.waitFor({ state: 'hidden' })
     await page.reload()
     await choose.waitFor()
-    expect((await sessionList()).items.map(item => ({ id: item.sessionId, cwd: item.cwd, blank: item.blank })))
-      .toEqual([{ id: initial.sessionId, cwd: initial.cwd, blank: true }])
+    await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
+    expect((await sessionList()).items.map(item => ({
+      id: item.sessionId, cwd: item.cwd, blank: item.blank, preset: item.projections?.values.agentPreset,
+    })))
+      .toEqual([{ id: initial.sessionId, cwd: initial.cwd, blank: true, preset: 'finance' }])
     expect(await page.locator('[data-composer-input][contenteditable="true"]').count()).toBe(0)
-    expect(await page.getByRole('tree', { name: 'Sessions' }).getByRole('treeitem').count()).toBe(0)
+    expect(await page.getByRole('tree', { name: 'Sessions' }).locator('[data-row-key^="session:"]').count()).toBe(0)
   }
   for (let round = 0; round < 2; round++) {
     await server.stop()
     url = await server.start(port)
     await page.goto(url)
     await choose.waitFor()
-    await expect.poll(async () => (await sessionList()).items.map(item => ({ id: item.sessionId, cwd: item.cwd, blank: item.blank })))
-      .toEqual([{ id: initial.sessionId, cwd: initial.cwd, blank: true }])
+    await page.getByText('Xiaojing Accounting, Your AI Workmate', { exact: true }).waitFor()
+    await expect.poll(async () => (await sessionList()).items.map(item => ({
+      id: item.sessionId, cwd: item.cwd, blank: item.blank, preset: item.projections?.values.agentPreset,
+    })))
+      .toEqual([{ id: initial.sessionId, cwd: initial.cwd, blank: true, preset: 'finance' }])
     expect(await page.getByRole('dialog', { name: 'First-time setup' }).count()).toBe(0)
     expect(await page.locator('[data-composer-input][contenteditable="true"]').count()).toBe(0)
-    expect(await page.getByRole('tree', { name: 'Sessions' }).getByRole('treeitem').count()).toBe(0)
+    expect(await page.getByRole('tree', { name: 'Sessions' }).locator('[data-row-key^="session:"]').count()).toBe(0)
   }
   expect(errors).toEqual([])
 })

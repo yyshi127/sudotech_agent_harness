@@ -34,7 +34,7 @@ const EMPTY_EXPECTED = join(SNAPSHOT_DIR, `empty${PROFILE_SUFFIX}.expected.md`)
 const CONFIGURED_EXPECTED = join(SNAPSHOT_DIR, `configured${PROFILE_SUFFIX}.expected.md`)
 const DECLARED_EXPECTED = join(SNAPSHOT_DIR, `declared${PROFILE_SUFFIX}.expected.md`)
 const DECLARED_EDIT_EXPECTED = join(SNAPSHOT_DIR, `declared-edit${PROFILE_SUFFIX}.expected.md`)
-const NATIVE_KEYLESS_EXPECTED = join(SNAPSHOT_DIR, 'native-keyless.expected.md')
+const NATIVE_KEYLESS_EXPECTED = join(SNAPSHOT_DIR, `native-keyless${PROFILE_SUFFIX}.expected.md`)
 const MODEL_PICKER_EXPECTED = join(SNAPSHOT_DIR, 'model-picker.expected.md')
 const NATIVE_DELETE_EXPECTED = join(SNAPSHOT_DIR, 'native-delete.expected.md')
 const DELETE_EXPECTED = join(SNAPSHOT_DIR, 'delete.expected.md')
@@ -451,7 +451,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       const edit = dialog.getByRole('button', { name: '编辑 Acme 网关 (acme-gateway)' })
       expect(await saved.count()).toBe(0)
       expect(await edit.isDisabled()).toBe(true)
-      await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'refreshing.expected.md'),
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, `refreshing${PROFILE_SUFFIX}.expected.md`),
         await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
       releaseAll()
       // The saved notice confirms the current joined snapshot after the editor closes.
@@ -462,7 +462,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       expect(await inputs.getByRole('checkbox', { name: '图片' }).isChecked()).toBe(true)
       expect(await inputs.getByRole('checkbox', { name: '文本' }).isChecked()).toBe(false)
       expect(await inputs.getByRole('checkbox', { name: '图片' }).isDisabled()).toBe(true)
-      await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'image-only.expected.md'),
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, `image-only${PROFILE_SUFFIX}.expected.md`),
         await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
       await dialog.getByRole('button', { name: '取消', exact: true }).click()
     } finally {
@@ -574,7 +574,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       'configured.xiaojing.expected.md', 'declared-edit.xiaojing.expected.md',
       'declared.xiaojing.expected.md', 'empty.xiaojing.expected.md',
       'catalog-inputs.xiaojing.expected.md',
-      'native-keyless.expected.md', 'refreshing.expected.md', 'image-only.expected.md',
+      'native-keyless.expected.md', 'native-keyless.xiaojing.expected.md',
+      'refreshing.expected.md', 'refreshing.xiaojing.expected.md', 'image-only.expected.md', 'image-only.xiaojing.expected.md',
     ])
   })
 })

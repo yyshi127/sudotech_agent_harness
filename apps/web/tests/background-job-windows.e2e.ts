@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
 import { afterEach, expect, it } from 'vitest'
 import { createMessage, createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
-import { JobId } from '@deepseek-ai/dsh-jobs'
 import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
 
@@ -53,9 +52,10 @@ it.skipIf(process.platform !== 'win32')('streams a real PowerShell job, restores
   })
   const reported = started.content.map(block => block.type === 'text' ? block.text : '').join('')
   expect(started.isError, reported).toBe(false)
-  const matched = /\bpwsh-\d+\b/u.exec(reported)
-  if (matched === null) throw new Error(`PowerShell reported no background job: ${reported}`)
-  const jobId = JobId(matched[0])
+  const jobs = scaffold.ctx.jobs.list(agent.id)
+  expect(jobs).toHaveLength(1)
+  const jobId = jobs[0]!.id
+  expect(reported).toBe(`started background job ${jobId}`)
   expect(scaffold.ctx.jobs.get(jobId, agent.id).status).toBe('running')
 
   const open = async () => {

@@ -95,10 +95,14 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await welcome.waitFor({ state: 'detached', timeout: 15_000 })
 
     const signIn = page.getByRole('dialog', { name: '开始使用', exact: true })
-    await signIn.waitFor({ timeout: 15_000 })
-    await compareOrRefreshGolden(SIGN_IN_EXPECTED,
-      await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
-    await signIn.getByRole('button', { name: '添加 API Key', exact: true }).click()
+    if (XIAOJING) {
+      expect(await signIn.count()).toBe(0)
+    } else {
+      await signIn.waitFor({ timeout: 15_000 })
+      await compareOrRefreshGolden(SIGN_IN_EXPECTED,
+        await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
+      await signIn.getByRole('button', { name: '添加 API Key', exact: true }).click()
+    }
     const credentialStep = page.getByRole('dialog', { name: '添加一个 API Key 开始使用' })
     await credentialStep.waitFor({ timeout: 15_000 })
     const keyInput = credentialStep.getByLabel('API 密钥', { exact: true })
@@ -233,14 +237,9 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await deepSeek.locator('xpath=ancestor::li').getByRole('button', { name: '编辑' }).click()
     await settings.getByText('自定义设置').click()
     expect(await settings.getByLabel('模型 ID 1').inputValue()).toBe('deepseek-flash')
-    expect(await settings.getByLabel('显示名称 1').inputValue()).toBe(XIAOJING ? 'DeepSeek-V41-Flash' : 'DeepSeek-V4.1-Flash')
-    if (XIAOJING) {
-      expect(await settings.getByLabel('模型 ID 2').count()).toBe(0)
-      expect(await settings.getByRole('button', { name: /删除模型/ }).count()).toBe(1)
-    } else {
-      expect(await settings.getByLabel('模型 ID 2').inputValue()).toBe('deepseek-v4-pro')
-      expect(await settings.getByRole('button', { name: /删除模型/ }).count()).toBe(2)
-    }
+    expect(await settings.getByLabel('显示名称 1').inputValue()).toBe('DeepSeek-V4.1-Flash')
+    expect(await settings.getByLabel('模型 ID 2').inputValue()).toBe('deepseek-v4-pro')
+    expect(await settings.getByRole('button', { name: /删除模型/ }).count()).toBe(2)
     await settings.getByRole('button', { name: '模型选项 1' }).click()
     expect(await settings.getByRole('group', { name: '输入类型 1' }).getByRole('checkbox', { name: '图片' }).isChecked()).toBe(true)
     await assertModelInputLayout(page, settings)
@@ -249,7 +248,6 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
     await settings.getByLabel('显示名称 1').fill('Configured Flash')
     await settings.getByRole('group', { name: '输入类型 1' }).getByRole('checkbox', { name: '图片' }).uncheck()
     if (XIAOJING) {
-      await settings.getByRole('button', { name: '添加模型', exact: true }).click()
       await settings.getByLabel('模型 ID 2').fill('configured-secondary')
       await settings.getByLabel('显示名称 2').fill('Configured Secondary')
       expect(await settings.getByRole('button', { name: /删除模型/ }).count()).toBe(2)
@@ -375,7 +373,7 @@ describe.skipIf(MODE === 'record')('web e2e: first-run DeepSeek credential setup
   it('keeps the fixture inventory closed', async () => {
     await assertFixtureInventory(
       SNAPSHOT_DIR,
-      ['welcome.expected.md', 'sign-in.expected.md', 'missing.expected.md', 'models.expected.md', 'default-models.expected.md', 'empty.expected.md'],
+      ['welcome.expected.md', ...XIAOJING ? [] : ['sign-in.expected.md'], 'missing.expected.md', 'models.expected.md', 'default-models.expected.md', 'empty.expected.md'],
     )
   })
 })

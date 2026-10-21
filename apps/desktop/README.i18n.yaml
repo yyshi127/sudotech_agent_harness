@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/desktop/README.md
 /xiaojing-accounting-windows-desktop:
-  en: 5f5eae6753b6e782
-  zh: 0facda660dfccb56
+  en: 35898c0cbea43e98
+  zh: 2c50cdf48afa8b2f
 /xiaojing-accounting-windows-desktop/permanent-installer-identity:
   en: b8dd5ec21233934e
   zh: 846545c48f7f34f4
 /xiaojing-accounting-windows-desktop/permanent-user-data-paths:
-  en: afe15f194d40e415
-  zh: 49b070559eec9db1
+  en: bf5818d7ed66ce81
+  zh: 2f93265417ff512d
 /xiaojing-accounting-windows-desktop/development-preview-isolation:
   en: 6935c204831d9332
   zh: 5e02efeb8cc05182

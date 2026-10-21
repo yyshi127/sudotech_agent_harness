@@ -17,11 +17,12 @@
   - strong: ¥0.00
 - navigation "Global panels":
   - button "Plugins"
+  - button "Automation tasks"
 - button "Settings"
 - banner:
   - button "Open right sidebar"
 - img "Xiaojing Accounting"
-- text: Xiaojing Accounting, Your AI Workmate Internal Beta v0.3.2
+- text: Xiaojing Accounting, Your AI Workmate Internal Beta v0.3.3
 - button "Choose workspace": workspace
 - button "Standard mode"
 - textbox "Describe what you want to build, / commands, @ files or sessions"

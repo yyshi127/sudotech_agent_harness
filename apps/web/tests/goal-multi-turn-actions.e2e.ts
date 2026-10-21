@@ -22,7 +22,7 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 const XIAOJING = webClientProfile() === 'xiaojing'
 const STOCK_DIR = fileURLToPath(new URL('../../../snapshots/web/goal-multi-turn-actions', import.meta.url))
 const SNAPSHOT_DIR = XIAOJING
-  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-goal-multi-turn-actions', import.meta.url))
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-goal-multi-turn-actions-033', import.meta.url))
   : STOCK_DIR
 const EXPECTED_DIR = XIAOJING
   ? fileURLToPath(new URL('./expected/goal-multi-turn-actions-xiaojing', import.meta.url))

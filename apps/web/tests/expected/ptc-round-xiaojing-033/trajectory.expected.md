@@ -1,0 +1,10 @@
+- heading "Code typescript Wrap lines Copy code" [level=3]:
+  - button "Code"
+  - text: typescript
+  - button "Wrap lines"
+  - button "Copy code"
+- code: "// Owned Windows PTC wrap observation: deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture const shellResult = await tools.pwsh({ command: \"Write-Output 'CODE_ROUND_OK'\", description: \"Echo CODE_ROUND_OK\" }); let readError = null; try { await tools.read({ file_path: \"missing.txt\" }); } catch (e) { readError = { toolName: e.toolName, message: e.message }; } return { pwsh: shellResult.stdout.text.trim(), readError };"
+- heading "Output Copy output" [level=3]:
+  - button "Output"
+  - button "Copy output"
+- text: "{ \"pwsh\": \"CODE_ROUND_OK\", \"readError\": { \"toolName\": \"read\", \"message\": \"cannot read \\\"{{cwd}}/workspace/missing.txt\\\": not found\" } } File sandbox enforcement is partial on this host."

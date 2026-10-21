@@ -66,7 +66,8 @@ describe('web e2e: queue row actions', () => {
   let page: Page
   let overrideDir: string | undefined
 
-  afterEach(async () => {
+  afterEach(async ({ task }) => {
+    if (task.result?.state === 'fail') await saveFailureShot(page, 'web-e2e-queue-actions')
     const failures: unknown[] = []
     await browser?.close().catch((error: unknown) => failures.push(error))
     browser = undefined
@@ -127,6 +128,7 @@ describe('web e2e: queue row actions', () => {
     await expect.poll(() => existsSync(readyFile), { timeout: 15_000 }).toBe(true)
 
     const admitted = page.waitForResponse('**/api/session/prompt')
+    void admitted.catch(() => { /* The later await still reports failure if the UI steps succeed. */ })
     const received = Promise.withResolvers<undefined>()
     const release = Promise.withResolvers<undefined>()
     await page.route('**/api/session/prompt', async (route) => {
@@ -452,7 +454,9 @@ describe('web e2e: queue row actions', () => {
     ] satisfies ReplayEntry[]))
 
     const sessionEvents: SessionEvent[] = []
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false })
+    scaffold = await launchWebScaffold({
+      replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false, ...REPLAY_CATALOG,
+    })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -518,6 +522,7 @@ describe('web e2e: queue row actions', () => {
     )
     if (XIAOJING) await assertFixtureInventory(PRODUCT_EXPECTED_DIR, [
       'collapsed', 'editing', 'layout', 'preserved', 'preserved-expanded', 'ui', 'sending', 'failed', 'writer-held',
+      'goal-stop',
     ].map(name => `${name}.xiaojing.expected.md`))
   })
 })

@@ -228,7 +228,7 @@ it.each(['github:acme/connected', 'https://github.com/acme/connected.git', 'git+
     writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest))
     writeFileSync(join(dir, '.npmrc'), `store-dir=${join(dir, 'store').replaceAll('\\', '/')}\nhttps-proxy=${proxyUrl}\nproxy=${proxyUrl}\nnoproxy=\n`)
     const result = await manager.installBundle(spec, { enabled: false })
-    expect(result.error).toBeUndefined()
+    expect(result.error, JSON.stringify(result)).toBeUndefined()
     expect(result).toMatchObject({ changed: true, bundle: name, packageResult: { exitCode: 0 } })
     expect(readProfileManifest('test', dir).dependencies).toHaveProperty(name)
     expect(requests).toContain('github.com:443')

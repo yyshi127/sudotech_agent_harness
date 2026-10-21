@@ -21,9 +21,13 @@ import { openSettings, connectFreshWorkspace, newEnglishPage, pinBrowserClock, p
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/steering', import.meta.url))
 const XIAOJING = webClientProfile() === 'xiaojing'
+const NATIVE_XIAOJING = XIAOJING && process.platform === 'win32'
 const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-steering', import.meta.url))
+const XIAOJING_NATIVE_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-steering-native', import.meta.url))
 const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/steering', import.meta.url))
-const FIXTURE = XIAOJING ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl') : join(SNAPSHOT_DIR, 'session.v3.jsonl')
+const FIXTURE = XIAOJING
+  ? join(NATIVE_XIAOJING ? XIAOJING_NATIVE_SNAPSHOT_DIR : XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl')
+  : join(SNAPSHOT_DIR, 'session.v3.jsonl')
 const REPLAY_CATALOG = XIAOJING ? {
   replayProviders: [{
     id: 'deepseek-official', name: 'DeepSeek',
@@ -213,6 +217,7 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
       'session.v3.jsonl', 'mid-steer.expected.md', 'settled.expected.md', 'settled-expanded.expected.md',
     ])
     if (XIAOJING) await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
+    if (NATIVE_XIAOJING) await assertFixtureInventory(XIAOJING_NATIVE_SNAPSHOT_DIR, ['session.v4.jsonl'])
   })
 })
 
@@ -269,6 +274,7 @@ describe.each(['reconnect', 'delayed-inbox'] as const)('web e2e: composer shortc
     const input = page.locator('[data-composer-input]').first()
     await input.waitFor({ timeout: 10_000 })
     const settled = scaffold.whenTurnSettled(30_000)
+    void settled.catch(() => { /* The later await still reports failure if the UI steps succeed. */ })
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(PROMPT)
     await input.press('Enter')

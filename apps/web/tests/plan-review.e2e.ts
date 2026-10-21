@@ -28,8 +28,9 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/plan-review', import.meta.url))
+const LEGACY_XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('./expected/plan-review-xiaojing', import.meta.url))
 const SNAPSHOT_DIR = WINDOWS_XIAOJING
-  ? fileURLToPath(new URL('./expected/plan-review-xiaojing', import.meta.url))
+  ? fileURLToPath(new URL('./expected/plan-review-xiaojing-033', import.meta.url))
   : STOCK_SNAPSHOT_DIR
 const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 // The waiting golden owns the decision card; the approved golden owns the
@@ -273,6 +274,10 @@ describe('web e2e: plan review takeover round trip', () => {
       'approved.expected.md', 'approved-expanded.expected.md',
     ])
     if (WINDOWS_XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, [
+      'session.v4.jsonl', 'review.expected.md', 'sidebar.expected.md', 'preview.expected.md',
+      'approved.expected.md', 'approved-expanded.expected.md',
+    ])
+    if (WINDOWS_XIAOJING) await assertFixtureInventory(LEGACY_XIAOJING_SNAPSHOT_DIR, [
       'session.v4.jsonl', 'review.expected.md', 'sidebar.expected.md', 'preview.expected.md',
       'approved.expected.md', 'approved-expanded.expected.md',
     ])

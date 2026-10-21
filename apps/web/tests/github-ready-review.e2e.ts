@@ -3,6 +3,7 @@
 import { createHmac } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
+import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
@@ -197,7 +198,9 @@ describe.skipIf(MODE === 'record')('web e2e: GitHub ready-for-review', () => {
     if (await workspaceRow.getAttribute('aria-expanded') !== 'true') await workspaceRow.click()
     await page.getByText(TITLE, { exact: true }).click()
     await page.getByText(REPLY, { exact: true }).waitFor({ state: 'visible', timeout: 30_000 })
-    const tree = await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd)
+    const tree = await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd, {
+      replacements: [[basename(scaffold.workspaceCwd), '{{workspace}}']],
+    })
     const conversation = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(EXPECTED, `${tree}\n\n---\n\n${conversation}`, MODE)
     const expanded = await captureExpandedTurnProcessAria(

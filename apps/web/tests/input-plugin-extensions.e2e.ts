@@ -3,10 +3,12 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import {
-  captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { XIAOJING_ROUTE_CATALOG } from './xiaojing-replay-catalog.ts'
 
+const XIAOJING = webClientProfile() === 'xiaojing'
 const bundle = fileURLToPath(new URL('./fixtures/plugins/fixture-input-extension', import.meta.url))
 const expected = fileURLToPath(new URL('./expected/input-plugin-extensions.expected.md', import.meta.url))
 
@@ -15,7 +17,10 @@ async function fixture(enabled: boolean) {
   onTestFinished(async () => {
     try { await resources.browser?.close() } finally { await resources.scaffold?.close() }
   })
-  const scaffold = await launchWebScaffold({ profile: { packages: [{ dir: bundle, enabled }] } })
+  const scaffold = await launchWebScaffold({
+    ...XIAOJING ? XIAOJING_ROUTE_CATALOG : {},
+    profile: { packages: [{ dir: bundle, enabled }] },
+  })
   resources.scaffold = scaffold
   const browser = await chromium.launch()
   resources.browser = browser
@@ -45,7 +50,7 @@ it('expands an input activity and inserts one undoable result without overwritin
   expect(await model.isVisible()).toBe(false)
   expect(await send.isVisible()).toBe(true)
   await compareOrRefreshGolden(expected,
-    await captureStableAria(page, '[data-composer-card]', scaffold.workspaceCwd), webSnapshotMode())
+    await captureStableAria(page, '[data-composer-card]', scaffold.workspaceCwd), XIAOJING ? 'replay' : webSnapshotMode())
   await page.getByRole('button', { name: 'Insert result', exact: true }).click()
   await expect.poll(() => input.innerText()).toBe('Draft from plugin')
   await input.press('ControlOrMeta+z')

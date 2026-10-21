@@ -16,15 +16,19 @@ import { deriveReplayScript, parseSessionLog, type ReplayEntry } from '@deepseek
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
   captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, readPersistedEvents, recordFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/queued-image', import.meta.url))
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const CURRENT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-queued-image-033', import.meta.url))
+const CURRENT_FIXTURE = join(CURRENT_DIR, 'session.v4.jsonl')
+const EXPECTED_DIR = XIAOJING ? fileURLToPath(new URL('./expected/queued-image-xiaojing-033', import.meta.url)) : SNAPSHOT_DIR
 const PNG = fileURLToPath(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
-const QUEUED_EXPECTED = join(SNAPSHOT_DIR, webClientProfile() === 'xiaojing' ? 'queued.xiaojing.expected.md' : 'queued.expected.md')
-const DELIVERED_EXPECTED = join(SNAPSHOT_DIR, webClientProfile() === 'xiaojing' ? 'delivered.xiaojing.expected.md' : 'delivered.expected.md')
+const QUEUED_EXPECTED = join(EXPECTED_DIR, XIAOJING ? 'queued.xiaojing.expected.md' : 'queued.expected.md')
+const DELIVERED_EXPECTED = join(EXPECTED_DIR, XIAOJING ? 'delivered.xiaojing.expected.md' : 'delivered.expected.md')
 const MODE = webSnapshotMode()
 
 const ACTIVE_PROMPT = 'Reply with a one-sentence description of event sourcing, then stop.'
@@ -80,9 +84,11 @@ describe('web e2e: queued image submission', () => {
     await writeFile(overridePath, JSON.stringify(replay))
 
     const sessionEvents: SessionEvent[] = []
+    const authoring = XIAOJING && MODE === 'refresh' && !existsSync(CURRENT_FIXTURE)
     scaffold = await launchWebScaffold({
-      replayFixture: FIXTURE, replayOverride: overridePath, compareReplaySession: false,
-      ...(webClientProfile() === 'xiaojing' ? {
+      replayFixture: XIAOJING && !authoring ? CURRENT_FIXTURE : FIXTURE,
+      replayOverride: overridePath, compareReplaySession: XIAOJING && !authoring,
+      ...(XIAOJING ? {
         replayProviders: [{
           id: 'deepseek-official', name: 'DeepSeek',
           models: [{ id: 'deepseek-flash', name: 'DeepSeek-V41-Flash', contextWindow: 128_000, inputModalities: ['text', 'image'] }],
@@ -106,7 +112,8 @@ describe('web e2e: queued image submission', () => {
 
     // A just-submitted composer is read-only for the prompt round-trip.
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
-    await pasteImage(page, await readFile(PNG))
+    const imageBytes = await readFile(PNG)
+    await pasteImage(page, imageBytes)
     await page.getByRole('img', { name: 'queued.png' }).waitFor({ timeout: 10_000 })
     const releasePrompt = Promise.withResolvers<undefined>()
     const releaseImage = Promise.withResolvers<undefined>()
@@ -162,7 +169,7 @@ describe('web e2e: queued image submission', () => {
     const settled = scaffold.whenTurnSettled()
     await input.fill('Continue with the queued comparison')
     await input.press('Enter')
-    await settled
+    const sessionId = await settled
     // The queued image message and the waking text run as two further turns;
     // wait for both to end so the final snapshot never captures a mid-reply
     // frame (the aborted first turn precedes them).
@@ -199,6 +206,27 @@ describe('web e2e: queued image submission', () => {
       ? delivered.data.content.find(block => block.type === 'image')
       : undefined
     expect(imageBlock?.type === 'image' && imageBlock.attachment.name).toBe('queued.png')
+    if (imageBlock?.type !== 'image') throw new Error('Queued image was not delivered')
+    expect(imageBlock.attachment).toMatchObject({ mediaType: 'image/png', width: 1, height: 1, bytes: imageBytes.byteLength })
+    expect(Buffer.from((await scaffold.ctx.attachments.readImage(imageBlock.attachment)).data)).toEqual(imageBytes)
+    expect(await chatImage.count()).toBe(1)
+    await expect.poll(() => chatImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
+    expect(await chatImage.evaluate((image: HTMLImageElement) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
+      const context = canvas.getContext('2d')
+      if (context === null) throw new Error('Queued image has no pixel context')
+      context.drawImage(image, 0, 0)
+      return { width: canvas.width, height: canvas.height, rgba: Array.from(context.getImageData(0, 0, 1, 1).data) }
+    })).toEqual({ width: 1, height: 1, rgba: [255, 0, 0, 255] })
+    await scaffold.ctx.sessions.flush(scaffold.ctx.agents.get(sessionId)!.session)
+    const persisted = await readPersistedEvents(scaffold, sessionId)
+    expect(persisted).toEqual(sessionEvents)
+    expect(persisted.flatMap(event => event.type === 'user/message' && event.data.source.kind === 'user'
+      ? [event.data.content.filter(block => block.type === 'text').map(block => block.text).join('')] : []))
+      .toEqual([ACTIVE_PROMPT, QUEUED_TEXT, 'Continue with the queued comparison'])
+    if (XIAOJING && MODE === 'refresh') await recordFixture(scaffold, sessionId, CURRENT_FIXTURE)
     expect(JSON.stringify(sessionEvents)).not.toContain('base64')
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])

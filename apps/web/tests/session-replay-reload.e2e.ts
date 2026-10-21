@@ -7,7 +7,7 @@ import { describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
 import type { ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, recordFixture, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode,
+  launchWebScaffold, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
@@ -16,15 +16,19 @@ const XIAOJING = webClientProfile() === 'xiaojing'
 const SNAPSHOT_DIR = fileURLToPath(new URL(
   XIAOJING ? '../../../snapshots/web/xiaojing-session-replay-reload' : '../../../snapshots/web/fresh-round-trip', import.meta.url,
 ))
-const FIXTURE = join(SNAPSHOT_DIR, XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
+const OWNER_DIR = XIAOJING
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-session-replay-reload-033', import.meta.url))
+  : SNAPSHOT_DIR
+const FIXTURE = XIAOJING
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-fresh-round-trip-033/session.v4.jsonl', import.meta.url))
+  : join(SNAPSHOT_DIR, 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui-expanded.expected.md')
-const MODE = webSnapshotMode()
 
 describe.skipIf(webSnapshotMode() === 'record')('web session replay', () => {
   it.each([{ name: 'Chromium', engine: chromium }, { name: 'WebKit', engine: webkit }])(
     '$name restores an active stream, a completed turn, and a reopened session', async ({ engine }) => {
       const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: 'read-only',
-        ...(XIAOJING ? { replayOverride: join(SNAPSHOT_DIR, 'replay.override.json'), replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
+        ...(XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {}),
       })
       onTestFinished(() => scaffold.close())
       const commands: Readonly<ToolExecutionResult>[] = []
@@ -78,7 +82,6 @@ describe.skipIf(webSnapshotMode() === 'record')('web session replay', () => {
         expect(command.value).toMatchObject({ kind: 'foreground', exitCode: 0, signal: null, timedOut: false, aborted: false,
           stdout: { text: 'WEB_E2E_OK\r\n', truncated: false }, stderr: { text: '', truncated: false },
         })
-        if (MODE === 'refresh') await recordFixture(scaffold, await settled, FIXTURE)
       }
       await page.getByText('DONE', { exact: true }).waitFor({ timeout: 15_000 })
       const warningStart = tripwire.warnings.length
@@ -86,15 +89,16 @@ describe.skipIf(webSnapshotMode() === 'record')('web session replay', () => {
       await page.getByText('DONE', { exact: true }).waitFor({ timeout: 15_000 })
       acknowledgeReloadConnectionLoss(tripwire, warningStart)
       await compareOrRefreshGolden(UI_EXPECTED,
-        await captureExpandedTurnProcessAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), XIAOJING ? MODE : 'replay')
+        await captureExpandedTurnProcessAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), 'replay')
 
       await page.getByRole('button', { name: 'New session', exact: true }).last().click()
       await page.getByText(XIAOJING ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown', { exact: true }).waitFor()
       await page.getByRole('treeitem').filter({ has: page.getByText(XIAOJING ? 'Use the pwsh tool to' : 'Use the bash tool to', { exact: true }) }).click()
       await page.getByText('DONE', { exact: true }).waitFor({ timeout: 15_000 })
       await compareOrRefreshGolden(UI_EXPECTED,
-        await captureExpandedTurnProcessAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), XIAOJING ? MODE : 'replay')
+        await captureExpandedTurnProcessAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), 'replay')
       if (XIAOJING) {
+        await assertFixtureInventory(OWNER_DIR, [])
         await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl', 'replay.override.json', 'ui-expanded.expected.md'])
       }
       expect(tripwire.pageErrors).toEqual([])

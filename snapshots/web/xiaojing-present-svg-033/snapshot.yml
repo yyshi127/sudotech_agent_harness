@@ -1,0 +1,10 @@
+version: 1
+scenario: xiaojing-present-svg-033
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing-present-svg-033
+  pin: true
+workspace:
+  final: true

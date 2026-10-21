@@ -6,7 +6,7 @@ import { chromium } from 'playwright'
 import { describe, expect, it, onTestFinished } from 'vitest'
 import {
   assertFinalWorkspaceSnapshot, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
-  selectedSessionFixture, watchConsole, webSnapshotMode,
+  selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
@@ -15,7 +15,8 @@ const EXPECTED = fileURLToPath(new URL('../../../snapshots/web/default-workspace
 const FAILURE_EXPECTED = fileURLToPath(new URL('./expected/default-workspace/failure.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
 
-describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
+// Xiaojing's reserved Finance startup and explicit Office selection have their own owner.
+describe.skipIf(MODE === 'record' || webClientProfile() === 'xiaojing')('web e2e: default Workspace', () => {
   it('prepares a blank Session on startup, reuses it after reload, and sends through the ordinary composer', async () => {
     const fixture = await selectedSessionFixture(FIXTURE)
     const scaffold = await launchWebScaffold({

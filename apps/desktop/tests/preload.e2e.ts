@@ -15,9 +15,14 @@ const preload = (name: string): string => fileURLToPath(new URL(`../lib/${name}.
 function browserEnvironment() {
   const attributes = new Map<string, string>()
   const listeners = new Map<string, Array<() => void>>()
-  const observers: Array<() => void> = []
+  const observers = new Set<() => void>()
+  const frames = new Map<number, () => void>()
+  let nextFrame = 1
+  const composer = { getBoundingClientRect: () => ({ width: 750, height: 130, right: 1050, top: 640 }) }
+  const resizeDisconnected = vi.fn()
   const document = {
     readyState: 'loading',
+    querySelectorAll: () => [composer],
     documentElement: {
       dataset: {} as Record<string, string>,
       getAttribute: (name: string): string | null => attributes.get(name) ?? null,
@@ -25,16 +30,45 @@ function browserEnvironment() {
     },
   }
   const window = {
+    innerWidth: 1280,
+    innerHeight: 820,
+    requestAnimationFrame(callback: () => void): number {
+      const frame = nextFrame++
+      frames.set(frame, callback)
+      return frame
+    },
+    cancelAnimationFrame: (frame: number): void => { frames.delete(frame) },
     addEventListener: (type: string, listener: () => void): void => {
       listeners.set(type, [...listeners.get(type) ?? [], listener])
     },
+    removeEventListener: (type: string, listener: () => void): void => {
+      listeners.set(type, (listeners.get(type) ?? []).filter(current => current !== listener))
+    },
   }
   class SandboxMutationObserver {
-    constructor(callback: () => void) { observers.push(callback) }
+    constructor(private readonly callback: () => void) { observers.add(callback) }
+    disconnect(): void { observers.delete(this.callback) }
     observe(): void {}
   }
+  class SandboxResizeObserver {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect = resizeDisconnected
+  }
   return {
-    globals: { document, window, MutationObserver: SandboxMutationObserver },
+    globals: { document, window, MutationObserver: SandboxMutationObserver, ResizeObserver: SandboxResizeObserver },
+    resizeDisconnected,
+    /** Settle the browser's queued companion measurement without scheduling another frame. */
+    flushFrame(): number {
+      const pending = [...frames.values()]
+      frames.clear()
+      for (const callback of pending) callback()
+      return pending.length
+    },
+    /** Dispatch window lifecycle events to the currently registered preload listeners. */
+    dispatch(type: string): void {
+      for (const listener of listeners.get(type) ?? []) listener()
+    },
     /** Writes the theme root attribute and settles the document, as the theme bootstrap does before DOMContentLoaded. */
     loadTheme(value: string): void {
       attributes.set('data-ds-theme-source', value)
@@ -82,6 +116,16 @@ describe.skipIf(!existsSync(preload('preload-app')))('built sandboxed Desktop pr
       expect(invoke).toHaveBeenCalledWith('dsh-desktop:locale-bootstrap')
       bridge.onChange('zh')
       expect(send).toHaveBeenCalledWith('dsh-desktop:locale-changed', 'zh')
+      expect(browser.flushFrame()).toBe(1)
+      expect(send).toHaveBeenCalledWith('xiaojing-desktop:companion-layout', {
+        viewportWidth: 1280, viewportHeight: 820, composerRight: 1050, composerTop: 640,
+      })
+      browser.dispatch('resize')
+      browser.dispatch('beforeunload')
+      expect(browser.resizeDisconnected).toHaveBeenCalledOnce()
+      expect(browser.flushFrame()).toBe(0)
+      browser.dispatch('resize')
+      expect(browser.flushFrame()).toBe(0)
     } else {
       expect(exposed.has('dshWelcome')).toBe(true)
       const bridge = exposed.get('dshWelcome') as { takeNotice(): Promise<unknown> }

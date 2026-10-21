@@ -1,0 +1,10 @@
+version: 1
+scenario: xiaojing-official-subagent-bundle-033
+profile: web
+composition: web-ptc-xiaojing-official-subagent
+recording: authored
+header:
+  class: web-ptc-xiaojing-official-subagent-033
+  pin: true
+workspace:
+  final: true

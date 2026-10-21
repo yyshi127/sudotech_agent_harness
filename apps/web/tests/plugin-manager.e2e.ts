@@ -740,6 +740,11 @@ describe('web e2e: plugin manager', () => {
   it('localizes independent exports and falls back per field without activating the plugins', async () => {
     onTestFinished(closeSettings)
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-manager-exports'))
+    const fixtureBundle = join(FIXTURE_PLUGINS, 'fixture-bundle')
+    const replacements: [string, string][] = [
+      [fixtureBundle, '{{fixtures}}/fixture-bundle'],
+      [fixtureBundle.replaceAll('\\', '\\\\'), '{{fixtures}}/fixture-bundle'],
+    ]
     const panel = await openPluginsPanel()
     await panel.getByRole('button', { name: '查看 @fixture/bundle' }).click()
     const search = panel.locator('[data-plugin-row]', { hasText: '@fixture/bundle/search' })
@@ -751,7 +756,7 @@ describe('web e2e: plugin manager', () => {
     await panel.getByText('Registry description for the fixture bundle.', { exact: true }).first().waitFor()
     expect([...scaffold.ctx.loader.entries()].some(entry => entry.options.name.startsWith('@fixture/bundle'))).toBe(false)
     await compareOrRefreshGolden(EXPORTS_EXPECTED, await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
-      replacements: [[FIXTURE_PLUGINS, '{{fixtures}}']],
+      replacements,
     }), MODE)
     try {
       await setLanguage('en')
@@ -760,7 +765,7 @@ describe('web e2e: plugin manager', () => {
       expect(await search.getByText('Search package introduction.', { exact: true }).count()).toBe(0)
       expect(await review.getByText('审查工作区中的改动。', { exact: true }).count()).toBe(0)
       await compareOrRefreshGolden(EXPORTS_EN_EXPECTED, await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
-        replacements: [[FIXTURE_PLUGINS, '{{fixtures}}']],
+        replacements,
       }), MODE)
       expect(await panel.locator('[data-plugin-name]').textContent()).toBe('@fixture/bundle')
     } finally {

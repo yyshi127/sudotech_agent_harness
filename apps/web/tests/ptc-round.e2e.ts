@@ -9,14 +9,15 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import {
-  acknowledgeReloadConnectionLoss, captureExpandedTurnProcessAria, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
+  acknowledgeReloadConnectionLoss, assertFixtureInventory, captureExpandedTurnProcessAria, captureStableAria,
+  compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
 import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
-const EXPECTED_DIR = fileURLToPath(new URL(WINDOWS_XIAOJING ? './expected/ptc-round-xiaojing/' : '../../../snapshots/web/ptc-round/', import.meta.url))
+const EXPECTED_DIR = fileURLToPath(new URL(WINDOWS_XIAOJING ? './expected/ptc-round-xiaojing-033/' : '../../../snapshots/web/ptc-round/', import.meta.url))
 const FIXTURE = join(EXPECTED_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(EXPECTED_DIR, 'ui.expected.md')
 const TRAJECTORY_EXPECTED = join(EXPECTED_DIR, 'trajectory.expected.md')
@@ -241,7 +242,7 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
       await expect.poll(() => row.getAttribute('aria-expanded')).toBe('false')
       await row.click()
       await expect.poll(() => row.getAttribute('aria-expanded')).toBe('true')
-      const terminal = row.locator('xpath=..').locator('[data-terminal]')
+      const terminal = (WINDOWS_XIAOJING ? shell : row.locator('xpath=..')).locator('[data-terminal]')
       await terminal.waitFor()
       await terminal.getByText(SHELL_COMMAND, { exact: true }).waitFor()
       await terminal.getByText('CODE_ROUND_OK', { exact: true }).waitFor()
@@ -314,5 +315,12 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
   it.skipIf(MODE === 'record')('stayed clean: no page errors, no reconnect churn', () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
+  })
+
+  it.skipIf(!WINDOWS_XIAOJING)('keeps the Xiaojing fixture inventory closed', async () => {
+    await assertFixtureInventory(EXPECTED_DIR, [
+      'code.expected.md', 'preparing.expected.md', 'request-lifecycle.expected.md',
+      'session.v4.jsonl', 'trajectory.expected.md', 'ui.expected.md',
+    ])
   })
 })

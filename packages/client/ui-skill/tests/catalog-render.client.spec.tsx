@@ -9,6 +9,7 @@ import { InputTriggerController, type InputTriggerSource } from '@deepseek-ai/ds
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SkillEntry } from '@deepseek-ai/dsh-api-remotes/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import { UserTextRegistry } from '../../ui-conversation/src/client/conversation/user-text-registry.ts'
 import { apply, inject } from '../src/client/index.ts'
 
 const SID = 'render-skill-catalog' as SessionId
@@ -32,6 +33,7 @@ async function bench() {
   ctx.provide('locale', { bind: () => (key: string) => key, register: () => () => {} })
   ctx.provide('slots', { inject: () => () => {} })
   ctx.provide('sidebarRight', { openResource: () => {} })
+  ctx.provide('uiConversation', { userText: new UserTextRegistry(ctx) } as never)
   const skills = { list: (payload: { sessionId: SessionId }) => { listCalls.push(payload); return response.promise } }
   ctx.provide('remote', { skills, $on: () => () => {} })
   ctx.provide('remote.skills', skills)

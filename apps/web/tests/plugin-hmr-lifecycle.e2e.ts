@@ -7,17 +7,18 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium, type Browser, type Locator, type Page } from 'playwright'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, onTestFailed } from 'vitest'
 import type { ChangeResult } from '@deepseek-ai/dsh-plugin-manager'
+import { pnpmInvocation } from '../../../scripts/pnpm-invocation.ts'
 import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE } from './support.ts'
+import { REPO_ROOT, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
 const NAME = 'e2e-hmr-addon'
 
 /** Real pnpm with its store, cache, and metadata under a test directory and no registry access. */
 function isolatedPnpm(scratch: string) {
   return {
-    command: 'pnpm', args: [],
+    ...pnpmInvocation([]),
     // pnpm 11 reads settings from pnpm_config_* variables.
     env: { pnpm_config_store_dir: join(scratch, 'pnpm-store'), pnpm_config_cache_dir: join(scratch, 'pnpm-cache'), pnpm_config_offline: 'true' },
   }
@@ -127,6 +128,19 @@ export function apply(ctx) {
     await page.goto(scaffold.authenticatedUrl)
     await page.waitForSelector('[class*="frame"]')
   }, 120_000)
+
+  beforeEach(() => {
+    onTestFailed(async ({ task }) => {
+      const name = `web-plugin-hmr-${task.name.replace(/[^a-z0-9]+/giu, '-').slice(0, 64)}`
+      await saveFailureShot(page, name)
+      try {
+        await writeFile(join(REPO_ROOT, '.artifacts', `${name}.json`), JSON.stringify({
+          trace: await readFile(tracePath, 'utf8'),
+          aria: await page.locator('body').ariaSnapshot(),
+        }, null, 2) + '\n')
+      } catch (_diagnosticFailure) { /* A closed page must not replace the lifecycle failure. */ }
+    })
+  })
 
   afterAll(async () => {
     await browser?.close()

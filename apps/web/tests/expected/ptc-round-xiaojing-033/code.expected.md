@@ -1,0 +1,6 @@
+- tabpanel "Code":
+  - text: Code typescript
+  - button "Wrap lines" [pressed]
+  - button "Original JSON"
+  - button "Copy code"
+  - code: "// Owned Windows PTC wrap observation: deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture deterministic native fixture const shellResult = await tools.pwsh({ command: \"Write-Output 'CODE_ROUND_OK'\", description: \"Echo CODE_ROUND_OK\" }); let readError = null; try { await tools.read({ file_path: \"missing.txt\" }); } catch (e) { readError = { toolName: e.toolName, message: e.message }; } return { pwsh: shellResult.stdout.text.trim(), readError };"

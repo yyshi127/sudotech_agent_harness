@@ -17,7 +17,9 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const DIR = fileURLToPath(new URL(NATIVE_XIAOJING
-  ? './expected/present-svg-xiaojing' : '../../../snapshots/web/present-svg', import.meta.url))
+  ? '../../../snapshots/web/xiaojing-present-svg-033' : '../../../snapshots/web/present-svg', import.meta.url))
+const EXPECTED_DIR = NATIVE_XIAOJING
+  ? fileURLToPath(new URL('./expected/present-svg-xiaojing-033', import.meta.url)) : DIR
 const FIXTURE = join(DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()
 const RECORD_PROMPT = '简单画一个 SVG 表示冯诺依曼架构，保存为 von-neumann.svg，并提供独立文件卡片，方便打开。'
@@ -167,7 +169,10 @@ describe('web e2e: requested SVG is explicitly delivered', () => {
     expect(await page.locator('[data-presented-file] [data-open-target]').count()).toBe(0)
     // Delivery owns the transcript; navigation and composer chrome have separate scenarios.
     const aria = await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(join(DIR, 'ui.expected.md'), aria, MODE)
+    const normalized = NATIVE_XIAOJING
+      ? aria.split(join(cwd, FILE).replaceAll('\\', '\\\\')).join(FILE)
+      : aria
+    await compareOrRefreshGolden(join(EXPECTED_DIR, 'ui.expected.md'), normalized, MODE)
   })
 
   it('opens the single edited file from its compact card', async () => {

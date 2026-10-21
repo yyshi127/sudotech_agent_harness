@@ -392,6 +392,10 @@
    above. */
 .emptyAction {
   margin-top: 16px;
+  height: auto;
+  min-height: 36px;
+  max-width: 100%;
+  padding-block: 6px;
 }
 
 /* The mock's `.detail` override: the panel's left edge is the `l4` hairline,

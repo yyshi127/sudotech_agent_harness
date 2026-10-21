@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Locator, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
-  assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode,
+  assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, saveFailureShot } from './support.ts'
@@ -214,7 +214,8 @@ async function platformCalls(page: Page): Promise<readonly string[]> {
     .__bonusPlatformCalls ?? [])
 }
 
-describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
+// Xiaojing omits the official account UI and its bonus-notice controller.
+describe.skipIf(MODE === 'record' || webClientProfile() === 'xiaojing')('web e2e: bonus notice', () => {
   let root: string | undefined
   let scaffold: WebScaffold
   let browser: Browser

@@ -7,12 +7,17 @@ import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
-  seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  seedSession, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const directory = fileURLToPath(new URL('../../../snapshots/web/session-inspector', import.meta.url))
-const fixture = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v4.jsonl', import.meta.url))
+const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const directory = fileURLToPath(new URL(WINDOWS_XIAOJING
+  ? './expected/session-inspector-xiaojing-033' : '../../../snapshots/web/session-inspector', import.meta.url))
+const fixture = fileURLToPath(new URL(WINDOWS_XIAOJING
+  ? '../../../snapshots/web/xiaojing-fresh-round-trip-033/session.v4.jsonl'
+  : '../../../snapshots/web/fresh-round-trip/session.v4.jsonl', import.meta.url))
 const bundle = fileURLToPath(new URL('../../../packages/experimental/inspector-profile', import.meta.url))
 const picker = fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url))
 
@@ -26,6 +31,7 @@ it.skipIf(webSnapshotMode() === 'record')('inspects a replayed Session log and C
   expect(prompts).toHaveLength(1)
   const scaffold = await launchWebScaffold({
     profile: { packages: [{ dir: bundle, enabled: true }], hmr: false },
+    ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
     extraOverlayPath: picker, replayFixture, compareReplaySession: 'read-only', paceMs: 5,
   })
   resources.scaffold = scaffold

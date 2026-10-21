@@ -179,15 +179,27 @@ it('boots the built plugin graph and renders a fixture session end to end', asyn
 })
 
 it('boots without ui-chat and does not select another conversation view implicitly', async () => {
-  loadXiaojingAssembledResponses(mountAssembledApp({ exclude: ['@deepseek-ai/dsh-client-ui-chat'] }).mock)
+  const errors: string[] = []
+  const onError = (event: ErrorEvent) => { errors.push(event.message) }
+  window.addEventListener('error', onError)
+  try {
+    // Visualization declares Chat as its Client dependency; this fixture omits both.
+    loadXiaojingAssembledResponses(mountAssembledApp({ exclude: [
+      '@deepseek-ai/dsh-client-ui-chat', '@deepseek-ai/dsh-xiaojing-visualize',
+    ] }).mock)
 
-  const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
-  const boot = Reflect.get(window, '__DSH_BOOT__') as { entries: Array<{ id: string }> } | undefined
-  expect(boot?.entries.some(entry => entry.id === '@deepseek-ai/dsh-client-ui-chat')).toBe(false)
-  const sessionTitle = await within(tree).findByText('Fixture 历史会话')
-  fireEvent.click(sessionTitle)
-  await waitFor(() => {
-    expect(document.querySelector('[data-slot="conversation.session"]')).not.toBeNull()
-  }, { timeout: 10_000 })
-  expect(document.querySelector('[data-slot="conversation.view"]')).toBeNull()
+    const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
+    const boot = Reflect.get(window, '__DSH_BOOT__') as { entries: Array<{ id: string }> } | undefined
+    expect(boot?.entries.some(entry => entry.id === '@deepseek-ai/dsh-client-ui-chat')).toBe(false)
+    expect(boot?.entries.some(entry => entry.id === '@deepseek-ai/dsh-xiaojing-visualize')).toBe(false)
+    const sessionTitle = await within(tree).findByText('Fixture 历史会话')
+    fireEvent.click(sessionTitle)
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="conversation.session"]')).not.toBeNull()
+    }, { timeout: 10_000 })
+    expect(document.querySelector('[data-slot="conversation.view"]')).toBeNull()
+    expect(errors).toEqual([])
+  } finally {
+    window.removeEventListener('error', onError)
+  }
 })

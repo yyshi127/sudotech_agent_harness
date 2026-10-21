@@ -1,0 +1,8 @@
+version: 1
+scenario: xiaojing-minimal-preset-033
+profile: web
+composition: web-xiaojing-minimal
+recording: authored
+header:
+  class: web-xiaojing-minimal-033
+  pin: true

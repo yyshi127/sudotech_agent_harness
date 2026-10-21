@@ -480,7 +480,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     if (await bashRow.getAttribute('aria-expanded') !== 'true') await bashRow.click()
     const card = page.locator('[data-sample="bash"] ~ div [data-terminal]').first()
     await card.waitFor({ timeout: 15_000 })
-    const commandWrap = await expectWrappedTerminalCommand(page, card, 'echo NAVIGATION_OK', 300)
+    const commandWrap = await expectWrappedTerminalCommand(page, card, 'echo NAVIGATION_OK', 220)
     await compareOrRefreshGolden(COMMAND_WRAP_EXPECTED, JSON.stringify(commandWrap, null, 2), MODE)
     // Real layout, not jsdom's stub (which computes no geometry at all):
     // squeeze the output pane below its content width and the line must keep

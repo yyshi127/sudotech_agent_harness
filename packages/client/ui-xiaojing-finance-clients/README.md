@@ -66,7 +66,9 @@ Selecting the Finance preset in a blank ordinary session opens a blank session i
 
 The category publishes `ready: false` until its first successful Workspace catalog load. Initial loading or failure never classifies unknown Finance registrations as ordinary Workspaces; the composer picker shows the load error and offers an explicit retry through the provider. The user can still add an ordinary directory or cancel, and saved Session or subagent restoration does not wait for this catalog. A successful catalog remains ready during later refreshes or failures, retaining both visible and hidden Finance membership until a newer successful load replaces it.
 
-Workspace activation selects the Finance preset through `remote.agentPresets`; the Client surface injects that Remote before exposing Finance navigation.
+Workspace activation creates or reuses its blank Session with the Finance preset before staging its context. Reopening the blank keeps its ledger or consultation Workspace and Finance preset. The Client surface injects `remote.agentPresets` before exposing Finance navigation.
+
+Leaving the active Session clears its Finance filter from the composer Workspace picker; an Office start without a selected directory can add or cancel a directory while retaining the Finance blank. An explicitly staged Finance choice keeps its filter while the destination Session is opening.
 
 Finance activation and return-to-ordinary navigation open their result only if no later navigation or plugin disposal has superseded them. An obsolete request may finish creating and preparing its blank Session but cannot replace the user's newer selection.
 

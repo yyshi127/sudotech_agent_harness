@@ -25,9 +25,13 @@ import { newEnglishPage, saveFailureShot } from './support.ts'
 import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+const XIAOJING_MINIMAL_TOOLS = [
+  'browser_connect', 'computer_control', 'document_reader', 'pwsh', 'read_image', 'visualize', 'working_directory',
+]
 const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/minimal-preset', import.meta.url))
+const LEGACY_XIAOJING_DIR = fileURLToPath(new URL('./expected/minimal-preset-xiaojing', import.meta.url))
 const SNAPSHOT_DIR = WINDOWS_XIAOJING
-  ? fileURLToPath(new URL('./expected/minimal-preset-xiaojing', import.meta.url)) : STOCK_SNAPSHOT_DIR
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-minimal-preset-033', import.meta.url)) : STOCK_SNAPSHOT_DIR
 const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
@@ -140,7 +144,7 @@ describe('minimal agent preset', () => {
     expect(bash.isError).toBe(false)
     if (WINDOWS_XIAOJING) {
       expect(systemPrompt).toBe('You are a helpful software engineer assistant.')
-      expect(requestHeader.tools?.map(tool => tool.name)).toEqual(['browser_control', 'computer_control', 'document_reader', 'pwsh', 'visualize'])
+      expect(requestHeader.tools?.map(tool => tool.name)).toEqual(XIAOJING_MINIMAL_TOOLS)
       expect(scaffold.ctx.commands.find(agentHandle.agent, 'goal')).toBeUndefined()
       expect(text(bash)).toBe('PERSISTED:{{cwd}}\\persistent-state')
       expect(requestHeader.tools?.find(tool => tool.name === 'pwsh'))
@@ -204,7 +208,7 @@ describe('minimal agent preset', () => {
     await row.click()
 
     await expect.poll(() => row.getAttribute('aria-expanded')).toBe('true')
-    const call = row.locator('xpath=..')
+    const call = WINDOWS_XIAOJING ? shell : row.locator('xpath=..')
     await call.getByText('IN', { exact: true }).waitFor()
     await call.getByText('OUT', { exact: true }).waitFor()
     await call.getByText(WINDOWS_XIAOJING ? 'MINIMAL_BASH_CARD_OK' : 'MINIMAL_BASH_CARD_OK\n[Command finished with exit code 0]', { exact: true }).waitFor()
@@ -224,12 +228,19 @@ describe('minimal agent preset', () => {
       'tool-schemas.expected.json',
       'ui.expected.md',
     ])
-    if (WINDOWS_XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl', 'ui.expected.md', 'pwsh-schema.expected.json'])
+    if (WINDOWS_XIAOJING) {
+      await assertFixtureInventory(LEGACY_XIAOJING_DIR, ['session.v4.jsonl', 'ui.expected.md', 'pwsh-schema.expected.json'])
+      await assertFixtureInventory(SNAPSHOT_DIR, [
+        'session.v4.jsonl', 'ui.expected.md', 'pwsh-schema.expected.json', 'system-prompt.expected.md', 'tool-schemas.expected.json',
+      ])
+    }
   })
 })
 
 describe('minimal manual compaction', () => {
-  const snapshotDir = fileURLToPath(new URL('../../../snapshots/web/minimal-compact', import.meta.url))
+  const stockSnapshotDir = fileURLToPath(new URL('../../../snapshots/web/minimal-compact', import.meta.url))
+  const snapshotDir = WINDOWS_XIAOJING
+    ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-minimal-compact-033', import.meta.url)) : stockSnapshotDir
   let scaffold: WebScaffold
   let handle: AgentHandle
   let browser: Browser | undefined
@@ -312,6 +323,7 @@ describe('minimal manual compaction', () => {
     expect(continuation.messages.flatMap(message => message.content)).toEqual(expect.arrayContaining(summary.data.summary))
     expect(continuation.messages[0]).toEqual(initial.messages[0])
     expect(continuation.tools).toEqual(initial.tools)
+    if (WINDOWS_XIAOJING) expect(initial.tools?.map(tool => tool.name)).toEqual(XIAOJING_MINIMAL_TOOLS)
     expect(continuation.messages.flatMap(message => message.content)
       .some(block => block.type === 'text' && block.text === 'MINIMAL_COMPACT_READY')).toBe(true)
     expect(handle.agent.session.deriveMessages().at(-1)?.content)
@@ -338,6 +350,10 @@ describe('minimal manual compaction', () => {
   })
 
   it('keeps its snapshot inventory closed', async () => {
+    await assertFixtureInventory(stockSnapshotDir, [
+      'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md',
+    ])
+    if (!WINDOWS_XIAOJING) return
     await assertFixtureInventory(snapshotDir, [
       'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md',
     ])
@@ -345,7 +361,9 @@ describe('minimal manual compaction', () => {
 })
 
 describe('minimal image reading', () => {
-  const snapshotDir = fileURLToPath(new URL('../../../snapshots/web/minimal-read-image', import.meta.url))
+  const stockSnapshotDir = fileURLToPath(new URL('../../../snapshots/web/minimal-read-image', import.meta.url))
+  const snapshotDir = WINDOWS_XIAOJING
+    ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-minimal-read-image-033', import.meta.url)) : stockSnapshotDir
   const prompt = 'Use read_image to inspect red.png. Then reply exactly MINIMAL_IMAGE_OK and stop.'
   let scaffold: WebScaffold
   let handle: AgentHandle
@@ -381,7 +399,8 @@ describe('minimal image reading', () => {
 
   it('logs a durable image with the minimal tool roster', async () => {
     const session = handle.agent.session
-    expect(session.requestHeader()?.tools?.map(tool => tool.name)).toEqual(['bash', 'read_image', 'working_directory'])
+    expect(session.requestHeader()?.tools?.map(tool => tool.name))
+      .toEqual(WINDOWS_XIAOJING ? XIAOJING_MINIMAL_TOOLS : ['bash', 'read_image', 'working_directory'])
     const result = session.snapshotEvents().find(event => event.type === 'tool/result')
     expect(result?.data.message.isError).toBe(false)
     expect(result?.data.meta).toEqual({ path: join(scaffold.workspaceCwd, 'red.png') })
@@ -411,6 +430,21 @@ describe('minimal image reading', () => {
     const preview = card.locator('img').first()
     await preview.waitFor()
     await expect.poll(() => preview.evaluate(img => img instanceof HTMLImageElement && img.naturalWidth)).toBe(1)
+    if (WINDOWS_XIAOJING) {
+      expect(await preview.evaluate((image) => {
+        if (!(image instanceof HTMLImageElement)) throw new Error('image preview has no image element')
+        const canvas = document.createElement('canvas')
+        canvas.width = image.naturalWidth
+        canvas.height = image.naturalHeight
+        const context = canvas.getContext('2d')
+        if (context === null) throw new Error('image preview has no pixel context')
+        context.drawImage(image, 0, 0)
+        return { width: canvas.width, height: canvas.height, rgba: Array.from(context.getImageData(0, 0, 1, 1).data) }
+      })).toEqual({ width: 1, height: 1, rgba: [255, 0, 0, 255] })
+      await page.screenshot({
+        path: fileURLToPath(new URL('../../../.artifacts/web-minimal-image-033.png', import.meta.url)), fullPage: true,
+      })
+    }
     await compareOrRefreshGolden(join(snapshotDir, 'ui.expected.md'),
       await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), MODE)
     expect(tripwire.pageErrors).toEqual([])
@@ -418,6 +452,10 @@ describe('minimal image reading', () => {
   })
 
   it('keeps its snapshot inventory closed', async () => {
+    await assertFixtureInventory(stockSnapshotDir, [
+      'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md',
+    ])
+    if (!WINDOWS_XIAOJING) return
     await assertFixtureInventory(snapshotDir, [
       'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md',
     ])

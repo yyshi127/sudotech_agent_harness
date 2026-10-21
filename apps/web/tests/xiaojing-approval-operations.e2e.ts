@@ -14,12 +14,13 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { installNativeBrowserGuard } from '../../../packages/xiaojing/xiaojing-browser-control/src/native-approval.ts'
 import {
-  captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
+  assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
   readPersistedEvents, recordFixture, webClientProfile, webSnapshotMode,
 } from './scaffold.ts'
 import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/xiaojing-approval-operations/session.v4.jsonl', import.meta.url))
+const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-approval-operations-033', import.meta.url))
+const FIXTURE = join(SNAPSHOT_DIR, 'session.v4.jsonl')
 const CATALOG = fileURLToPath(new URL('./fixtures/xiaojing-route-catalog/session.v4.jsonl', import.meta.url))
 const STANDARD = fileURLToPath(new URL('../../../packages/bundle/web-app/presets/standard.patch.yml', import.meta.url))
 const PREFIX = 'mcp__approval-owned-edge__'
@@ -119,14 +120,14 @@ it.skipIf(webClientProfile() !== 'xiaojing')('reuses native script and shell app
       expect(effects).toEqual([])
       const golden = (name: string) => fileURLToPath(new URL(`./expected/xiaojing-approval-operations/${name}.expected.md`, import.meta.url))
       await mkdir(fileURLToPath(new URL('./expected/xiaojing-approval-operations', import.meta.url)), { recursive: true })
-      await compareOrRefreshGolden(golden('script'), await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd), mode)
+      await compareOrRefreshGolden(golden('script'), await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd), 'replay')
       const evidence = process.env.DSH_APPROVAL_EVIDENCE_DIR
       if (evidence !== undefined) await panel.screenshot({ path: join(evidence, 'browser-script-approval.png') })
       await panel.getByRole('button', { name: '始终允许', exact: true }).click()
       await panel.getByText(/删除操作需要二次确认/u).first().waitFor()
       expect(effects).toEqual(['script', 'script'])
       expect(await panel.innerText()).toContain('同一命令，工作目录')
-      await compareOrRefreshGolden(golden('command'), await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd), mode)
+      await compareOrRefreshGolden(golden('command'), await captureStableAria(page, '[data-approval-key]', scaffold.workspaceCwd), 'replay')
       if (evidence !== undefined) await panel.screenshot({ path: join(evidence, 'shell-deletion-approval.png') })
       await panel.getByRole('button', { name: '始终允许', exact: true }).click()
       await panel.getByText(/删除操作需要二次确认.*second\.txt/u).first().waitFor()
@@ -144,6 +145,9 @@ it.skipIf(webClientProfile() !== 'xiaojing')('reuses native script and shell app
       expect(decisions[0]?.authorization?.category).toBe('xiaojing:browser:script')
       expect(decisions[2]?.authorization?.category).toBe('xiaojing:shell:delete:pwsh')
       if (authoring) await recordFixture(scaffold, handle.agent.session.id, FIXTURE)
+      await assertFixtureInventory(SNAPSHOT_DIR, [
+        'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json',
+      ])
       await page.close()
     } catch (error) {
       const evidence = process.env.DSH_APPROVAL_EVIDENCE_DIR

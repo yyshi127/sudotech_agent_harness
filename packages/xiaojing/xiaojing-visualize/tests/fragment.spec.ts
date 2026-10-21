@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyFragmentPatch,
-  extractStreamingFragment,
   trimStreamingScripts,
   validateFragment,
   visualizeMetaFrom,
@@ -75,32 +74,6 @@ describe('visualizeMetaFrom', () => {
     expect(visualizeMetaFrom({ ...valid, kind: 'artifact' })).toBeUndefined()
     expect(visualizeMetaFrom({ ...valid, fragment: 42 })).toBeUndefined()
     expect(visualizeMetaFrom({ ...valid, mode: 'full' })).toBeUndefined()
-  })
-})
-
-describe('extractStreamingFragment', () => {
-  it('is undefined before the fragment key streams in', () => {
-    expect(extractStreamingFragment('{"title": "X", "fr')).toBeUndefined()
-  })
-
-  it('decodes a complete argument object', () => {
-    expect(extractStreamingFragment('{"fragment": "<div id=\\"x\\">a\\nb</div>", "mode": "wide"}'))
-      .toBe('<div id="x">a\nb</div>')
-  })
-
-  it('decodes an unterminated prefix and drops a half-streamed escape', () => {
-    expect(extractStreamingFragment('{"fragment": "<div>hi')).toBe('<div>hi')
-    expect(extractStreamingFragment('{"fragment": "line\\')).toBe('line')
-    expect(extractStreamingFragment('{"fragment": "u\\u26')).toBe('u')
-  })
-
-  it('decodes unicode escapes', () => {
-    expect(extractStreamingFragment('{"fragment": "\\u4f60\\u597d"}')).toBe('你好')
-  })
-
-  it('stops at malformed unicode and short escapes', () => {
-    expect(extractStreamingFragment('{"fragment": "ok\\uZZZZtail"}')).toBe('ok')
-    expect(extractStreamingFragment('{"fragment": "ok\\qtail"}')).toBe('ok')
   })
 })
 

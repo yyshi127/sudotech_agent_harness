@@ -164,7 +164,7 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     navigation: AbortSignal,
   ): Promise<FinanceSessionContextView> => {
     if (!entry.startable) throw new Error('Archived customer workspaces cannot start new sessions')
-    const sessionId = await ctx.uiWorkspace.connectWorkspace(entry.workspaceId)
+    const sessionId = await ctx.uiWorkspace.connectWorkspace(entry.workspaceId, { agentPreset: 'finance' })
     await selectPreset(sessionId, 'finance')
     const context = await controller.stage(sessionId, request)
     if (!navigation.aborted) ctx.uiWorkspace.openSession(sessionId)
@@ -330,13 +330,18 @@ function registerFinanceClientSurfaces(ctx: ClientContext): void {
     let disposed = false
     let running = false
     let rerun = false
+    let hadMainSession = false
     let previousOrdinaryWorkspaceId: WorkspaceId | undefined
 
     const reconcile = async (): Promise<void> => {
       const summary = mainSession()
-      const sessionId = summary?.id
-      if (sessionId === undefined) return
-      if (summary === undefined) return
+      if (summary === undefined) {
+        if (hadMainSession) ctx.workspaceCategories.setPickerCategory(undefined)
+        hadMainSession = false
+        return
+      }
+      hadMainSession = true
+      const sessionId = summary.id
       const agentPreset = presetOf(summary)
       ctx.workspaceCategories.setPickerCategory(agentPreset === 'finance' ? 'finance' : undefined)
       if (!summary.blank) return

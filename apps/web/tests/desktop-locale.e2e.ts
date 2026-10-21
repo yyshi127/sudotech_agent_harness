@@ -12,6 +12,9 @@ import { openSettings, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/desktop-locale', import.meta.url))
 const XIAOJING = webClientProfile() === 'xiaojing'
+const UI_EXPECTED = XIAOJING
+  ? fileURLToPath(new URL('./expected/desktop-locale-xiaojing-033', import.meta.url))
+  : SNAPSHOT_DIR
 const MODE = webSnapshotMode()
 const { version } = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf8')) as { version: string }
 const versionCapture = { replacements: [[version, '{{version}}']] as const }
@@ -60,7 +63,7 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
     await zhDialog.getByRole('button', { name: '中文', exact: true }).waitFor()
     await expect.poll(() => reported).toEqual(['zh'])
     expect(scaffold.ctx.settings.describe().find(row => row.ns === 'locale')!.value).toEqual({})
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, XIAOJING ? 'automatic.xiaojing.expected.md' : 'automatic.expected.md'),
+    await compareOrRefreshGolden(join(UI_EXPECTED, 'automatic.expected.md'),
       await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd, versionCapture), MODE)
     await zhDialog.getByRole('button', { name: '中文', exact: true }).click()
     await page.getByRole('menuitem', { name: 'English', exact: true }).click()
@@ -69,7 +72,7 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
     await expect.poll(() => reported.at(-1)).toBe('en')
     await expect.poll(() => readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8'))
       .toContain('preference: en')
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, XIAOJING ? 'selected.xiaojing.expected.md' : 'selected.expected.md'),
+    await compareOrRefreshGolden(join(UI_EXPECTED, 'selected.expected.md'),
       await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd, versionCapture), MODE)
     const warningsBefore = tripwire.warnings.length
     reported.length = 0
@@ -82,6 +85,7 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
     expect(await page.evaluate(() => localStorage.getItem('dsh.locale'))).toBeNull()
     expect(tripwire.warnings).toEqual([])
     expect(tripwire.pageErrors).toEqual([])
+    if (XIAOJING) await assertFixtureInventory(UI_EXPECTED, ['automatic.expected.md', 'selected.expected.md'])
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'automatic.expected.md', 'selected.expected.md',
       'automatic.xiaojing.expected.md', 'selected.xiaojing.expected.md',

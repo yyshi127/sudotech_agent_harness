@@ -30,23 +30,27 @@ import {
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/live-interactions', import.meta.url))
-const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-live-interactions', import.meta.url))
+const LEGACY_XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-live-interactions', import.meta.url))
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-live-interactions-033', import.meta.url))
 const FIXTURE = webClientProfile() === 'xiaojing'
   ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl')
   : join(SNAPSHOT_DIR, 'session.v3.jsonl')
 const SNAPSHOT_PROFILE = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
+const EXPECTED_DIR = webClientProfile() === 'xiaojing'
+  ? fileURLToPath(new URL('./expected/live-interactions-xiaojing-033', import.meta.url))
+  : SNAPSHOT_DIR
 // One golden pins the empty mid-turn loading state, one pins the sendable draft
 // state, and the other four capture what remains after cancel, after a
 // non-retryable failure, after retry recovery, and after retry exhaustion.
-const CANCEL_EXPECTED = join(SNAPSHOT_DIR, `cancel${SNAPSHOT_PROFILE}.expected.md`)
-const CANCEL_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, `cancel-expanded${SNAPSHOT_PROFILE}.expected.md`)
-const LOADING_EXPECTED = join(SNAPSHOT_DIR, `loading${SNAPSHOT_PROFILE}.expected.md`)
-const RUNNING_DRAFT_EXPECTED = join(SNAPSHOT_DIR, `running-draft${SNAPSHOT_PROFILE}.expected.md`)
-const ERROR_EXPECTED = join(SNAPSHOT_DIR, `error-auth${SNAPSHOT_PROFILE}.expected.md`)
-const RETRY_EXPECTED = join(SNAPSHOT_DIR, `retry${SNAPSHOT_PROFILE}.expected.md`)
-const RETRY_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, `retry-expanded${SNAPSHOT_PROFILE}.expected.md`)
-const RETRY_EXHAUSTED_EXPECTED = join(SNAPSHOT_DIR, `retry-exhausted${SNAPSHOT_PROFILE}.expected.md`)
-const RETRY_REQUEST_EXPECTED = join(SNAPSHOT_DIR, 'retry-request.expected.md')
+const CANCEL_EXPECTED = join(EXPECTED_DIR, `cancel${SNAPSHOT_PROFILE}.expected.md`)
+const CANCEL_EXPANDED_EXPECTED = join(EXPECTED_DIR, `cancel-expanded${SNAPSHOT_PROFILE}.expected.md`)
+const LOADING_EXPECTED = join(EXPECTED_DIR, `loading${SNAPSHOT_PROFILE}.expected.md`)
+const RUNNING_DRAFT_EXPECTED = join(EXPECTED_DIR, `running-draft${SNAPSHOT_PROFILE}.expected.md`)
+const ERROR_EXPECTED = join(EXPECTED_DIR, `error-auth${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_EXPECTED = join(EXPECTED_DIR, `retry${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_EXPANDED_EXPECTED = join(EXPECTED_DIR, `retry-expanded${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_EXHAUSTED_EXPECTED = join(EXPECTED_DIR, `retry-exhausted${SNAPSHOT_PROFILE}.expected.md`)
+const RETRY_REQUEST_EXPECTED = join(EXPECTED_DIR, 'retry-request.expected.md')
 const MODE = webSnapshotMode()
 const AUTH_PROVIDER_MESSAGE = 'Authentication Fails, Your api key: sk-preview-secret is invalid'
 
@@ -137,6 +141,7 @@ describe('web e2e: live-turn interactions (cancel / error / retry)', () => {
     const input = page.locator('[data-composer-input]').first()
     await input.waitFor({ timeout: 10_000 })
     const settled = scaffold!.whenTurnSettled(timeoutMs)
+    void settled.catch(() => { /* The caller still awaits this promise after the UI steps. */ })
     await input.fill(PROMPT)
     await input.press('Enter')
     return { settled }
@@ -460,7 +465,14 @@ describe('web e2e: live-turn interactions (cancel / error / retry)', () => {
   }, 120_000)
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
+    await assertFixtureInventory(LEGACY_XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
     await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
+    if (webClientProfile() === 'xiaojing') await assertFixtureInventory(EXPECTED_DIR, [
+      'cancel.xiaojing.expected.md', 'cancel-expanded.xiaojing.expected.md',
+      'loading.xiaojing.expected.md', 'running-draft.xiaojing.expected.md', 'error-auth.xiaojing.expected.md',
+      'retry.xiaojing.expected.md', 'retry-expanded.xiaojing.expected.md', 'retry-exhausted.xiaojing.expected.md',
+      'retry-request.expected.md',
+    ])
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'session.v3.jsonl', 'cancel.expected.md', 'cancel-expanded.expected.md',
       'loading.expected.md', 'running-draft.expected.md', 'error-auth.expected.md',

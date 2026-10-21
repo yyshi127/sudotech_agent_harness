@@ -48,7 +48,7 @@ const DELETE_PREFIX = process.platform === 'win32' ? 'Remove-Item -LiteralPath '
 const EXFIL_PREFIX = process.platform === 'win32' ? 'Invoke-WebRequest ' : 'curl '
 const XIAOJING = webClientProfile() === 'xiaojing'
 const GLOBAL_TOOLS = XIAOJING
-  ? ['working_directory', 'computer_control', 'visualize', 'browser_control', 'document_reader']
+  ? ['computer_control', 'working_directory', 'visualize', 'browser_connect', 'document_reader']
   : ['working_directory']
 
 function deleteCommand(target: string): string {
@@ -527,7 +527,6 @@ const EXPECTED_TOOLS = [
   'web_fetch',
   'web_search',
   'workflow',
-  'working_directory',
   'write',
 ]
 
@@ -650,6 +649,7 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
     'read-only',
     'workspace-write',
     'danger-full-access',
+    ...XIAOJING ? ['xiaojing-no-approval'] : [],
   ])
   const headlessRows = composeEntries([
     loadOverlayPatches('shipped headless composition', BASE_PATCH_PATH),
@@ -820,7 +820,7 @@ it('routes one browser-authored Auto request through the same model and asks the
   expect(reviewInput).toContain(requestId)
   expect(reviewInput).toContain(JSON.stringify(targetPath).slice(1, -1))
   expect(approvalReasons).toEqual([XIAOJING
-    ? `删除操作必须进行本次二次确认，即使当前会话为“从不审批”也不能跳过。即将执行：${deleteCommand(targetPath)}`
+    ? `删除操作需要二次确认。即将执行：${deleteCommand(targetPath)}`
     : `Auto review denied tool "${SHELL_TOOL}": ${AUTO_RAW_REASON}`])
   const rejectedReason = XIAOJING ? '删除操作已被用户拒绝，未执行。' : `the user rejected tool "${SHELL_TOOL}"`
   const finalModelInput = JSON.stringify(finalMain?.messages)

@@ -10,11 +10,14 @@ import { deriveReplayScript } from '@deepseek-ai/dsh-llm-replay'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, parseSeedFixture, readPersistedEvents, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, parseSeedFixture, readPersistedEvents, seedSession, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, openSettings, saveFailureShot, writeComposerDraft } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/collapse-timing', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const EXPECTED_DIR = XIAOJING
+  ? fileURLToPath(new URL('./expected/collapse-timing-xiaojing-033', import.meta.url)) : SNAPSHOT_DIR
 const SEED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
 const SCREENSHOTS = 'screenshots/collapse-timing'
 const SCREENSHOT_DIR = fileURLToPath(new URL(`../../../.artifacts/${SCREENSHOTS}`, import.meta.url))
@@ -56,12 +59,16 @@ describe.skipIf(MODE === 'record')('web e2e: recorded collapse timing', () => {
       // This rendering borrows a completed turn and replays only its final response as a continuation.
       compareReplaySession: false,
     })
-    await seedSession(scaffold, fixture, SEED_ID)
+    const seeded = await seedSession(scaffold, fixture, SEED_ID)
+    if (XIAOJING) {
+      const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd, 'Collapse timing acceptance')
+      await workspace.attachSession(seeded)
+    }
     browser = await chromium.launch({ headless: true })
     page = await newEnglishPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await page.getByRole('button', { name: 'Account menu', exact: true }).waitFor()
+    await page.getByRole('button', { name: XIAOJING ? 'Settings' : 'Account menu', exact: true }).waitFor()
   })
 
   afterAll(async () => {
@@ -91,7 +98,7 @@ describe.skipIf(MODE === 'record')('web e2e: recorded collapse timing', () => {
   async function capture(name: string): Promise<void> {
     await page.mouse.move(0, 0)
     const aria = await captureStableAria(page, '[data-chat-flow]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, name), aria, MODE)
+    await compareOrRefreshGolden(join(EXPECTED_DIR, name), aria, MODE)
   }
 
   async function expectDetails(turn: number, visible: boolean): Promise<void> {
@@ -115,10 +122,12 @@ describe.skipIf(MODE === 'record')('web e2e: recorded collapse timing', () => {
     // Selecting the current client default does not create a saved Host preference.
     await selectPreference('Work details', 'Compact')
     await selectPreference('Work details', 'Detailed')
-    const group = page.getByRole('treeitem').first()
+    const group = XIAOJING
+      ? page.getByRole('treeitem', { name: 'Collapse timing acceptance', exact: true })
+      : page.getByRole('treeitem').first()
     await group.waitFor()
     if (await group.getAttribute('aria-expanded') === 'false') await group.click()
-    await page.getByRole('treeitem').nth(1).click()
+    await page.locator(`[data-row-key="session:${SEED_ID}"]`).click()
     await page.getByText('DONE', { exact: true }).waitFor()
     await expectProcess(1, false)
     await capture('completion.expected.md')
@@ -186,6 +195,6 @@ describe.skipIf(MODE === 'record')('web e2e: recorded collapse timing', () => {
     expect(await readFile(SEED, 'utf8')).toBe(fixture)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, GOLDENS)
+    await assertFixtureInventory(EXPECTED_DIR, GOLDENS)
   })
 })

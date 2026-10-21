@@ -19,12 +19,13 @@ import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './suppor
 import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const XIAOJING = webClientProfile() === 'xiaojing'
+const LEGACY_XIAOJING_DIR = fileURLToPath(new URL('./expected/feedback-command-xiaojing', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL(XIAOJING
-  ? './expected/feedback-command-xiaojing'
+  ? '../../../snapshots/web/xiaojing-feedback-command-033'
   : '../../../snapshots/web/feedback-command', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
-const ACK_EXPECTED = join(SNAPSHOT_DIR, 'ack.expected.md')
-const ACK_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ack-expanded.expected.md')
+const ACK_EXPECTED = join(XIAOJING ? LEGACY_XIAOJING_DIR : SNAPSHOT_DIR, 'ack.expected.md')
+const ACK_EXPANDED_EXPECTED = join(XIAOJING ? LEGACY_XIAOJING_DIR : SNAPSHOT_DIR, 'ack-expanded.expected.md')
 const MODE = webSnapshotMode()
 
 const PROMPT = 'Reply with the single word LIGHTHOUSE and stop.'
@@ -90,21 +91,24 @@ describe('web e2e: /feedback command acknowledgement', () => {
     await expect.poll(() => input.textContent(), { timeout: 10_000 }).toBe('')
     await expect.poll(() => page.getByRole('button', { name: 'Add files or run commands' }).isEnabled(), { timeout: 10_000 }).toBe(true)
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(ACK_EXPECTED, snapshot, MODE)
+    await compareOrRefreshGolden(ACK_EXPECTED, snapshot, XIAOJING ? 'replay' : MODE)
     const expanded = await captureExpandedTurnProcessAria(
       page,
       '[class*="centerCol"]',
       scaffold.workspaceCwd,
     )
-    await compareOrRefreshGolden(ACK_EXPANDED_EXPECTED, expanded, MODE)
+    await compareOrRefreshGolden(ACK_EXPANDED_EXPECTED, expanded, XIAOJING ? 'replay' : MODE)
 
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   }, 60_000)
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, [
-      XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl', 'ack.expected.md', 'ack-expanded.expected.md',
-    ])
+    if (XIAOJING) {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl'])
+      await assertFixtureInventory(LEGACY_XIAOJING_DIR, ['session.v4.jsonl', 'ack.expected.md', 'ack-expanded.expected.md'])
+    } else {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'ack.expected.md', 'ack-expanded.expected.md'])
+    }
   })
 })

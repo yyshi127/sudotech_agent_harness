@@ -1,5 +1,7 @@
 /** Real Electron fixture for account-scoped Platform storage across process restarts. */
-import { app, BrowserWindow } from 'electron'
+import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import { app, BrowserWindow, session, WebContentsView } from 'electron'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const OBSERVE = `(() => {
@@ -47,9 +49,9 @@ async function run() {
   const args = process.argv.slice(2)
   const [viewModule, userData, origin, phase] = args[0] === '--' ? args.slice(1) : args
   if (viewModule === undefined || userData === undefined || origin === undefined || phase === undefined) {
-    throw new Error('expected <built-platform-view.js> <userDataDir> <origin> <first|restart>')
+    throw new Error('expected <built-platform-view.js> <userDataDir> <origin> <legacy|first|restart>')
   }
-  if (phase !== 'first' && phase !== 'restart') throw new Error(`unknown phase ${phase}`)
+  if (!['legacy', 'first', 'restart'].includes(phase)) throw new Error(`unknown phase ${phase}`)
   const base = new URL(origin).origin
   app.setPath('userData', userData)
   app.setPath('sessionData', userData)
@@ -57,6 +59,20 @@ async function run() {
   const { DesktopPlatformView } = await import(pathToFileURL(viewModule).href)
   const owner = new BrowserWindow({ show: false, width: 900, height: 700 })
   const preload = fileURLToPath(new URL('./platform-storage-preload.cjs', import.meta.url))
+  if (phase === 'legacy') {
+    const previous = session.fromPartition(`persist:dsh-platform-${createHash('sha256').update(JSON.stringify([base, 'first'])).digest('hex')}`)
+    const view = new WebContentsView({ webPreferences: { session: previous, preload, sandbox: true, contextIsolation: true } })
+    owner.contentView.addChildView(view)
+    await view.webContents.loadURL(`${base}/usage`)
+    await dismissNotice(view.webContents)
+    await previous.cookies.set({ url: base, name: 'old-auth', value: 'retained-before-normal-cleanup', expirationDate: Date.now() / 1000 + 3600 })
+    await previous.cookies.flushStore()
+    previous.flushStorageData()
+    process.stdout.write('PLATFORM_STORAGE_RESULT ["legacy-notice=hidden"]\n')
+    owner.destroy()
+    app.quit()
+    return
+  }
   const manager = new DesktopPlatformView(preload, () => 'en_US', process.platform === 'win32' ? 'win32' : 'darwin')
   const account = userId => ({ origin: base, token: 'fixture-secret', userId })
   const states = []
@@ -66,6 +82,15 @@ async function run() {
 
   manager.setSession(account('first'))
   await manager.open(owner, 'usage', bounds)
+  const current = platformView(owner).webContents
+  assert.equal(manager.bootstrap({ sender: current, senderFrame: current.mainFrame }).token, 'fixture-secret')
+  await current.executeJavaScript(`(async () => {
+    try {
+      const cache = await caches.open('long-path-round-trip');
+      await cache.put('/round-trip', new Response('CACHE_STORAGE_ROUND_TRIP'));
+      if (await (await cache.match('/round-trip')).text() !== 'CACHE_STORAGE_ROUND_TRIP') throw Error('CacheStorage bytes changed');
+    } catch (error) { throw Error('CacheStorage round trip failed: ' + error.name + ': ' + error.message); }
+  })()`)
   await record(phase === 'first' ? 'first-open' : 'restart-first-open')
   if (phase === 'restart') {
     const cookies = await platformView(owner).webContents.executeJavaScript('document.cookie')

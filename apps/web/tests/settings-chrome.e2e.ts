@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Locator, Page, Request } from 'playwright'
 import { chromium } from 'playwright'
+import { FiberState } from '@deepseek-ai/cordis'
 import { afterAll, afterEach, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { basename, join } from 'node:path'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -39,6 +40,10 @@ const SCREENSHOTS = 'screenshots/collapse-timing-settings'
 const SCREENSHOT_DIR = fileURLToPath(new URL(`../../../.artifacts/${SCREENSHOTS}`, import.meta.url))
 const { version } = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf8')) as { version: string }
 const versionCapture = { replacements: [[version, '{{version}}']] as const }
+const currentVersion = {
+  zh: `${PROFILE_SUFFIX === '' ? '当前版本' : '当前内核版本'}：${version}`,
+  en: `${PROFILE_SUFFIX === '' ? 'Current version' : 'Current kernel version'}: ${version}`,
+}
 
 async function saveSettingsFailureShot(page: Page, name: string): Promise<void> {
   await mkdir(SCREENSHOT_DIR, { recursive: true })
@@ -85,15 +90,22 @@ describe('web e2e: settings modal and General preferences', () => {
       if (await dialog.isVisible()) await page.keyboard.press('Escape')
       await dialog.waitFor({ state: 'hidden' })
     })
-    const trigger = page.getByRole('button', { name: '账号菜单', exact: true })
-    expect(await trigger.getAttribute('aria-haspopup')).toBe('menu')
-    expect(await trigger.getAttribute('aria-expanded')).toBe('false')
+    const accountMenu = PROFILE_SUFFIX === ''
+    const trigger = page.getByRole('button', { name: accountMenu ? '账号菜单' : '设置', exact: true })
+    if (accountMenu) {
+      expect(await trigger.getAttribute('aria-haspopup')).toBe('menu')
+      expect(await trigger.getAttribute('aria-expanded')).toBe('false')
+    } else {
+      expect(await page.getByRole('button', { name: '账号菜单', exact: true }).count()).toBe(0)
+    }
     await trigger.click()
-    expect(await trigger.getAttribute('aria-expanded')).toBe('true')
-    await page.getByRole('menuitem', { name: '设置', exact: true }).click()
+    if (accountMenu) {
+      expect(await trigger.getAttribute('aria-expanded')).toBe('true')
+      await page.getByRole('menuitem', { name: '设置', exact: true }).click()
+    }
     const dialog = page.getByRole('dialog', { name: '设置' })
     await dialog.waitFor({ timeout: 10_000 })
-    expect(await trigger.getAttribute('aria-expanded')).toBe('false')
+    if (accountMenu) expect(await trigger.getAttribute('aria-expanded')).toBe('false')
     // General is active by default; Permission, Language and Appearance are functional.
     expect(await dialog.getByRole('button', { name: '通用设置' }).getAttribute('aria-current')).toBe('true')
     await dialog.getByRole('button', { name: '工作区内修改' }).waitFor({ timeout: 10_000 })
@@ -130,7 +142,7 @@ describe('web e2e: settings modal and General preferences', () => {
     } finally {
       await page.unrouteAll({ behavior: 'wait' })
     }
-    await dialog.getByText(`当前版本：${version}`, { exact: true }).waitFor()
+    await dialog.getByText(currentVersion.zh, { exact: true }).waitFor()
     // Golden of the freshly opened dialog (default zh, General active).
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd, versionCapture)
     await compareOrRefreshGolden(DIALOG_EXPECTED, snapshot, MODE)
@@ -219,7 +231,7 @@ describe('web e2e: settings modal and General preferences', () => {
     // Close path 1: Escape.
     await page.keyboard.press('Escape')
     await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
-    expect(await trigger.getAttribute('aria-expanded')).toBe('false')
+    if (accountMenu) expect(await trigger.getAttribute('aria-expanded')).toBe('false')
     // Close path 2: the header close button (focus lands there on open).
     await openSettings(page, 'zh')
     await page.getByRole('dialog', { name: '设置' }).getByRole('button', { name: '关闭' }).click()
@@ -771,6 +783,17 @@ describe('web e2e: settings modal and General preferences', () => {
 
   it('persists the settings language across reload and a distinct port', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-language'))
+    onTestFinished(async () => {
+      if ((await page.locator('html').getAttribute('lang'))?.startsWith('zh') === true) return
+      const dialog = page.getByRole('dialog', { name: 'Settings', exact: true })
+      if (!await dialog.isVisible()) await openSettings(page, 'en')
+      await dialog.getByRole('button', { name: 'English', exact: true }).click()
+      await page.getByRole('menuitem', { name: '中文', exact: true }).click()
+      await page.getByRole('dialog', { name: '设置', exact: true }).waitFor()
+      await expect.poll(async () => readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8'))
+        .toContain('preference: zh')
+      await page.keyboard.press('Escape')
+    })
     await openSettings(page, 'zh')
     const zhDialog = page.getByRole('dialog', { name: '设置' })
     await zhDialog.waitFor({ timeout: 10_000 })
@@ -792,7 +815,7 @@ describe('web e2e: settings modal and General preferences', () => {
     // ...and the attribute follows that switch, in the assembled app.
     await expect.poll(() => page.evaluate(() => document.documentElement.lang), { timeout: 5_000 }).toBe('en')
     expect(await enDialog.getByRole('button', { name: 'General' }).getAttribute('aria-current')).toBe('true')
-    await enDialog.getByText(`Current version: ${version}`, { exact: true }).waitFor()
+    await enDialog.getByText(currentVersion.en, { exact: true }).waitFor()
     await expect.poll(() => enDialog.getByText('Appearance', { exact: true }).count(), { timeout: 5_000 }).toBe(1)
     expect(await page.evaluate(() => localStorage.getItem('dsh.locale'))).toBeNull()
     await expect.poll(async () => readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8'), { timeout: 5_000 })
@@ -803,7 +826,7 @@ describe('web e2e: settings modal and General preferences', () => {
     await page.reload({ waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
-    const enTrigger = page.getByRole('button', { name: 'Account menu' })
+    const enTrigger = page.getByRole('button', { name: PROFILE_SUFFIX === '' ? 'Account menu' : 'Settings', exact: true })
     await enTrigger.waitFor({ timeout: 10_000 })
 
     // A Chinese browser on another port still receives the explicit English
@@ -902,7 +925,7 @@ describe('web e2e: settings modal and General preferences', () => {
       // Golden of the English fallback dialog — the visible output this change
       // produces. The zh golden above covers the detected-locale surface, so
       // the pair pins both directions of the resolution.
-      await dialog.getByText(`Current version: ${version}`, { exact: true }).waitFor()
+      await dialog.getByText(currentVersion.en, { exact: true }).waitFor()
       const snapshot = await captureStableAria(frPage, '[role="dialog"]', fresh.workspaceCwd, versionCapture)
       await compareOrRefreshGolden(DIALOG_EN_EXPECTED, snapshot, MODE)
       expect(frTripwire.pageErrors).toEqual([])
@@ -1015,13 +1038,14 @@ describe('web e2e: settings modal and General preferences', () => {
     expect(tripwire.pageErrors).toEqual([])
   })
 
-  it.skipIf(webClientProfile() !== 'xiaojing')('enables Automation tasks in a fresh desktop profile and retains a user opt-out', async () => {
+  it.skipIf(webClientProfile() !== 'xiaojing')('enables native Automation tasks in a fresh desktop profile and preserves saved profile configuration', async () => {
     const seed = await mkdtemp(join(tmpdir(), 'xiaojing-schedule-default-'))
     let fresh: WebScaffold | undefined
     let freshPage: Page | undefined
     try {
       createPluginProfile(seed)
       const selected = readProfileManifest('test', seed).dsh!.profile!.bundles!
+      expect(selected).not.toContain('@deepseek-ai/dsh-experimental-schedule-bundle')
       fresh = await launchWebScaffold({
         profile: { packages: [], bundles: selected.filter(name => !['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'].includes(name)) },
         extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
@@ -1031,21 +1055,27 @@ describe('web e2e: settings modal and General preferences', () => {
       await freshPage.goto(fresh.authenticatedUrl, { waitUntil: 'load' })
       await freshPage.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
       const panel = freshPage.locator('[data-plugin-panel]')
-      const toggle = panel.getByRole('switch', { name: '启用 自动化任务', exact: true })
-      await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('true')
+      const scheduleRows = [...fresh.ctx.loader.entries()]
+        .filter(entry => ['schedule', 'ui-schedule'].includes(entry.options.id))
+      expect(scheduleRows).toHaveLength(2)
+      expect(scheduleRows.every(entry => entry.fiber?.state === FiberState.ACTIVE)).toBe(true)
       expect(fresh.ctx.get('schedule')).toBeDefined()
-      const row = panel.locator('[data-plugin-package="@deepseek-ai/dsh-experimental-schedule-bundle"]')
-      const snapshot = await captureStableAria(freshPage, '[data-plugin-panel] [data-plugin-package="@deepseek-ai/dsh-experimental-schedule-bundle"]', fresh.workspaceCwd)
+      expect(await panel.getByRole('switch', { name: '启用 自动化任务', exact: true }).count()).toBe(0)
+      expect(await panel.locator('[data-plugin-package="@deepseek-ai/dsh-experimental-schedule-bundle"]').count()).toBe(0)
+      await freshPage.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '自动化任务', exact: true }).click()
+      const manager = freshPage.getByTestId('task-manager-page')
+      await manager.getByRole('heading', { name: '自动化任务', exact: true }).waitFor()
+      await manager.getByRole('heading', { name: '还没有自动化任务，在会话中创建的任务会显示在这里', exact: true }).waitFor()
+      const snapshot = await captureStableAria(freshPage, '[data-testid="task-manager-page"]', fresh.workspaceCwd)
       await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'schedule-default.xiaojing.expected.md'), snapshot, MODE)
-      await toggle.click()
-      await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('false')
-      expect(fresh.ctx.get('schedule')).toBeUndefined()
       const profileDir = join(fresh.harnessHome, 'profiles', 'scaffold')
       const before = await readFile(join(profileDir, 'package.json'))
+      const patchBefore = await readFile(join(profileDir, 'cordis.patch.yml'))
       createPluginProfile(profileDir)
       expect(await readFile(join(profileDir, 'package.json'))).toEqual(before)
+      expect(await readFile(join(profileDir, 'cordis.patch.yml'))).toEqual(patchBefore)
       expect(readProfileManifest('test', profileDir).dsh!.profile!.bundles).not.toContain('@deepseek-ai/dsh-experimental-schedule-bundle')
-      expect(await row.isVisible()).toBe(true)
+      expect(fresh.ctx.get('schedule')).toBeDefined()
       expect(errors.pageErrors).toEqual([])
     } finally {
       await freshPage?.close()
@@ -1067,7 +1097,7 @@ describe('web e2e: settings modal and General preferences', () => {
       'dialog.xiaojing.expected.md', 'dialog-en.xiaojing.expected.md',
       'dialog-no-browser.xiaojing.expected.md',
       'desktop-companion.xiaojing.expected.md', 'about-xiaojing.expected.md',
-      'about-release-0.3.2.expected.md', 'about-release-0.3.1.expected.md',
+      'about-release-0.3.3.expected.md', 'about-release-0.3.2.expected.md', 'about-release-0.3.1.expected.md',
       'schedule-default.xiaojing.expected.md',
     ])
   })

@@ -1,9 +1,10 @@
 /** Isolated Platform documents owned by the desktop account lifetime. */
 import type { EventEmitter } from 'node:events'
-import { createHash, randomUUID } from 'node:crypto'
-import { WebContentsView, session, shell, type Session, type View, type WebFrameMain } from 'electron'
+import { randomUUID } from 'node:crypto'
+import { app, WebContentsView, session, shell, type Session, type View, type WebFrameMain } from 'electron'
 import { mergePlatformCookies, platformClientHeaders, type PlatformSession } from '@deepseek-ai/dsh-deepseek-account'
 import { desktopClientMetadata } from './client-metadata.ts'
+import { platformStorageDirectory } from './platform-storage.ts'
 
 import { PLATFORM_IPC, type PlatformLocale } from './platform-ipc.ts'
 
@@ -83,6 +84,9 @@ export class DesktopPlatformView {
     if (account === null) throw new Error('Platform account unavailable')
     if (owner.isDestroyed()) return
     const generation = this.generation
+    const browserSession = account.userId === null
+      ? session.fromPartition(`dsh-platform-${randomUUID()}`)
+      : session.fromPath(platformStorageDirectory(app.getPath('sessionData'), account.origin, account.userId))
     this.owner = owner
     const closeOwnedView = () => { if (generation === this.generation) this.close() }
     const navigateOwner = (_event: Electron.Event, _url: string, isInPlace: boolean, isMainFrame: boolean) => {
@@ -98,9 +102,6 @@ export class DesktopPlatformView {
       owner.webContents.removeListener('destroyed', closeOwnedView)
       owner.removeListener('closed', closeOwnedView)
     }
-    const partition = account.userId === null ? `dsh-platform-${randomUUID()}`
-      : `persist:dsh-platform-${createHash('sha256').update(JSON.stringify([account.origin, account.userId])).digest('hex')}`
-    const browserSession = session.fromPartition(partition)
     // Sanitize persisted authentication even after an unclean previous process exit.
     const failure = await this.cleanStorage(browserSession)
     if (generation !== this.generation) return

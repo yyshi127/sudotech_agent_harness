@@ -48,8 +48,12 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
   it('closes the setup card without discarding the add card beside it', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-onboarding-setup-card-cancel'))
     const signIn = page.getByRole('dialog', { name: '开始使用', exact: true })
-    await signIn.waitFor({ timeout: 15_000 })
-    await signIn.getByRole('button', { name: '添加 API Key', exact: true }).click()
+    if (XIAOJING) {
+      expect(await signIn.count()).toBe(0)
+    } else {
+      await signIn.waitFor({ timeout: 15_000 })
+      await signIn.getByRole('button', { name: '添加 API Key', exact: true }).click()
+    }
     const credentialStep = page.getByRole('dialog', { name: CREDENTIAL_STEP })
     await credentialStep.waitFor({ timeout: 15_000 })
     if (XIAOJING) expect(await page.locator('html').getAttribute('data-dsh-client-build-profile')).toBe('xiaojing')
@@ -107,6 +111,8 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
     const credentials = await readFile(join(scaffold.harnessHome, '.credentials.yaml'), 'utf8')
     expect(credentials).toContain('MINIMAX_CN_API_KEY: sk-e2e-minimax')
     expect(credentials).not.toContain('DEEPSEEK_API_KEY')
+    await expect.poll(() => scaffold.ctx.llm.listProviders().some(provider => provider.id === 'minimax-cn')).toBe(true)
+    expect((await scaffold.ctx.llm.listModels('minimax-cn')).length).toBeGreaterThan(0)
 
     const warningsBefore = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })
@@ -129,6 +135,7 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
     expect(await settings.getByRole('textbox', { name: 'API 密钥', exact: true }).count()).toBe(0)
 
     expect((await page.content()).includes('sk-e2e-minimax')).toBe(false)
+    expect((await page.locator('body').ariaSnapshot()).includes('sk-e2e-minimax')).toBe(false)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 

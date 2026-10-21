@@ -3,7 +3,7 @@ import { mkdtemp, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { promisify } from 'node:util'
-import { expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { prepareWindowsSignatureCacheDirectory, resolveWindowsSignatureCacheDirectory } from '../scripts/windows-signature-cache-directory.mjs'
 
 it.skipIf(process.platform !== 'win32')('resolves an account cache independently of checkout and LocalAppData virtualization', () => {
@@ -30,15 +30,30 @@ it.each(['', 'cache', 'C:cache', '\\cache', '\\\\server\\share', '\\\\?\\C:\\cac
   expect(() => resolveWindowsSignatureCacheDirectory({ DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_DIR: path })).toThrow(/absolute local/u)
 })
 
-it.skipIf(process.platform !== 'win32')('creates private storage and rejects linked or publicly readable cache roots', async (t) => {
-  const root = await mkdtemp(join(import.meta.dirname, 'directory-test-'))
-  t.onTestFinished(() => rm(root, { recursive: true, force: true }))
-  const cache = join(root, 'private')
-  await prepareWindowsSignatureCacheDirectory(cache)
-  await prepareWindowsSignatureCacheDirectory(cache)
-  const link = join(root, 'linked')
-  await symlink(cache, link, 'junction')
-  await expect(prepareWindowsSignatureCacheDirectory(join(link, 'child'))).rejects.toThrow(/reparse/u)
-  await promisify(execFile)('icacls.exe', [cache, '/grant', '*S-1-1-0:(OI)(CI)R'], { windowsHide: true })
-  await expect(prepareWindowsSignatureCacheDirectory(cache)).rejects.toThrow(/permissions/u)
+describe.skipIf(process.platform !== 'win32')('private Windows signature cache storage', () => {
+  let root = ''
+  let cache: string
+  beforeEach(async () => {
+    root = await mkdtemp(join(import.meta.dirname, 'directory-test-'))
+    cache = join(root, 'private')
+    await prepareWindowsSignatureCacheDirectory(cache)
+  })
+  afterEach(async () => {
+    if (root !== '') await rm(root, { recursive: true, force: true })
+  })
+
+  it('creates private storage and accepts it on revalidation', async () => {
+    await prepareWindowsSignatureCacheDirectory(cache)
+  })
+
+  it('rejects cache roots reached through a junction', async () => {
+    const link = join(root, 'linked')
+    await symlink(cache, link, 'junction')
+    await expect(prepareWindowsSignatureCacheDirectory(join(link, 'child'))).rejects.toThrow(/reparse/u)
+  })
+
+  it('rejects publicly readable cache roots', async () => {
+    await promisify(execFile)('icacls.exe', [cache, '/grant', '*S-1-1-0:(OI)(CI)R'], { windowsHide: true })
+    await expect(prepareWindowsSignatureCacheDirectory(cache)).rejects.toThrow(/permissions/u)
+  })
 })

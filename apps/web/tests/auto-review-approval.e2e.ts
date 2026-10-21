@@ -20,7 +20,7 @@ const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/auto-review-a
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/auto-review-approval/session.v3.jsonl', import.meta.url))
 const XIAOJING = webClientProfile() === 'xiaojing'
 const UI_EXPECTED = fileURLToPath(new URL(XIAOJING
-  ? './expected/auto-review-xiaojing/approval.expected.md'
+  ? './expected/auto-review-approval-xiaojing-033/approval.expected.md'
   : '../../../snapshots/web/auto-review-approval/ui.expected.md', import.meta.url))
 const MODE = webSnapshotMode()
 const SEED_ID = 'auto-review-approval-web-e2e'
@@ -90,6 +90,9 @@ describe.skipIf(MODE === 'record')('web e2e: cold Auto-review user rejection and
   }, 60_000)
 
   it('keeps its snapshot inventory closed', async () => {
+    if (XIAOJING) await assertFixtureInventory(fileURLToPath(new URL('./expected/auto-review-approval-xiaojing-033', import.meta.url)), [
+      'approval.expected.md',
+    ])
     if (XIAOJING) await assertFixtureInventory(fileURLToPath(new URL('./expected/auto-review-xiaojing', import.meta.url)), [
       'approval.expected.md', 'denial.expected.md',
     ])

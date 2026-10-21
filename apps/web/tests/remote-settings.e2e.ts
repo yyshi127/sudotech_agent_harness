@@ -8,12 +8,15 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss,
-  launchWebScaffold, watchConsole, webSnapshotMode, WELCOME_NOTICE_COPY,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, WELCOME_NOTICE_COPY,
   type WebScaffold,
 } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
 const MODE = webSnapshotMode()
+const XIAOJING = webClientProfile() === 'xiaojing'
+const WELCOME_TITLE = XIAOJING ? '初次使用说明' : WELCOME_NOTICE_COPY.zh.title
+const WELCOME_CONTINUE = XIAOJING ? '开始使用' : WELCOME_NOTICE_COPY.zh.continueLabel
 
 /**
  * A loading welcome store hides the notice, so absence is conclusive only
@@ -28,7 +31,7 @@ async function expectOnboardingSettled(page: Page): Promise<Locator> {
   const dialog = page.getByRole('dialog', { name: '设置' })
   await dialog.getByRole('button', { name: '模型', exact: true }).click()
   await dialog.getByRole('button', { name: '添加模型提供商', exact: true }).waitFor({ timeout: 15_000 })
-  expect(await page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title }).count()).toBe(0)
+  expect(await page.getByRole('dialog', { name: WELCOME_TITLE }).count()).toBe(0)
   return dialog
 }
 
@@ -66,11 +69,11 @@ describe.skipIf(MODE === 'record')('web e2e: trusted remote host preferences', (
   }
 
   it('persists welcome acknowledgement, model configuration, and appearance across reloads and browser contexts', async () => {
-    const welcome = page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title })
+    const welcome = page.getByRole('dialog', { name: WELCOME_TITLE })
     await welcome.waitFor({ timeout: 15_000 })
     expect(await page.locator('#root').evaluate(root => (root as HTMLElement).inert)).toBe(true)
 
-    await welcome.getByRole('button', { name: WELCOME_NOTICE_COPY.zh.continueLabel }).click()
+    await welcome.getByRole('button', { name: WELCOME_CONTINUE }).click()
     await welcome.waitFor({ state: 'detached', timeout: 15_000 })
     await expect.poll(
       () => page.locator('#root').evaluate(root => (root as HTMLElement).inert),

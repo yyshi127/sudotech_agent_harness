@@ -5,6 +5,5 @@
     - button "Browse folder"
   - option "reference.txt"
   - text: Sessions
-  - option "session-{{uuid}} {{cwd}}\\Finance工作区\\标准咨询 · {{age}}"
   - option "reference-order-target-session {{cwd}} · {{age}}"
   - option "reference-source-session {{cwd}} · {{age}}"

@@ -34,7 +34,7 @@ describe('web e2e: preset roster guidance', () => {
     onTestFailed(() => saveFailureShot(page, 'preset-roster-section'))
     await expect.poll(() => page.locator('[data-agent-preset-id]').count()).toBe(4)
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(join(EXPECTED, 'section.expected.md'), snapshot, mode)
+    await compareOrRefreshGolden(join(EXPECTED, XIAOJING ? 'section-033.expected.md' : 'section.expected.md'), snapshot, mode)
     if (XIAOJING) expect(await page.getByRole('dialog', { name: '设置' }).getByRole('navigation').getByRole('button', { name: '账户', exact: true }).count()).toBe(0)
     expect(snapshot).toContain('让 Agent 帮我创建预设模式')
     expect(snapshot).toContain('查看配置: 标准模式')

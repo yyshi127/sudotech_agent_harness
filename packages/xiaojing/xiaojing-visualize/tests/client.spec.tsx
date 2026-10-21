@@ -8,7 +8,9 @@ import { HEIGHT_MESSAGE_TYPE, STREAM_MESSAGE_TYPE } from '../src/shell.ts'
 import { StreamingPreview } from '../src/client/StreamingPreview.tsx'
 import { VisualizeCard } from '../src/client/VisualizeCard.tsx'
 import { VisualizeTurnTail } from '../src/client/VisualizeTurnTail.tsx'
-import { EMPTY_CHAT_SNAPSHOT, type ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
+import { EMPTY_CHAT_SNAPSHOT, type ChatNode, type ChatNodeSource, type ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { PartialArguments } from '@deepseek-ai/dsh-util-values'
 import { en } from '../src/client/locales.ts'
 import { apply, inject, name } from '../src/client/index.ts'
 import { resolveTheme } from '../src/client/theme.ts'
@@ -18,14 +20,31 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-function streamingProps(blocks: unknown, status = 'running') {
-  const assistant = { status, blocks }
-  const step = { data: { source: () => ({ getSnapshot: () => assistant, subscribe: () => () => {} }) } }
+function streamingProps(blocks: readonly (
+  | { kind: 'text'; text: string }
+  | { kind: 'tool-call'; name: string; argsRaw: string }
+)[] | undefined, status = 'running', source?: ChatNodeSource) {
+  const calls = blocks?.filter(block => block.kind === 'tool-call') ?? []
+  const assistant = { status, blocks: calls.map(block => ({ ...block, argsRaw: '' })) }
+  const step = { turn: 1, step: 1, data: { source: () => ({ getSnapshot: () => assistant, subscribe: () => () => {} }) } }
+  const nodes = new Map(calls.map((block, index) => [`call-${index}`, {
+    kind: 'tool-call',
+    visibility: 'visible',
+    data: { root: {
+      phase: status === 'running' ? 'preparing' : 'start', name: block.name,
+      args: PartialArguments.fromText(block.argsRaw),
+    } },
+  }]))
   return {
     t: (key: keyof typeof en) => en[key],
     useChat: (selector: (snapshot: unknown) => unknown) => selector({
       ...EMPTY_CHAT_SNAPSHOT,
       timeline: { turnOrder: blocks === undefined ? [] : [1], turns: new Map([[1, { steps: [step] }]]) },
+      locations: { ...EMPTY_CHAT_SNAPSHOT.locations, getStep: () => [...nodes.keys()] },
+      nodes: {
+        ...EMPTY_CHAT_SNAPSHOT.nodes, get: (key: string) => nodes.get(key),
+        source: (key: string) => source ?? ({ getSnapshot: () => nodes.get(key), subscribe: () => () => {} }),
+      },
     }),
   } as Parameters<typeof StreamingPreview>[0]
 }
@@ -181,6 +200,51 @@ describe('VisualizeCard', () => {
 })
 
 describe('StreamingPreview', () => {
+  it('observes lazy Tool argument publications without Assistant argument copies or Chat snapshot changes', () => {
+    vi.useFakeTimers()
+    const args = new PartialArguments()
+    args.append('{"fragment":"<div>one')
+    const node: ChatNode<'tool-call'> = {
+      key: 'call-0', id: 'call-0', kind: 'tool-call', target: 'chat', anchorSeq: 1,
+      visibility: 'visible', location: { kind: 'unresolved' },
+      data: { root: {
+        phase: 'preparing', callId: 'call-0', name: 'visualize', turn: 1, step: 1,
+        time: 1, subCalls: [], args,
+      } },
+    }
+    const store = createSnapshotStore<ChatNode<'tool-call'> | undefined>(node)
+    const released = vi.fn()
+    const source: ChatNodeSource = {
+      getSnapshot: () => store.getSnapshot(),
+      subscribe: (listener) => {
+        const stop = store.subscribe(listener)
+        return () => { stop(); released() }
+      },
+    }
+    const props = streamingProps([{ kind: 'tool-call', name: 'visualize', argsRaw: '' }], 'running', source)
+    const view = render(<StreamingPreview {...props} />)
+    const frame = screen.getByTitle('Visualization streaming preview') as HTMLIFrameElement
+    const postMessage = vi.spyOn(frame.contentWindow!, 'postMessage')
+    fireEvent.load(frame)
+    expect(postMessage).toHaveBeenLastCalledWith({
+      type: STREAM_MESSAGE_TYPE, token: 'streaming-preview', fragment: '<div>one',
+    }, '*')
+    args.append(' two</div>"}')
+    expect(args.refresh()).toBe(true)
+    act(() => { store.set({ ...node, data: { root: { ...node.data.root } } }) })
+    act(() => { vi.advanceTimersByTime(150) })
+    expect(screen.getByTitle('Visualization streaming preview')).toBe(frame)
+    expect(postMessage).toHaveBeenLastCalledWith({
+      type: STREAM_MESSAGE_TYPE, token: 'streaming-preview', fragment: '<div>one two</div>',
+    }, '*')
+    act(() => { store.set({ ...node, visibility: 'hidden' }) })
+    expect(view.container.innerHTML).toBe('')
+    act(() => { store.set(undefined) })
+    expect(view.container.innerHTML).toBe('')
+    view.unmount()
+    expect(released).toHaveBeenCalledOnce()
+  })
+
   it('stays absent until a visualize call starts and chooses the latest call', () => {
     const absent = render(<StreamingPreview {...streamingProps(undefined)} />)
     expect(absent.container.innerHTML).toBe('')

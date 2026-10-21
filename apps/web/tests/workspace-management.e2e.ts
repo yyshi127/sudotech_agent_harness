@@ -35,6 +35,7 @@ const BROWSER_EXPECTED = webClientProfile() === 'xiaojing'
   ? join(LOCAL_EXPECTED, 'directory-browser.xiaojing.expected.md')
   : join(SNAPSHOT_DIR, 'directory-browser.expected.md')
 const WORKSPACE_SECTION = webClientProfile() === 'xiaojing' ? 'Office Companion' : 'Workspaces'
+const OUTSIDE_LIST_BUTTON = webClientProfile() === 'xiaojing' ? 'Settings' : 'Account menu'
 const SEED_ID = 'workspace-management-web-e2e'
 // Both waits exceed ui-primitives' 200ms POINTER_GRACE_MS. Keep them above
 // that value if the shared setting changes.
@@ -142,6 +143,8 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
     await writeFile(join(sessionCwd, 'a.txt'), 'alpha\n')
     await writeFile(join(sessionCwd, 'b.txt'), 'beta\n')
     await seedSession(scaffold, await readFile(SEED, 'utf8'), SEED_ID)
+    // A user title settles before the hover locator reads it; cold derived titles can arrive later.
+    await scaffold.ctx.sessionController.rename({ sessionId: SessionId(SEED_ID), title: 'Workspace management session' })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     await page.routeWebSocket('**/api/remote.mux', (route) => {
@@ -560,7 +563,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
     expect(await copied.isVisible()).toBe(true)
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(rowTitle)
     // Leaving anchor and card together closes it after the grace.
-    await page.getByRole('button', { name: 'Account menu', exact: true }).hover()
+    await page.getByRole('button', { name: OUTSIDE_LIST_BUTTON, exact: true }).hover()
     await expect.poll(() => card.count(), { timeout: 5_000 }).toBe(0)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
@@ -625,7 +628,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
       expect(await card.count()).toBe(0)
       await observe('menu-closed')
 
-      await hoverPage.getByRole('button', { name: 'Account menu', exact: true }).hover()
+      await hoverPage.getByRole('button', { name: OUTSIDE_LIST_BUTTON, exact: true }).hover()
       await title.hover()
       await hoverPage.clock.runFor(799)
       expect(await card.count()).toBe(0)
@@ -669,7 +672,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
       const clockStart = Date.now()
       await hoverPage.clock.install({ time: clockStart })
       await hoverPage.clock.pauseAt(clockStart + 1000)
-      await hoverPage.getByRole('button', { name: 'Account menu', exact: true }).hover()
+      await hoverPage.getByRole('button', { name: OUTSIDE_LIST_BUTTON, exact: true }).hover()
       await hoverPage.clock.runFor(300)
       await first.hover()
       await hoverPage.clock.runFor(799)
@@ -689,7 +692,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
       await record('workspace-to-session-immediate', sessionTitle)
       await first.hover()
       await record('session-to-workspace-immediate', 'gamma-ws')
-      await hoverPage.getByRole('button', { name: 'Account menu', exact: true }).hover()
+      await hoverPage.getByRole('button', { name: OUTSIDE_LIST_BUTTON, exact: true }).hover()
       await hoverPage.clock.runFor(300)
       expect(await card.count()).toBe(0)
       await second.hover()
@@ -775,7 +778,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
           await observe('portal-return-instant')
 
           await secondCard.hover()
-          await ui.getByRole('button', { name: 'Account menu', exact: true }).hover()
+          await ui.getByRole('button', { name: OUTSIDE_LIST_BUTTON, exact: true }).hover()
           await ui.clock.runFor(300)
           await secondCard.waitFor({ state: 'detached' })
           expect(await firstCard.count()).toBe(0)
@@ -826,7 +829,7 @@ describe('web e2e: workspace management (create / rename / grouping / hover affo
     await page.waitForTimeout(POINTER_HOLD_MS)
     expect(await page.getByRole('menuitem', { name: 'Rename' }).count()).toBe(1)
     // Pointer-leave dismissal still applies once the pointer genuinely leaves.
-    await page.getByRole('button', { name: 'Account menu', exact: true }).hover()
+    await page.getByRole('button', { name: OUTSIDE_LIST_BUTTON, exact: true }).hover()
     await expect.poll(() => page.getByRole('menuitem', { name: 'Rename' }).count(), { timeout: 5_000 }).toBe(0)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
@@ -1031,18 +1034,13 @@ describe('web e2e: New Session after an outdated blank cache', () => {
       await workspace.attachSession(id)
       browser = await chromium.launch()
       const page = await newEnglishPage(browser)
+      const creationRequests: unknown[] = []
+      page.on('request', (request) => {
+        if (new URL(request.url()).pathname === '/api/session/create') creationRequests.push(request.postDataJSON())
+      })
       await page.clock.setFixedTime(now)
       const tripwire = watchConsole(page)
-      onTestFailed(() => saveFailureShot(page, 'web-e2e-new-session-stale-blank'))
-
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      if (webClientProfile() === 'xiaojing') {
-        const group = page.getByRole('treeitem', { name: 'New session regression', exact: true })
-        await group.waitFor({ timeout: 15_000 })
-        if (await group.getAttribute('aria-expanded') !== 'true') await group.click()
-        await page.locator(`[data-row-key="session:${id}"]`).click()
-      }
-      await page.getByRole('tab', { name: 'Chat', exact: true }).waitFor()
       const selected = page.locator('[role="treeitem"][aria-selected="true"]')
       // Startup asks for a new conversation with the stale blank as its reuse
       // candidate; the Host declines the started Session and creates a blank one.
@@ -1062,6 +1060,8 @@ describe('web e2e: New Session after an outdated blank cache', () => {
       await page.getByRole('tab', { name: 'Chat', exact: true }).waitFor({ state: 'hidden' })
       // New Session creates a fresh Session; the blank startup created stays a member.
       await expect.poll(() => workspace.sessionIds.length).toBe(3)
+      expect(creationRequests).toHaveLength(2)
+      expect(creationRequests[0]).toMatchObject({ payload: { args: { request: { workspaceId: workspace.id, sessionId: id } } } })
       expect(workspace.sessionIds).toContain(id)
       await page.getByRole('treeitem').filter({ hasText: previous }).waitFor()
       const after = await captureStableAria(page, '[role="tree"]', scaffold.workspaceCwd)
@@ -1069,6 +1069,10 @@ describe('web e2e: New Session after an outdated blank cache', () => {
         `Before New Session\n${before}\nAfter New Session\n${after}`, MODE)
       expect(tripwire.pageErrors).toEqual([])
       expect(tripwire.warnings).toEqual([])
+    } catch (error) {
+      const failedPage = browser?.contexts()[0]?.pages()[0]
+      if (failedPage !== undefined) await saveFailureShot(failedPage, 'web-e2e-new-session-stale-blank')
+      throw error
     } finally {
       await browser?.close()
       await scaffold.close()

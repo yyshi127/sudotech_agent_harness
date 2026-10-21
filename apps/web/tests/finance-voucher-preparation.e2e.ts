@@ -208,8 +208,8 @@ it.skipIf(webClientProfile() !== 'xiaojing')('prepares, confirms and recovers vo
       handle.agent.followup(createUserMessage({ content: [{ type: 'text',
         text: '/finance-voucher-draft\n先拟一张今天银行取现三毛钱的凭证，制单人测试员，没附件，别提交。' }], source: { kind: 'user' } }))
       await handle.agent.whenIdle()
-      expect(adapter.calls).toBe(6)
       const events = handle.agent.session.snapshotEvents()
+      expect(adapter.calls, JSON.stringify(events.filter(event => /error|rejected|turn\/end/u.test(event.type)))).toBe(6)
       const results = events.filter(event => event.type === 'tool/result').map(event => event.data.message.content)
       expect(results).toHaveLength(5)
       const first = results[0]?.find(block => block.type === 'text')

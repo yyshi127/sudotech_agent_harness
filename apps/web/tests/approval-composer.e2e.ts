@@ -21,7 +21,7 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
-  ? './expected/approval-composer-xiaojing'
+  ? './expected/approval-composer-xiaojing-033'
   : '../../../snapshots/web/approval-composer', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 // The golden covers the stable waiting panel; direct assertions cover its answer.

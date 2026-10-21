@@ -16,7 +16,7 @@ import type {} from '@deepseek-ai/dsh-schedule'
 import type {} from '@deepseek-ai/dsh-subagent'
 import {
   fixtureUserPrompts, launchWebScaffold, normalizeWebSessionVolatiles, rawSessionLog, readPersistedEvents,
-  recordedSessionFixturePath, selectedSessionFixture, webSnapshotMode,
+  recordedSessionFixturePath, selectedSessionFixture, webClientProfile, webSnapshotMode,
 } from './scaffold.ts'
 import { REPO_ROOT } from './support.ts'
 
@@ -24,7 +24,8 @@ const DIR = fileURLToPath(new URL('../../../snapshots/web/subagent-fork-schedule
 const PIN = join(DIR, '../fresh-round-trip')
 const MODE = webSnapshotMode()
 
-it.skipIf(MODE === 'record')('replays inherited schedule tools and refusals in a seeded Web fork', async () => {
+// This recording pins web-default headers; Xiaojing's deletion approval has its own assembled test.
+it.skipIf(MODE === 'record' || webClientProfile() !== 'official')('replays inherited schedule tools and refusals in a seeded Web fork', async () => {
   const paths = await Promise.all(['session.v4.jsonl', 'session.1.v4.jsonl']
     .map(file => selectedSessionFixture(join(DIR, file))))
   let expected = await Promise.all(paths.map(path => readFile(path, 'utf8')))

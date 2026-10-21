@@ -8,7 +8,7 @@
 
 主窗口在 Host 准备开始前显示本地的小兢启动页，并与桌面小兢一起出现。启动页在同一应用文档中保留到客户端首次呈现界面，不增加等待时间或额外导航。桌面小兢沿用已保存的显示状态。初始化完成后，启动时关闭或最小化窗口的操作仍然有效；明确的打开操作可在启动期间恢复主窗口。
 
-自动化任务已内置于 Desktop 承载的 Web 应用。升级保留既有任务并移除退役的实验性 bundle 声明；全新安装本身不会创建或执行任务。
+自动化任务已内置于 Desktop 承载的 Web 应用。新 profile 只选择随包提供的 Web 组合，不再加入退役的实验性 Schedule bundle。升级时由 Host 的标准 profile 加载器移除该退役声明，并保留其它组合包选择、已安装依赖、用户元数据和显式插件覆盖。既有任务保持不变；全新安装本身不会创建或执行任务。
 
 ## 永久安装器身份
 
@@ -42,6 +42,8 @@ Electron 在获取单实例锁之前，将 `userData` 固定为 `%APPDATA%\@sudo
 0.2.1 RC2 的 `DesktopHostProcess` 负责 loopback Host 生命周期，并固定 `DSH_CLIENT_BUILD_PROFILE=xiaojing`，因此只有 Electron shell 会加载应用，打包后的小兢专属 Host 插件也会保持启用。桌面端将认证令牌交换为桌面小兢状态流使用的 Host Cookie，用户无需手动打开日志中的地址。
 
 `user-data-contract.json` 保护会话、设置、凭据、agent 预设、profile、storage、旧版上传文件、原生图片附件、用量统计、专用浏览器操控 profile、微信频道状态、桌面小兢偏好、Electron Local Storage 和“文档”工作区。安装器设置 `deleteAppDataOnUninstall: false`，且不会访问这些路径。`verify-user-data-contract.mjs` 使用合成的 0.1.9 数据集验证应用文件替换和当前读取实现；除将包含旧版文件上传组合包的精确安装默认 Web 列表（含或不含 ModLens）迁移为当前 Web 模板外，所有受保护数据必须保持字节不变。它还会在私有副本上验证扁平凭据到 version 1 的原子迁移不会生成明文备份，并检查会话、凭据、预设、设置、上传、storage 和用量兼容。V3 会话迁移接纳此样本紧挨首个步骤之前的用户消息，同时不改写源文件；升级版发布前仍必须通过该门禁。若发布版改变其他持久格式，必须先增加原子迁移和上一正式版 fixture，才能调整此检查。
+
+平台账号页面通过 Electron 的 `session.fromPath` 使用 `sessionData/p/<SHA-256 的 base64url 编码>` 保存浏览器数据，保留完整的签发方与账号摘要，同时缩短 Windows 缓存路径。首次打开账号的 Session 前，会将已有 `Partitions/dsh-platform-<SHA-256 十六进制编码>` 目录原子移动到该账号的新目录，保留偏好和浏览器文件；新旧目录同时存在时明确报错，不覆盖任何一方。Host 登录凭据和原有认证 Cookie 清理规则不变。没有稳定账号身份时仍使用内存存储。
 
 ## 开发预览隔离
 

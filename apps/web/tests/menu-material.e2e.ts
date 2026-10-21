@@ -136,11 +136,13 @@ it('shares menu transparency and blur across palettes and follows native menu bo
   const sessionMenu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: 'Rename', exact: true }) })
   await sessionMenu.waitFor()
   expect(await material(sessionMenu)).toEqual(results['darwin-dark'])
-  await compareOrRefreshGolden(join(expected, 'session-menu.expected.md'),
+  await compareOrRefreshGolden(join(expected, XIAOJING ? 'session-menu-033.expected.md' : 'session-menu.expected.md'),
     await captureStableAria(page, '[role="menu"]', scaffold.workspaceCwd), webSnapshotMode())
   await page.keyboard.press('Escape')
   await expect.poll(() => page.locator('[data-menu-backing]').count()).toBe(0)
-  if (XIAOJING) await assertFixtureInventory(expected, ['materials.expected.json', 'modal-masks.expected.json', 'session-menu.expected.md'])
+  if (XIAOJING) await assertFixtureInventory(expected, [
+    'materials.expected.json', 'modal-masks.expected.json', 'session-menu.expected.md', 'session-menu-033.expected.md',
+  ])
   expect(tripwire.pageErrors).toEqual([])
   expect(tripwire.warnings).toEqual([])
 })

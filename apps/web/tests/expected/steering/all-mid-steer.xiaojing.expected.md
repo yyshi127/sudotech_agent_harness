@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
   - text: Standard mode
+  - 'button "Access mode, current: Workspace Write"': Workspace Write
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

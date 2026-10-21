@@ -1,0 +1,26 @@
+- banner:
+  - navigation "Session hierarchy": Begin your reply with the
+  - text: Standard mode
+  - 'button "Access mode, current: Workspace Write"': Workspace Write
+  - button "More actions"
+  - button "Open right sidebar"
+  - tablist:
+    - tab "Chat" [selected]
+    - tab "Trajectory"
+- text: Begin your reply with the plain sentence "Reading the workspace now." as text, and in that same message call the pwsh tool with the command "[Console]::Write('alpha' + [char]10)". After the tool result, reply with the single word DONE and stop. {{clock}}
+- button "Copy"
+- tooltip "Copy"
+- button "Think The user wants me to begin with \"Reading the workspace now.\" and call pwsh with \"[Console]::Write('alpha' + [char]10)\" in the same message. Then after the tool result, reply with the single word DONE and stop."
+- paragraph: Reading the workspace now.
+- button "Pwsh Print alpha to stdout"
+- paragraph: partial
+- status: Xiaojing Accounting is thinking
+- text: Xiaojing Accounting is thinking for {{duration}} ···
+- textbox "Message or run a task, / commands, @ files or sessions"
+- button "Add files or run commands"
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Select model, current DeepSeek-V41-Flash": DeepSeek-V41-Flash
+- button "Stop generating"
+- button "1 turns 1 steps · {{throughput}} tok/s": 1 turns 1 steps{{throughput}} tok/s
+- button "7.9K tok · Cache hit 0%": 7.9K tokCache hit 0%
+- button "6% of context used": 6%

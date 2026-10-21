@@ -27,7 +27,7 @@ import { once } from 'node:events'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { tmpdir } from 'node:os'
-import { dirname, extname, join, normalize } from 'node:path'
+import { dirname, extname, join, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import type { Browser, Page } from 'playwright'
@@ -46,7 +46,7 @@ import {
   VFS_EXAMPLE_WRAPPED_COMMAND,
   buildVfsExampleFiles,
 } from '../../../packages/experimental/webworker-runtime/tests/vfs-example-fixture.ts'
-import { captureStableAria, compareOrRefreshGolden, webSnapshotMode } from './scaffold.ts'
+import { captureStableAria, compareOrRefreshGolden, webClientProfile, webSnapshotMode } from './scaffold.ts'
 import { expandOwningTurnProcess, newEnglishPage, REPO_ROOT, saveFailureShot } from './support.ts'
 
 const DIST_ROOT = fileURLToPath(new URL('../dist', import.meta.url))
@@ -58,6 +58,7 @@ const IMAGE_FILE = join(DIST_ROOT, 'preview', IMAGE_FILE_NAME)
 const SOURCE_CHOOSER_EXPECTED = fileURLToPath(new URL('./snapshots/preview-boot/source-chooser.expected.md', import.meta.url))
 
 const SNAPSHOT_MODE = webSnapshotMode()
+const XIAOJING = webClientProfile() === 'xiaojing'
 
 /** Profile the preview deployment composes; `build:preview` packs the same one. */
 const PROFILE = 'web'
@@ -218,7 +219,7 @@ async function respond(
   served: string[],
 ): Promise<void> {
   const path = new URL(request.url ?? '/', 'http://127.0.0.1').pathname
-  const relative = normalize(decodeURIComponent(path)).replace(/^\/+/, '')
+  const relative = posix.normalize(decodeURIComponent(path)).replace(/^\/+/, '')
   served.push(relative)
   try {
     const body = await readFile(overrides.get(relative) ?? join(DIST_ROOT, relative))
@@ -280,7 +281,9 @@ async function within<T>(work: Promise<T>, ms: number, stalled: string): Promise
   }
 }
 
-it('boots the packed worker deployment to an interactive page', async () => {
+it(XIAOJING
+  ? 'rejects an official packed Worker paired with Xiaojing static artifacts'
+  : 'boots the packed worker deployment to an interactive page', async () => {
   requirePreviewPages()
   const assets = requireVfsAssets()
   try {
@@ -288,8 +291,12 @@ it('boots the packed worker deployment to an interactive page', async () => {
     try {
       const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
       try {
-        await bootEmptyPreview(site.origin, browser)
-        await bootPreview(site, assets.manifest, browser)
+        if (XIAOJING) {
+          await rejectMixedPreview(site.origin, browser)
+        } else {
+          await bootEmptyPreview(site.origin, browser)
+          await bootPreview(site, assets.manifest, browser)
+        }
       } finally {
         await browser.close()
       }
@@ -300,6 +307,36 @@ it('boots the packed worker deployment to an interactive page', async () => {
     assets.cleanup()
   }
 }, 600_000)
+
+/** Require the actual Worker to load before the static shell rejects its unmatched product profile. */
+async function rejectMixedPreview(origin: string, browser: Browser): Promise<void> {
+  const page = await newEnglishPage(browser)
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => { pageErrors.push(error) })
+  const treeActive = new Promise<string>((reported) => {
+    page.on('console', (message) => {
+      if (message.text().includes(TREE_ACTIVE)) reported(message.text())
+    })
+  })
+  try {
+    await page.goto(`${origin}/preview.html?preview-fixture=none`, { waitUntil: 'domcontentloaded' })
+    await page.getByText('Failed to load plugins', { exact: true }).waitFor({ timeout: 30_000 })
+    await page.getByText(
+      'web boot: static Client profile "xiaojing" does not match activated product profile "none"; run a complete profile build before starting the application',
+      { exact: true },
+    ).waitFor({ timeout: 1_000 })
+    const bootLine = await within(treeActive, 1_000, 'mixed preview never activated its Worker tree')
+    expect(bootLine).toContain(`image lowering=${WRAPPER_CONTRACT}`)
+    expect(bootLine).toContain('data overlays=0')
+    expect(await page.locator('[class*="frame"]').count()).toBe(0)
+    expect(pageErrors.map(error => error.message)).toEqual([])
+  } catch (error) {
+    await saveFailureShot(page, 'preview-boot-profile-mismatch')
+    throw error
+  } finally {
+    await page.close()
+  }
+}
 
 /**
  * Open the preview page and hold it to both boot milestones.

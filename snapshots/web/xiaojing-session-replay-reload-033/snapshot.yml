@@ -1,0 +1,9 @@
+version: 1
+scenario: xiaojing-session-replay-reload-033
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing
+session:
+  source: ../xiaojing-fresh-round-trip-033/session.v4.jsonl

@@ -1,0 +1,8 @@
+version: 1
+scenario: xiaojing-minimal-read-image-033
+profile: web
+composition: web-xiaojing-minimal-image
+recording: authored
+header:
+  class: web-xiaojing-minimal-image-033
+  pin: true

@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveDesktopPaths } from '../src/paths.ts'
 import { DesktopProjectManager } from '../src/project-manager.ts'
-import { readProfilePlugins } from '@deepseek-ai/dsh-app-boot'
+import { loadProfileDirectory, PROFILE_TEMPLATES, readProfilePlugins } from '@deepseek-ai/dsh-app-boot'
 import { runtimeFixture } from './runtime-fixture.ts'
 
 const roots: string[] = []
@@ -43,20 +43,62 @@ afterEach(() => {
 })
 
 describe('desktop external plugin profile', () => {
-  it('enables Automation tasks on first launch and preserves a later opt-out', async () => {
+  it('initializes the shipped Web bundles and preserves explicit Automation overrides', async () => {
     const { manager } = setup()
     await manager.applyRelease()
     const path = join(manager.paths.profile, 'package.json')
     const manifest = JSON.parse(readFileSync(path, 'utf8')) as { dsh: { profile: { bundles: string[] } } }
-    const schedule = '@deepseek-ai/dsh-experimental-schedule-bundle'
-    expect(manifest.dsh.profile.bundles).toContain(schedule)
-    manifest.dsh.profile.bundles = manifest.dsh.profile.bundles.filter(name => name !== schedule)
-    writeFileSync(path, JSON.stringify(manifest))
+    expect(manifest.dsh.profile.bundles).toEqual(PROFILE_TEMPLATES.web!.bundles)
+    const patch = join(manager.paths.profile, 'cordis.patch.yml')
+    const overrides = '# User Automation selection\n- id: schedule\n  disabled: true\n- id: ui-schedule\n  disabled: true\n'
+    writeFileSync(patch, overrides)
     const before = readFileSync(path)
 
     await manager.applyRelease()
 
     expect(readFileSync(path)).toEqual(before)
+    expect(readFileSync(patch, 'utf8')).toBe(overrides)
+  })
+
+  it('uses the Host profile loader to retire only the old Schedule bundle', async () => {
+    const { manager } = setup()
+    await manager.applyRelease()
+    seedPlugin(manager)
+    const profileDir = manager.paths.profile
+    const path = join(profileDir, 'package.json')
+    const manifest = JSON.parse(readFileSync(path, 'utf8')) as {
+      dependencies: Record<string, string>
+      dsh: { profile: { bundles: string[] } }
+      userMetadata?: string
+    }
+    const retained = [...manifest.dsh.profile.bundles]
+    manifest.dsh.profile.bundles.splice(1, 0, '@deepseek-ai/dsh-experimental-schedule-bundle')
+    manifest.userMetadata = 'retain user metadata'
+    writeFileSync(path, JSON.stringify(manifest))
+    const patch = join(profileDir, 'cordis.patch.yml')
+    const overrides = '# Retain Automation customization\n- id: schedule\n  config: { deliveryHistoryDays: 7 }\n'
+    writeFileSync(patch, overrides)
+    const lock = join(profileDir, 'pnpm-lock.yaml')
+    writeFileSync(lock, 'lockfileVersion: 9.0\n')
+
+    await manager.applyRelease()
+    const loaded = loadProfileDirectory('dsh desktop', profileDir,
+      join(manager.runtime.dsh, 'node_modules/@deepseek-ai/dsh/package.json'))
+
+    expect(loaded.skippedBundles).toEqual([])
+    expect(loaded.layers.map(layer => layer.packageName)).toEqual(retained)
+    expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({
+      ...manifest,
+      dsh: { profile: { bundles: retained } },
+    })
+    expect(readFileSync(patch, 'utf8')).toBe(overrides)
+    expect(readFileSync(lock, 'utf8')).toBe('lockfileVersion: 9.0\n')
+    expect(readFileSync(join(profileDir, 'node_modules/plugin/bundle.yml'), 'utf8')).toBe('[]\n')
+    const migrated = readFileSync(path)
+    await manager.applyRelease()
+    loadProfileDirectory('dsh desktop', profileDir,
+      join(manager.runtime.dsh, 'node_modules/@deepseek-ai/dsh/package.json'))
+    expect(readFileSync(path)).toEqual(migrated)
   })
 
   it('preserves installed packages, profile state, and the lockfile when preparing a launch', async () => {

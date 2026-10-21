@@ -106,11 +106,20 @@ function readonlyTool(root: string, reads: string[], approval: ApprovalService):
   }
 }
 
-/** Select an actual live Session through the Client's persisted selection. */
+/** Load the saved selection before the externally held Session starts its first turn. */
 async function selectSession(page: Page, url: string, id: string): Promise<void> {
   await page.addInitScript((sessionId) => { localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId })) }, id)
   await page.goto(url, { waitUntil: 'load' })
   await page.waitForSelector('[data-composer-input]', { timeout: 30_000 })
+}
+
+/** Open the externally held Session after its first turn makes the sidebar row eligible. */
+async function openRunningSession(page: Page, id: string): Promise<void> {
+  await page.locator(`[data-row-key="session:${id}"]`).click()
+  await expect.poll(() => page.evaluate(() => {
+    const saved = localStorage.getItem('dsh.sessions.current')
+    return saved === null ? undefined : (JSON.parse(saved) as { sessionId?: string }).sessionId
+  })).toBe(id)
 }
 
 it.skipIf(webClientProfile() !== 'xiaojing')('reuses a UI-approved class only in the same target scope and Session', async () => {
@@ -152,6 +161,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('reuses a UI-approved class only in
       const prompt = authoring ? '验证会话范围授权，读取测试目录一两次、目录二两次。' : fixtureUserPrompts(await readFile(FIXTURE, 'utf8'))[0]
       if (prompt === undefined) throw new Error('Missing primary fixture prompt')
       first.agent.followup(createUserMessage({ content: [{ type: 'text', text: prompt }], source: { kind: 'user' } }))
+      await openRunningSession(page, first.agent.session.id)
       const panel = page.locator('[data-approval-key]')
       await panel.getByRole('button', { name: '始终允许' }).waitFor()
       expect(reads).toEqual([])
@@ -197,6 +207,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('reuses a UI-approved class only in
       const context = events.flatMap(event => event.type === 'user/message'
         ? event.data.content.flatMap(block => block.type === 'text' ? [block.text] : []) : []).join('\n')
       expect(context).toContain('A user-approved operation class and target scope may reuse authorization only within this session.')
+      if (evidence !== undefined) await writeFile(join(evidence, 'primary-decisions.json'), JSON.stringify(decisions, null, 2) + '\n')
       if (authoring) await recordFixture(scaffold, first.agent.session.id, FIXTURE)
       await page.close()
 
@@ -205,11 +216,14 @@ it.skipIf(webClientProfile() !== 'xiaojing')('reuses a UI-approved class only in
       const second = await create('session-approval-independent', provider, provider)
       try {
         const newPage = await browser.newPage({ locale: 'zh-CN' })
+        activePage = newPage
         await selectSession(newPage, scaffold.authenticatedUrl, second.agent.session.id)
         second.agent.followup(createUserMessage({ content: [{ type: 'text', text: '在独立会话读取测试目录一。' }], source: { kind: 'user' } }))
+        await openRunningSession(newPage, second.agent.session.id)
         const newPanel = newPage.locator('[data-approval-key]')
         await newPanel.getByRole('button', { name: '始终允许' }).waitFor()
         expect(reads).toEqual(['first', 'first', 'second'])
+        if (evidence !== undefined) await newPanel.screenshot({ path: join(evidence, 'independent-approval.png') })
         await newPanel.getByRole('button', { name: '允许一次', exact: true }).click()
         await second.agent.whenIdle()
         await ctx.sessions.flush(second.agent.session)
@@ -219,7 +233,17 @@ it.skipIf(webClientProfile() !== 'xiaojing')('reuses a UI-approved class only in
         expect(freshDecisions).toHaveLength(1)
         expect(freshDecisions[0]).toMatchObject({ outcome: 'allowed-once' })
         expect(freshDecisions[0]?.authorization).toBeUndefined()
+        if (evidence !== undefined) await writeFile(join(evidence, 'independent-decisions.json'), JSON.stringify(freshDecisions, null, 2) + '\n')
         await newPage.close()
+      } catch (error) {
+        if (evidence !== undefined) {
+          await writeFile(join(evidence, 'independent-events.json'), JSON.stringify(second.agent.session.snapshotEvents(), null, 2))
+          if (activePage !== undefined && !activePage.isClosed()) {
+            await writeFile(join(evidence, 'independent-ui.txt'), await activePage.locator('body').innerText())
+            await activePage.screenshot({ path: join(evidence, 'independent.png'), fullPage: true })
+          }
+        }
+        throw error
       } finally { await second.dispose() }
     } catch (error) {
       const evidence = process.env.DSH_APPROVAL_EVIDENCE_DIR

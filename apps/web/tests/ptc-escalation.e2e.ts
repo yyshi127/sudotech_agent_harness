@@ -17,7 +17,7 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/ptc-escalation-approved', import.meta.url))
 const SNAPSHOT_DIR = WINDOWS_XIAOJING
-  ? fileURLToPath(new URL('./expected/ptc-escalation-xiaojing', import.meta.url))
+  ? fileURLToPath(new URL('./expected/ptc-escalation-xiaojing-033', import.meta.url))
   : STOCK_SNAPSHOT_DIR
 const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'approval.expected.md')
@@ -100,7 +100,10 @@ describe('web e2e: PTC program sandbox escalation', () => {
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     await assertFixtureInventory(STOCK_SNAPSHOT_DIR, ['session.v3.jsonl', 'approval.expected.md', 'workspace.expected'])
     if (WINDOWS_XIAOJING) {
-      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl', 'approval.expected.md', 'workspace.expected'])
+      await assertFixtureInventory(SNAPSHOT_DIR, [
+        'session.v4.jsonl', 'approval.expected.md', 'workspace.expected',
+        'system-prompt.expected.md', 'tool-schemas.expected.json',
+      ])
     }
   })
 })

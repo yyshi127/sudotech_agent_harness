@@ -27,7 +27,7 @@ import { XIAOJING_REPLAY_PROVIDERS, XIAOJING_ROUTE_CATALOG } from './xiaojing-re
 
 const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
-  ? './expected/question-composer-xiaojing'
+  ? './expected/question-composer-native-xiaojing'
   : '../../../snapshots/web/question-composer', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')

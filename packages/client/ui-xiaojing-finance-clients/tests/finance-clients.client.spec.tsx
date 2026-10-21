@@ -886,7 +886,7 @@ describe('Finance client plugin composition', () => {
     expect(workspaceCategories.store.getSnapshot().categories[0]?.workspaceDetailsLabel).toBe('帐套信息')
 
     await workspaceCategories.activate('finance')
-    expect(connectWorkspace).toHaveBeenCalledWith('finance-standard')
+    expect(connectWorkspace).toHaveBeenCalledWith('finance-standard', { agentPreset: 'finance' })
     expect(selectPreset).toHaveBeenCalledWith(sessionId, 'finance')
     expect(api.stage).toHaveBeenCalledWith(sessionId, { mode: 'general' })
     expect(open).toHaveBeenCalledWith(sessionId)
@@ -988,7 +988,7 @@ describe('Finance client plugin composition', () => {
     expect(connectWorkspace).not.toHaveBeenCalled()
     ctx.emit('agent-preset/staged', 'finance')
     await waitFor(() => {
-      expect(connectWorkspace).toHaveBeenCalledWith('finance-standard')
+      expect(connectWorkspace).toHaveBeenCalledWith('finance-standard', { agentPreset: 'finance' })
     })
 
     await fiber.dispose()
@@ -1078,8 +1078,15 @@ describe('Finance client plugin composition', () => {
       phase: 'ready' as const,
       error: null,
     })
-    const connectWorkspace = vi.fn(async workspaceId =>
-      workspaceId === financeWorkspaces.standard.workspaceId ? financeSessionId : ordinaryReturnSessionId)
+    const connectWorkspace = vi.fn(async (workspaceId: WorkspaceId, options?: { agentPreset?: string }) => {
+      const id = workspaceId === financeWorkspaces.standard.workspaceId ? financeSessionId : ordinaryReturnSessionId
+      if (sessionList.getSnapshot().byId[id] !== undefined) {
+        sessionList.update((state) => {
+          state.byId[id]!.projectionValues = { agentPreset: options?.agentPreset ?? 'standard' }
+        })
+      }
+      return id
+    })
     const open = vi.fn((id: SessionId) => {
       sessionList.update((state) => {
         state.ids = [id]
@@ -1112,10 +1119,45 @@ describe('Finance client plugin composition', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     await waitFor(() => {
-      expect(connectWorkspace).toHaveBeenCalledWith(financeWorkspaces.standard.workspaceId)
+      expect(connectWorkspace).toHaveBeenCalledWith(financeWorkspaces.standard.workspaceId, { agentPreset: 'finance' })
       expect(api.stage).toHaveBeenCalledWith(financeSessionId, { mode: 'general' })
       expect(open).toHaveBeenCalledWith(financeSessionId)
     })
+
+    expect(ctx.workspaceCategories.store.getSnapshot().pickerCategoryId).toBe('finance')
+    sessionList.update((state) => {
+      state.byId[financeSessionId] = { ...state.byId[financeSessionId]!, retainedBy: {} }
+    })
+    await waitFor(() => {
+      expect(ctx.workspaceCategories.store.getSnapshot().pickerCategoryId).toBeUndefined()
+    })
+    expect(sessionList.getSnapshot().byId[financeSessionId]?.projectionValues?.agentPreset).toBe('finance')
+
+    const stagedOpening = Promise.withResolvers<SessionId>()
+    connectWorkspace.mockImplementationOnce(() => stagedOpening.promise)
+    connectWorkspace.mockClear()
+    ctx.emit('agent-preset/staged', 'finance')
+    try {
+      await waitFor(() => { expect(connectWorkspace).toHaveBeenCalledOnce() })
+      expect(ctx.workspaceCategories.store.getSnapshot().pickerCategoryId).toBe('finance')
+      sessionList.update((state) => { state.byId[financeSessionId]!.updatedAt++ })
+      expect(ctx.workspaceCategories.store.getSnapshot().pickerCategoryId).toBe('finance')
+    } finally {
+      stagedOpening.resolve(financeSessionId)
+    }
+    await waitFor(() => {
+      expect(sessionList.getSnapshot().byId[financeSessionId]?.retainedBy.mainView).toBe(1)
+      expect(ctx.workspaceCategories.store.getSnapshot().pickerCategoryId).toBe('finance')
+    })
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      connectWorkspace.mockClear()
+      await ctx.workspaceCategories.activate('finance', financeWorkspaces.standard.workspaceId)
+      expect(connectWorkspace.mock.calls.map(([workspaceId]) => workspaceId))
+        .toEqual([financeWorkspaces.standard.workspaceId])
+      expect(sessionList.getSnapshot().byId[financeSessionId]?.projectionValues?.agentPreset).toBe('finance')
+      expect(open).toHaveBeenLastCalledWith(financeSessionId)
+    }
 
     connectWorkspace.mockClear()
     open.mockClear()

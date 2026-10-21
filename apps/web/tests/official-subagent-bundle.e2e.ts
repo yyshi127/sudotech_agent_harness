@@ -12,11 +12,13 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-subagent'
 import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, captureExpandedTurnProcessAria, compareOrRefreshGolden,
-  fixtureUserPrompts, launchWebScaffold, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  fixtureUserPrompts, launchWebScaffold, selectedSessionFixture, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
-const DIR = fileURLToPath(new URL('../../../snapshots/web/official-subagent-bundle', import.meta.url))
+const DIR = fileURLToPath(new URL(webClientProfile() === 'xiaojing'
+  ? './expected/official-subagent-xiaojing-033'
+  : '../../../snapshots/web/official-subagent-bundle', import.meta.url))
 const FIXTURE = join(DIR, 'session.v4.jsonl')
 const PACKAGE = fileURLToPath(new URL('../../../packages/subagent/subagent-claude-code', import.meta.url))
 const BUNDLE = '@deepseek-ai/dsh-subagent-claude-code'

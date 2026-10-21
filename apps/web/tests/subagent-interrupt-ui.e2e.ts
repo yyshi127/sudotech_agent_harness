@@ -30,9 +30,10 @@ import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './suppor
 const BASE_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/subagent-interrupt', import.meta.url))
-const SNAPSHOT_PROFILE = webClientProfile() === 'xiaojing' ? '.xiaojing' : ''
-const OFFLINE_COMPOSER_EXPECTED = join(SNAPSHOT_DIR, `offline-composer${SNAPSHOT_PROFILE}.expected.md`)
-const IMAGE_QUEUE_EXPECTED = join(SNAPSHOT_DIR, 'image-queue.expected.md')
+const XIAOJING_EXPECTED_DIR = fileURLToPath(new URL('./expected/subagent-interrupt-xiaojing-033', import.meta.url))
+const EXPECTED_DIR = webClientProfile() === 'xiaojing' ? XIAOJING_EXPECTED_DIR : SNAPSHOT_DIR
+const OFFLINE_COMPOSER_EXPECTED = join(EXPECTED_DIR, 'offline-composer.expected.md')
+const IMAGE_QUEUE_EXPECTED = join(EXPECTED_DIR, 'image-queue.expected.md')
 const PNG = fileURLToPath(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
 const MODE = webSnapshotMode()
 const LABEL = 'event-sourcing researcher'
@@ -408,5 +409,6 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
 
   it('keeps its snapshot inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, ['offline-composer.expected.md', 'offline-composer.xiaojing.expected.md', 'image-queue.expected.md'])
+    await assertFixtureInventory(XIAOJING_EXPECTED_DIR, ['offline-composer.expected.md', 'image-queue.expected.md'])
   })
 })

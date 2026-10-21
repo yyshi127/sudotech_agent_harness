@@ -11,7 +11,7 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import { JobId } from '@deepseek-ai/dsh-jobs'
 import {
   assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, seedSession,
-  watchConsole, webSnapshotMode, type WebScaffold,
+  watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
 
@@ -21,7 +21,11 @@ const MODE = webSnapshotMode()
 const SEED_ID = SessionId('jobs-menu-layering-web-e2e')
 // The private scaffold cwd owns the barrier; the loop bounds an orphan's lifetime.
 const RELEASE = '.jobs-menu-layering.release'
-const COMMAND = `printf 'jobs-menu-%s\\n' output; for _ in $(seq 1 3000); do [ -e ${RELEASE} ] && break; sleep 0.2; done`
+const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const SHELL = NATIVE_XIAOJING ? 'pwsh' : 'bash'
+const COMMAND = NATIVE_XIAOJING
+  ? `Write-Output 'jobs-menu-output'; for ($jobPoll = 0; $jobPoll -lt 3000; $jobPoll++) { if (Test-Path -LiteralPath '${RELEASE}') { break }; Start-Sleep -Milliseconds 200 }`
+  : `printf 'jobs-menu-%s\\n' output; for _ in $(seq 1 3000); do [ -e ${RELEASE} ] && break; sleep 0.2; done`
 
 /** Measure actual overlap and hit testing; ARIA alone cannot expose clipping or stacking. */
 function placement(page: Page) {
@@ -119,13 +123,13 @@ describe.skipIf(MODE === 'record')('web e2e: jobs menu layering', () => {
     const started = await scaffold.ctx.tools.execute({
       signal: new AbortController().signal,
       callId: ToolCallId('jobs-menu-layering-e2e'),
-      name: 'bash',
+      name: SHELL,
       arguments: { command: COMMAND, description: 'Emit output and hold the jobs menu fixture', run_in_background: true },
       agent,
     })
     const reported = started.content.map(block => block.type === 'text' ? block.text : '').join('')
-    const matched = /\bbash-[0-9a-f]{16}\b/.exec(reported)
-    if (matched === null) throw new Error(`background bash reported no job id: ${reported}`)
+    const matched = new RegExp(`\\b${SHELL}-[0-9a-f]{16}\\b`).exec(reported)
+    if (matched === null) throw new Error(`background ${SHELL} reported no job id: ${reported}`)
     const startedJobId = JobId(matched[0])
     jobId = startedJobId
     // Registration precedes shell startup; inspect its output before depending on a live row.

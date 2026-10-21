@@ -32,7 +32,7 @@ const XIAOJING = webClientProfile() === 'xiaojing'
 const HERO_TITLE = XIAOJING ? 'Xiaojing Accounting, Your AI Workmate' : 'Into the Unknown'
 const STOCK_DIR = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome', import.meta.url))
 const SNAPSHOT_DIR = XIAOJING
-  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-lifecycle-native', import.meta.url))
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-lifecycle-033', import.meta.url))
   : STOCK_DIR
 const EXPECTED_DIR = XIAOJING
   ? fileURLToPath(new URL('./expected/lifecycle-chrome-xiaojing', import.meta.url))
@@ -331,6 +331,11 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
     await input.waitFor({ timeout: 10_000 })
     if (MODE !== 'record') {
       await input.and(page.locator('[contenteditable="true"][data-lexical-editor="true"]')).waitFor()
+      if (XIAOJING) {
+        // The same empty paragraph remains after a command-menu case edits this page.
+        await writeComposerDraft(page, input, ' ')
+        await writeComposerDraft(page, input, '')
+      }
       await page.getByText(HERO_TITLE, { exact: false }).hover()
       await expect.poll(() => page.getByRole('tooltip').count()).toBe(0)
       // Golden of the hero's stable waiting state (captured before any send;

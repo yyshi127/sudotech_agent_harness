@@ -1,0 +1,14 @@
+- tree "Sessions":
+  - treeitem "Ledgers Add ledger workspace" [expanded]:
+    - button "Ledgers"
+    - button "Add ledger workspace"
+  - treeitem "Regression ledger Workspace actions for Regression ledger New session in Regression ledger" [expanded]:
+    - text: Regression ledger
+    - button "Workspace actions for Regression ledger"
+    - button "New session in Regression ledger"
+  - treeitem "New Session" [selected]
+  - treeitem "Ledger history {{age}}"
+  - treeitem "Consultation Add consultation workspace" [expanded]:
+    - button "Consultation"
+    - button "Add consultation workspace"
+  - treeitem "咨询" [expanded]

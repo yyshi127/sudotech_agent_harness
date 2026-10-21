@@ -40,6 +40,8 @@ Each settled tool result persists the validated fragment, title, mode, and works
 
 Completed turns also display their successful cards below the answer, outside the collapsible tool process. Reloading or reopening a conversation restores those cards from the saved results; failed calls do not produce a completed card.
 
+The composer preview follows the latest Step's visible preparing `visualize` Tool Node and reads its lazy `fragment` argument on each publication. It closes on dispatch or interruption; completed cards use the persisted tool result.
+
 ## Security
 
 Every card runs in an iframe with `sandbox="allow-scripts"`, giving it an opaque origin and no access to the Host document. The frame content security policy blocks forms, nested frames, objects, base URL changes, and network connections. It permits inline script and style plus static resources from the fixed CDN allowlist documented by the bundled skill. The fragment size ceiling bounds both execution input and session-log growth.

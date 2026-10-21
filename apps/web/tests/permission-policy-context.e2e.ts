@@ -25,7 +25,7 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
-  ? './expected/permission-policy-context-xiaojing'
+  ? './expected/permission-policy-context-xiaojing-033'
   : '../../../snapshots/web/permission-policy-context', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()

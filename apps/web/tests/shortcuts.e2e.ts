@@ -10,8 +10,9 @@ import {
 
 const expected = fileURLToPath(new URL('./expected/shortcuts', import.meta.url))
 const mode = webSnapshotMode()
+const xiaojing = webClientProfile() === 'xiaojing'
 // Palette values come from xiaojing-product/theme.module.css and the official theme.
-const palette = webClientProfile() === 'xiaojing'
+const palette = xiaojing
   ? { secondary: 'rgb(77, 98, 95)', border: 'rgb(167, 186, 184)', tertiary: 'rgb(104, 126, 123)',
     toastLight: 'rgb(23, 50, 59)', toastDark: 'rgb(40, 67, 62)' }
   : { secondary: 'rgb(97, 102, 107)', border: 'rgba(0, 0, 0, 0.16)', tertiary: 'rgb(129, 133, 140)',
@@ -32,6 +33,7 @@ describe('web e2e: shortcut reference', () => {
   ])('opens, searches, and restores nested focus in $locale', async ({ locale, platform, title, accountMenu, settings, view, search, key }) => {
     const referenceKey = platform === 'Win32' ? 'Control+Slash' : 'Meta+Slash'
     const context = await browser.newContext({ locale, colorScheme: 'light', viewport: { width: 1440, height: 1000 } })
+    await context.tracing.start({ screenshots: true, snapshots: true })
     try {
       // Branch coverage for device labels; native Windows input is separately verified on Windows.
       await context.addInitScript((value) => { Object.defineProperty(navigator, 'platform', { value }) }, platform)
@@ -39,11 +41,17 @@ describe('web e2e: shortcut reference', () => {
       const console = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
-      const trigger = page.getByRole('button', { name: accountMenu, exact: true })
-      await trigger.click()
-      const settingsItem = page.getByRole('menuitem', { name: settings, exact: true })
+      const trigger = page.getByRole('button', { name: xiaojing ? settings : accountMenu, exact: true })
+      if (!xiaojing) await trigger.click()
+      const settingsItem = xiaojing ? trigger : page.getByRole('menuitem', { name: settings, exact: true })
       expect(await settingsItem.getAttribute('aria-keyshortcuts')).toBe(key === 'Meta' ? 'Alt+Meta+,' : 'Control+Alt+,')
-      expect(await settingsItem.innerText()).toMatch(key === 'Meta' ? /⌥\s*⌘\s*,$/ : /Ctrl\s*\+\s*Alt\s*\+\s*,$/)
+      if (xiaojing) {
+        await trigger.hover()
+        await page.getByRole('tooltip').waitFor()
+        expect(await page.getByRole('tooltip').getAttribute('aria-label')).toContain(key === 'Meta' ? '⌥ ⌘ ,' : 'Ctrl + Alt + ,')
+      } else {
+        expect(await settingsItem.innerText()).toMatch(key === 'Meta' ? /⌥\s*⌘\s*,$/ : /Ctrl\s*\+\s*Alt\s*\+\s*,$/)
+      }
       await settingsItem.click()
       await page.getByRole('button', { name: view, exact: true }).click()
       const dialog = page.getByRole('dialog', { name: title, exact: true })
@@ -305,9 +313,15 @@ describe('web e2e: shortcut reference', () => {
       await page.keyboard.press(`${key}+Shift+Comma`)
       await dialog.getByRole('group').waitFor({ state: 'hidden' })
       await page.keyboard.press('Escape')
-      await trigger.click()
+      if (!xiaojing) await trigger.click()
       expect(await settingsItem.getAttribute('aria-keyshortcuts')).toBe(key === 'Meta' ? 'Shift+Meta+,' : 'Control+Shift+,')
-      expect(await settingsItem.innerText()).toMatch(key === 'Meta' ? /⇧\s*⌘\s*,$/ : /Ctrl\s*\+?\s*Shift\s*\+?\s*,$/)
+      if (xiaojing) {
+        await trigger.hover()
+        await page.getByRole('tooltip').waitFor()
+        expect(await page.getByRole('tooltip').getAttribute('aria-label')).toContain(key === 'Meta' ? '⇧ ⌘ ,' : 'Ctrl + Shift + ,')
+      } else {
+        expect(await settingsItem.innerText()).toMatch(key === 'Meta' ? /⇧\s*⌘\s*,$/ : /Ctrl\s*\+?\s*Shift\s*\+?\s*,$/)
+      }
       await settingsItem.click()
       await page.getByRole('dialog', { name: settings, exact: true }).waitFor()
       await page.keyboard.press('Escape')
@@ -317,10 +331,12 @@ describe('web e2e: shortcut reference', () => {
       await dialog.getByRole('button', { name: locale === 'zh-CN' ? '恢复默认' : 'Restore default', exact: true }).click()
       await dialog.getByRole('group').waitFor({ state: 'hidden' })
       await page.keyboard.press('Escape')
-      await trigger.click()
+      if (!xiaojing) await trigger.click()
       expect(await settingsItem.getAttribute('aria-keyshortcuts')).toBe(key === 'Meta' ? 'Alt+Meta+,' : 'Control+Alt+,')
-      await page.keyboard.press('Escape')
-      await settingsItem.waitFor({ state: 'detached' })
+      if (!xiaojing) {
+        await page.keyboard.press('Escape')
+        await settingsItem.waitFor({ state: 'detached' })
+      }
       const sidebar = page.getByRole('button', { name: locale === 'zh-CN' ? '收起侧边栏' : 'Collapse sidebar', exact: true })
       expect(await sidebar.getAttribute('aria-keyshortcuts')).toBe(key === 'Meta' ? 'Alt+Meta+B' : 'Control+Alt+B')
       await page.reload({ waitUntil: 'load' })
@@ -328,6 +344,10 @@ describe('web e2e: shortcut reference', () => {
       expect(await sidebar.getAttribute('aria-keyshortcuts')).toBe(key === 'Meta' ? 'Alt+Meta+B' : 'Control+Alt+B')
       expect(console.pageErrors).toEqual([])
       expect(console.warnings).toEqual([])
+    } catch (error) {
+      await context.pages()[0]?.screenshot({ path: fileURLToPath(new URL(`../../../.artifacts/shortcuts-${locale}-failure.png`, import.meta.url)) })
+      await context.tracing.stop({ path: fileURLToPath(new URL(`../../../.artifacts/shortcuts-${locale}-failure.zip`, import.meta.url)) })
+      throw error
     } finally { await context.close() }
   })
 
@@ -400,7 +420,7 @@ describe('web e2e: shortcut reference', () => {
       await context.addInitScript((value) => { Object.defineProperty(navigator, 'platform', { value }) }, platform)
       const page = await context.newPage()
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await page.getByRole('button', { name: 'Account menu', exact: true }).waitFor()
+      await page.getByRole('button', { name: xiaojing ? 'Settings' : 'Account menu', exact: true }).waitFor()
       const referenceKey = `${modifier}+Slash`
       const open = async () => {
         await page.keyboard.press(referenceKey)
@@ -422,7 +442,7 @@ describe('web e2e: shortcut reference', () => {
       await page.keyboard.press(sidebarKey)
       await page.getByRole('button', { name: 'Open sidebar', exact: true }).waitFor()
       await page.reload({ waitUntil: 'load' })
-      await page.getByRole('button', { name: 'Account menu', exact: true }).waitFor()
+      await page.getByRole('button', { name: xiaojing ? 'Settings' : 'Account menu', exact: true }).waitFor()
       const toggleAfterReload = page.getByRole('button', { name: /^(Open|Collapse) sidebar$/ })
       await expect.poll(() => toggleAfterReload.getAttribute('aria-keyshortcuts'))
         .toBe(modifier === 'Meta' ? 'Shift+Meta+.' : 'Control+Shift+.')
@@ -437,7 +457,7 @@ describe('web e2e: shortcut reference', () => {
       await editor.getByRole('button', { name: 'Press a shortcut', exact: true }).focus()
       const other = await context.newPage()
       await other.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await other.getByRole('button', { name: 'Account menu', exact: true }).waitFor()
+      await other.getByRole('button', { name: xiaojing ? 'Settings' : 'Account menu', exact: true }).waitFor()
       await other.keyboard.press(referenceKey)
       await other.getByRole('button', { name: 'Edit shortcut for Toggle left sidebar', exact: true }).click()
       await other.getByRole('button', { name: 'Remove', exact: true }).click()

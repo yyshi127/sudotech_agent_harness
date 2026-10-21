@@ -59,7 +59,8 @@ export async function verifyMcpBrowser(
     }
     const modules = new Map<string, unknown>([
       ['browserUse', BrowserUse], ['prompt', SystemPrompt], ['tools', Tools], ['llm', Llm],
-      ['sessions', Sessions], ['agents', Agents], ['loop', AgentLoop], ['projections', Projections], ['browser', provider],
+      ['sessions', Sessions], ['agents', Agents], ['loop', AgentLoop], ['projections', Projections],
+      ['browser', { ...provider, inject: ['browserUse', 'agents', 'tools', 'systemPrompt', 'workingDirectory'] }],
       ['fs', LocalFileSystem], ['workingDirectory', WorkingDirectory],
     ])
     const configPath = join(root, 'cordis.yml')

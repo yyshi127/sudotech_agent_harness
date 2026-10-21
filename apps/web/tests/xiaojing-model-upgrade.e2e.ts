@@ -2,10 +2,16 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchWebScaffold, webClientProfile, type WebScaffold } from './scaffold.ts'
 
 let scaffold: WebScaffold | undefined
 let home: string | undefined
+
+async function authorizeDiscovery(scaffold: WebScaffold): Promise<void> {
+  expect(await scaffold.ctx.llm.listModels('deepseek-official')).toEqual([])
+  await scaffold.ctx.credentials.set(credentialRef('DEEPSEEK_API_KEY'), 'xiaojing-model-upgrade-fixture-key')
+}
 
 afterEach(async () => {
   try {
@@ -62,8 +68,9 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([
     inputModalities: ['text', 'image'],
     systemPromptUpdate: 'in-history',
   })
+  await authorizeDiscovery(scaffold)
   await expect.poll(async () => (await scaffold!.ctx.llm.listModels('deepseek-official')).map(model => model.id))
-    .toEqual(['deepseek-flash'])
+    .toEqual(['deepseek-flash', 'deepseek-v4-pro'])
   await expect.poll(async () => readFile(patchPath, 'utf8')).not.toContain('deepseek-v4-flash')
   const saved = await readFile(patchPath, 'utf8')
   expect(await readFile(join(home, 'settings.yaml.imported'), 'utf8')).toContain('keep: preserved')
@@ -71,7 +78,7 @@ it.skipIf(webClientProfile() !== 'xiaojing').each([
   await scaffold.close()
   scaffold = await launchWebScaffold({ harnessHome: home, deepSeekMissingCredential: true })
   expect(scaffold.ctx.agentDefaultModel.currentSelection().model).toBe('deepseek-flash')
-  expect((await scaffold.ctx.llm.listModels('deepseek-official')).map(model => model.id)).toEqual(['deepseek-flash'])
+  expect((await scaffold.ctx.llm.listModels('deepseek-official')).map(model => model.id)).toEqual(['deepseek-flash', 'deepseek-v4-pro'])
 })
 
 it.skipIf(webClientProfile() !== 'xiaojing')('keeps customized DeepSeek entries while adding native Flash', async () => {
@@ -106,9 +113,12 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps customized DeepSeek entries 
   const saved = await readFile(patchPath, 'utf8')
   expect(saved).toContain('name: My Legacy Vision')
   expect(saved).toContain('name: Private Preview')
+  await authorizeDiscovery(scaffold)
+  expect((await scaffold.ctx.llm.listModels('deepseek-official')).map(model => model.id))
+    .toEqual(['deepseek-flash', 'deepseek-v4-pro', 'deepseek-v4-flash-vision-exp', 'private-preview'])
   await scaffold.close()
   scaffold = await launchWebScaffold({ harnessHome: home, deepSeekMissingCredential: true })
   expect(scaffold.ctx.agentDefaultModel.currentSelection().model).toBe('deepseek-flash')
   expect((await scaffold.ctx.llm.listModels('deepseek-official')).map(model => model.id))
-    .toEqual(['deepseek-flash', 'deepseek-v4-flash-vision-exp', 'private-preview'])
+    .toEqual(['deepseek-flash', 'deepseek-v4-pro', 'deepseek-v4-flash-vision-exp', 'private-preview'])
 })

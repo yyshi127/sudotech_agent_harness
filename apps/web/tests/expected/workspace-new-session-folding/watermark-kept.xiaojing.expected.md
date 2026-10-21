@@ -1,0 +1,16 @@
+- tree "Sessions":
+  - treeitem "Folding acceptance Workspace actions for Folding acceptance New session in Folding acceptance" [expanded]:
+    - text: Folding acceptance
+    - button "Workspace actions for Folding acceptance"
+    - button "New session in Folding acceptance"
+  - treeitem "New Session" [selected]
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - treeitem "Untitled 1min"
+  - button "Show 7 more sessions"

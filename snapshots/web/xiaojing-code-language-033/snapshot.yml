@@ -1,0 +1,8 @@
+version: 1
+scenario: xiaojing-code-language-033
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing-code-language-033
+  pin: true

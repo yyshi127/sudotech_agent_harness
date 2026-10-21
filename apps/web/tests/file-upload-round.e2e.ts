@@ -23,7 +23,8 @@ import {
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/file-upload-round', import.meta.url))
-const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-file-upload-round', import.meta.url))
+const LEGACY_XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-file-upload-round', import.meta.url))
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('./expected/file-upload-round-xiaojing-033', import.meta.url))
 const XIAOJING = webClientProfile() === 'xiaojing'
 const FIXTURE = XIAOJING ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl') : join(SNAPSHOT_DIR, 'session.v3.jsonl')
 const UI_EXPECTED = XIAOJING
@@ -54,9 +55,9 @@ async function materializeUploadExpectation(root: string, harnessHome: string): 
   // The three argument copies are the assistant block, stream block, and durable call.
   expect(source.split(quotedArguments)).toHaveLength(4)
   const argumentsRealized = source.replaceAll(quotedArguments, JSON.stringify(`{"file_path": ${JSON.stringify(nativePath)}}`))
-  // The read tool renders its result path and result metadata with forward slashes.
+  // The read tool records its result path and metadata as JSON strings in native spelling.
   expect(argumentsRealized.split(recordedPath)).toHaveLength(3)
-  const expected = argumentsRealized.replaceAll(recordedPath, nativePath.replaceAll('\\', '/'))
+  const expected = argumentsRealized.replaceAll(recordedPath, JSON.stringify(nativePath).slice(1, -1))
   expect(expected).not.toContain('{{harnessHome}}')
   const directory = join(root, 'expected')
   await mkdir(directory)
@@ -344,7 +345,27 @@ describe('web e2e: generic file upload through the real assembly', () => {
       throw new Error(`submission retained ${String(retainedCards)} draft cards; feedback=${JSON.stringify(feedback)}; events=${sessionEvents.map(event => event.type).join(',')}`)
     }
     const sessionId = await settled
-    if (MODE === 'record') await recordFixture(scaffold, sessionId, FIXTURE)
+    // The temporary comparison fixture stays read-only; refresh records this app owner's attachment paths.
+    if (MODE === 'record' || XIAOJING && MODE === 'refresh') {
+      await recordFixture(scaffold, sessionId, FIXTURE)
+      if (XIAOJING) {
+        const digest = createHash('sha256').update(FILE_TEXT).digest('hex')
+        const parts = ['attachments', 'v1', 'files', digest.slice(0, 2), digest, FILE_NAME]
+        const nativePath = join(scaffold.harnessHome, ...parts)
+        const recordedPath = `{{harnessHome}}/${parts.join('/')}`
+        const quotedArguments = JSON.stringify(`{"file_path": ${JSON.stringify(nativePath)}}`)
+        const source = await readFile(FIXTURE, 'utf8')
+        expect(source.split(quotedArguments)).toHaveLength(4)
+        const argumentsRecorded = source.replaceAll(quotedArguments, JSON.stringify(`{"file_path": ${JSON.stringify(recordedPath)}}`))
+        const resultPath = JSON.stringify(nativePath).slice(1, -1)
+        expect(argumentsRecorded.split(resultPath)).toHaveLength(3)
+        const expected = argumentsRecorded.replaceAll(resultPath, recordedPath)
+        expect(expected).not.toContain(scaffold.harnessHome)
+        expect(expected).not.toContain(scaffold.harnessHome.replaceAll('\\', '/'))
+        expect(expected).not.toContain(JSON.stringify(scaffold.harnessHome).slice(1, -1))
+        await writeFile(FIXTURE, expected)
+      }
+    }
   }, 200_000)
 
   it.skipIf(MODE === 'record')('persists the file block and reads the stored copy with the real read tool', () => {
@@ -487,5 +508,6 @@ describe('web e2e: generic file upload through the real assembly', () => {
       'session.v3.jsonl', 'replay.override.json', 'ui.expected.md', 'trajectory.expected.md', 'trajectory-status.expected.md',
     ])
     if (XIAOJING) await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl', 'replay.override.json'])
+    if (XIAOJING) await assertFixtureInventory(LEGACY_XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl', 'replay.override.json'])
   })
 })

@@ -1,3 +1,4 @@
+/** Delegated activity follows its idle owner independently of sidebar hover actions. */
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -142,11 +143,17 @@ describe('web e2e: sidebar subagent activity', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-sidebar-subagent-activity'))
     const sidebar = page.getByRole('tree', { name: 'Sessions' })
     const ownerRow = sidebar.getByRole('treeitem', { name: /Delegate a background job/ })
+    const captureActivity = async (hovered: boolean): Promise<string> => {
+      if (hovered) await ownerRow.hover()
+      else await page.mouse.move(0, 0)
+      await expect.poll(() => ownerRow.getByRole('button').count()).toBe(hovered ? 3 : 0)
+      return await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd)
+    }
     await ownerRow.waitFor({ timeout: 10_000 })
     expect(parentHandle.agent.status).toBe('idle')
     await compareOrRefreshGolden(
       RUNNING_OWNER_EXPECTED,
-      await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
+      await captureActivity(false),
       MODE,
     )
     expect(await ownerRow.locator('[data-state="ongoing"]').count()).toBe(1)
@@ -168,7 +175,7 @@ describe('web e2e: sidebar subagent activity', () => {
     expect(parentHandle.agent.status).toBe('idle')
     await compareOrRefreshGolden(
       WAITING_OWNER_EXPECTED,
-      await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
+      await captureActivity(false),
       MODE,
     )
     const waiting = page.getByRole('button', { name: 'Child Waiting for approval: sidebar activity child' })
@@ -187,7 +194,7 @@ describe('web e2e: sidebar subagent activity', () => {
     expect(await runningTrigger.count()).toBe(0)
     await compareOrRefreshGolden(
       SETTLED_OWNER_EXPECTED,
-      await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
+      await captureActivity(true),
       MODE,
     )
     await assertFixtureInventory(SNAPSHOT_DIR, ['owner-running.expected.md', 'owner-waiting.expected.md', 'owner-settled.expected.md'])

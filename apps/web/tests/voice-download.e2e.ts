@@ -38,7 +38,7 @@ it('shows the failed asset, actual download source and recovery advice, then ret
   await writeFile(overlay, `- id: speech-to-text-sensevoice\n  config:\n    dataRoot: ${JSON.stringify(join(root, 'models'))}\n    modelOrigin: ${origin}\n`)
   const scaffold = await launchWebScaffold({ profile: { packages: [{ dir: bundle, enabled: true }] }, extraOverlayPath: overlay })
   resources.scaffold = scaffold
-  const browser = await chromium.launch()
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] })
   resources.browser = browser
   const page = await newEnglishPage(browser), tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl)
@@ -99,7 +99,8 @@ it.each([{ winner: 0, manual: false }, { winner: 1, manual: false }, { winner: 0
     })}\n`)
     const scaffold = await launchWebScaffold({ profile: { packages: [{ dir: bundle, enabled: true }] }, extraOverlayPath: overlay })
     resources.scaffold = scaffold
-    const browser = await chromium.launch(); resources.browser = browser
+    const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] })
+    resources.browser = browser
     const page = await newEnglishPage(browser), tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl)
     await page.getByRole('button', { name: 'Plugins', exact: true }).click()

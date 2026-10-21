@@ -4,6 +4,8 @@
 // scenario boots the shipped Web composition and exercises the real process
 // catalog, permission projection, client command path, HTTP RPC, and pushed
 // update.
+// Xiaojing retains its office-only Automatic approval entry and its separate
+// acknowledgement gate when the experimental Auto-review integration unloads.
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
@@ -11,7 +13,7 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
-  launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import {
   ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, saveFailureShot, writeComposerDraft,
@@ -20,8 +22,14 @@ import {
 import { AUTO_REVIEW_FIXTURE, captureAutoReviewState } from './auto-review-fixture.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/access-confirmation', import.meta.url))
-const CURRENT_SESSION_PICKER_EXPECTED = join(SNAPSHOT_DIR, 'current-session-picker.expected.md')
-const SLASH_PICKER_EXPECTED = join(SNAPSHOT_DIR, 'slash-picker.expected.md')
+const XIAOJING = webClientProfile() === 'xiaojing'
+const BASE_MODES = ['仅可查看', '工作区内修改', '完全权限']
+const OFFICE_MODES = XIAOJING ? ['自动审批(实验性)'] : []
+const STANDARD_MODES = [...BASE_MODES, ...OFFICE_MODES]
+const REVIEW_MODES = [...BASE_MODES, '自动审查EXP', ...OFFICE_MODES]
+const CURRENT_SESSION_PICKER_EXPECTED = join(SNAPSHOT_DIR, `current-session-picker${XIAOJING ? '.xiaojing' : ''}.expected.md`)
+const SLASH_PICKER_EXPECTED = join(SNAPSHOT_DIR, `slash-picker${XIAOJING ? '.xiaojing' : ''}.expected.md`)
+const OFFICE_CONFIRMATION_EXPECTED = join(SNAPSHOT_DIR, 'no-approval-confirmation.xiaojing.expected.md')
 const AUTO_CONFIRMATION_EXPECTED = join(SNAPSHOT_DIR, 'auto-confirmation.expected.md')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
@@ -64,7 +72,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     const currentMenu = page.getByRole('menu')
     await currentMenu.waitFor({ timeout: 10_000 })
     expect(await currentMenu.getByRole('menuitem').allTextContents())
-      .toEqual(['仅可查看', '工作区内修改', '完全权限', '自动审查EXP'])
+      .toEqual(REVIEW_MODES)
     await captureAutoReviewState(page, 'experimental-current-session-picker')
     const currentSnapshot = await captureStableAria(page, '[role="menu"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(CURRENT_SESSION_PICKER_EXPECTED, currentSnapshot, MODE)
@@ -73,7 +81,10 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     const currentMenuBox = await currentMenu.boundingBox()
     expect(currentTriggerBox).not.toBeNull()
     expect(currentMenuBox).not.toBeNull()
-    expect(Math.abs(currentMenuBox!.width - 144)).toBeLessThan(1)
+    if (XIAOJING) {
+      expect(currentMenuBox!.width).toBeGreaterThanOrEqual(144)
+      expect(currentMenuBox!.width).toBeLessThanOrEqual(360)
+    } else expect(Math.abs(currentMenuBox!.width - 144)).toBeLessThan(1)
     expect(currentMenuBox!.width).toBeGreaterThan(currentTriggerBox!.width)
     expect(Math.abs(currentTriggerBox!.y - currentMenuBox!.y - currentMenuBox!.height - 4)).toBeLessThan(1)
 
@@ -104,7 +115,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     const slashPicker = page.locator('[aria-label="/permission 选项"]')
     await slashPicker.waitFor({ timeout: 10_000 })
     const slashRows = slashPicker.getByRole('option')
-    expect(await slashRows.count()).toBe(4)
+    expect(await slashRows.count()).toBe(REVIEW_MODES.length)
     expect(await slashPicker.getByRole('option', { name: '自动审查 EXP' }).count()).toBe(1)
     await captureAutoReviewState(page, 'experimental-slash-picker')
     const slashSnapshot = await captureStableAria(page, '[aria-label="/permission 选项"]', scaffold.workspaceCwd)
@@ -188,7 +199,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     expect(menuBox.width).toBeLessThanOrEqual(360)
     expect(menuBox.x).toBeGreaterThanOrEqual(0)
     expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(420)
-    for (const name of ['仅可查看', '工作区内修改', '完全权限', '自动审查']) {
+    for (const name of [...BASE_MODES, '自动审查', ...OFFICE_MODES]) {
       expect(await menu.getByText(name, { exact: true }).evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     }
     await page.keyboard.press('Escape')
@@ -212,7 +223,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     expect(slashBox.x + slashBox.width).toBeLessThanOrEqual(420)
     expect(await slash.evaluate(node => getComputedStyle(node).minWidth)).toBe('min(220px, 100%)')
     expect(await slash.evaluate(node => getComputedStyle(node).maxWidth)).toBe('100%')
-    for (const name of ['仅可查看', '工作区内修改', '完全权限', '自动审查']) {
+    for (const name of [...BASE_MODES, '自动审查', ...OFFICE_MODES]) {
       expect(await slash.getByText(name, { exact: true }).evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     }
     await page.keyboard.press('Escape')
@@ -235,7 +246,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     await input.press('Enter')
     const slash = page.locator('[aria-label="/permission 选项"]')
     await slash.waitFor()
-    expect(await slash.getByRole('option').count()).toBe(4)
+    expect(await slash.getByRole('option').count()).toBe(REVIEW_MODES.length)
     const entry = [...scaffold.ctx.loader.entries()].find(row => row.options.id === 'auto-review')
     if (entry === undefined) throw new Error('experimental Auto integration is absent')
     await entry.update({ disabled: true })
@@ -245,19 +256,19 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     expect(await input.textContent()).toBe('/permission')
     await input.press('Enter')
     await slash.waitFor()
-    expect(await slash.getByRole('option').count()).toBe(3)
+    expect(await slash.getByRole('option').count()).toBe(STANDARD_MODES.length)
     expect(await slash.getByText('自动审查', { exact: true }).count()).toBe(0)
     await page.keyboard.press('Escape')
     await access.click()
     await expect.poll(() => page.getByRole('menuitem').allTextContents())
-      .toEqual(['仅可查看', '工作区内修改', '完全权限'])
+      .toEqual(STANDARD_MODES)
     await captureAutoReviewState(page, 'uninstalled-current-session-picker')
     await page.keyboard.press('Escape')
     await entry.update({ disabled: false })
     await scaffold.ctx.loader.await()
     await access.click()
     await expect.poll(() => page.getByRole('menuitem').allTextContents())
-      .toEqual(['仅可查看', '工作区内修改', '完全权限', '自动审查EXP'])
+      .toEqual(REVIEW_MODES)
     expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：完全权限')
     await captureAutoReviewState(page, 'reinstalled-current-session-picker')
     await page.keyboard.press('Escape')
@@ -265,7 +276,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
     await input.press('Escape')
     await input.press('Enter')
     await slash.waitFor()
-    expect(await slash.getByRole('option').count()).toBe(4)
+    expect(await slash.getByRole('option').count()).toBe(REVIEW_MODES.length)
     await page.keyboard.press('Escape')
     expect(tripwire.pageErrors).toEqual([])
   })
@@ -277,6 +288,10 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
       'current-session-picker.expected.md',
       'slash-picker.expected.md',
       'ui.expected.md',
+      ...XIAOJING ? [
+        'current-session-picker.xiaojing.expected.md', 'slash-picker.xiaojing.expected.md',
+        'no-approval-confirmation.xiaojing.expected.md',
+      ] : [],
     ])
   })
 })
@@ -297,21 +312,56 @@ describe('web e2e: default permission choices', () => {
     await browser?.close()
     await scaffold?.close()
   })
-  it('offers only the three standard modes in both pickers', async () => {
+  it('offers the profile permission choices in both pickers', async () => {
     const access = page.locator('button[aria-label^="访问模式"]').first()
     await access.click()
     await expect.poll(() => page.getByRole('menuitem').allTextContents())
-      .toEqual(['仅可查看', '工作区内修改', '完全权限'])
+      .toEqual(STANDARD_MODES)
     await captureAutoReviewState(page, 'default-current-session-picker')
-    await page.keyboard.press('Escape')
+    if (XIAOJING) {
+      await page.getByRole('menuitem', { name: '自动审批(实验性)', exact: true }).click()
+      const confirmation = page.getByRole('dialog', { name: '确认启用自动审批(实验性)？', exact: true })
+      await confirmation.waitFor()
+      expect(await confirmation.getByRole('button', { name: '启用自动审批', exact: true }).isDisabled()).toBe(true)
+      expect(await confirmation.getByRole('checkbox').isChecked()).toBe(false)
+      expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：工作区内修改')
+      await compareOrRefreshGolden(OFFICE_CONFIRMATION_EXPECTED,
+        await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
+      await confirmation.getByRole('button', { name: '取消', exact: true }).click()
+      expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：工作区内修改')
+    } else await page.keyboard.press('Escape')
     const input = page.locator('[data-composer-input]').first()
     await writeComposerDraft(page, input, '/permission')
     await input.press('Escape')
     await input.press('Enter')
     const slash = page.locator('[aria-label="/permission 选项"]')
     await slash.waitFor()
-    expect(await slash.getByRole('option').count()).toBe(3)
+    expect(await slash.getByRole('option').count()).toBe(STANDARD_MODES.length)
     expect(await slash.getByText('自动审查', { exact: true }).count()).toBe(0)
     await captureAutoReviewState(page, 'default-slash-picker')
+    if (XIAOJING) {
+      await slash.getByRole('option', {
+        name: '自动审批(实验性) 自动批准当前办公会话及其子任务的全部工具操作。', exact: true,
+      }).click()
+      const confirmation = page.getByRole('dialog', { name: '确认启用自动审批(实验性)？', exact: true })
+      await confirmation.waitFor()
+      const enable = confirmation.getByRole('button', { name: '启用自动审批', exact: true })
+      expect(await enable.isDisabled()).toBe(true)
+      expect(await confirmation.getByRole('checkbox').isChecked()).toBe(false)
+      await confirmation.getByRole('checkbox', { name: '我允许本会话自动执行上述操作', exact: true }).check()
+      expect(await enable.isEnabled()).toBe(true)
+      await enable.click()
+      await expect.poll(() => access.getAttribute('aria-label')).toBe('访问模式，当前：自动审批(实验性)')
+      expect(await confirmation.count()).toBe(0)
+      expect(await input.textContent()).toBe('')
+      const grants = () => scaffold.ctx.sessions.list().flatMap(session => session.snapshotEvents())
+        .filter(event => event.type === 'permission/preset' && event.data.preset === 'xiaojing-no-approval')
+      await expect.poll(() => grants().length).toBe(1)
+      await captureAutoReviewState(page, 'default-office-automatic-approval')
+      await writeComposerDraft(page, input, '/permission workspace-write')
+      await input.press('Enter')
+      await expect.poll(() => access.getAttribute('aria-label')).toBe('访问模式，当前：工作区内修改')
+      expect(await page.getByRole('dialog').count()).toBe(0)
+    }
   })
 })

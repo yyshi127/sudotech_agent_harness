@@ -1,0 +1,7 @@
+version: 1
+scenario: xiaojing-deepseek-messages-chat-033
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing

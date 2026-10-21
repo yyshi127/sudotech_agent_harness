@@ -7,11 +7,16 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import type {} from '@deepseek-ai/dsh-tools'
 import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, captureExpandedTurnProcessAria, compareOrRefreshGolden,
-  fixtureUserPrompts, launchWebScaffold, recordFixture, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  fixtureUserPrompts, launchWebScaffold, recordFixture, selectedSessionFixture, watchConsole,
+  webClientProfile, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
-const DIR = fileURLToPath(new URL('../../../snapshots/web/optional-string-editor', import.meta.url))
+const XIAOJING = webClientProfile() === 'xiaojing'
+const STOCK_DIR = fileURLToPath(new URL('../../../snapshots/web/optional-string-editor', import.meta.url))
+const DIR = XIAOJING
+  ? fileURLToPath(new URL('./expected/optional-string-editor-xiaojing-033', import.meta.url))
+  : STOCK_DIR
 const FIXTURE = join(DIR, 'session.v4.jsonl')
 const MODE = webSnapshotMode()
 
@@ -74,15 +79,16 @@ describe('web snapshot: standalone string editor through PTC', () => {
     await assertFinalWorkspaceSnapshot(DIR, cwd)
     await expect.poll(() => page.getByText('DONE', { exact: true }).count()).toBeGreaterThanOrEqual(1)
     if (MODE === 'record') await recordFixture(scaffold, sessionId, FIXTURE)
-    else await compareOrRefreshGolden(join(DIR, 'ui.expected.md'),
-      await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd), MODE)
+    else await compareOrRefreshGolden(join(STOCK_DIR, 'ui.expected.md'),
+      await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd), XIAOJING ? 'replay' : MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })
 
   it.skipIf(MODE !== 'replay')('keeps the owned fixture artifacts closed', async () => {
     await assertFixtureInventory(DIR, [
-      'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md', 'workspace.expected',
+      'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'workspace.expected',
+      ...XIAOJING ? [] : ['ui.expected.md'],
     ])
   })
 })

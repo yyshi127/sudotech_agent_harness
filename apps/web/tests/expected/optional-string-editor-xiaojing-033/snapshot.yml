@@ -1,0 +1,10 @@
+version: 1
+scenario: xiaojing-optional-string-editor-033
+profile: web
+composition: web-ptc-string-editor
+recording: authored
+header:
+  class: web-xiaojing-ptc-string-editor-033
+  pin: true
+workspace:
+  final: true

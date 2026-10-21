@@ -5,7 +5,8 @@
  * workspace dependencies from this checkout's node_modules.
  */
 import { createServer } from 'node:http'
-import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative, resolve } from 'node:path'
@@ -20,7 +21,7 @@ const builtView = join(repository, 'apps/desktop/lib/types/platform-view.js')
 const hasDisplay = process.platform !== 'linux' || Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY)
 
 // Linux Electron needs a display server; the test runs under xvfb in headless environments.
-it.skipIf(!hasDisplay)('retains dismissed notices across view and process restarts without sharing accounts', { retry: 0 }, async () => {
+it.skipIf(!hasDisplay).each(['fresh', 'legacy'] as const)('retains %s account preferences across long-path view and process restarts without sharing accounts', { retry: 0 }, async (mode) => {
   // Windows CacheStorage adds nested UUID and entry filenames below this root.
   const root = await mkdtemp(join(tmpdir(), 'ps-'))
   const server = createServer((_request, response) => {
@@ -45,13 +46,18 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
     if (address === null || typeof address === 'string') throw new Error('missing Platform fixture listener')
     const origin = `http://127.0.0.1:${String(address.port)}`
     if (!existsSync(builtView)) throw new Error(`missing built Platform view ${builtView}; run pnpm run build:lib:host`)
-    const userData = join(root, 'browser')
+    // Longer than Xiaojing's normal Windows userData, independent of the runner's TEMP prefix.
+    const userData = join(root, 'browser-profile'.padEnd(Math.max(15, 88 - root.length - 1), 'x'))
     await mkdir(userData)
+    const savedLogin = join(userData, 'saved-login-sentinel')
+    await writeFile(savedLogin, 'existing Host login bytes')
     const electron: unknown = require('electron')
     if (typeof electron !== 'string') throw new Error('Electron executable is unavailable')
     const fixture = fileURLToPath(new URL('./fixtures/platform-storage-smoke.mjs', import.meta.url))
     const observed: string[] = []
-    for (const phase of ['first', 'restart']) {
+    const phases = mode === 'legacy' ? ['legacy', 'restart', 'restart'] : ['first', 'restart']
+    const oldPartition = join(userData, 'Partitions', `dsh-platform-${createHash('sha256').update(JSON.stringify([origin, 'first'])).digest('hex')}`)
+    for (const phase of phases) {
       const result = await execa(electron, [fixture, '--', builtView, userData, origin, phase], {
         // The unbundled tsc artifact reads the client version from the environment; the packaged
         // build inlines the same value at bundle time.
@@ -68,8 +74,13 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
         throw new Error('Invalid Electron storage result')
       }
       observed.push(...states)
+      if (mode === 'legacy') expect(existsSync(oldPartition)).toBe(phase === 'legacy')
+      expect(await readFile(savedLogin, 'utf8')).toBe('existing Host login bytes')
     }
-    expect(observed.join('\n') + '\n').toBe(await readFile(new URL('./expected/platform-storage.txt', import.meta.url), 'utf8'))
+    const expected = mode === 'legacy'
+      ? 'legacy-notice=hidden\nrestart-first-open=hidden\nrestart-first-open=hidden\n'
+      : await readFile(new URL('./expected/platform-storage.txt', import.meta.url), 'utf8')
+    expect(observed.join('\n') + '\n').toBe(expected)
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => { if (error) reject(error); else resolve() })

@@ -116,7 +116,7 @@ describe('web e2e: blank New Session folding quota', () => {
   it('raises the watermark to the open session, keeps it after leaving, and resets it on fold', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-workspace-session-watermark'))
     const sidebar = page.getByRole('tree', { name: 'Sessions' })
-    const workspaceTitle = basename(scaffold.workspaceCwd)
+    const workspaceTitle = webClientProfile() === 'xiaojing' ? 'Folding acceptance' : basename(scaffold.workspaceCwd)
     const sessions = () => sidebar.getByText('Untitled', { exact: true }).count()
     await sidebar.getByRole('button', { name: 'Show 11 more sessions' }).click()
     await expect.poll(sessions).toBe(10)
@@ -135,7 +135,7 @@ describe('web e2e: blank New Session folding quota', () => {
     expect(await sessions()).toBe(9)
     await workspaceRow.hover()
     await compareOrRefreshGolden(
-      join(EXPECTED_DIR, 'watermark-kept.expected.md'),
+      join(EXPECTED_DIR, webClientProfile() === 'xiaojing' ? 'watermark-kept.xiaojing.expected.md' : 'watermark-kept.expected.md'),
       await captureStableAria(page, '[role="tree"][aria-label="Sessions"]', scaffold.workspaceCwd),
       MODE,
     )
@@ -144,7 +144,7 @@ describe('web e2e: blank New Session folding quota', () => {
     await workspaceRow.click()
     await expect.poll(sessions).toBe(5)
     await sidebar.getByRole('button', { name: 'Show 11 more sessions' }).waitFor()
-    await assertFixtureInventory(EXPECTED_DIR, ['sidebar.expected.md', 'first-batch.expected.md', 'watermark-kept.expected.md', 'sidebar.xiaojing.expected.md', 'first-batch.xiaojing.expected.md'])
+    await assertFixtureInventory(EXPECTED_DIR, ['sidebar.expected.md', 'first-batch.expected.md', 'watermark-kept.expected.md', 'sidebar.xiaojing.expected.md', 'first-batch.xiaojing.expected.md', 'watermark-kept.xiaojing.expected.md'])
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   })

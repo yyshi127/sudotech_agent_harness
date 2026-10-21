@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vitest'
@@ -21,7 +21,7 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 const XIAOJING = webClientProfile() === 'xiaojing'
 const STOCK_DIR = fileURLToPath(new URL('../../../snapshots/web/changed-files-turn', import.meta.url))
 const DIR = XIAOJING
-  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-changed-files-turn', import.meta.url))
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-changed-files-native-turn', import.meta.url))
   : STOCK_DIR
 const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/changed-files-turn', import.meta.url))
 const expected = (name: string) => join(XIAOJING ? PRODUCT_EXPECTED_DIR : DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
@@ -184,7 +184,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
       await row.getByText('1KB', { exact: true }).waitFor()
       expect(await row.locator('[aria-expanded]').count()).toBe(0)
       expect(await row.locator('pre').count()).toBe(0)
-      await compareOrRefreshGolden(join(DIR, `preparing-${preparation.name}-content.expected.md`), await row.ariaSnapshot(), MODE)
+      await compareOrRefreshGolden(join(STOCK_DIR, `preparing-${preparation.name}-content.expected.md`), await row.ariaSnapshot(), MODE)
       preparation.contentRelease.resolve(undefined)
     })
     const [sessionId] = await Promise.all([settled, ...observations]).finally(() => { releasePreparations?.() })
@@ -284,6 +284,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
     const row = card.getByRole('button', { name: '查看 notes.txt 的改动' })
     const preview = page.locator('[data-changes-hover-preview]')
     const entrance = hoverOpacityTransition(page, false)
+    void entrance.catch(() => { /* The later await still reports failure if hovering succeeds. */ })
     await row.hover()
     expect(await entrance).toEqual({ duration: 100, opacity: 0.5 })
     await preview.locator('[data-review-view="unified"]').waitFor({ state: 'visible' })
@@ -733,7 +734,8 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
   it.skipIf(MODE === 'record')('replays the workspace and the Chinese conversation', async () => {
     await assertFinalWorkspaceSnapshot(DIR, cwd, { ignoredRootEntries: ['.git'] })
     const aria = await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(expected('ui'), aria, MODE)
+    const nativeRoot = JSON.stringify(`${cwd}${sep}`).slice(1, -1)
+    await compareOrRefreshGolden(expected(XIAOJING && process.platform === 'win32' ? 'ui.windows' : 'ui'), aria.split(nativeRoot).join(''), MODE)
   })
 
   it('preserves filename endings when the review narrows and updates the fade after resizing or selecting another file', async () => {

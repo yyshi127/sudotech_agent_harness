@@ -178,6 +178,14 @@ export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifes
   }))
 }
 
+/** Product resources published before runtime entries. */
+const packageFilePrefixes: Readonly<Record<string, readonly string[]>> = {
+  '@deepseek-ai/dsh-xiaojing-browser-control': ['extension/*'],
+  '@deepseek-ai/dsh-xiaojing-visualize': [
+    'assets/visualize-skill.md', 'assets/references/*.md', 'assets/examples/*.html',
+  ],
+}
+
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-xiaojing-browser-control': ['lib/native.js', 'lib/native-settings.js'],
   // Product tool rows and worker entries are imported separately by Loader and Workers.
@@ -269,7 +277,7 @@ function sameStringList(actual: readonly string[] | undefined, expected: readonl
 /**
  * Compute canonical publication patterns, including declared and exported icon paths and exported locale JSON resources.
  * @param manifest - workspace package manifest.
- * @returns the icon and deduplicated locale targets followed by runtime and declaration payloads.
+ * @returns the icon, locale, and product resources followed by runtime and declaration payloads.
  */
 export function expectedDshPackageFiles(manifest: PackageManifest): readonly string[] {
   const localeFiles = new Set<string>()
@@ -295,6 +303,7 @@ export function expectedDshPackageFiles(manifest: PackageManifest): readonly str
   return [
     ...new Set(icons),
     ...[...localeFiles].sort(),
+    ...(manifest.name ? packageFilePrefixes[manifest.name] ?? [] : []),
     'lib/index.js',
     ...manifest.bin ? ['lib/bin.js'] : [],
     // Worker-thread packages ship a CJS worker entry; the browser worker

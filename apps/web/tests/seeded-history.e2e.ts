@@ -929,12 +929,11 @@ describe('web e2e: seeded history renders through cold resume', () => {
     // stream would have failed the turn loudly. Cleanliness pins the wire.
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(REASONING_EXPECTED_DIR, ['blank-reasoning.expected.md'])
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'command-row.expected.md', 'feedback-row.expected.md', 'file-preview.expected.md',
       'session.v3.jsonl', 'sticky-geometry.expected.md', 'thinking-expanded.expected.md',
       'ui.expected.md', 'ui-expanded.expected.md',
     ])
-    await assertFixtureInventory(LOCAL_EXPECTED, ['file-preview.windows.expected.md'])
+    await assertFixtureInventory(LOCAL_EXPECTED, ['blank-reasoning.expected.md', 'file-preview.windows.expected.md'])
   })
 })

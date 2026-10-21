@@ -639,7 +639,7 @@ describe('dsh-tool-workflow', () => {
       await ctx.plugin(PtcWorkflowEngine, {})
       await ctx.plugin(toolWorkflow, {})
       const session = Session.create(SessionId('caller'))
-      const parent = { id: session.id, options: {}, session } as unknown as Agent
+      const parent = { id: session.id, options: {}, session, ctx } as unknown as Agent
       const controller = new AbortController()
       const ready = Promise.withResolvers<undefined>()
       ctx.on('workflow/log', () => { ready.resolve(undefined) })
@@ -647,7 +647,10 @@ describe('dsh-tool-workflow', () => {
         script: 'log("ready"); await new Promise(() => {})\nreturn 1',
         meta: { name: 'stuck', description: 'parks forever' },
       }, { agent: parent, signal: controller.signal })
-      await ready.promise
+      await Promise.race([
+        ready.promise,
+        pending.then((result) => { throw new Error(`workflow finished before readiness: ${JSON.stringify(result)}`) }),
+      ])
       controller.abort('user abort')
       const result = await pending
       expect(result.isError).toBe(true)

@@ -322,7 +322,12 @@ const UI_PLUGIN_DIRS = [
 ]
 const ROUND_DONE_MARKER = 'WEB_ROUND_DONE'
 const notReady = UI_PLUGIN_DIRS.filter((dir) => {
-  const bundle = join(REPO_ROOT, 'packages/client', dir, 'lib/client.js')
+  const packageDir = join(REPO_ROOT, 'packages/client', dir)
+  const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')) as {
+    exports: { './client': string | { browser?: string; default: string } }
+  }
+  const declared = manifest.exports['./client']
+  const bundle = join(packageDir, typeof declared === 'string' ? declared : declared.browser ?? declared.default)
   return !existsSync(bundle) || !readFileSync(bundle, 'utf8').includes('exports.apply')
 })
 if (notReady.length > 0) console.warn(`[smoke-real] skipped — client bundles not ready: ${notReady.join(', ')}`)
@@ -497,18 +502,16 @@ describe('dsh web keyless CLI smoke', () => {
       if (XIAOJING) {
         expect(captured.system).toContain('你的名字是小兢会计（简称小兢），在办公搭子模式下的身份始终是用户的AI办公搭子。')
         expect(captured.system).toContain('自我介绍使用“办公搭子”')
-        expect(captured.system).not.toContain(expectedWebSection)
         expect(captured.system).not.toContain('You are a coding agent powered by')
         expect(captured.system).not.toContain('You are an AI agent powered by DeepSeek Harness.')
-      } else {
-        expect(captured.system).toContain(expectedWebSection)
-        expect(captured.system).not.toContain(new URL(baseUrl).origin)
-        expect(captured.messages?.filter(message => message.role === 'user')
-          .flatMap(message => message.content ?? [])
-          .some(block => block.type === 'text'
-            && block.text?.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(new URL(baseUrl).origin)}.`)))
-          .toBe(true)
       }
+      expect(captured.system).toContain(expectedWebSection)
+      expect(captured.system).not.toContain(new URL(baseUrl).origin)
+      expect(captured.messages?.filter(message => message.role === 'user')
+        .flatMap(message => message.content ?? [])
+        .some(block => block.type === 'text'
+          && block.text?.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(new URL(baseUrl).origin)}.`)))
+        .toBe(true)
       expect(workspaceMessage).toMatchInlineSnapshot(`
         {
           "text": "<system-reminder>

@@ -1,9 +1,6 @@
-- button "Today 0 token · ¥0.00":
-  - text: Today
-  - strong: "0"
-  - text: token ·
-  - strong: ¥0.00
+- button "Usage unavailable"
 - navigation "Global panels":
   - button "Plugins"
+  - button "Automation tasks"
 - button "Settings"
 - button "Reconnecting, reconnect now": Reconnecting

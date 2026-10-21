@@ -21,10 +21,11 @@ import { connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFai
 import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const NATIVE_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const LEGACY_XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('./expected/web-search-round-xiaojing', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL(NATIVE_XIAOJING
-  ? './expected/web-search-round-xiaojing' : '../../../snapshots/web/web-search-round', import.meta.url))
+  ? '../../../snapshots/web/xiaojing-web-search-round-033' : '../../../snapshots/web/web-search-round', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, NATIVE_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
-const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
+const UI_EXPECTED = join(NATIVE_XIAOJING ? LEGACY_XIAOJING_SNAPSHOT_DIR : SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
 const QUERIES = ['DeepSeek Harness snapshot search', 'DeepSeek Harness multi-query search'] as const
 const PROMPT = `Use web_search once with queries ${JSON.stringify(QUERIES)}. Then reply exactly SEARCH_DONE and stop.`
@@ -297,6 +298,11 @@ describe('web e2e: opt-in Search API web search', () => {
   it.skipIf(MODE === 'record')('stayed clean and kept the exact fixture inventory', async () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'ui.expected.md'])
+    if (NATIVE_XIAOJING) {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl'])
+      await assertFixtureInventory(LEGACY_XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl', 'ui.expected.md'])
+    } else {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'ui.expected.md'])
+    }
   })
 })

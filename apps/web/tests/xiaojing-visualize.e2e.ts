@@ -12,12 +12,14 @@ import {
   webClientProfile, webSnapshotMode,
 } from './scaffold.ts'
 import { financePresetDefinition } from './xiaojing-agent-presets.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 import { newEnglishPage } from './support.ts'
 
 const TITLE = 'Persistent visualization'
 const FRAGMENT = '<button id="count" onclick="this.textContent=Number(this.textContent)+1">0</button>'
 const CALL = ToolCallId('visualize-persistence')
 const SKILL_CALL = ToolCallId('visualize-skill')
+const STOP_CALL = ToolCallId('visualize-stopped')
 const ARGS = JSON.stringify({ title: TITLE, fragment: FRAGMENT })
 
 function textChunks(text: string): StreamChunk[] {
@@ -62,15 +64,39 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     { kind: 'chunks', chunks },
     { kind: 'chunks', chunks: textChunks('Your interactive card is ready.') },
     { kind: 'chunks', chunks: textChunks('The previous card remains available.') },
+    { kind: 'chunks', chunks: chunks.map((chunk): StreamChunk => {
+      if (chunk.type === 'tool-call-delta') return { ...chunk, id: STOP_CALL }
+      if (chunk.type === 'block-end' && chunk.block.type === 'tool-call') {
+        return { ...chunk, block: { ...chunk.block, id: STOP_CALL } }
+      }
+      return chunk
+    }) },
   ]))
   const scaffold = await launchWebScaffold({
     replayFixture: join(replayDir, 'override-only.jsonl'), replayOverride, paceMs: 10,
+    replayProviders: XIAOJING_REPLAY_PROVIDERS,
     agentPresets: {
       definitions: [financePresetDefinition()],
       default: 'standard',
     },
   })
   const browser = await chromium.launch()
+  const resume = Promise.withResolvers<undefined>()
+  let streamCount = 0
+  let held = false
+  scaffold.ctx.on('llm/stream', async function* (_options, next) {
+    const stream = ++streamCount
+    let argumentsText = ''
+    for await (const chunk of next()) {
+      yield chunk
+      if (stream !== 5 || chunk.type !== 'tool-call-delta' || held) continue
+      argumentsText += chunk.argumentsDelta
+      if (argumentsText.includes('</button>')) {
+        held = true
+        await resume.promise
+      }
+    }
+  }, { prepend: true })
   const failures: unknown[] = []
   let page: Page | undefined
   try {
@@ -88,7 +114,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     const officeLogo = page.getByRole('img', { name: 'Xiaojing Accounting', exact: true })
     await officeLogo.waitFor()
     expect(await officeLogo.locator('image').getAttribute('href')).toBe('./xiaojing-office-robot-logo.png')
-    expect((await officeLogo.boundingBox())?.height).toBe(145)
+    expect((await officeLogo.boundingBox())?.height).toBe(220)
     const officeAsset = await page.request.get(new URL('./xiaojing-office-robot-logo.png', scaffold.authenticatedUrl).href)
     expect(officeAsset.ok()).toBe(true)
     expect(await officeAsset.body()).toEqual(await readFile(new URL('../public/xiaojing-office-robot-logo.png', import.meta.url)))
@@ -119,7 +145,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
           titleAboveComposer: titleBounds.y + titleBounds.height <= composerBounds.y,
           centered: Math.abs(logoBounds.x + logoBounds.width / 2 - composerBounds.x - composerBounds.width / 2) < 2,
         }
-      }).toEqual({ height: 145, logoAboveTitle: true, titleAboveComposer: true, centered: true })
+      }).toEqual({ height: 220, logoAboveTitle: true, titleAboveComposer: true, centered: true })
     }
     await page.getByRole('button', { name: 'Office Companion', exact: true }).click()
     await workspaceRow.hover()
@@ -159,6 +185,23 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     await nextSettled
     expect(await page.locator('[data-turn-tail="1"] iframe').isVisible()).toBe(true)
     expect(await page.locator('[data-turn-tail="2"] iframe').count()).toBe(0)
+    const stopped = scaffold.whenTurnSettled()
+    await input.fill('Start another visualization draft.')
+    await input.press('Enter')
+    await expect.poll(() => held, { timeout: 15_000 }).toBe(true)
+    const preview = page.getByTitle('Visualization streaming preview')
+    await preview.waitFor({ state: 'visible' })
+    await page.getByRole('button', { name: 'Stop generating', exact: true }).click()
+    resume.resolve(undefined)
+    await stopped
+    await preview.waitFor({ state: 'detached' })
+    expect(await page.locator('[data-turn-tail="1"] iframe').isVisible()).toBe(true)
+    expect(await page.locator('[data-turn-tail="3"] iframe').count()).toBe(0)
+    const stoppedEvents = await readPersistedEvents(scaffold, sessionId)
+    const end = stoppedEvents.find(event => event.type === 'turn/end' && event.data.turn === 3)
+    if (end?.type !== 'turn/end') throw new Error('Stopped visualization turn did not end')
+    expect(end.data.reason.kind).toBe('aborted')
+    expect(stoppedEvents.filter(event => event.type === 'tool/call' && event.data.callId === STOP_CALL)).toHaveLength(0)
     // Only the test-created export is removed: history must use persisted metadata.
     await unlink(meta.path)
     await page.reload()
@@ -178,6 +221,7 @@ it.skipIf(webClientProfile() !== 'xiaojing')('keeps visualization visible after 
     if (page !== undefined && !page.isClosed()) console.error(await page.locator('body').innerText())
     failures.push(error)
   } finally {
+    resume.resolve(undefined)
     await browser.close().catch((error: unknown) => failures.push(error))
     await scaffold.close().catch((error: unknown) => failures.push(error))
     await rm(replayDir, { recursive: true, force: true }).catch((error: unknown) => failures.push(error))

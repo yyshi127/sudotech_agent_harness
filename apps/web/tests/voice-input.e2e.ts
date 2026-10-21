@@ -8,15 +8,25 @@ import { expect, it, onTestFinished, vi } from 'vitest'
 import type { SpeechInput, SpeechPreparationState, SpeechProviderId } from '@deepseek-ai/dsh-experimental-speech-to-text/types'
 import type {} from '@deepseek-ai/dsh-experimental-speech-to-text'
 import {
-  captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold, webSnapshotMode, watchConsole,
+  assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold, webSnapshotMode, watchConsole,
   type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
-const fixture = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
-const expected = fileURLToPath(new URL('../../../snapshots/web/voice-input/ui.expected.md', import.meta.url))
-const interruptedExpected = fileURLToPath(new URL('../../../snapshots/web/voice-input/interrupted.expected.md', import.meta.url))
-const recordingExpected = fileURLToPath(new URL('../../../snapshots/web/voice-input/recording.expected.md', import.meta.url))
+const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
+const fixture = fileURLToPath(new URL(WINDOWS_XIAOJING
+  ? '../../../snapshots/web/xiaojing-fresh-round-trip-033/session.v4.jsonl'
+  : '../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
+const snapshotDir = fileURLToPath(new URL(WINDOWS_XIAOJING
+  ? '../../../snapshots/web/xiaojing-voice-input-033'
+  : '../../../snapshots/web/voice-input', import.meta.url))
+const expectedDir = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('./expected/voice-input-xiaojing-033', import.meta.url))
+  : snapshotDir
+const expected = join(expectedDir, 'ui.expected.md')
+const interruptedExpected = join(expectedDir, 'interrupted.expected.md')
+const recordingExpected = join(expectedDir, 'recording.expected.md')
 const bundle = fileURLToPath(new URL('../../../packages/experimental/voice-input-bundle', import.meta.url))
 
 it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from standby and submits only the reviewed transcript through Session replay', async () => {
@@ -30,9 +40,10 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   const overlay = join(scratch, 'voice.patch.yml')
   await writeFile(overlay, '- id: speech-to-text-sensevoice\n  disabled: true\n')
   const prompt = fixtureUserPrompts(await readFile(fixture, 'utf8'))[0]!
-  const prefix = 'Use the bash tool to '
+  const prefix = WINDOWS_XIAOJING ? 'Use the pwsh tool to ' : 'Use the bash tool to '
   const scaffold = await launchWebScaffold({ profile: { packages: [{ dir: bundle, enabled: true }] },
     extraOverlayPath: overlay, replayFixture: fixture, compareReplaySession: 'read-only',
+    ...WINDOWS_XIAOJING ? { replayProviders: XIAOJING_REPLAY_PROVIDERS } : {},
   })
   resources.scaffold = scaffold
   const recognize = vi.fn(async (input: SpeechInput) => {
@@ -102,7 +113,7 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   expect(await setup.getByRole('button', { name: 'Cancel', exact: true }).evaluate(element => element === document.activeElement)).toBe(true)
   await page.keyboard.press('Shift+Tab')
   expect(await setupAction.evaluate(element => element === document.activeElement)).toBe(true)
-  await compareOrRefreshGolden(fileURLToPath(new URL('../../../snapshots/web/voice-input/setup.expected.md', import.meta.url)),
+  await compareOrRefreshGolden(join(expectedDir, 'setup.expected.md'),
     await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
   await setup.getByRole('button', { name: 'Later', exact: true }).click()
   expect(await setup.count()).toBe(0)
@@ -113,7 +124,7 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   await setupMic.click()
   const unavailable = page.getByRole('dialog', { name: 'Speech recognition is not ready', exact: true })
   await unavailable.waitFor()
-  await compareOrRefreshGolden(fileURLToPath(new URL('../../../snapshots/web/voice-input/unavailable.expected.md', import.meta.url)),
+  await compareOrRefreshGolden(join(expectedDir, 'unavailable.expected.md'),
     await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
   await page.setViewportSize({ width: 420, height: 900 })
   const dialogBox = await unavailable.boundingBox()
@@ -149,7 +160,7 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
     const streams = (window as Window & { voiceTestStreams?: MediaStream[] }).voiceTestStreams!
     return streams.filter(stream => stream.getTracks().some(track => track.readyState === 'live')).length
   })).toBe(1)
-  await compareOrRefreshGolden(fileURLToPath(new URL('../../../snapshots/web/voice-input/device.expected.md', import.meta.url)),
+  await compareOrRefreshGolden(join(expectedDir, 'device.expected.md'),
     await captureStableAria(page, '[data-voice-input-device]', scaffold.workspaceCwd), webSnapshotMode())
   const acquisitions = await page.evaluate(() => (window as Window & { voiceTestStreams?: MediaStream[] }).voiceTestStreams!.length)
   const otherDevice = devices[1]!
@@ -174,7 +185,7 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   expect(await missing.isDisabled()).toBe(true)
   await level.waitFor({ state: 'hidden' })
   expect(await devicePicker.evaluate(element => (element as HTMLSelectElement).selectedOptions[0]?.textContent)).toContain('Unavailable')
-  await compareOrRefreshGolden(fileURLToPath(new URL('../../../snapshots/web/voice-input/device-missing.expected.md', import.meta.url)),
+  await compareOrRefreshGolden(join(expectedDir, 'device-missing.expected.md'),
     await captureStableAria(page, '[data-voice-input-device]', scaffold.workspaceCwd), webSnapshotMode())
   await page.evaluate(() => {
     (window as Window & { voiceTestExcluded?: string[] }).voiceTestExcluded = []
@@ -196,7 +207,7 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   await page.setViewportSize({ width: 360, height: 900 })
   await level.waitFor()
   await devicePicker.scrollIntoViewIfNeeded()
-  await compareOrRefreshGolden(fileURLToPath(new URL('../../../snapshots/web/voice-input/device-long.expected.md', import.meta.url)),
+  await compareOrRefreshGolden(join(expectedDir, 'device-long.expected.md'),
     await captureStableAria(page, '[data-voice-input-device]', scaffold.workspaceCwd), webSnapshotMode())
   const pickerBounds = (await devicePicker.boundingBox())!, levelBounds = (await level.boundingBox())!
   expect(levelBounds.x).toBeGreaterThan(pickerBounds.x + pickerBounds.width / 2)
@@ -287,4 +298,9 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   await page.keyboard.press('Escape')
   expect(messages).toBe(1)
   expect(tripwire.pageErrors).toEqual([])
+  await assertFixtureInventory(expectedDir, [
+    'setup.expected.md', 'unavailable.expected.md', 'device.expected.md', 'device-missing.expected.md',
+    'device-long.expected.md', 'recording.expected.md', 'ui.expected.md', 'interrupted.expected.md',
+  ])
+  if (WINDOWS_XIAOJING) await assertFixtureInventory(snapshotDir, [])
 }, 120_000)

@@ -35,14 +35,20 @@ import { XIAOJING_REPLAY_PROVIDERS, XIAOJING_ROUTE_CATALOG } from './xiaojing-re
 
 const WINDOWS_XIAOJING = process.platform === 'win32' && process.env.DSH_CLIENT_BUILD_PROFILE === 'xiaojing'
 const STOCK_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip', import.meta.url))
-const SNAPSHOT_DIR = WINDOWS_XIAOJING ? fileURLToPath(new URL('./expected/fresh-round-trip-xiaojing', import.meta.url)) : STOCK_SNAPSHOT_DIR
+const LEGACY_XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('./expected/fresh-round-trip-xiaojing', import.meta.url))
+const SNAPSHOT_DIR = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('../../../snapshots/web/xiaojing-fresh-round-trip-033', import.meta.url))
+  : STOCK_SNAPSHOT_DIR
+const EXPECTED_DIR = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('./expected/fresh-round-trip-xiaojing-033', import.meta.url))
+  : SNAPSHOT_DIR
 const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
-const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
-const ECHO_EXPECTED = join(SNAPSHOT_DIR, 'submission-echo.expected.md')
-const ACCEPTED_RECONNECT_EXPECTED = join(SNAPSHOT_DIR, 'accepted-reconnect.expected.md')
-const BLANK_EXPECTED = join(SNAPSHOT_DIR, 'blank-reload.expected.md')
-const UI_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ui-expanded.expected.md')
-const WEB_CONTEXT_EXPECTED = join(SNAPSHOT_DIR, 'web-context.expected.md')
+const UI_EXPECTED = join(EXPECTED_DIR, 'ui.expected.md')
+const ECHO_EXPECTED = join(EXPECTED_DIR, 'submission-echo.expected.md')
+const ACCEPTED_RECONNECT_EXPECTED = join(EXPECTED_DIR, 'accepted-reconnect.expected.md')
+const BLANK_EXPECTED = join(EXPECTED_DIR, 'blank-reload.expected.md')
+const UI_EXPANDED_EXPECTED = join(EXPECTED_DIR, 'ui-expanded.expected.md')
+const WEB_CONTEXT_EXPECTED = join(EXPECTED_DIR, 'web-context.expected.md')
 const MODE = webSnapshotMode()
 const SHELL_TOOL = WINDOWS_XIAOJING ? 'pwsh' : 'bash'
 const MODEL_LABEL = WINDOWS_XIAOJING ? 'DeepSeek-V41-Flash' : 'DeepSeek-V4-Flash'
@@ -246,10 +252,8 @@ describe('web e2e: fresh round trip through the real assembly', () => {
       .flatMap(message => message.content.flatMap(block => block.type === 'text' ? [block.text] : []))
     expect(userText.some(text => text.includes(`Current working directory: ${JSON.stringify(cwd)}.`))).toBe(true)
     expect(system).not.toContain(scaffold.baseUrl)
-    if (!WINDOWS_XIAOJING) {
-      expect(userText.some(text => text.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(scaffold.baseUrl)}.`))).toBe(true)
-    }
-    const suffix = paragraphs.slice(WINDOWS_XIAOJING ? -1 : -2).join('\n\n')
+    expect(userText.some(text => text.includes(`Current DeepSeek Harness Web GUI URL: ${JSON.stringify(scaffold.baseUrl)}.`))).toBe(true)
+    const suffix = paragraphs.slice(-2).join('\n\n')
       .split(REPO_ROOT).join('{{sourceRoot}}')
       .split(join(scaffold.workspaceCwd, 'workspace')).join('{{cwd}}')
       .split(scaffold.baseUrl).join('{{webUrl}}')
@@ -378,9 +382,16 @@ describe('web e2e: fresh round trip through the real assembly', () => {
       'ui.expected.md',
       'ui-expanded.expected.md',
     ])
-    if (WINDOWS_XIAOJING) await assertFixtureInventory(SNAPSHOT_DIR, [
-      'session.v4.jsonl', 'blank-reload.expected.md', 'accepted-reconnect.expected.md', 'submission-echo.expected.md',
-      'web-context.expected.md', 'ui.expected.md', 'ui-expanded.expected.md',
-    ])
+    if (WINDOWS_XIAOJING) {
+      await assertFixtureInventory(LEGACY_XIAOJING_SNAPSHOT_DIR, [
+        'session.v4.jsonl', 'blank-reload.expected.md', 'accepted-reconnect.expected.md', 'submission-echo.expected.md',
+        'web-context.expected.md', 'ui.expected.md', 'ui-expanded.expected.md',
+      ])
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl'])
+      await assertFixtureInventory(EXPECTED_DIR, [
+        'blank-reload.expected.md', 'accepted-reconnect.expected.md', 'submission-echo.expected.md',
+        'web-context.expected.md', 'ui.expected.md', 'ui-expanded.expected.md',
+      ])
+    }
   })
 })

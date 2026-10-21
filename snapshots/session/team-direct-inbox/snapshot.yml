@@ -3,6 +3,7 @@ scenario: team-direct-inbox
 profile: headless
 composition: team-targets
 recording: authored
+platform: posix
 header:
   class: team-targets
   systemPromptSource: team-targets

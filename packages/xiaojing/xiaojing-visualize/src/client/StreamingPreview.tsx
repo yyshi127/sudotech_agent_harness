@@ -1,21 +1,16 @@
 /**
- * Live streaming preview docked under the composer: while the model is still
- * generating a `visualize` call, the accumulated argument stream
- * (`assistant/chunk` tool-call deltas folded into the conversation snapshot's
- * `partial`) is parsed for the fragment prefix and rendered into the same
- * sandboxed frame the settled card uses — markup and style only, scripts
- * neutered until the call settles (a half-streamed script body is almost
- * never valid JavaScript). Renders nothing when no `visualize` call is
- * streaming; once the call settles the preview unmounts and the transcript
- * card takes over.
+ * Live preview under the composer reads fragment prefixes from the latest
+ * Step's preparing Tool Node. Its sandboxed shell retains completed script
+ * blocks and withholds an unfinished trailing script. Dispatch removes the
+ * preview, as does interruption; settled results render through the transcript card.
  */
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the `conversation.input.dock` SlotMap declaration.
-import type { StepLocation } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
-import { extractStreamingFragment, trimStreamingScripts, VISUALIZE_TOOL_NAME } from '../fragment.ts'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ChatNode, ChatNodeSource } from '@deepseek-ai/dsh-client-ui-chat/client'
+import { trimStreamingScripts, VISUALIZE_TOOL_NAME } from '../fragment.ts'
 import { buildStreamShellDoc, HEIGHT_MESSAGE_TYPE, STREAM_MESSAGE_TYPE } from '../shell.ts'
 import { resolveTheme } from './theme.ts'
 
@@ -87,10 +82,9 @@ function useThrottled(value: string): string {
 }
 
 /** The mounted preview, split out so hooks only run while a call streams. */
-function Preview({ argsRaw, t }: { argsRaw: string; t: StreamingPreviewProps['t'] }) {
-  const throttled = useThrottled(argsRaw)
-  const fragment = extractStreamingFragment(throttled)
-  const preview = fragment === undefined ? '' : trimStreamingScripts(fragment)
+function Preview({ fragment, t }: { fragment: string | undefined; t: StreamingPreviewProps['t'] }) {
+  const throttled = useThrottled(fragment ?? '')
+  const preview = trimStreamingScripts(throttled)
   const hasContent = preview.trim().length > 0
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -141,29 +135,32 @@ function Preview({ argsRaw, t }: { argsRaw: string; t: StreamingPreviewProps['t'
 }
 
 /**
- * Dock entry: mounts the preview exactly while the streaming partial carries
- * a `visualize` tool-call block.
+ * Dock entry: subscribes to the latest Step's most recent visualization call.
+ * @param props - Current Chat reader and visualization labels.
+ * @returns the preparing call's live preview, or nothing outside preparation.
  */
 export function StreamingPreview({ useChat, t }: StreamingPreviewProps) {
-  const step = useChat((snapshot) => {
+  const source = useChat((snapshot) => {
     const turn = snapshot.timeline.turnOrder.at(-1)
-    return turn === undefined ? undefined : snapshot.timeline.turns.get(turn)?.steps.at(-1)
+    const step = turn === undefined ? undefined : snapshot.timeline.turns.get(turn)?.steps.at(-1)
+    if (step === undefined) return undefined
+    const keys = snapshot.locations.getStep(step.turn, step.step)
+    for (const key of [...keys].reverse()) {
+      const node = snapshot.nodes.get(key) as ChatNode | undefined
+      if (node?.kind === 'tool-call' && node.data.root.name === VISUALIZE_TOOL_NAME) {
+        return snapshot.nodes.source(key)
+      }
+    }
+    return undefined
   })
-  return step === undefined ? null : <StepPreview step={step} t={t} />
+  return source === undefined ? null : <ToolPreview key={source.getSnapshot()?.key} source={source} t={t} />
 }
 
-/** Step data retains tool-only deltas even when Chat creates no Assistant row. */
-function StepPreview({ step, t }: { step: StepLocation; t: StreamingPreviewProps['t'] }) {
-  const source = step.data.source('assistant-step')
-  const assistant = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot)
-  const blocks = assistant?.status === 'running' ? assistant.blocks : undefined
-  if (blocks === undefined) return null
-  // Last matching block: a turn can contain several visualize calls; only the
-  // most recent one can still be streaming.
-  let argsRaw: string | undefined
-  for (const block of blocks) {
-    if (block.kind === 'tool-call' && block.name === VISUALIZE_TOOL_NAME) argsRaw = block.argsRaw
-  }
-  if (argsRaw === undefined) return null
-  return <Preview argsRaw={argsRaw} t={t} />
+/** Read lazy arguments on every Tool publication, including tool-only Steps. */
+function ToolPreview({ source, t }: { source: ChatNodeSource; t: StreamingPreviewProps['t'] }) {
+  const node = useSyncExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot) as ChatNode | undefined
+  if (node?.kind !== 'tool-call' || node.visibility !== 'visible') return null
+  const block = node.data.root
+  if ('kind' in block || block.phase !== 'preparing') return null
+  return <Preview fragment={block.args.text('fragment')} t={t} />
 }

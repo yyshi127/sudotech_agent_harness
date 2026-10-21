@@ -25,6 +25,7 @@
     "tests/xiaojing-no-approval.e2e.ts",
     "tests/session-approval-reuse.e2e.ts",
     "tests/xiaojing-approval-operations.e2e.ts",
+    "tests/xiaojing-fork-schedule.e2e.ts",
     "tests/xiaojing-hero-layout.e2e.ts",
     "tests/weixin-session-restore.e2e.ts",
     "tests/finance-balances.e2e.ts",

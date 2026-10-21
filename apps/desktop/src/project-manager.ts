@@ -170,7 +170,10 @@ export function createDevelopmentProjectMetadata(projectDir: string, release: De
   writeFileSync(join(projectDir, 'pnpm-workspace.yaml'), workspaceFile(), { mode: 0o600 })
 }
 
-/** Create the first profile with Automation tasks enabled; preserve existing selections. */
+/**
+ * Create the first profile with the shipped Web bundles; preserve existing selections.
+ * @param projectDir - Desktop's external plugin profile directory.
+ */
 export function createPluginProfile(projectDir: string): void {
-  initProfile(projectDir, [...WEB_PROFILE.bundles, '@deepseek-ai/dsh-experimental-schedule-bundle'])
+  initProfile(projectDir, WEB_PROFILE.bundles)
 }

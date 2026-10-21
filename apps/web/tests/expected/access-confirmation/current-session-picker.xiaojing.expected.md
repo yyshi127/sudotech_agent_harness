@@ -1,0 +1,6 @@
+- menu:
+  - menuitem "仅可查看"
+  - menuitem "工作区内修改"
+  - menuitem "完全权限"
+  - menuitem "自动审查 EXP"
+  - menuitem "自动审批(实验性)"

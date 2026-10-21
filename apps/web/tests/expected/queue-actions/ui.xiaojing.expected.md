@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Reply with a one-sentence description
   - text: Standard mode
+  - 'button "Access mode, current: Workspace Write"': Workspace Write
   - button "More actions"
   - button "Open right sidebar"
   - tablist:

@@ -3,3 +3,4 @@
     - group "DeepSeek":
       - text: DeepSeek
       - menuitemradio "Messages Flash" [checked]
+      - menuitemradio "DeepSeek-V4-Pro"

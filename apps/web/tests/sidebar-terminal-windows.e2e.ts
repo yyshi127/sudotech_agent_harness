@@ -90,6 +90,7 @@ it.skipIf(process.platform !== 'win32')('runs independent PowerShell tabs, selec
     await tab.hover()
     await tab.locator('[data-dockkit-tab-close]').click()
   }
-  await expect.poll(terminals).toEqual([])
+  // Provider shutdown includes its 1s grace plus Windows process-identity checks.
+  await expect.poll(terminals, { timeout: 15_000 }).toEqual([])
   expect(errors.pageErrors).toEqual([])
 }, 120_000)

@@ -371,6 +371,11 @@ describe('package manifest reader parity', { concurrent: false }, () => {
     const f = fixture()
     const enclosing = join(f.root, 'packages', 'package.json')
     file(enclosing, JSON.stringify({ name: 'packages', type: 'commonjs' }))
+    const enclosingSource = join(f.root, 'packages', 'probe.js')
+    const enclosingScope = reader.getPackageScopeConfig(pathToFileURL(enclosingSource).href)
+    const enclosingParent = reader.getNearestParentPackageJSON(enclosingSource)
+    expect(enclosingScope).toMatchObject({ exists: true, type: 'commonjs' })
+    expect(enclosingParent?.data.type).toBe('commonjs')
     file(f.manifest, JSON.stringify({ name: 'pkg', type: 'module' }))
     const source = join(f.dir, 'lib', 'entry.js')
     file(source, '')
@@ -378,12 +383,12 @@ describe('package manifest reader parity', { concurrent: false }, () => {
     rmSync(f.manifest)
     f.manifests.invalidate(f.manifest)
     expect(reader.getPackageScopeConfig(pathToFileURL(source).href)).toMatchObject({
-      exists: true, type: 'commonjs', pjsonPath: toNamespacedPath(enclosing),
+      exists: true, type: 'commonjs', pjsonPath: enclosingScope.pjsonPath,
     })
     expect(formats.defaultGetFormatWithoutErrors(pathToFileURL(join(f.dir, 'bin', 'tool')))).toBe(
       formats.defaultGetFormatWithoutErrors(pathToFileURL(join(f.root, 'packages', 'tool'))),
     )
-    expect(reader.getNearestParentPackageJSON(source)?.path).toBe(toNamespacedPath(enclosing))
+    expect(reader.getNearestParentPackageJSON(source)?.path).toBe(enclosingParent?.path)
   })
 
   it('stops a scope lookup at a node_modules boundary like Node', () => {

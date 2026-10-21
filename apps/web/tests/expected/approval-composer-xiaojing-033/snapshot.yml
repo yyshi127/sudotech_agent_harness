@@ -1,0 +1,9 @@
+version: 1
+scenario: windows-xiaojing-approval-composer-033
+profile: web
+composition: web-xiaojing
+recording: authored
+header:
+  class: web-xiaojing
+workspace:
+  final: true

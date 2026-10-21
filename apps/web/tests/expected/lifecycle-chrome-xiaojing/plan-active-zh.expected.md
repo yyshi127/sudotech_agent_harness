@@ -17,11 +17,12 @@
   - strong: ¥0.00
 - navigation "全局面板":
   - button "插件"
+  - button "自动化任务"
 - button "设置"
 - banner:
   - button "打开右侧边栏"
 - img "小兢会计"
-- text: 小兢会计，您的AI办公搭子 0.3.2内测版
+- text: 小兢会计，您的AI办公搭子 0.3.3内测版
 - button "选择工作区": workspace
 - button "标准模式"
 - textbox "描述你想要构建的内容, / 调用指令, @ 文件或对话"

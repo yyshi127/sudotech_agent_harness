@@ -1,8 +1,12 @@
 // UI-only geometry for the Automation tasks page; no model calls or task mutations.
+import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
-import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode } from './scaffold.ts'
+import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode } from './scaffold.ts'
+
+const XIAOJING = webClientProfile() === 'xiaojing'
+const SHOTS = fileURLToPath(new URL('../../../.artifacts', import.meta.url))
 
 it('keeps the automation title intact before moving New to another line', async () => {
   const scaffold = await launchWebScaffold()
@@ -27,6 +31,20 @@ it('keeps the automation title intact before moving New to another line', async 
           await heading.waitFor()
           const header = heading.locator('..')
           const create = header.getByRole('button', { name: language === 'en' ? 'New' : '新建', exact: true })
+          const emptyAction = panel.getByRole('status').getByRole('button', {
+            name: language === 'en' ? 'New automation task' : '新建自动化任务', exact: true,
+          })
+          const actionGeometry = () => emptyAction.evaluate((button) => {
+            const bounds = button.getBoundingClientRect()
+            const range = document.createRange()
+            range.selectNodeContents(button)
+            return {
+              contained: Array.from(range.getClientRects()).every(rect => rect.left >= bounds.left - 1
+                && rect.right <= bounds.right + 1 && rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1)
+                && button.scrollHeight <= button.clientHeight,
+              height: bounds.height,
+            }
+          })
           await page.evaluate(() => document.fonts.ready)
           await create.focus()
           for (const width of [1680, 800, 520, 440, 390, 430, 1024]) {
@@ -56,12 +74,20 @@ it('keeps the automation title intact before moving New to another line', async 
               titleSingleLine: true, buttonSingleLine: true, placement: 'beside', contained: true, focused: true,
             })
             facts.push(`${language} ${width}px: title and New single-line, New beside the title; contained; New retains focus`)
+            await expect.poll(actionGeometry).toEqual({ contained: true, height: 36 })
+            if (XIAOJING && width === 1680) {
+              await mkdir(SHOTS, { recursive: true })
+              await page.screenshot({ path: `${SHOTS}/web-schedule-header-wide-${language}-033.png` })
+            }
           }
+          if (XIAOJING) facts.push(`${language}: the empty-state action contains its label at all seven widths and retains its 36px height`)
           if (language === 'en') {
-            // 509px collapses the left sidebar to its rail; expanding it leaves the
-            // page column narrow enough (measured 172px) to force the wrap.
-            await page.setViewportSize({ width: 509, height: 1000 })
+            // Xiaojing's expanded sidebar is 24px wider than the stock sidebar;
+            // both widths leave 172px for the heading and creation action.
+            const squeezeWidth = XIAOJING ? 533 : 509
+            await page.setViewportSize({ width: squeezeWidth, height: 1000 })
             await page.getByRole('button', { name: 'Open sidebar', exact: true }).first().click()
+            await create.focus()
             await expect.poll(() => header.evaluate((element) => {
               const title = element.querySelector('h1')!
               const button = element.querySelector('button')!
@@ -76,15 +102,40 @@ it('keeps the automation title intact before moving New to another line', async 
                   : buttonRect.top >= titleRect.bottom - 1 ? 'below' as const : 'overlapping' as const,
               }
             })).toEqual({ titleSingleLine: true, placement: 'below' })
-            facts.push('en 509px with sidebar expanded: title single-line; New moves below the title')
+            facts.push(`en ${squeezeWidth}px with sidebar expanded: title single-line; New moves below the title`)
+            if (XIAOJING) {
+              await page.setViewportSize({ width: 509, height: 1000 })
+              await expect.poll(() => header.evaluate((element) => {
+                const title = element.querySelector('h1')!
+                const button = element.querySelector('button')!
+                const titleRect = title.getBoundingClientRect()
+                const buttonRect = button.getBoundingClientRect()
+                const headerRect = element.getBoundingClientRect()
+                const range = document.createRange()
+                range.selectNodeContents(title)
+                return {
+                  titleLines: range.getClientRects().length,
+                  below: buttonRect.top >= titleRect.bottom - 1,
+                  contained: titleRect.left >= headerRect.left - 1 && titleRect.right <= headerRect.right + 1
+                    && buttonRect.left >= headerRect.left - 1 && buttonRect.right <= headerRect.right + 1,
+                  focused: document.activeElement === button,
+                }
+              })).toEqual({ titleLines: 2, below: true, contained: true, focused: true })
+              facts.push('en 509px with sidebar expanded: title wraps into two contained lines; New remains below; New retains focus')
+              await expect.poll(async () => (await actionGeometry()).contained).toBe(true)
+              expect((await actionGeometry()).height).toBeGreaterThan(36)
+              await page.screenshot({ path: `${SHOTS}/web-schedule-header-narrow-033.png` })
+              facts.push('en 509px with sidebar expanded: the empty-state action contains its complete wrapped label')
+            }
           }
           expect(consoleWatch.pageErrors).toEqual([])
+          expect(consoleWatch.warnings).toEqual([])
         } finally {
           await context.close()
         }
       }
       await compareOrRefreshGolden(
-        fileURLToPath(new URL('./expected/schedule-header.expected.md', import.meta.url)),
+        fileURLToPath(new URL(XIAOJING ? './expected/schedule-header-xiaojing-033.expected.md' : './expected/schedule-header.expected.md', import.meta.url)),
         `# Automation tasks header\n\n${facts.join('\n')}`,
         webSnapshotMode(),
       )

@@ -1,3 +1,5 @@
+/** Shell cards retain full commands and output across wrapping, copying, and settlement. */
+import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
@@ -131,7 +133,9 @@ it.each([
       await page.emulateMedia({ colorScheme: null })
       const expected = fileURLToPath(new URL(`./expected/shell-command-details/${name}.expected.md`, import.meta.url))
       await compareOrRefreshGolden(expected,
-        await captureStableAria(page, '[data-chat-call-id="shell-command-details-background"]', scaffold.workspaceCwd), webSnapshotMode())
+        await captureStableAria(page, '[data-chat-call-id="shell-command-details-background"]', scaffold.workspaceCwd, {
+          replacements: [[basename(scaffold.workspaceCwd), '{{workspace}}']],
+        }), webSnapshotMode())
       expect(tripwire.pageErrors).toEqual([])
       expect(tripwire.warnings).toEqual([])
     } finally {

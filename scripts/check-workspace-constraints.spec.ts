@@ -291,13 +291,34 @@ describe('package payload constraints', () => {
   it('publishes native browser entries explicitly without admitting other runtime files', () => {
     const dir = 'packages/xiaojing/xiaojing-browser-control'
     const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
-    const files = ['lib/index.js', 'lib/native.js', 'lib/native-settings.js', 'lib/types/**/*.d.ts']
+    const files = ['extension/*', 'lib/index.js', 'lib/native.js', 'lib/native-settings.js', 'lib/types/**/*.d.ts']
     expect(expectedDshPackageFiles(manifest)).toEqual(files)
     expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
     for (const invalid of [
+      files.filter(file => file !== 'extension/*'),
       files.filter(file => file !== 'lib/native.js'),
       files.filter(file => file !== 'lib/native-settings.js'),
+      ['extension/**', ...files.slice(1)],
       ['lib/*.js', 'lib/types/**/*.d.ts'],
+      [...files.slice(0, -1), 'lib/unrelated.js', files.at(-1)!],
+    ]) {
+      expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: invalid } }))
+        .toEqual([expect.stringContaining('package.json files must be')])
+    }
+  })
+
+  it('requires visualization skill resources without admitting demo media', () => {
+    const dir = 'packages/xiaojing/xiaojing-visualize'
+    const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+    const resources = ['assets/visualize-skill.md', 'assets/references/*.md', 'assets/examples/*.html']
+    const files = [...resources, 'lib/index.js', 'lib/client.js', 'cordis.patch.yml', 'lib/types/**/*.d.ts']
+    expect(expectedDshPackageFiles(manifest)).toEqual(files)
+    expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+    for (const invalid of [
+      ...resources.map(resource => files.filter(file => file !== resource)),
+      ['assets/*', ...files.slice(resources.length)],
+      [...files.slice(0, -1), 'assets/demo.mp4', files.at(-1)!],
+      [...files.slice(0, -1), 'assets/demo.webp', files.at(-1)!],
       [...files.slice(0, -1), 'lib/unrelated.js', files.at(-1)!],
     ]) {
       expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: invalid } }))

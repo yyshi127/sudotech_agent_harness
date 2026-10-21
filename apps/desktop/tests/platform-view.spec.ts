@@ -1,4 +1,7 @@
 import { EventEmitter } from 'node:events'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { AccountUserId } from '@deepseek-ai/dsh-deepseek-account/types'
 import { DesktopPlatformView, platformBounds } from '../src/platform-view.ts'
@@ -6,10 +9,10 @@ import { DesktopPlatformView, platformBounds } from '../src/platform-view.ts'
 const state = vi.hoisted(() => ({
   views: [] as unknown[], sessions: [] as unknown[], openExternal: vi.fn(async () => {}),
   loadFailure: undefined as Error | undefined, loadBarrier: undefined as Promise<void> | undefined,
+  sessionData: '',
 }))
-vi.mock('electron', () => ({
-  shell: { openExternal: state.openExternal },
-  session: { fromPartition: vi.fn((partition: string) => {
+vi.mock('electron', () => {
+  const fromPartition = vi.fn((partition: string) => {
     const existing = state.sessions.find(value => (value as { partition: string }).partition === partition)
     if (existing !== undefined) return existing
     const value = {
@@ -22,27 +25,36 @@ vi.mock('electron', () => ({
     }
     state.sessions.push(value)
     return value
-  }) },
-  WebContentsView: class {
-    webContents = Object.assign(new EventEmitter(), {
-      mainFrame: { url: 'https://platform.deepseek.com/usage' },
-      session: undefined as object | undefined,
-      setWindowOpenHandler: vi.fn(),
-      loadURL: vi.fn(async (_url: string) => { await state.loadBarrier; if (state.loadFailure !== undefined) throw state.loadFailure }),
-      isDestroyed: () => false, close: vi.fn(() => { this.webContents.emit('destroyed') }), send: vi.fn(),
-    })
-    setVisible = vi.fn()
-    setBounds = vi.fn()
-    constructor(options: { webPreferences: { session: object } }) {
-      this.webContents.session = options.webPreferences.session
-      state.views.push(this)
-    }
-  },
-}))
+  })
+  return {
+    app: { getPath: () => state.sessionData },
+    shell: { openExternal: state.openExternal },
+    session: { fromPartition, fromPath: vi.fn((path: string) => fromPartition(`persist:${path}`)) },
+    WebContentsView: class {
+      webContents = Object.assign(new EventEmitter(), {
+        mainFrame: { url: 'https://platform.deepseek.com/usage' },
+        session: undefined as object | undefined,
+        setWindowOpenHandler: vi.fn(),
+        loadURL: vi.fn(async (_url: string) => { await state.loadBarrier; if (state.loadFailure !== undefined) throw state.loadFailure }),
+        isDestroyed: () => false, close: vi.fn(() => { this.webContents.emit('destroyed') }), send: vi.fn(),
+      })
+      setVisible = vi.fn()
+      setBounds = vi.fn()
+      constructor(options: { webPreferences: { session: object } }) {
+        this.webContents.session = options.webPreferences.session
+        state.views.push(this)
+      }
+    },
+  }
+})
 
-beforeEach(() => { vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3') })
+beforeEach(() => {
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  state.sessionData = mkdtempSync(join(tmpdir(), 'platform-view-'))
+})
 afterEach(() => {
   state.views.length = 0; state.sessions.length = 0; state.loadFailure = undefined; state.loadBarrier = undefined
+  rmSync(state.sessionData, { recursive: true, force: true })
   vi.clearAllMocks(); vi.unstubAllEnvs()
 })
 function setup() {
@@ -78,6 +90,16 @@ function view() {
     } }
 }
 const bounds = { x: 10, y: 20, width: 800, height: 600 }
+
+it('retains owner listeners and views untouched when persistent storage cannot be prepared', async () => {
+  const { manager, owner } = setup()
+  writeFileSync(join(state.sessionData, 'p'), 'blocked storage parent')
+  await expect(manager.open(owner, 'usage', bounds)).rejects.toThrow()
+  expect(state.views).toHaveLength(0)
+  expect(owner.listenerCount('closed')).toBe(0)
+  expect(owner.webContents.listenerCount('did-start-navigation')).toBe(0)
+  await manager.dispose()
+})
 
 it('bootstraps only the owned main frame and never puts the token in a URL', async () => {
   const { manager, owner } = setup()
@@ -353,7 +375,7 @@ it('reuses persistent storage across closes, token replacement, and manager recr
   const { manager, owner } = setup()
   await manager.open(owner, 'usage', bounds)
   const first = browserSession()
-  expect(first.partition).toMatch(/^persist:dsh-platform-[a-f0-9]{64}$/)
+  expect(first.partition).toMatch(/[/\\]p[/\\][A-Za-z0-9_-]{43}$/)
   expect(first.partition).not.toContain('fixture-user')
   expect(first.partition).not.toContain('fixture-secret')
   manager.close()

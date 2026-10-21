@@ -11,8 +11,9 @@ import {
 import { connectFreshWorkspaceZh, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
 const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
+const LEGACY_XIAOJING_DIR = fileURLToPath(new URL('./expected/deepseek-messages-chat-xiaojing', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL(WINDOWS_XIAOJING
-  ? './expected/deepseek-messages-chat-xiaojing'
+  ? '../../../snapshots/web/xiaojing-deepseek-messages-chat-033'
   : '../../../snapshots/web/deepseek-messages-chat', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl')
 const MODE = webSnapshotMode()
@@ -68,12 +69,17 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek Messages conversation', ()
     const session = scaffold.ctx.sessions.get(sessionId)!
     expect(session.requestHeader()?.config.provider).toBe('deepseek-messages')
     await page.getByText('MESSAGES_WEB_READY', { exact: true }).waitFor()
-    await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'ui.expected.md'),
-      await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), MODE)
+    await compareOrRefreshGolden(join(WINDOWS_XIAOJING ? LEGACY_XIAOJING_DIR : SNAPSHOT_DIR, 'ui.expected.md'),
+      await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd), WINDOWS_XIAOJING ? 'replay' : MODE)
     expect(tripwire.pageErrors).toEqual([])
   })
 
   it('keeps the recorded-session inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, [WINDOWS_XIAOJING ? 'session.v4.jsonl' : 'session.v3.jsonl', 'ui.expected.md'])
+    if (WINDOWS_XIAOJING) {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v4.jsonl'])
+      await assertFixtureInventory(LEGACY_XIAOJING_DIR, ['session.v4.jsonl', 'ui.expected.md'])
+    } else {
+      await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'ui.expected.md'])
+    }
   })
 })

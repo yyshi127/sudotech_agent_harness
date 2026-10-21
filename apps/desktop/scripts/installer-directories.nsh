@@ -9,7 +9,9 @@ Var dshDirectoryError
 Var dshDirectorySource
 Var dshDirectoryDestination
 Var dshRestoreError
+!ifdef DSH_INSTALLER_LOG_DIR
 Var dshDirectoryLogDirectory
+!endif
 Var dshRecoveryStopped
 
 ; MoveFileEx preserves the destination and exposes the Windows error before rollback changes it.

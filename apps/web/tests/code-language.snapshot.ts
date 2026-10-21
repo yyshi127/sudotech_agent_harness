@@ -13,8 +13,10 @@ import { XIAOJING_REPLAY_PROVIDERS } from './xiaojing-replay-catalog.ts'
 
 const WINDOWS_XIAOJING = webClientProfile() === 'xiaojing' && process.platform === 'win32'
 const DIR = fileURLToPath(new URL(WINDOWS_XIAOJING
-  ? './expected/code-language-xiaojing'
+  ? '../../../snapshots/web/xiaojing-code-language-033'
   : '../../../snapshots/web/code-language', import.meta.url))
+const EXPECTED_DIR = WINDOWS_XIAOJING
+  ? fileURLToPath(new URL('./expected/code-language-xiaojing-033', import.meta.url)) : DIR
 const FIXTURE = join(DIR, 'session.v4.jsonl')
 const MODE = webSnapshotMode()
 const FILES = [
@@ -86,6 +88,16 @@ it('replays highlighted Python stubs, PowerShell and CSV reads with their docume
         await expect.poll(() => viewer.innerText()).toBe('Spreadsheet')
         await preview.locator('[data-excel-preview] canvas').first().waitFor()
         expect(await preview.locator('[data-excel-preview] canvas').first().isVisible(), 'table.csv: Spreadsheet visible').toBe(true)
+        const excel = preview.locator('[data-excel-preview]')
+        await excel.locator('.fortune-sheet-overlay').click({ position: { x: 70, y: 30 } })
+        for (const [key, cell, value] of [
+          ['', 'A1', 'name'], ['ArrowDown', 'A2', 'apples'],
+          ['ArrowRight', 'B2', '12'], ['ArrowDown', 'B3', '7'],
+        ] as const) {
+          if (key !== '') await page.keyboard.press(key)
+          await expect.poll(() => excel.locator('.fortune-name-box').innerText()).toBe(cell)
+          await expect.poll(() => excel.locator('.fortune-fx-input').innerText()).toBe(value)
+        }
         await viewer.click()
         await page.getByRole('menuitem', { name: 'Code', exact: true }).click()
       }
@@ -96,7 +108,7 @@ it('replays highlighted Python stubs, PowerShell and CSV reads with their docume
       snapshots.push(`## Preview ${file.name}\n\n${await captureStableAria(page, '[data-code-preview]', scaffold.workspaceCwd)}`)
       await read.locator('[data-disclosure-row]').click()
     }
-    if (MODE !== 'record') await compareOrRefreshGolden(join(DIR, 'ui.expected.md'), snapshots.join('\n\n'), MODE)
+    if (MODE !== 'record') await compareOrRefreshGolden(join(EXPECTED_DIR, 'ui.expected.md'), snapshots.join('\n\n'), MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   } catch (error: unknown) {

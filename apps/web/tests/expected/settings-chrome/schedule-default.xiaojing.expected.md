@@ -1,4 +1,12 @@
-- listitem:
-  - button "查看 自动化任务": 自动化任务
-  - text: 实验性 按设定的时间或周期，在会话中自动执行任务。
-  - switch "启用 自动化任务" [checked]
+- region "自动化任务":
+  - heading "自动化任务" [level=1]
+  - button "新建"
+  - group "任务状态":
+    - button "全部" [pressed]
+    - button "已开启"
+    - button "已结束"
+  - searchbox "搜索任务"
+  - status:
+    - heading "还没有自动化任务，在会话中创建的任务会显示在这里" [level=2]
+    - button "新建自动化任务"
+  - list "任务列表"

@@ -24,10 +24,11 @@ import { openSettings, connectFreshWorkspace, expandOwningTurnProcess, newEnglis
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/turn-tail-actions', import.meta.url))
 const XIAOJING = webClientProfile() === 'xiaojing'
-const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-turn-tail-actions', import.meta.url))
-const PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/turn-tail-actions', import.meta.url))
+const LEGACY_XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/xiaojing-turn-tail-actions', import.meta.url))
+const LEGACY_PRODUCT_EXPECTED_DIR = fileURLToPath(new URL('./expected/turn-tail-actions', import.meta.url))
+const XIAOJING_SNAPSHOT_DIR = fileURLToPath(new URL('./expected/turn-tail-actions-xiaojing-033', import.meta.url))
 const FIXTURE = XIAOJING ? join(XIAOJING_SNAPSHOT_DIR, 'session.v4.jsonl') : join(SNAPSHOT_DIR, 'session.v3.jsonl')
-const expected = (name: string) => join(XIAOJING ? PRODUCT_EXPECTED_DIR : SNAPSHOT_DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
+const expected = (name: string) => join(XIAOJING ? XIAOJING_SNAPSHOT_DIR : SNAPSHOT_DIR, `${name}${XIAOJING ? '.xiaojing' : ''}.expected.md`)
 // Three goldens for the same message: parked mid-turn, aborted, and completed.
 const RUNNING_EXPECTED = expected('running')
 const SETTLED_EXPECTED = expected('settled')
@@ -360,10 +361,12 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
       ],
     )
     if (XIAOJING) {
-      await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
-      await assertFixtureInventory(PRODUCT_EXPECTED_DIR, [
+      const uiFiles = [
         'completed', 'focused', 'running', 'settled', 'usage-expanded',
-      ].map(name => `${name}.xiaojing.expected.md`))
+      ].map(name => `${name}.xiaojing.expected.md`)
+      await assertFixtureInventory(XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl', ...uiFiles])
+      await assertFixtureInventory(LEGACY_XIAOJING_SNAPSHOT_DIR, ['session.v4.jsonl'])
+      await assertFixtureInventory(LEGACY_PRODUCT_EXPECTED_DIR, uiFiles)
     }
   })
 })

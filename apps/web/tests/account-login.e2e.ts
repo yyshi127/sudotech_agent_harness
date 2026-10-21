@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
-import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
+import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webClientProfile, webSnapshotMode, type WebScaffold } from './scaffold.ts'
 import { saveFailureShot } from './support.ts'
 
 const OVERLAY_TEMPLATE = fileURLToPath(new URL('./fixtures/account-login/cordis.patch.yml', import.meta.url))
@@ -96,7 +96,8 @@ async function mockPlatform() {
   }
 }
 
-describe.skipIf(MODE === 'record')('web e2e: DeepSeek account sign-in in a plain browser', () => {
+// Xiaojing's ui-settings-account entry omits the official Account launcher and Settings page.
+describe.skipIf(MODE === 'record' || webClientProfile() === 'xiaojing')('web e2e: DeepSeek account sign-in in a plain browser', () => {
   let root: string | undefined
   let scaffold: WebScaffold
   let browser: Browser
